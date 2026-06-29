@@ -15,7 +15,6 @@ start-live.bat
 stop-live.bat
 setup-ssl.sh
 *.md
-*.png
 *.xlsx
 update_pw.sql
 entrypoint.sh
