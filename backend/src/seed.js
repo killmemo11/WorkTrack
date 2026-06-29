@@ -21,46 +21,6 @@ async function seed() {
     );
   }
 
-  // --- v35: hr_permissions table ---
-  const [hrPermTable] = await pool.query(
-    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'hr_permissions'",
-    [process.env.DB_NAME]
-  );
-  if (hrPermTable.length === 0) {
-    await pool.query(
-      `CREATE TABLE hr_permissions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        employee_id INT NOT NULL,
-        permission_key VARCHAR(100) NOT NULL,
-        granted_by INT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-        FOREIGN KEY (granted_by) REFERENCES employees(id) ON DELETE SET NULL,
-        UNIQUE KEY unique_emp_perm (employee_id, permission_key)
-      )`
-    );
-    await pool.query('CREATE INDEX idx_hr_perms_employee ON hr_permissions(employee_id)');
-    console.log('Migration: created hr_permissions table');
-  }
-
-  // Grant default permissions for all HR department employees
-  const [hrDept] = await pool.query("SELECT id FROM departments WHERE name = 'HR' LIMIT 1");
-  if (hrDept.length > 0) {
-    const [hrEmps] = await pool.query(
-      "SELECT e.id FROM employees e WHERE e.department_id = ? AND e.is_active = 1",
-      [hrDept[0].id]
-    );
-    const defaultPerms = ['hr:view:employees', 'hr:view:attendance'];
-    for (const emp of hrEmps) {
-      for (const perm of defaultPerms) {
-        await pool.query(
-          'INSERT IGNORE INTO hr_permissions (employee_id, permission_key) VALUES (?, ?)',
-          [emp.id, perm]
-        );
-      }
-    }
-  }
-
   // Create default settings if not exist
   const defaults = [
     ['smtp_host', ''],
@@ -1498,6 +1458,46 @@ async function seed() {
     await pool.query("ALTER TABLE department_titles ADD COLUMN `technical_skills` TEXT AFTER `qualifications`");
     await pool.query("ALTER TABLE department_titles ADD COLUMN `core_competencies` TEXT AFTER `technical_skills`");
     console.log('Migration: added job content columns to department_titles');
+  }
+
+  // --- v35: hr_permissions table ---
+  const [hrPermTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'hr_permissions'",
+    [process.env.DB_NAME]
+  );
+  if (hrPermTable.length === 0) {
+    await pool.query(
+      `CREATE TABLE hr_permissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id INT NOT NULL,
+        permission_key VARCHAR(100) NOT NULL,
+        granted_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+        FOREIGN KEY (granted_by) REFERENCES employees(id) ON DELETE SET NULL,
+        UNIQUE KEY unique_emp_perm (employee_id, permission_key)
+      )`
+    );
+    await pool.query('CREATE INDEX idx_hr_perms_employee ON hr_permissions(employee_id)');
+    console.log('Migration: created hr_permissions table');
+  }
+
+  // Grant default permissions for all HR department employees
+  const [hrDept] = await pool.query("SELECT id FROM departments WHERE name = 'HR' LIMIT 1");
+  if (hrDept.length > 0) {
+    const [hrEmps] = await pool.query(
+      "SELECT e.id FROM employees e WHERE e.department_id = ? AND e.is_active = 1",
+      [hrDept[0].id]
+    );
+    const defaultPerms = ['hr:view:employees', 'hr:view:attendance'];
+    for (const emp of hrEmps) {
+      for (const perm of defaultPerms) {
+        await pool.query(
+          'INSERT IGNORE INTO hr_permissions (employee_id, permission_key) VALUES (?, ?)',
+          [emp.id, perm]
+        );
+      }
+    }
   }
 
   // --- v48: tasks table (Task Tracking System) ---
