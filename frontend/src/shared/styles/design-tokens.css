@@ -1,0 +1,234 @@
+:root {
+  /* ============================
+     Colors
+     ============================ */
+
+  /* Primary / Brand */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-light: #f0f0ff;
+  --color-primary-ring: rgba(79, 70, 229, 0.15);
+
+  /* Section Accents */
+  --accent-recruitment: #2563eb;
+  --accent-people: #059669;
+  --accent-attendance: #7c3aed;
+
+  /* Dark Sidebar */
+  --sidebar-bg: #0f172a;
+  --sidebar-bg-old: #1a1a2e;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover-bg: #1e293b;
+  --sidebar-divider: #1e293b;
+  --sidebar-divider-old: rgba(255, 255, 255, 0.1);
+  --sidebar-footer-text: #64748b;
+  --sidebar-badge-bg: #334155;
+
+  /* Backgrounds */
+  --bg-body: #f0f2f5;
+  --bg-content: #f8fafc;
+  --bg-white: #ffffff;
+  --bg-table-header: #f8f9fa;
+  --bg-hover: #f0f0f0;
+  --bg-hover-light: #f9f9f9;
+
+  /* Text */
+  --text-body: #1a1a2e;
+  --text-heading: #333333;
+  --text-subtle: #666666;
+  --text-muted: #888888;
+  --text-faint: #999999;
+  --text-nav-inactive: #aaaaaa;
+  --text-nav-active: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #dddddd;
+  --text-label: #555555;
+  --text-placeholder: #94a3b8;
+  --text-topbar-title: #1e293b;
+
+  /* Borders */
+  --border-input: #dddddd;
+  --border-light: #eeeeee;
+  --border-card: #e5e7eb;
+  --border-topbar: #e2e8f0;
+  --border-table-header: #f0f0f0;
+
+  /* Status — Success */
+  --color-success: #22c55e;
+  --color-success-bg: #f0fdf4;
+  --color-success-text: #166534;
+  --badge-success-bg: #d1fae5;
+  --badge-success-text: #059669;
+
+  /* Status — Warning */
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-text: #92400e;
+  --badge-warning-bg: #fef3c7;
+  --badge-warning-text: #d97706;
+
+  /* Status — Danger */
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-bg: #fef2f2;
+  --color-danger-text: #991b1b;
+  --badge-danger-bg: #fce4ec;
+  --badge-danger-text: #c62828;
+
+  /* Status — Info */
+  --color-info: #3b82f6;
+  --color-info-bg: #eff6ff;
+  --color-info-text: #1e40af;
+  --badge-info-bg: #dbeafe;
+  --badge-info-text: #1d4ed8;
+
+  /* Misc Statuses */
+  --badge-admin-bg: #fef3c7;
+  --badge-admin-text: #d97706;
+  --badge-employee-bg: #dbeafe;
+  --badge-employee-text: #2563eb;
+  --badge-active-bg: #d1fae5;
+  --badge-active-text: #059669;
+  --badge-inactive-bg: #fce4ec;
+  --badge-inactive-text: #c62828;
+
+  /* Calendar */
+  --cal-office-bg: #f0fdf4;
+  --cal-office-text: #166534;
+  --cal-wfh-bg: #eff6ff;
+  --cal-wfh-text: #1e40af;
+  --cal-absent-bg: #fef2f2;
+  --cal-absent-text: #991b1b;
+  --cal-holiday-bg: #fef3c7;
+  --cal-holiday-text: #92400e;
+  --cal-off-bg: #f9fafb;
+  --cal-off-text: #bbbbbb;
+
+  /* Rate Badges */
+  --rate-good-bg: #f0fdf4;
+  --rate-good-text: #166534;
+  --rate-ok-bg: #fffbeb;
+  --rate-ok-text: #92400e;
+  --rate-bad-bg: #fef2f2;
+  --rate-bad-text: #991b1b;
+
+  /* Signout Row */
+  --row-signout-bg: #fffbeb;
+  --row-signout-hover: #fef3c7;
+
+  /* ============================
+     Typography
+     ============================ */
+
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  --font-mono: 'SF Mono', 'Consolas', 'Monaco', monospace;
+
+  --text-xxs: 0.65rem;   /* 10.4px */
+  --text-xs: 0.7rem;     /* 11.2px */
+  --text-sm: 0.75rem;    /* 12px */
+  --text-smi: 0.78rem;   /* 12.5px */
+  --text-base-s: 0.8rem; /* 12.8px */
+  --text-base: 0.85rem;  /* 13.6px */
+  --text-base-l: 0.9rem;  /* 14.4px */
+  --text-base-xl: 0.95rem; /* 15.2px */
+  --text-md: 1rem;        /* 16px */
+  --text-lg: 1.1rem;      /* 17.6px */
+  --text-xl: 1.5rem;      /* 24px */
+  --text-2xl: 1.8rem;     /* 28.8px */
+  --text-3xl: 2rem;       /* 32px */
+  --text-4xl: 4rem;       /* 64px */
+
+  /* ============================
+     Spacing (4px base)
+     ============================ */
+
+  --space-0: 0;
+  --space-05: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Semantic Aliases */
+  --padding-card: var(--space-4);
+  --padding-section: var(--space-6);
+  --padding-admin-content: var(--space-8);
+  --padding-modal: var(--space-8);
+  --padding-input: 10px 14px;
+  --gap-sm: var(--space-2);
+  --gap-md: var(--space-4);
+  --gap-lg: var(--space-6);
+
+  /* ============================
+     Border Radius
+     ============================ */
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 20px;
+  --radius-full: 50%;
+  --radius-circle: 50%;
+
+  /* ============================
+     Shadows
+     ============================ */
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-sm-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.32);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-focus: 0 0 0 3px var(--color-primary-ring);
+
+  /* ============================
+     Transitions
+     ============================ */
+
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-wider: 0.8s ease;
+
+  /* ============================
+     Layout
+     ============================ */
+
+  --sidebar-width: 240px;
+  --sidebar-width-new: 220px;
+  --sidebar-border-radius: 8px;
+  --topbar-height: 56px;
+  --topbar-height-old: 60px;
+  --navbar-height: 60px;
+  --admin-content-max: 1600px;
+  --content-max: 960px;
+  --login-card-width: 400px;
+
+  /* ============================
+     Z-Index
+     ============================ */
+
+  --z-navbar: 100;
+  --z-sidebar: 1;
+  --z-modal: 200;
+  --z-dropdown: 9999;
+  --z-toast: 9999;
+
+  /* ============================
+     Sizes
+     ============================ */
+
+  --logo-size-navbar: 36px;
+  --logo-size-sidebar-old: 32px;
+  --logo-size-sidebar-new: 28px;
+  --avatar-size: 40px;
+  --avatar-size-sm: 32px;
+}

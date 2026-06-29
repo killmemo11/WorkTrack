@@ -1,0 +1,25 @@
+{
+  "name": "wfh-attendance-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "author": "Mohamed Yehia",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-quill": "^2.0.0",
+    "react-router-dom": "^6.23.0",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^5.4.0"
+  }
+}

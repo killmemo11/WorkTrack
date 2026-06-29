@@ -1,0 +1,3 @@
+ALTER TABLE admin_users ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER password_hash;
+
+ALTER TABLE employees ADD COLUMN is_system TINYINT(1) NOT NULL DEFAULT 0 AFTER role;

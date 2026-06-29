@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+*.log
+mysql_data/
+certbot/
+storage/
+
+# غير ضروري للسيرفر
+Dockerfile
+docker-compose.yml
+jest.config.js
+tests/
+start-live.bat
+stop-live.bat
+setup-ssl.sh
+*.md
+*.png
+*.xlsx
+update_pw.sql
+entrypoint.sh
+*.conf

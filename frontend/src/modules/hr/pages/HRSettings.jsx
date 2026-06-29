@@ -1,0 +1,829 @@
+// Copyright (c) 2026 Mohamed Yehia
+// SPDX-License-Identifier: AGPL-3.0
+
+import { useState, useEffect } from 'react';
+import hrApi from '../../../shared/api/hrApi';
+import HRLayout from '../../../shared/components/Layout/HRLayout';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
+
+export default function HRSettings() {
+  const [activeTab, setActiveTab] = useState('departments');
+
+  const [settings, setSettings] = useState({
+    work_week_start: 'Sunday', work_week_end: 'Thursday',
+    period_start_day: '15', period_end_day: '16',
+  });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const [departments, setDepartments] = useState([]);
+  const [deptForm, setDeptForm] = useState({ name: '', manager_email: '', c_level_email: '' });
+  const [editingDept, setEditingDept] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const [holidays, setHolidays] = useState([]);
+  const [holidayForm, setHolidayForm] = useState({ date: '', name: '' });
+  const [holidayDeleteConfirm, setHolidayDeleteConfirm] = useState(null);
+
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [lastReset, setLastReset] = useState(null);
+  const [editingLt, setEditingLt] = useState(null);
+  const [resetConfirm, setResetConfirm] = useState(false);
+
+  const [grades, setGrades] = useState([]);
+  const [gradeForm, setGradeForm] = useState({ grade_level: '', name: '', description: '', min_salary: '', max_salary: '' });
+  const [editingGrade, setEditingGrade] = useState(null);
+  const [gradeDeleteConfirm, setGradeDeleteConfirm] = useState(null);
+
+
+  const [ceoEmail, setCeoEmail] = useState('');
+
+  const [company, setCompany] = useState({
+    company_name: '', company_address: '', company_representative: '', company_representative_title: '',
+    company_phone: '', company_fax: '', company_commercial_register: '', company_tax_card: '',
+  });
+  const [companySaving, setCompanySaving] = useState(false);
+
+  const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  useEffect(() => {
+    hrApi.get('/settings/work-week').then((res) => {
+      setSettings((prev) => ({ ...prev, ...res.data }));
+      setCeoEmail(res.data.ceo_email || '');
+    }).catch(() => {});
+    hrApi.get('/settings/company').then((res) => {
+      setCompany((prev) => ({ ...prev, ...res.data }));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'departments') fetchDepartments();
+    if (activeTab === 'holidays') fetchHolidays();
+    if (activeTab === 'leave-types') fetchLeaveTypes();
+    if (activeTab === 'grades') fetchGrades();
+  }, [activeTab]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await hrApi.get('/departments');
+      setDepartments(res.data);
+    } catch (err) { console.error('Failed to load departments:', err); }
+  };
+
+  const handleAddDept = async () => {
+    if (!deptForm.name.trim()) return;
+    try {
+      await hrApi.post('/departments', deptForm);
+      setDeptForm({ name: '', manager_email: '', c_level_email: '' });
+      setMessage('Department added');
+      fetchDepartments();
+    } catch { setMessage('Failed to add department'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleEditDept = async () => {
+    if (!editingDept) return;
+    try {
+      await hrApi.put(`/departments/${editingDept.id}`, editingDept);
+      setMessage('Department updated');
+      setEditingDept(null);
+      fetchDepartments();
+    } catch { setMessage('Failed to update department'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleDeleteDept = async (dept) => {
+    try {
+      await hrApi.delete(`/departments/${dept.id}`);
+      setMessage(`Department "${dept.name}" deleted`);
+      fetchDepartments();
+    } catch { setMessage('Failed to delete department'); }
+    setDeleteConfirm(null);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const fetchHolidays = async () => {
+    try {
+      const res = await hrApi.get('/holidays');
+      setHolidays(res.data);
+    } catch (err) { console.error('Failed to load holidays:', err); }
+  };
+
+  const handleAddHoliday = async () => {
+    if (!holidayForm.date) return;
+    try {
+      await hrApi.post('/holidays', holidayForm);
+      setHolidayForm({ date: '', name: '' });
+      setMessage('Holiday added');
+      fetchHolidays();
+    } catch (err) {
+      setMessage('Failed to add holiday: ' + (err.response?.data?.error || err.message));
+    }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleDeleteHoliday = async (holiday) => {
+    try {
+      await hrApi.delete(`/holidays/${holiday.id}`);
+      setMessage(`Holiday "${holiday.name || holiday.date}" deleted`);
+      fetchHolidays();
+    } catch { setMessage('Failed to delete holiday'); }
+    setHolidayDeleteConfirm(null);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const fetchLeaveTypes = async () => {
+    try {
+      const res = await hrApi.get('/leave-types');
+      setLeaveTypes(res.data.types || []);
+      setLastReset(res.data.last_reset || null);
+    } catch (err) { console.error('Failed to load leave types:', err); }
+  };
+
+  const handleSaveLeaveType = async (lt) => {
+    try {
+      await hrApi.put(`/leave-types/${lt.id}`, {
+        label: lt.label, default_balance: lt.default_balance, is_active: lt.is_active,
+      });
+      setMessage('Leave type updated');
+      setEditingLt(null);
+      fetchLeaveTypes();
+    } catch (err) {
+      setMessage('Failed: ' + (err.response?.data?.error || err.message));
+    }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleResetBalances = async () => {
+    try {
+      await hrApi.post('/leave-balances/reset');
+      setMessage('All balances reset to defaults');
+      setLastReset(new Date().toISOString());
+    } catch { setMessage('Failed to reset balances'); }
+    setResetConfirm(false);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const fetchGrades = async () => {
+    try {
+      const res = await hrApi.get('/grades');
+      setGrades(res.data);
+    } catch (err) { console.error('Failed to load grades:', err); }
+  };
+
+  const handleAddGrade = async () => {
+    if (!gradeForm.grade_level || !gradeForm.name) return;
+    try {
+      await hrApi.post('/grades', {
+        grade_level: parseInt(gradeForm.grade_level),
+        name: gradeForm.name,
+        description: gradeForm.description || null,
+        min_salary: gradeForm.min_salary ? parseFloat(gradeForm.min_salary) : null,
+        max_salary: gradeForm.max_salary ? parseFloat(gradeForm.max_salary) : null,
+      });
+      setGradeForm({ grade_level: '', name: '', description: '', min_salary: '', max_salary: '' });
+      setMessage('Grade added');
+      fetchGrades();
+    } catch { setMessage('Failed to add grade'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleEditGrade = async () => {
+    if (!editingGrade) return;
+    try {
+      await hrApi.put(`/grades/${editingGrade.id}`, {
+        grade_level: parseInt(editingGrade.grade_level),
+        name: editingGrade.name,
+        description: editingGrade.description || null,
+        min_salary: editingGrade.min_salary ? parseFloat(editingGrade.min_salary) : null,
+        max_salary: editingGrade.max_salary ? parseFloat(editingGrade.max_salary) : null,
+      });
+      setMessage('Grade updated');
+      setEditingGrade(null);
+      fetchGrades();
+    } catch { setMessage('Failed to update grade'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleDeleteGrade = async (grade) => {
+    try {
+      await hrApi.delete(`/grades/${grade.id}`);
+      setMessage(`Grade "${grade.name}" deleted`);
+      fetchGrades();
+    } catch { setMessage('Failed to delete grade'); }
+    setGradeDeleteConfirm(null);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+
+
+  const handleSaveWorkWeek = async () => {
+    setSaving(true);
+    try {
+      await hrApi.put('/settings/work-week', {
+        work_week_start: settings.work_week_start,
+        work_week_end: settings.work_week_end,
+        period_start_day: settings.period_start_day,
+        period_end_day: settings.period_end_day,
+      });
+      setMessage('Work week settings saved');
+    } catch { setMessage('Failed to save'); }
+    setSaving(false);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  return (
+    <HRLayout>
+      <div className="page">
+        <h1>HR Settings</h1>
+        <p className="subtitle">Configure departments, holidays, and leave types</p>
+
+        {message && <div className={`alert ${message.toLowerCase().includes('failed') ? 'alert-error' : 'alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
+
+        <div className="settings-tabs">
+          <button className={`settings-tab ${activeTab === 'company' ? 'active' : ''}`} onClick={() => setActiveTab('company')}>Company</button>
+          <button className={`settings-tab ${activeTab === 'departments' ? 'active' : ''}`} onClick={() => setActiveTab('departments')}>Departments</button>
+          <button className={`settings-tab ${activeTab === 'holidays' ? 'active' : ''}`} onClick={() => setActiveTab('holidays')}>Holidays & Work Week</button>
+          <button className={`settings-tab ${activeTab === 'leave-types' ? 'active' : ''}`} onClick={() => setActiveTab('leave-types')}>Leave Types</button>
+          <button className={`settings-tab ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>Grades</button>
+        </div>
+
+        <div className="settings-form">
+          {activeTab === 'company' && (
+            <>
+              <div className="settings-section-title">Company Information</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                This information is used when generating contracts and official documents.
+              </p>
+              <div className="settings-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <label>
+                  Company Name
+                  <input className="form-control" style={{width:'100%'}} value={company.company_name}
+                    onChange={e => setCompany({...company, company_name: e.target.value})} placeholder="Company name" />
+                </label>
+                <label>
+                  Phone
+                  <input className="form-control" style={{width:'100%'}} value={company.company_phone}
+                    onChange={e => setCompany({...company, company_phone: e.target.value})} placeholder="+20 2 1234 5678" />
+                </label>
+                <label>
+                  Fax
+                  <input className="form-control" style={{width:'100%'}} value={company.company_fax}
+                    onChange={e => setCompany({...company, company_fax: e.target.value})} placeholder="+20 2 1234 5679" />
+                </label>
+                <label>
+                  Commercial Register
+                  <input className="form-control" style={{width:'100%'}} value={company.company_commercial_register}
+                    onChange={e => setCompany({...company, company_commercial_register: e.target.value})} placeholder="رقم السجل التجاري" />
+                </label>
+                <label>
+                  Tax Card
+                  <input className="form-control" style={{width:'100%'}} value={company.company_tax_card}
+                    onChange={e => setCompany({...company, company_tax_card: e.target.value})} placeholder="رقم البطاقة الضريبية" />
+                </label>
+                <label>
+                  Company Representative
+                  <input className="form-control" style={{width:'100%'}} value={company.company_representative}
+                    onChange={e => setCompany({...company, company_representative: e.target.value})} placeholder="اسم الممثل القانوني" />
+                </label>
+                <label>
+                  Representative Title
+                  <input className="form-control" style={{width:'100%'}} value={company.company_representative_title}
+                    onChange={e => setCompany({...company, company_representative_title: e.target.value})} placeholder="رئيس مجلس الإدارة / المدير العام" />
+                </label>
+              </div>
+              <label style={{gridColumn: '1 / -1'}}>
+                Company Address
+                <textarea className="form-control" rows={3} style={{width:'100%', resize:'vertical'}} value={company.company_address}
+                  onChange={e => setCompany({...company, company_address: e.target.value})} placeholder="عنوان الشركة" />
+              </label>
+              <div className="settings-actions">
+                <button className="btn btn-primary" disabled={companySaving} onClick={async () => {
+                  setCompanySaving(true);
+                  try {
+                    await hrApi.put('/settings/company', company);
+                    setMessage('Company settings saved');
+                  } catch { setMessage('Failed to save company settings'); }
+                  setCompanySaving(false);
+                  setTimeout(() => setMessage(''), 3000);
+                }}>{companySaving ? 'Saving...' : 'Save Company Info'}</button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'departments' && (
+            <>
+              <div className="settings-section-title">Company CEO</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                The CEO oversees all departments and can approve any manager's leave requests across the entire company.
+              </p>
+              <div style={{ maxWidth: 400, marginBottom: 24 }}>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>CEO Email</span>
+                  <input type="email" className="form-control" value={ceoEmail}
+                    onChange={(e) => setCeoEmail(e.target.value)}
+                    placeholder="ceo@company.com" style={{ width: '100%' }} />
+                </label>
+                <button className="btn btn-primary" onClick={async () => {
+                  try {
+                    await hrApi.put('/settings/work-week', { ceo_email: ceoEmail });
+                    setMessage('CEO email saved');
+                  } catch { setMessage('Failed to save CEO email'); }
+                  setTimeout(() => setMessage(''), 3000);
+                }} style={{ marginTop: 8 }}>Save CEO</button>
+              </div>
+
+              <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+              <div className="settings-section-title">Manage Departments</div>
+
+              <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button className="btn btn-sm btn-primary" onClick={async () => {
+                  try {
+                    const res = await hrApi.get('/departments/template', { responseType: 'blob' });
+                    const url = window.URL.createObjectURL(new Blob([res.data]));
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'departments_template.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch { setMessage('Failed to download template'); setTimeout(() => setMessage(''), 3000); }
+                }}>Download Template</button>
+                <button className="btn btn-sm btn-primary" style={{ position: 'relative', overflow: 'hidden' }}
+                  onClick={() => document.getElementById('excel-import-input').click()}>
+                  Import from Excel
+                  <input id="excel-import-input" type="file" accept=".xlsx,.xls" style={{ position: 'absolute', left: '-9999px' }}
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const token = localStorage.getItem('hrToken');
+                        const res = await fetch('/api/hr/departments/import', {
+                          method: 'POST',
+                          headers: token ? { Authorization: `Bearer ${token}` } : {},
+                          body: formData,
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw { response: { data } };
+                        let msg = data.message;
+                        if (data.errors && data.errors.length > 0) {
+                          msg += '\n' + data.errors.join('\n');
+                        }
+                        setMessage(msg);
+                        fetchDepartments();
+                      } catch (err) {
+                        setMessage(err.response?.data?.error || 'Import failed');
+                      }
+                      e.target.value = '';
+                      setTimeout(() => setMessage(''), 15000);
+                    }} />
+                </button>
+              </div>
+
+              <div className="table-wrapper" style={{ marginBottom: 24 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{width: 60}}>ID</th>
+                      <th>Name</th>
+                      <th>Manager Email</th>
+                      <th>C-Level Email</th>
+                      <th style={{width: 160}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {departments.length === 0 && (
+                      <tr><td colSpan={5} className="empty-state">No departments yet. Add one below.</td></tr>
+                    )}
+                    {departments.map((dept) => (
+                      <tr key={dept.id}>
+                        {editingDept?.id === dept.id ? (
+                          <>
+                            <td className="cell-mono">{dept.id}</td>
+                            <td>
+                              <input type="text" className="form-control" style={{width:'100%'}}
+                                value={editingDept.name}
+                                onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="email" className="form-control" style={{width:'100%'}}
+                                value={editingDept.manager_email}
+                                onChange={(e) => setEditingDept({ ...editingDept, manager_email: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="email" className="form-control" style={{width:'100%'}}
+                                value={editingDept.c_level_email || ''}
+                                onChange={(e) => setEditingDept({ ...editingDept, c_level_email: e.target.value })} />
+                            </td>
+                            <td>
+                              <div className="dept-table-actions">
+                                <button className="btn btn-sm btn-primary" onClick={handleEditDept}>Save</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept(null)}>Cancel</button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="cell-mono">{dept.id}</td>
+                            <td><strong>{dept.name}</strong></td>
+                            <td>{dept.manager_email || <span style={{color:'#999'}}>—</span>}</td>
+                            <td>{dept.c_level_email || <span style={{color:'#999'}}>—</span>}</td>
+                            <td>
+                              <div className="dept-table-actions">
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '' })}>Edit</button>
+                                <button className="btn btn-sm btn-danger" onClick={() => setDeleteConfirm(dept)}>Delete</button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Department</div>
+              <div className="dept-add-form">
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Department Name</span>
+                  <input type="text" className="form-control" style={{width:'100%'}}
+                    value={deptForm.name}
+                    onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
+                    placeholder="e.g. Marketing" />
+                </label>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Manager Email</span>
+                  <input type="email" className="form-control" style={{width:'100%'}}
+                    value={deptForm.manager_email}
+                    onChange={(e) => setDeptForm({ ...deptForm, manager_email: e.target.value })}
+                    placeholder="manager@company.com" />
+                </label>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>C-Level Email</span>
+                  <input type="email" className="form-control" style={{width:'100%'}}
+                    value={deptForm.c_level_email}
+                    onChange={(e) => setDeptForm({ ...deptForm, c_level_email: e.target.value })}
+                    placeholder="ceo@company.com" />
+                </label>
+                <button className="btn btn-primary" onClick={handleAddDept} disabled={!deptForm.name.trim()} style={{marginBottom:4}}>
+                  Add Department
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'holidays' && (
+            <>
+              <div className="settings-section-title">Work Week</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                Set which days are work days. Any work day without an attendance record will be counted as absence.
+              </p>
+              <div className="settings-grid">
+                <label>
+                  Work Week Start Day
+                  <select className="form-control" value={settings.work_week_start}
+                    onChange={(e) => setSettings({ ...settings, work_week_start: e.target.value })} style={{width:'100%'}}>
+                    {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Work Week End Day
+                  <select className="form-control" value={settings.work_week_end}
+                    onChange={(e) => setSettings({ ...settings, work_week_end: e.target.value })} style={{width:'100%'}}>
+                    {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="settings-actions">
+                <button className="btn btn-primary" onClick={handleSaveWorkWeek} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+
+              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+              <div className="settings-section-title">Attendance Period</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                The attendance month runs from day {settings.period_start_day} of the previous month to day {settings.period_end_day} of the current month.
+              </p>
+              <div className="settings-grid">
+                <label>
+                  Period Start Day (of previous month)
+                  <input type="number" className="form-control" value={settings.period_start_day}
+                    onChange={(e) => setSettings({ ...settings, period_start_day: e.target.value })}
+                    min={1} max={28} style={{width:'100%'}} />
+                </label>
+                <label>
+                  Period End Day (of current month)
+                  <input type="number" className="form-control" value={settings.period_end_day}
+                    onChange={(e) => setSettings({ ...settings, period_end_day: e.target.value })}
+                    min={1} max={28} style={{width:'100%'}} />
+                </label>
+              </div>
+
+              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+              <div className="settings-section-title">Official Holidays</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                These dates will be excluded from absence calculations.
+              </p>
+
+              <div className="table-wrapper" style={{ marginBottom: 24 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{width: 60}}>ID</th>
+                      <th>Date</th>
+                      <th>Name</th>
+                      <th style={{width: 100}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {holidays.length === 0 && (
+                      <tr><td colSpan={4} className="empty-state">No holidays added yet.</td></tr>
+                    )}
+                    {holidays.map((h) => (
+                      <tr key={h.id}>
+                        <td className="cell-mono">{h.id}</td>
+                        <td>{h.date}</td>
+                        <td>{h.name || <span style={{color:'#999'}}>—</span>}</td>
+                        <td>
+                          <button className="btn btn-sm btn-danger" onClick={() => setHolidayDeleteConfirm(h)}>Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Holiday</div>
+              <div className="dept-add-form">
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Date</span>
+                  <input type="date" className="form-control" style={{width:'100%'}}
+                    value={holidayForm.date}
+                    onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} />
+                </label>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Holiday Name</span>
+                  <input type="text" className="form-control" style={{width:'100%'}}
+                    value={holidayForm.name}
+                    onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
+                    placeholder="e.g. Eid al-Fitr" />
+                </label>
+                <button className="btn btn-primary" onClick={handleAddHoliday} disabled={!holidayForm.date} style={{marginBottom:4}}>
+                  Add Holiday
+                </button>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'leave-types' && (
+            <>
+              <div className="settings-section-title">Manage Leave Types</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                Configure leave type names and default balances. New employees receive the default balance for types that have one.
+              </p>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Label</th>
+                      <th>Default Balance</th>
+                      <th>Active</th>
+                      <th style={{width: 120}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaveTypes.length === 0 && (
+                      <tr><td colSpan={5} className="empty-state">No leave types found.</td></tr>
+                    )}
+                    {leaveTypes.map((lt) => (
+                      editingLt?.id === lt.id ? (
+                        <tr key={lt.id}>
+                          <td className="cell-mono">{lt.name}</td>
+                          <td>
+                            <input type="text" className="form-control" style={{width:'100%'}}
+                              value={editingLt.label}
+                              onChange={(e) => setEditingLt({ ...editingLt, label: e.target.value })} />
+                          </td>
+                          <td>
+                            <input type="number" className="form-control" style={{width:100}}
+                              value={editingLt.default_balance ?? ''}
+                              onChange={(e) => setEditingLt({ ...editingLt, default_balance: e.target.value !== '' ? parseFloat(e.target.value) : null })}
+                              step="0.5" min="0" placeholder="No balance" />
+                          </td>
+                          <td>
+                            <input type="checkbox" checked={!!editingLt.is_active}
+                              onChange={(e) => setEditingLt({ ...editingLt, is_active: e.target.checked ? 1 : 0 })} />
+                          </td>
+                          <td>
+                            <div className="action-btns">
+                              <button className="btn btn-sm btn-primary" onClick={() => handleSaveLeaveType(editingLt)}>Save</button>
+                              <button className="btn btn-sm btn-outline" onClick={() => setEditingLt(null)}>Cancel</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={lt.id}>
+                          <td className="cell-mono">{lt.name}</td>
+                          <td><strong>{lt.label}</strong></td>
+                          <td>{lt.default_balance !== null ? `${lt.default_balance} days` : <span style={{color:'#999'}}>—</span>}</td>
+                          <td>
+                            <span className={`badge ${lt.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                              {lt.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td>
+                            <button className="btn btn-sm btn-outline" onClick={() => setEditingLt({ ...lt })}>Edit</button>
+                          </td>
+                        </tr>
+                      )
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
+
+              <div className="settings-section-title">Reset All Balances</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 12 }}>
+                Reset all employees' leave balances to the default values configured above.
+                {lastReset && <span> Last reset: <strong>{new Date(lastReset).toLocaleDateString()}</strong></span>}
+              </p>
+              <button className="btn btn-danger" onClick={() => setResetConfirm(true)}>
+                Reset All Balances to Defaults
+              </button>
+            </>
+          )}
+
+          {activeTab === 'grades' && (
+            <>
+              <div className="settings-section-title">Manage Grades (Job Levels)</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                Define job grades/levels and their salary ranges. Grades are used to standardize positions and compensation across the organization.
+              </p>
+
+              <div className="table-wrapper" style={{ marginBottom: 24 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{width: 60}}>Level</th>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Min Salary</th>
+                      <th>Max Salary</th>
+                      <th style={{width: 140}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grades.length === 0 && (
+                      <tr><td colSpan={6} className="empty-state">No grades defined yet. Add one below.</td></tr>
+                    )}
+                    {grades.map((g) => (
+                      <tr key={g.id}>
+                        {editingGrade?.id === g.id ? (
+                          <>
+                            <td>
+                              <input type="number" className="form-control" style={{width:60}}
+                                value={editingGrade.grade_level}
+                                onChange={(e) => setEditingGrade({ ...editingGrade, grade_level: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="text" className="form-control" style={{width:'100%'}}
+                                value={editingGrade.name}
+                                onChange={(e) => setEditingGrade({ ...editingGrade, name: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="text" className="form-control" style={{width:'100%'}}
+                                value={editingGrade.description || ''}
+                                onChange={(e) => setEditingGrade({ ...editingGrade, description: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="number" className="form-control" style={{width:120}}
+                                value={editingGrade.min_salary || ''}
+                                onChange={(e) => setEditingGrade({ ...editingGrade, min_salary: e.target.value })} />
+                            </td>
+                            <td>
+                              <input type="number" className="form-control" style={{width:120}}
+                                value={editingGrade.max_salary || ''}
+                                onChange={(e) => setEditingGrade({ ...editingGrade, max_salary: e.target.value })} />
+                            </td>
+                            <td>
+                              <div className="action-btns">
+                                <button className="btn btn-sm btn-primary" onClick={handleEditGrade}>Save</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingGrade(null)}>Cancel</button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="cell-mono"><strong>Lv.{g.grade_level}</strong></td>
+                            <td><strong>{g.name}</strong></td>
+                            <td>{g.description || <span style={{color:'#999'}}>—</span>}</td>
+                            <td>{g.min_salary ? `${Number(g.min_salary).toLocaleString()}` : <span style={{color:'#999'}}>—</span>}</td>
+                            <td>{g.max_salary ? `${Number(g.max_salary).toLocaleString()}` : <span style={{color:'#999'}}>—</span>}</td>
+                            <td>
+                              <div className="action-btns">
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingGrade({ ...g, grade_level: String(g.grade_level) })}>Edit</button>
+                                <button className="btn btn-sm btn-danger" onClick={() => setGradeDeleteConfirm(g)}>Delete</button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Grade</div>
+              <div className="dept-add-form" style={{ flexWrap: 'wrap' }}>
+                <label style={{minWidth:80}}>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Level *</span>
+                  <input type="number" className="form-control" style={{width:'100%'}}
+                    value={gradeForm.grade_level}
+                    onChange={(e) => setGradeForm({ ...gradeForm, grade_level: e.target.value })}
+                    placeholder="1" min={1} />
+                </label>
+                <label style={{minWidth:150}}>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Name *</span>
+                  <input type="text" className="form-control" style={{width:'100%'}}
+                    value={gradeForm.name}
+                    onChange={(e) => setGradeForm({ ...gradeForm, name: e.target.value })}
+                    placeholder="e.g. Junior" />
+                </label>
+                <label style={{minWidth:200}}>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Description</span>
+                  <input type="text" className="form-control" style={{width:'100%'}}
+                    value={gradeForm.description}
+                    onChange={(e) => setGradeForm({ ...gradeForm, description: e.target.value })}
+                    placeholder="e.g. Entry level" />
+                </label>
+                <label style={{minWidth:120}}>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Min Salary</span>
+                  <input type="number" className="form-control" style={{width:'100%'}}
+                    value={gradeForm.min_salary}
+                    onChange={(e) => setGradeForm({ ...gradeForm, min_salary: e.target.value })}
+                    placeholder="0" />
+                </label>
+                <label style={{minWidth:120}}>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Max Salary</span>
+                  <input type="number" className="form-control" style={{width:'100%'}}
+                    value={gradeForm.max_salary}
+                    onChange={(e) => setGradeForm({ ...gradeForm, max_salary: e.target.value })}
+                    placeholder="0" />
+                </label>
+                <button className="btn btn-primary" onClick={handleAddGrade}
+                  disabled={!gradeForm.grade_level || !gradeForm.name} style={{marginBottom:4}}>
+                  Add Grade
+                </button>
+              </div>
+            </>
+          )}
+
+        </div>
+      </div>
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Delete Department"
+          message={`Delete "${deleteConfirm.name}"? Employees in this department will be unassigned.`}
+          onConfirm={() => handleDeleteDept(deleteConfirm)}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+      {holidayDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Holiday"
+          message={`Delete holiday "${holidayDeleteConfirm.name || holidayDeleteConfirm.date}"? This will not affect existing attendance records.`}
+          onConfirm={() => handleDeleteHoliday(holidayDeleteConfirm)}
+          onCancel={() => setHolidayDeleteConfirm(null)}
+        />
+      )}
+      {resetConfirm && (
+        <ConfirmModal
+          title="Reset All Balances"
+          message="This will reset ALL employees' leave balances to the default values from Leave Types.\n\nThis action cannot be undone. Are you sure?"
+          confirmText="Reset Balances"
+          confirmClass="btn btn-danger"
+          onConfirm={handleResetBalances}
+          onCancel={() => setResetConfirm(false)}
+        />
+      )}
+      {gradeDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Grade"
+          message={`Delete grade "${gradeDeleteConfirm.name}" (Lv.${gradeDeleteConfirm.grade_level})? Employees assigned to this grade will have their grade unset.`}
+          onConfirm={() => handleDeleteGrade(gradeDeleteConfirm)}
+          onCancel={() => setGradeDeleteConfirm(null)}
+        />
+      )}
+    </HRLayout>
+  );
+}
