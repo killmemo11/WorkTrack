@@ -78,7 +78,7 @@ export default function Register() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-icon">📝</div>
+        <img src="/logo.png" alt="WorkTrack" className="login-icon-img" />
         <h1>Create Account</h1>
         <p>Register for WorkTrack</p>
         {error && <div className="alert alert-error" role="alert">{error}</div>}
