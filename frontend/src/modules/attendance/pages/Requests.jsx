@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/api';
 import LeaveFormModal from '../../../shared/components/LeaveFormModal';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
@@ -32,6 +32,24 @@ export default function Requests() {
   const [showForm, setShowForm] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
   const [showResignation, setShowResignation] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredLeaves = useMemo(() => {
+    return leaveData.leaves.filter((l) => {
+      if (statusFilter && l.status !== statusFilter) return false;
+      if (typeFilter && l.type !== typeFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchReason = l.reason && l.reason.toLowerCase().includes(q);
+        const matchType = typeLabels[l.type] && typeLabels[l.type].toLowerCase().includes(q);
+        const matchStatus = l.status.toLowerCase().includes(q);
+        if (!matchReason && !matchType && !matchStatus) return false;
+      }
+      return true;
+    });
+  }, [leaveData.leaves, statusFilter, typeFilter, searchQuery]);
 
   const fetchSignoutData = async () => {
     try {
@@ -92,7 +110,21 @@ export default function Requests() {
     return b ? b.balance : 0;
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return (
+    <div className="page">
+      <div className="page-header"><h1>Requests</h1></div>
+      <div className="tabs" style={{ marginBottom: 16 }}>
+        <div className="skeleton-tab" />
+        <div className="skeleton-tab" />
+      </div>
+      <div className="leave-balance-row">
+        {[1, 2, 3].map(i => <div key={i} className="skeleton-card" />)}
+      </div>
+      <div className="leave-card-grid">
+        {[1, 2, 3].map(i => <div key={i} className="skeleton-card" style={{ height: 140 }} />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="page">
@@ -199,62 +231,107 @@ export default function Requests() {
             </div>
           </div>
 
-          <div className="dashboard-stats-row" style={{ marginBottom: 24 }}>
-            {['annual', 'sick', 'casual'].map((type) => (
-              <div key={type} className="mini-stat-card" style={{ borderLeft: `4px solid ${type === 'annual' ? '#4f46e5' : type === 'sick' ? '#ef4444' : '#f59e0b'}` }}>
-                <div className="mini-stat-number">{getBalance(type)}</div>
-                <div className="mini-stat-label">{typeLabels[type]} Days Left</div>
-              </div>
-            ))}
+          <div className="leave-balance-row">
+            {['annual', 'sick', 'casual', 'personal', 'unpaid'].filter(t => getBalance(t) > 0 || ['annual', 'sick', 'casual'].includes(t)).map((type) => {
+              const colors = { annual: '#4f46e5', sick: '#ef4444', casual: '#f59e0b', personal: '#3b82f6', unpaid: '#6b7280' };
+              const icons = { annual: '☀️', sick: '💊', casual: '🎯', personal: '📋', unpaid: '📦' };
+              return (
+                <div key={type} className="leave-balance-card" data-type={type} style={{ '--card-accent': colors[type] }}>
+                  <div className="leave-balance-icon">{icons[type]}</div>
+                  <div className="leave-balance-info">
+                    <div className="leave-balance-number">{getBalance(type)}</div>
+                    <div className="leave-balance-label">{typeLabels[type]} Days Left</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Days</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaveData.leaves.length === 0 && (
-                  <tr><td colSpan={8} className="empty-state">No leave requests yet.</td></tr>
-                )}
-                {leaveData.leaves.map((l) => (
-                  <tr key={l.id}>
-                    <td><span className="badge badge-employee">{typeLabels[l.type] || l.type}</span></td>
-                    <td>{formatDate(l.start_date)}</td>
-                    <td>{formatDate(l.end_date)}</td>
-                    <td className="cell-mono">{l.days_count}</td>
-                    <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {l.reason || <span style={{ color: '#999' }}>—</span>}
-                    </td>
-                    <td>
-                      <span className="badge" style={{
-                        background: statusColors[l.status] + '20',
+          {(leaveData.leaves.length > 0 || statusFilter || typeFilter || searchQuery) && (
+            <div className="leave-filter-bar">
+              <div className="leave-filter-group">
+                <select className="form-control" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select className="form-control" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                  <option value="">All Types</option>
+                  {Object.entries(typeLabels).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <input className="form-control leave-filter-search" type="text" placeholder="Search by reason, type, status…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              {(statusFilter || typeFilter || searchQuery) && (
+                <button className="btn btn-sm btn-ghost" onClick={() => { setStatusFilter(''); setTypeFilter(''); setSearchQuery(''); }}>Clear</button>
+              )}
+            </div>
+          )}
+
+          {filteredLeaves.length === 0 ? (
+            <div className="leave-empty">
+              <div className="leave-empty-icon">📋</div>
+              <h3>{leaveData.leaves.length === 0 ? 'No leave requests yet' : 'No matching requests'}</h3>
+              <p>{leaveData.leaves.length === 0 ? 'Start by submitting your first leave request' : 'Try adjusting your filters'}</p>
+              {leaveData.leaves.length === 0 && <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginTop: 8 }}>+ New Leave Request</button>}
+            </div>
+          ) : (
+            <div className="leave-card-grid">
+              {filteredLeaves.map((l) => {
+                const typeColor = { annual: '#4f46e5', sick: '#ef4444', casual: '#f59e0b', personal: '#3b82f6', unpaid: '#6b7280' };
+                const now = new Date();
+                const end = new Date(l.end_date);
+                const isPast = end < now && l.status === 'pending';
+                return (
+                  <div key={l.id} className={`leave-card ${l.status} ${isPast ? 'overdue' : ''}`} style={{ '--card-accent': statusColors[l.status] }}>
+                    <div className="leave-card-top">
+                      <span className="leave-card-type" style={{ background: typeColor[l.type] + '18', color: typeColor[l.type] }}>
+                        {typeLabels[l.type] || l.type}
+                      </span>
+                      <span className="leave-card-status" style={{
+                        background: statusColors[l.status] + '18',
                         color: statusColors[l.status],
-                        border: `1px solid ${statusColors[l.status]}40`,
                       }}>
                         {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
                       </span>
-                    </td>
-                    <td className="cell-mono" style={{ fontSize: '0.8rem' }}>{formatDate(l.created_at)}</td>
-                    <td>
-                      {l.status === 'pending' && (
-                        <button className="btn btn-sm btn-danger" onClick={() => setConfirmId(l.id)}>Cancel</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <div className="leave-card-dates">
+                      <div className="leave-card-date-block">
+                        <span className="leave-card-date-label">From</span>
+                        <span className="leave-card-date-value">{formatDate(l.start_date)}</span>
+                      </div>
+                      <span className="leave-card-arrow">→</span>
+                      <div className="leave-card-date-block">
+                        <span className="leave-card-date-label">To</span>
+                        <span className="leave-card-date-value">{formatDate(l.end_date)}</span>
+                      </div>
+                      <div className="leave-card-days">
+                        <span className="leave-card-days-count">{l.days_count}</span>
+                        <span className="leave-card-days-label">{l.days_count === 1 ? 'day' : 'days'}</span>
+                      </div>
+                    </div>
+                    {l.reason && (
+                      <div className="leave-card-reason">
+                        <span className="leave-card-reason-label">Reason:</span>
+                        <span>{l.reason}</span>
+                      </div>
+                    )}
+                    <div className="leave-card-footer">
+                      <span className="leave-card-submitted">Submitted {formatDate(l.created_at)}</span>
+                      <div className="leave-card-actions">
+                        {l.status === 'pending' && (
+                          <button className="btn btn-sm btn-danger" onClick={() => setConfirmId(l.id)}>Cancel</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {showForm && (
             <LeaveFormModal onClose={() => setShowForm(false)} onCreated={() => { setShowForm(false); fetchLeaves(); }} balances={leaveData.balances} />
@@ -264,10 +341,11 @@ export default function Requests() {
             <ConfirmModal title="Cancel Leave Request" message="Cancel this leave request?" confirmText="Cancel Leave" onConfirm={() => handleCancelLeave(confirmId)} onCancel={() => setConfirmId(null)} />
           )}
 
-          {showResignation && (
-            <ResignationModal onClose={() => setShowResignation(false)} onSubmitted={() => { setShowResignation(false); alert('Resignation request submitted. Your manager will review it.'); }} />
-          )}
         </>
+      )}
+
+      {showResignation && (
+        <ResignationModal onClose={() => setShowResignation(false)} onSubmitted={() => { setShowResignation(false); alert('Resignation request submitted. Your manager will review it.'); }} />
       )}
     </div>
   );
