@@ -75,9 +75,8 @@ body {
 
 /* Layout */
 .main-content {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 32px 16px;
+  max-width: 100%;
+  padding: 32px 32px;
 }
 
 .page h1 {
