@@ -41,6 +41,10 @@ export default function Register() {
       setError('Password must be at least 6 characters');
       return;
     }
+    if (!form.department_id) {
+      setError('Please select a department');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -50,8 +54,8 @@ export default function Register() {
         email: form.email,
         username: form.username,
         password: form.password,
+        department_id: parseInt(form.department_id),
       };
-      if (form.department_id) body.department_id = parseInt(form.department_id);
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -125,9 +129,9 @@ export default function Register() {
             id="reg-department"
             value={form.department_id}
             onChange={(e) => handleChange('department_id', e.target.value)}
-            className="form-control" style={{ width: '100%', marginBottom: 12 }}
+            className="form-control" style={{ width: '100%', marginBottom: 12 }} required
           >
-            <option value="">Select Department (optional)</option>
+            <option value="">Select Department</option>
             {departments.map((dept) => (
               <option key={dept.id} value={dept.id}>{dept.name}</option>
             ))}
