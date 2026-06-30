@@ -25,7 +25,7 @@ async function getMyLeaves(req, res) {
     [employeeId]
   );
   const [balances] = await pool.query(
-    'SELECT * FROM leave_balances WHERE employee_id = ?',
+    'SELECT lb.*, lt.default_balance AS total FROM leave_balances lb JOIN leave_types lt ON lb.leave_type = lt.name WHERE lb.employee_id = ?',
     [employeeId]
   );
   res.json({ leaves: rows, balances });

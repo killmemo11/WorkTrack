@@ -21,7 +21,7 @@ function calcBusinessDays(start, end) {
   return count || 1;
 }
 
-export default function LeaveFormModal({ onClose, onCreated, balances }) {
+export default function LeaveFormModal({ onClose, onCreated, balances, pendingDays = [] }) {
   const [type, setType] = useState('annual');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -34,9 +34,23 @@ export default function LeaveFormModal({ onClose, onCreated, balances }) {
     return b ? b.balance : 0;
   };
 
+  const getBalanceTotal = (t) => {
+    const b = balances.find((b) => b.leave_type === t);
+    return b && b.total != null ? b.total : null;
+  };
+
+  const getPendingForType = (t) => {
+    return pendingDays.filter((l) => l.type === t).reduce((sum, l) => sum + parseFloat(l.days_count), 0);
+  };
+
   const needsApproval = type === 'annual' || type === 'casual';
   const needsBalance = ['annual', 'sick', 'casual'].includes(type);
   const daysCount = useMemo(() => calcBusinessDays(startDate, endDate), [startDate, endDate]);
+
+  const balance = getBalance(type);
+  const total = getBalanceTotal(type);
+  const pending = getPendingForType(type);
+  const lowBalance = needsBalance && balance <= 3 && balance > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,8 +102,19 @@ export default function LeaveFormModal({ onClose, onCreated, balances }) {
 
           {daysCount > 0 && (
             <div style={{ textAlign: 'center', padding: '8px 0 4px', fontSize: '0.85rem', color: '#666' }}>
-              <strong style={{ color: typeColors[type], fontSize: '1rem' }}>{daysCount}</strong> {daysCount === 1 ? 'day' : 'days'} total (
-              {needsApproval ? 'requires manager approval' : 'requires HR approval'})
+              <strong style={{ color: typeColors[type], fontSize: '1rem' }}>{daysCount}</strong> {daysCount === 1 ? 'day' : 'days'} total
+            </div>
+          )}
+
+          {needsBalance && pending > 0 && (
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600, padding: '2px 0 4px' }}>
+              You have {pending} pending {type} day{pending > 1 ? 's' : ''}
+            </div>
+          )}
+
+          {lowBalance && (
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#ef4444', fontWeight: 600, padding: '2px 0 4px' }}>
+              Low balance: only {balance} {type} day{balance > 1 ? 's' : ''} remaining
             </div>
           )}
 
@@ -99,6 +124,13 @@ export default function LeaveFormModal({ onClose, onCreated, balances }) {
               onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Optional reason…"
               style={{ width: '100%', resize: 'vertical', marginTop: 4 }} />
           </label>
+
+          <div style={{ fontSize: '0.78rem', color: '#888', padding: '8px 0 4px', lineHeight: 1.5 }}>
+            {needsApproval
+              ? 'This request will be sent to your department manager for approval.'
+              : 'This request will be sent to HR for approval.'}
+            {needsBalance && total != null && ` Your current ${typeLabels[type]} balance: ${balance} of ${total} days.`}
+          </div>
 
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>

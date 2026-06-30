@@ -110,6 +110,28 @@ export default function Requests() {
     return b ? b.balance : 0;
   };
 
+  const getBalanceTotal = (type) => {
+    const b = leaveData.balances.find((b) => b.leave_type === type);
+    return b && b.total != null ? b.total : null;
+  };
+
+  const getPendingDays = (type) => {
+    return leaveData.leaves
+      .filter((l) => l.type === type && l.status === 'pending')
+      .reduce((sum, l) => sum + parseFloat(l.days_count), 0);
+  };
+
+  const leaveCounts = useMemo(() => {
+    const all = filteredLeaves;
+    return {
+      total: all.length,
+      pending: all.filter((l) => l.status === 'pending').length,
+      approved: all.filter((l) => l.status === 'approved').length,
+      rejected: all.filter((l) => l.status === 'rejected').length,
+      cancelled: all.filter((l) => l.status === 'cancelled').length,
+    };
+  }, [filteredLeaves]);
+
   if (loading) return (
     <div className="page">
       <div className="page-header"><h1>Requests</h1></div>
@@ -234,10 +256,29 @@ export default function Requests() {
           <div className="dashboard-stats-row" style={{ marginBottom: 20 }}>
             {['annual', 'sick', 'casual'].map((type) => {
               const colors = { annual: '#4f46e5', sick: '#ef4444', casual: '#f59e0b' };
+              const balance = getBalance(type);
+              const total = getBalanceTotal(type);
+              const pending = getPendingDays(type);
+              const used = total != null ? Math.max(0, total - balance) : null;
+              const pct = total != null && total > 0 ? Math.min(100, Math.round(((total - balance) / total) * 100)) : 0;
               return (
-                <div key={type} className="mini-stat-card" style={{ borderTop: `4px solid ${colors[type]}`, padding: '16px 12px' }}>
-                  <div className="mini-stat-number" style={{ color: colors[type], fontSize: '1.6rem' }}>{getBalance(type)}</div>
-                  <div className="mini-stat-label">{typeLabels[type]} Days Left</div>
+                <div key={type} className="mini-stat-card" style={{ borderTop: `4px solid ${colors[type]}`, padding: '14px 14px', position: 'relative' }}>
+                  <div className="mini-stat-number" style={{ color: colors[type], fontSize: '1.4rem' }}>{balance}</div>
+                  <div className="mini-stat-label" style={{ fontSize: '0.7rem' }}>
+                    {total != null ? `${typeLabels[type]} — ${used} of ${total} used` : `${typeLabels[type]} Days Left`}
+                  </div>
+                  {total != null && (
+                    <div className="balance-progress" style={{ marginTop: 8 }}>
+                      <div className="balance-progress-bar">
+                        <div className="balance-progress-fill" style={{ width: `${pct}%`, background: colors[type] }} />
+                      </div>
+                    </div>
+                  )}
+                  {pending > 0 && (
+                    <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: 4, fontWeight: 600 }}>
+                      +{pending} day{pending > 1 ? 's' : ''} pending
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -274,6 +315,14 @@ export default function Requests() {
             </div>
           )}
 
+          <div className="summary-bar">
+            <span className="summary-item">Total: <strong>{leaveCounts.total}</strong></span>
+            <span className="summary-item" style={{ color: '#f59e0b' }}>Pending: <strong>{leaveCounts.pending}</strong></span>
+            <span className="summary-item" style={{ color: '#22c55e' }}>Approved: <strong>{leaveCounts.approved}</strong></span>
+            <span className="summary-item" style={{ color: '#ef4444' }}>Rejected: <strong>{leaveCounts.rejected}</strong></span>
+            <span className="summary-item" style={{ color: '#6b7280' }}>Cancelled: <strong>{leaveCounts.cancelled}</strong></span>
+          </div>
+
           <div className="table-wrapper">
             <table className="table">
               <thead>
@@ -288,8 +337,17 @@ export default function Requests() {
                 </tr>
               </thead>
               <tbody>
-                {filteredLeaves.length === 0 && (
-                  <tr><td colSpan={7} className="empty-state">{leaveData.leaves.length === 0 ? 'No leave requests yet.' : 'No matching requests.'}</td></tr>
+                {filteredLeaves.length === 0 && leaveData.leaves.length > 0 && (
+                  <tr><td colSpan={7} className="empty-state">No matching requests.</td></tr>
+                )}
+                {filteredLeaves.length === 0 && leaveData.leaves.length === 0 && (
+                  <tr><td colSpan={7} style={{ padding: 0, border: 0 }}>
+                    <div className="leave-empty-state">
+                      <div className="leave-empty-state-title">No leave requests yet</div>
+                      <div className="leave-empty-state-desc">Submit your first leave request to get started</div>
+                      <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
+                    </div>
+                  </td></tr>
                 )}
                 {filteredLeaves.map((l) => (
                   <tr key={l.id}>
@@ -321,7 +379,7 @@ export default function Requests() {
           </div>
 
           {showForm && (
-            <LeaveFormModal onClose={() => setShowForm(false)} onCreated={() => { setShowForm(false); fetchLeaves(); }} balances={leaveData.balances} />
+            <LeaveFormModal onClose={() => setShowForm(false)} onCreated={() => { setShowForm(false); fetchLeaves(); }} balances={leaveData.balances} pendingDays={leaveData.leaves.filter(l => l.status === 'pending')} />
           )}
 
           {confirmId && (
