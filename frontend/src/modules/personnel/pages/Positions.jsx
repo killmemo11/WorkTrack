@@ -25,11 +25,11 @@ export default function Positions() {
   const [hovered, setHovered] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [criteria, setCriteria] = useState([]);
-  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '' });
+  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '' });
+  const [addForm, setAddForm] = useState({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editTab, setEditTab] = useState('basic');
   const hoverRef = useRef(null);
@@ -50,7 +50,7 @@ export default function Positions() {
 
   const openEdit = async (t) => {
     setSelected(t);
-    setForm({ title: t.title, grade_id: t.grade_id || '', description: t.description || '', technical: !!t.technical, job_summary: t.job_summary || '', key_responsibilities: t.key_responsibilities || '', qualifications: t.qualifications || '', technical_skills: t.technical_skills || '', core_competencies: t.core_competencies || '' });
+    setForm({ title: t.title, grade_id: t.grade_id || '', description: t.description || '', technical: !!t.technical, job_summary: t.job_summary || '', key_responsibilities: t.key_responsibilities || '', qualifications: t.qualifications || '', technical_skills: t.technical_skills || '', core_competencies: t.core_competencies || '', max_headcount: t.max_headcount ?? '' });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
       setCriteria(res.data.length > 0 ? res.data : [{ criterion_name: '', weight: '' }]);
@@ -110,10 +110,11 @@ export default function Positions() {
         qualifications: addForm.qualifications || null,
         technical_skills: addForm.technical_skills || null,
         core_competencies: addForm.core_competencies || null,
+        max_headcount: addForm.max_headcount || 0,
       });
       setMsg('Title added');
       setShowAdd(false);
-      setAddForm({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '' });
+      setAddForm({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
       const res = await hrApi.get('/department-titles');
       setTitles(res.data);
     } catch (err) {
@@ -245,6 +246,12 @@ export default function Positions() {
                 onChange={e => setAddForm({ ...addForm, technical: e.target.checked })} />
               Technical Position
             </label>
+            <div className="form-group">
+              <label>Max Headcount</label>
+              <input className="form-control" type="number" min="0" value={addForm.max_headcount}
+                onChange={e => setAddForm({ ...addForm, max_headcount: e.target.value })}
+                placeholder="0 = unlimited" style={{ width: '100%' }} />
+            </div>
 
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
@@ -267,6 +274,7 @@ export default function Positions() {
           <div style={{ fontWeight: 600, marginBottom: 4 }}>{hovered.title}</div>
           {hovered.description && <div style={{ color: '#ccc', marginBottom: 4 }}>{hovered.description}</div>}
           {hovered.grade_name && <div>Grade: {hovered.grade_name} (Lv.{hovered.grade_level})</div>}
+          {hovered.max_headcount > 0 && <div>Max Headcount: {hovered.max_headcount}</div>}
         </div>
       )}
 
@@ -329,6 +337,12 @@ export default function Positions() {
                         <option value="">— None —</option>
                         {grades.map(g => <option key={g.id} value={g.id}>Grade {g.grade_level} — {g.name}</option>)}
                       </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontWeight: 600, fontSize: 13 }}>Max Headcount</label>
+                      <input className="form-control" type="number" min="0" value={form.max_headcount}
+                        onChange={e => setForm({ ...form, max_headcount: e.target.value })}
+                        placeholder="0 = unlimited" style={{ width: '100%' }} />
                     </div>
                   </div>
                   <div className="form-group" style={{ margin: 0 }}>

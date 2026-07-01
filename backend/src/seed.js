@@ -1546,6 +1546,42 @@ async function seed() {
     );
     console.log('Migration: created contacts table');
   }
+
+  // --- v50: add parent_department_id to departments (hierarchical structure) ---
+  const [parentDeptCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'departments' AND COLUMN_NAME = 'parent_department_id'",
+    [process.env.DB_NAME]
+  );
+  if (parentDeptCol.length === 0) {
+    await pool.query(
+      "ALTER TABLE departments ADD COLUMN parent_department_id INT DEFAULT NULL AFTER c_level_email, ADD FOREIGN KEY (parent_department_id) REFERENCES departments(id) ON DELETE SET NULL"
+    );
+    console.log('Migration: added parent_department_id to departments');
+  }
+
+  // --- v51: add max_headcount to departments ---
+  const [deptMaxCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'departments' AND COLUMN_NAME = 'max_headcount'",
+    [process.env.DB_NAME]
+  );
+  if (deptMaxCol.length === 0) {
+    await pool.query(
+      "ALTER TABLE departments ADD COLUMN max_headcount INT NOT NULL DEFAULT 0 AFTER parent_department_id"
+    );
+    console.log('Migration: added max_headcount to departments');
+  }
+
+  // --- v52: add max_headcount to department_titles ---
+  const [deptTitleMaxCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'department_titles' AND COLUMN_NAME = 'max_headcount'",
+    [process.env.DB_NAME]
+  );
+  if (deptTitleMaxCol.length === 0) {
+    await pool.query(
+      "ALTER TABLE department_titles ADD COLUMN max_headcount INT NOT NULL DEFAULT 0 AFTER core_competencies"
+    );
+    console.log('Migration: added max_headcount to department_titles');
+  }
 }
 
 module.exports = seed;

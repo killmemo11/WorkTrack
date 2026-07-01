@@ -18,7 +18,7 @@ export default function HRSettings() {
   const [message, setMessage] = useState('');
 
   const [departments, setDepartments] = useState([]);
-  const [deptForm, setDeptForm] = useState({ name: '', manager_email: '', c_level_email: '' });
+  const [deptForm, setDeptForm] = useState({ name: '', manager_email: '', c_level_email: '', parent_department_id: '', max_headcount: '' });
   const [editingDept, setEditingDept] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -75,7 +75,7 @@ export default function HRSettings() {
     if (!deptForm.name.trim()) return;
     try {
       await hrApi.post('/departments', deptForm);
-      setDeptForm({ name: '', manager_email: '', c_level_email: '' });
+      setDeptForm({ name: '', manager_email: '', c_level_email: '', parent_department_id: '', max_headcount: '' });
       setMessage('Department added');
       fetchDepartments();
     } catch { setMessage('Failed to add department'); }
@@ -391,6 +391,8 @@ export default function HRSettings() {
                     <tr>
                       <th style={{width: 60}}>ID</th>
                       <th>Name</th>
+                      <th>Parent Dept</th>
+                      <th>Max HC</th>
                       <th>Manager Email</th>
                       <th>C-Level Email</th>
                       <th style={{width: 160}}>Actions</th>
@@ -398,7 +400,7 @@ export default function HRSettings() {
                   </thead>
                   <tbody>
                     {departments.length === 0 && (
-                      <tr><td colSpan={5} className="empty-state">No departments yet. Add one below.</td></tr>
+                      <tr><td colSpan={7} className="empty-state">No departments yet. Add one below.</td></tr>
                     )}
                     {departments.map((dept) => (
                       <tr key={dept.id}>
@@ -409,6 +411,22 @@ export default function HRSettings() {
                               <input type="text" className="form-control" style={{width:'100%'}}
                                 value={editingDept.name}
                                 onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })} />
+                            </td>
+                            <td>
+                              <select className="form-control" style={{width:'100%'}}
+                                value={editingDept.parent_department_id || ''}
+                                onChange={(e) => setEditingDept({ ...editingDept, parent_department_id: e.target.value })}>
+                                <option value="">— None —</option>
+                                {departments.filter(d => d.id !== dept.id).map(d => (
+                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td>
+                              <input type="number" className="form-control" min="0" style={{width:80}}
+                                value={editingDept.max_headcount ?? ''}
+                                onChange={(e) => setEditingDept({ ...editingDept, max_headcount: e.target.value })}
+                                placeholder="0" />
                             </td>
                             <td>
                               <input type="email" className="form-control" style={{width:'100%'}}
@@ -431,11 +449,20 @@ export default function HRSettings() {
                           <>
                             <td className="cell-mono">{dept.id}</td>
                             <td><strong>{dept.name}</strong></td>
+                            <td style={{fontSize:'0.85rem',color:'#666'}}>
+                              {(() => {
+                                const parent = departments.find(d => d.id === dept.parent_department_id);
+                                return parent ? parent.name : <span style={{color:'#999'}}>—</span>;
+                              })()}
+                            </td>
+                            <td className="cell-mono">
+                              {dept.max_headcount > 0 ? dept.max_headcount : <span style={{color:'#999'}}>&infin;</span>}
+                            </td>
                             <td>{dept.manager_email || <span style={{color:'#999'}}>—</span>}</td>
                             <td>{dept.c_level_email || <span style={{color:'#999'}}>—</span>}</td>
                             <td>
                               <div className="dept-table-actions">
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '' })}>Edit</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '', parent_department_id: dept.parent_department_id || '', max_headcount: dept.max_headcount ?? '' })}>Edit</button>
                                 <button className="btn btn-sm btn-danger" onClick={() => setDeleteConfirm(dept)}>Delete</button>
                               </div>
                             </td>
@@ -455,6 +482,24 @@ export default function HRSettings() {
                     value={deptForm.name}
                     onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
                     placeholder="e.g. Marketing" />
+                </label>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Parent Department</span>
+                  <select className="form-control" style={{width:'100%'}}
+                    value={deptForm.parent_department_id}
+                    onChange={(e) => setDeptForm({ ...deptForm, parent_department_id: e.target.value })}>
+                    <option value="">— None (top-level) —</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Max Headcount</span>
+                  <input type="number" className="form-control" min="0" style={{width:'100%'}}
+                    value={deptForm.max_headcount}
+                    onChange={(e) => setDeptForm({ ...deptForm, max_headcount: e.target.value })}
+                    placeholder="0 = unlimited" />
                 </label>
                 <label>
                   <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Manager Email</span>

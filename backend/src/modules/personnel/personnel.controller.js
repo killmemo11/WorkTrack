@@ -809,11 +809,11 @@ async function getDepartmentTitles(req, res) {
 }
 
 async function createDepartmentTitle(req, res) {
-  const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
+  const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
   if (!department_id || !title) return res.status(400).json({ error: 'department_id and title are required' });
   const [result] = await pool.query(
-    'INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
+    'INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0]
   );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_created', `Created title: ${title}`);
   res.status(201).json({ id: result.insertId });
@@ -821,10 +821,10 @@ async function createDepartmentTitle(req, res) {
 
 async function updateDepartmentTitle(req, res) {
   const { id } = req.params;
-  const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
+  const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
   await pool.query(
-    'UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=? WHERE id=?',
-    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, id]
+    'UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=? WHERE id=?',
+    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, id]
   );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_updated', `Updated title #${id}`);
   res.json({ message: 'Department title updated' });
