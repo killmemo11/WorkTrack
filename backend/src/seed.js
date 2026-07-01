@@ -1582,6 +1582,40 @@ async function seed() {
     );
     console.log('Migration: added max_headcount to department_titles');
   }
+
+  // --- v53: add headcount_request_id to recruitment_jobs ---
+  const [rjHcReqIdCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'headcount_request_id'",
+    [process.env.DB_NAME]
+  );
+  if (rjHcReqIdCol.length === 0) {
+    await pool.query(
+      "ALTER TABLE recruitment_jobs ADD COLUMN `headcount_request_id` INT DEFAULT NULL AFTER `title_id`, ADD FOREIGN KEY (headcount_request_id) REFERENCES headcount_requests(id) ON DELETE SET NULL"
+    );
+    console.log('Migration: added headcount_request_id to recruitment_jobs');
+  }
+
+  // --- v54: multi-level approval columns for headcount_requests ---
+  const [hcManagerStatusCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'headcount_requests' AND COLUMN_NAME = 'manager_status'",
+    [process.env.DB_NAME]
+  );
+  if (hcManagerStatusCol.length === 0) {
+    await pool.query(
+      `ALTER TABLE headcount_requests
+       ADD COLUMN manager_status ENUM('pending','approved','rejected') DEFAULT 'pending' AFTER status,
+       ADD COLUMN reviewed_by_manager_id INT DEFAULT NULL AFTER reviewed_by,
+       ADD COLUMN reviewed_by_manager_at DATETIME DEFAULT NULL AFTER reviewed_by_manager_id,
+       ADD COLUMN reviewed_by_ceo_id INT DEFAULT NULL AFTER reviewed_by_manager_at,
+       ADD COLUMN reviewed_by_ceo_at DATETIME DEFAULT NULL AFTER reviewed_by_ceo_id,
+       ADD COLUMN ceo_status ENUM('pending','approved','rejected') DEFAULT 'pending' AFTER manager_status,
+       ADD COLUMN manager_rejection_reason TEXT DEFAULT NULL AFTER ceo_status,
+       ADD COLUMN ceo_rejection_reason TEXT DEFAULT NULL AFTER manager_rejection_reason,
+       ADD FOREIGN KEY (reviewed_by_manager_id) REFERENCES employees(id) ON DELETE SET NULL,
+       ADD FOREIGN KEY (reviewed_by_ceo_id) REFERENCES employees(id) ON DELETE SET NULL`
+    );
+    console.log('Migration: added multi-level approval columns to headcount_requests');
+  }
 }
 
 module.exports = seed;

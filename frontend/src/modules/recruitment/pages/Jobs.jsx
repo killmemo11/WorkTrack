@@ -159,12 +159,13 @@ export default function Jobs() {
               <th>Type</th>
               <th>Status</th>
               <th>Applicants</th>
+              <th>Source</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {jobs.length === 0 ? (
-              <tr><td colSpan={6} className="text-center">No jobs found</td></tr>
+              <tr><td colSpan={7} className="text-center">No jobs found</td></tr>
             ) : jobs.map(job => (
               <tr key={job.id}>
                 <td>{job.title}</td>
@@ -172,6 +173,15 @@ export default function Jobs() {
                 <td>{job.type}</td>
                 <td><span className={`badge badge-${job.status === 'active' ? 'success' : 'secondary'}`}>{job.status}</span></td>
                 <td>{job.applicants || 0}</td>
+                <td>
+                  {job.hc_request_id ? (
+                    <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 500 }}>
+                      Headcount Request
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>
+                  )}
+                </td>
                 <td>
                   <button className="btn btn-sm btn-outline" onClick={() => openEdit(job)}>Edit</button>
                   <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirm(job)}>Delete</button>

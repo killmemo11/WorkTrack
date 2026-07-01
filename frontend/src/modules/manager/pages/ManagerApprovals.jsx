@@ -21,6 +21,7 @@ export default function ManagerApprovals() {
   const [leaves, setLeaves] = useState([]);
   const [signouts, setSignouts] = useState([]);
   const [resignations, setResignations] = useState([]);
+  const [headcountReqs, setHeadcountReqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionTarget, setActionTarget] = useState(null);
   const [actionType, setActionType] = useState('');
@@ -31,14 +32,16 @@ export default function ManagerApprovals() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [leaveRes, signoutRes, resignRes] = await Promise.all([
+      const [leaveRes, signoutRes, resignRes, hcRes] = await Promise.all([
         api.get('/manager/approvals'),
         api.get('/manager/signout-requests'),
         api.get('/manager/resignations'),
+        api.get('/manager/headcount-approvals').catch(() => ({ data: [] })),
       ]);
       setLeaves(leaveRes.data);
       setSignouts(signoutRes.data);
       setResignations(resignRes.data);
+      setHeadcountReqs(hcRes.data);
     } catch (err) { console.error('Failed to load approvals:', err); }
     setLoading(false);
   };
@@ -120,6 +123,31 @@ export default function ManagerApprovals() {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const handleApproveHeadcount = async (id) => {
+    try {
+      await api.put(`/manager/headcount-approvals/${id}/approve`);
+      setMessage('Headcount request approved, routed to C-Level');
+      fetchAll();
+    } catch (err) {
+      setMessage('Failed to approve: ' + (err.response?.data?.error || err.message));
+    }
+    setActionTarget(null);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleRejectHeadcount = async (id) => {
+    try {
+      await api.put(`/manager/headcount-approvals/${id}/reject`, { rejection_reason: rejectionReason });
+      setMessage('Headcount request rejected');
+      fetchAll();
+    } catch (err) {
+      setMessage('Failed to reject: ' + (err.response?.data?.error || err.message));
+    }
+    setActionTarget(null);
+    setRejectionReason('');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 
   if (loading) return <div className="loading">Loading...</div>;
@@ -144,6 +172,9 @@ export default function ManagerApprovals() {
         </button>
         <button className={`tab ${tab === 'resignations' ? 'tab-active' : ''}`} onClick={() => setTab('resignations')}>
           Resignations {resignations.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{resignations.length}</span>}
+        </button>
+        <button className={`tab ${tab === 'headcount' ? 'tab-active' : ''}`} onClick={() => setTab('headcount')}>
+          Headcount {headcountReqs.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{headcountReqs.length}</span>}
         </button>
       </div>
 
@@ -270,6 +301,53 @@ export default function ManagerApprovals() {
       </div>
       )}
 
+      {tab === 'headcount' && (
+      <div className="table-wrapper">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Requester</th>
+              <th>Department</th>
+              <th>Title</th>
+              <th>Qty</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {headcountReqs.length === 0 && (
+              <tr><td colSpan={8} className="empty-state">No pending headcount requests from your team.</td></tr>
+            )}
+            {headcountReqs.map((r) => (
+              <tr key={r.id}>
+                <td><strong>{r.requester_name}</strong></td>
+                <td>{r.department_name}</td>
+                <td>{r.title_name}</td>
+                <td className="cell-mono">{r.quantity}</td>
+                <td><span className="badge badge-secondary">{r.job_type}</span></td>
+                <td>
+                  <span style={{ color: r.priority === 'urgent' ? '#ef4444' : '#6b7280', fontWeight: 600, fontSize: 13 }}>
+                    {r.priority === 'urgent' ? 'Urgent' : 'Normal'}
+                  </span>
+                </td>
+                <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
+                  {formatDate(r.created_at)}
+                </td>
+                <td>
+                  <div className="action-btns">
+                    <button className="btn btn-sm btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('headcount'); }}>Approve</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('headcount'); }}>Reject</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      )}
+
       {actionTarget && actionType === 'approve' && actionKind === 'leave' && (
         <ConfirmModal
           title="Approve Leave"
@@ -303,11 +381,22 @@ export default function ManagerApprovals() {
         />
       )}
 
+      {actionTarget && actionType === 'approve' && actionKind === 'headcount' && (
+        <ConfirmModal
+          title="Approve Headcount Request"
+          message={`Approve ${actionTarget.requester_name}'s request for ${actionTarget.title_name} (${actionTarget.quantity} position(s))? This will route to C-Level for further approval.`}
+          confirmText="Approve"
+          confirmClass="btn btn-primary"
+          onConfirm={() => handleApproveHeadcount(actionTarget.id)}
+          onCancel={() => setActionTarget(null)}
+        />
+      )}
+
       {actionTarget && actionType === 'reject' && (
         <div className="modal-overlay" onClick={() => setActionTarget(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h2>{actionKind === 'leave' ? 'Reject Leave' : actionKind === 'signout' ? 'Reject Sign-Out Request' : 'Reject Resignation'}</h2>
-            <p>Reject {actionTarget.employee_name}'s request?</p>
+            <h2>{actionKind === 'leave' ? 'Reject Leave' : actionKind === 'signout' ? 'Reject Sign-Out Request' : actionKind === 'resignation' ? 'Reject Resignation' : 'Reject Headcount Request'}</h2>
+            <p>Reject {actionTarget.employee_name || actionTarget.requester_name}'s request?</p>
             <label style={{ display: 'block', marginTop: 12 }}>
               Reason <span style={{ color: 'red' }}>*</span>
               <textarea className="form-control" value={rejectionReason}
@@ -320,7 +409,8 @@ export default function ManagerApprovals() {
               <button className="btn btn-danger" disabled={!rejectionReason.trim()} onClick={() => {
                 if (actionKind === 'leave') handleRejectLeave(actionTarget.id);
                 else if (actionKind === 'signout') handleRejectSignout(actionTarget.id);
-                else handleRejectResignation(actionTarget.id);
+                else if (actionKind === 'resignation') handleRejectResignation(actionTarget.id);
+                else handleRejectHeadcount(actionTarget.id);
               }}>Reject</button>
             </div>
           </div>

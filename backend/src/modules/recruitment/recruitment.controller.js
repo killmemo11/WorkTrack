@@ -23,9 +23,16 @@ async function listJobs(req, res) {
   const offset = (page - 1) * perPage;
 
   const [rows] = await pool.query(
-    `SELECT j.*, COUNT(c.id) AS applicants
+    `SELECT j.*,
+            COUNT(c.id) AS applicants,
+            hcr.id AS hc_request_id,
+            hcr.requester_name AS hc_requester_name,
+            hcr.status AS hc_status
      FROM recruitment_jobs j
      LEFT JOIN recruitment_candidates c ON c.job_id = j.id OR c.job_title = j.title
+     LEFT JOIN (SELECT hcr2.id, hcr2.requester_id, hcr2.status, e.name AS requester_name
+                FROM headcount_requests hcr2
+                JOIN employees e ON hcr2.requester_id = e.id) hcr ON hcr.id = j.headcount_request_id
      GROUP BY j.id
      ORDER BY j.created_at DESC
      LIMIT ? OFFSET ?`,

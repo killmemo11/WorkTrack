@@ -9,7 +9,12 @@ const { getManagerPendingLeaves, managerApproveLeave, managerRejectLeave, getMan
 const { getManagerTeamDashboard } = require('./manager.controller');
 const { getDepartments } = require('../admin/department.controller');
 const { getDepartmentTitles } = require('../personnel/personnel.controller');
-const { createRequest, getMyRequests } = require('../hr/headcount-request.controller');
+const {
+  createRequest, getMyRequests,
+  getManagerPendingRequests, getCeoPendingRequests,
+  managerApproveRequest, managerRejectRequest,
+  ceoApproveRequest, ceoRejectRequest,
+} = require('../hr/headcount-request.controller');
 const { getManagerPendingResignations, managerApproveResignation, managerRejectResignation } = require('./manager-resignation.controller');
 
 const router = Router();
@@ -29,6 +34,12 @@ router.put('/resignations/:id/reject', managerRejectResignation);
 router.get('/team', getManagerTeamDashboard);
 router.get('/headcount-requests', getMyRequests);
 router.post('/headcount-requests', createRequest);
+router.get('/headcount-approvals', getManagerPendingRequests);
+router.put('/headcount-approvals/:id/approve', managerApproveRequest);
+router.put('/headcount-approvals/:id/reject', managerRejectRequest);
+router.get('/headcount-ceo', getCeoPendingRequests);
+router.put('/headcount-ceo/:id/approve', ceoApproveRequest);
+router.put('/headcount-ceo/:id/reject', ceoRejectRequest);
 router.get('/departments', getDepartments);
 router.get('/department-titles', getDepartmentTitles);
 

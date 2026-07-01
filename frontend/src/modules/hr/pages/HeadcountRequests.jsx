@@ -1,12 +1,49 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 
-
 const statusColors = { pending: '#f59e0b', approved: '#22c55e', rejected: '#ef4444' };
 const priorityColors = { normal: '#6b7280', urgent: '#ef4444' };
+
+function ApprovalStage({ status, label }) {
+  const color = statusColors[status] || '#d1d5db';
+  const icon = status === 'approved' ? '\u2713' : status === 'rejected' ? '\u2717' : '\u25CB';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontSize: 12, fontWeight: 600,
+      color, textTransform: 'capitalize',
+    }}>
+      <span style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: color, display: 'inline-block', flexShrink: 0,
+      }} />
+      {label}: {status}
+    </span>
+  );
+}
+
+function StageProgress({ r }) {
+  const stages = [];
+  if (r.requester_role !== 'admin' && r.requester_role !== 'hr') {
+    stages.push({ key: 'manager_status', label: 'Manager', status: r.manager_status });
+  }
+  const isManagerOrAbove = r.requester_role === 'manager' || r.requester_email === r.manager_email;
+  if (isManagerOrAbove || r.manager_status === 'approved') {
+    stages.push({ key: 'ceo_status', label: 'C-Level', status: r.ceo_status });
+  }
+  stages.push({ key: 'status', label: 'HR', status: r.status });
+
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      {stages.map((s, i) => (
+        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <ApprovalStage status={s.status} label={s.label} />
+          {i < stages.length - 1 && <span style={{ color: '#d1d5db', fontSize: 11 }}>{'\u2192'}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function HeadcountRequests() {
   const [requests, setRequests] = useState([]);
@@ -73,10 +110,10 @@ export default function HeadcountRequests() {
         {!loading && !error && (
           <div className="dashboard-stats-row" style={{ marginBottom: 24 }}>
             {[
-              { label: 'Total', value: summary.total, color: '#6366f1', icon: '📋' },
-              { label: 'Pending', value: summary.pending, color: '#f59e0b', icon: '⏳' },
-              { label: 'Approved', value: summary.approved, color: '#22c55e', icon: '✅' },
-              { label: 'Rejected', value: summary.rejected, color: '#ef4444', icon: '❌' },
+              { label: 'Total', value: summary.total, color: '#6366f1', icon: '\uD83D\uDCCB' },
+              { label: 'Pending', value: summary.pending, color: '#f59e0b', icon: '\u23F3' },
+              { label: 'Approved', value: summary.approved, color: '#22c55e', icon: '\u2705' },
+              { label: 'Rejected', value: summary.rejected, color: '#ef4444', icon: '\u274C' },
             ].map(s => (
               <div key={s.label} className="mini-stat-card" style={{ borderTop: `3px solid ${s.color}` }}>
                 <div className="mini-stat-icon">{s.icon}</div>
@@ -100,7 +137,6 @@ export default function HeadcountRequests() {
         {loading ? <div className="loading" />
         : error ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
             <h3>Something went wrong</h3>
             <p style={{ color: '#6b7280' }}>{error}</p>
             <button className="btn btn-outline" onClick={() => { setLoading(true); fetchRequests(); }}
@@ -108,7 +144,6 @@ export default function HeadcountRequests() {
           </div>
         ) : requests.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
             <h3>No {filterStatus === 'all' ? '' : filterStatus} requests</h3>
             <p className="subtitle">All requests will appear here once managers submit them.</p>
           </div>
@@ -123,7 +158,7 @@ export default function HeadcountRequests() {
                   <th>Qty</th>
                   <th>Type</th>
                   <th>Priority</th>
-                  <th>Status</th>
+                  <th>Approval Stages</th>
                   <th>Date</th>
                   <th style={{ width: 160 }}>Actions</th>
                 </tr>
@@ -148,19 +183,7 @@ export default function HeadcountRequests() {
                         {r.priority === 'urgent' ? 'Urgent' : 'Normal'}
                       </span>
                     </td>
-                    <td>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                        background: `${statusColors[r.status]}15`,
-                        color: statusColors[r.status],
-                        border: `1px solid ${statusColors[r.status]}30`,
-                        textTransform: 'capitalize'
-                      }}>
-                        {r.status === 'approved' ? '✓' : r.status === 'rejected' ? '✗' : '○'}
-                        {r.status}
-                      </span>
-                    </td>
+                    <td><StageProgress r={r} /></td>
                     <td className="cell-mono">
                       {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
@@ -177,7 +200,7 @@ export default function HeadcountRequests() {
                       ) : r.status === 'rejected' && r.rejection_reason ? (
                         <span style={{ fontSize: 12, color: '#6b7280', cursor: 'default', borderBottom: '1px dashed #d1d5db' }}
                           title={r.rejection_reason}>
-                          {r.rejection_reason.length > 25 ? r.rejection_reason.substring(0, 25) + '…' : r.rejection_reason}
+                          {r.rejection_reason.length > 25 ? r.rejection_reason.substring(0, 25) + '\u2026' : r.rejection_reason}
                         </span>
                       ) : null}
                     </td>
@@ -195,7 +218,7 @@ export default function HeadcountRequests() {
             <div style={{ padding: '24px 24px 0' }}>
               <h2 style={{ margin: 0, fontSize: 18 }}>Approve Request</h2>
               <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: 14 }}>
-                This request will be marked as approved. You can optionally create a job posting.
+                This will be the final approval. Intermediate stages will be auto-approved.
               </p>
             </div>
             <div style={{ padding: '20px 24px 0' }}>
