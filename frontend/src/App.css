@@ -449,6 +449,7 @@ body {
 .cal-label-office { background: #22c55e; }
 .cal-label-wfh { background: #3b82f6; }
 .cal-label-absent { background: #ef4444; }
+.cal-label-missing { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
 .cal-label-holiday { background: #f59e0b; }
 
 .calendar-legend {

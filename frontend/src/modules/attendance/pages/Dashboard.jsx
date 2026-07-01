@@ -365,6 +365,9 @@ export default function Dashboard() {
     return buildDayDetailRows(day);
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isMissingSignOut = (day) => day.signed_in && !day.signed_out && !day.is_future && day.date !== todayStr;
+
   const quickActions = [
     ...(services.service_leaves !== '0' ? [{ label: 'Leave Requests', icon: '🏖️', path: '/leaves', color: '#4f46e5' }] : []),
     { label: 'Attendance Calendar', icon: '📅', path: '/calendar', color: '#22c55e' },
@@ -604,8 +607,10 @@ export default function Dashboard() {
                                 <td key={di} className={getDayClass(day)} onClick={() => setSelectedDay(day)}>
                                   <span className="cal-day-number">{day.day}</span>
                                   {day.is_holiday && <span className="cal-label cal-label-holiday" title={day.holiday_name}>H</span>}
-                                  {day.type === 'office' && <span className="cal-label cal-label-office">O</span>}
-                                  {day.type === 'wfh' && <span className="cal-label cal-label-wfh">W</span>}
+                                  {day.type === 'office' && !isMissingSignOut(day) && <span className="cal-label cal-label-office">O</span>}
+                                  {day.type === 'office' && isMissingSignOut(day) && <span className="cal-label cal-label-missing" title="Missing sign-out">O</span>}
+                                  {day.type === 'wfh' && !isMissingSignOut(day) && <span className="cal-label cal-label-wfh">W</span>}
+                                  {day.type === 'wfh' && isMissingSignOut(day) && <span className="cal-label cal-label-missing" title="Missing sign-out">W</span>}
                                   {day.leaves?.map((lt, i) => (
                                     <span key={i} className="cal-label" style={{ background: leaveTypeColors[lt] || '#6b7280', color: '#fff', fontSize: '0.65rem' }}>
                                       {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
@@ -629,6 +634,7 @@ export default function Dashboard() {
               <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Absent</span>
               <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Holiday</span>
               <span><span className="legend-dot" style={{background:'#e5e7eb'}}></span> Off Day</span>
+              <span><span className="legend-dot" style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span> Missing Out</span>
               <span><span className="legend-dot" style={{background:'#4f46e5'}}></span> Annual</span>
               <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Sick</span>
               <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Casual</span>
@@ -651,6 +657,16 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
+            {isMissingSignOut(selectedDay) && (
+              <div style={{ textAlign: 'center', marginTop: 12, padding: '10px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
+                <div style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 600, marginBottom: 8 }}>
+                  Missing Sign-Out on this day
+                </div>
+                <button className="btn btn-sm btn-danger" onClick={() => { setSelectedDay(null); navigate('/requests'); }}>
+                  Submit Sign-Out Request
+                </button>
+              </div>
+            )}
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setSelectedDay(null)}>Close</button>
             </div>
