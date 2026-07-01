@@ -5,6 +5,7 @@ const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary } = require('./personnel.service');
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
+const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 const XLSX = require('xlsx');
 const path = require('path');
 
@@ -66,8 +67,22 @@ async function updateEmployeeProfile(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const data = req.body;
 
-  const [emp] = await pool.query('SELECT id FROM employees WHERE id = ?', [employeeId]);
+  const [emp] = await pool.query('SELECT id, department_id, title_id FROM employees WHERE id = ?', [employeeId]);
   if (emp.length === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  // Validate headcount when changing department or title
+  if (data.department_id !== undefined && Number(data.department_id) !== Number(emp[0].department_id)) {
+    const capacity = await checkHeadcountCapacity({ department_id: data.department_id, exclude_employee_id: Number(employeeId) });
+    if (!capacity.hasCapacity) {
+      return res.status(400).json({ error: `Cannot move employee — department at capacity (${capacity.deptAvailable} remaining).` });
+    }
+  }
+  if (data.title_id !== undefined && Number(data.title_id) !== Number(emp[0].title_id)) {
+    const capacity = await checkHeadcountCapacity({ title_id: data.title_id, exclude_employee_id: Number(employeeId) });
+    if (!capacity.hasCapacity) {
+      return res.status(400).json({ error: `Cannot reassign title — title at capacity (${capacity.titleAvailable} remaining).` });
+    }
+  }
 
   const empFields = ['department_id', 'position_id', 'phone', 'grade_id', 'title_id'];
   const profileFields = [
@@ -334,8 +349,22 @@ async function changeEmployeeStatus(req, res) {
 
   if (!action) return res.status(400).json({ error: 'Action is required' });
 
-  const [emp] = await pool.query('SELECT position_id, department_id FROM employees WHERE id = ?', [employeeId]);
+  const [emp] = await pool.query('SELECT position_id, department_id, title_id FROM employees WHERE id = ?', [employeeId]);
   if (emp.length === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  // Validate headcount when transferring to a new department or title
+  if (to_department_id && Number(to_department_id) !== Number(emp[0].department_id)) {
+    const capacity = await checkHeadcountCapacity({ department_id: to_department_id, exclude_employee_id: Number(employeeId) });
+    if (!capacity.hasCapacity) {
+      return res.status(400).json({ error: `Cannot transfer — department at capacity (${capacity.deptAvailable} remaining).` });
+    }
+  }
+  if (to_position_id && Number(to_position_id) !== Number(emp[0].title_id)) {
+    const capacity = await checkHeadcountCapacity({ title_id: to_position_id, exclude_employee_id: Number(employeeId) });
+    if (!capacity.hasCapacity) {
+      return res.status(400).json({ error: `Cannot transfer — title at capacity (${capacity.titleAvailable} remaining).` });
+    }
+  }
 
   const from_position_id = emp[0].position_id;
   const from_department_id = emp[0].department_id;

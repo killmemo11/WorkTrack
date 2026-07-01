@@ -2377,3 +2377,40 @@ select.form-control { cursor: pointer; }
 }
 .upload-section h4 { margin-bottom: 12px; }
 
+/* ─── Headcount Utilization Cards (Request Form) ─── */
+.hc-util-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.hc-util-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+.hc-util-bar {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.hc-util-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.hc-util-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.hc-util-ok { color: #16a34a; font-weight: 600; }
+.hc-util-warning { color: #dc2626; font-weight: 600; }
+

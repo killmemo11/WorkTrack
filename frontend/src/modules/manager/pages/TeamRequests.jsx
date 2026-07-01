@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/api';
+import hrApi from '../../../shared/api/hrApi';
 import { useAuth } from '../../../shared/context/AuthContext';
 
 function HiringIcon({ name, size = 18 }) {
@@ -35,6 +36,8 @@ export default function TeamRequests() {
   const [showModal, setShowModal] = useState(false);
   const [titles, setTitles] = useState([]);
   const [titlesLoading, setTitlesLoading] = useState(false);
+  const [headcountMap, setHeadcountMap] = useState({});
+  const [headcountLoading, setHeadcountLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState('all');
 
@@ -52,6 +55,15 @@ export default function TeamRequests() {
 
   useEffect(() => {
     fetchRequests();
+    hrApi.get('/reports/headcount')
+      .then(({ data }) => {
+        const map = {};
+        (data.byDepartment || []).forEach(d => { map[`dept:${d.id}`] = d; });
+        (data.byTitle || []).forEach(t => { map[`title:${t.id}`] = t; });
+        setHeadcountMap(map);
+      })
+      .catch(() => {})
+      .finally(() => setHeadcountLoading(false));
   }, []);
 
   const departmentId = form.department_id || employee?.department_id || employee?.department?.id || '';
@@ -219,7 +231,54 @@ export default function TeamRequests() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="form-group">
+                {/* Headcount Utilization */}
+                {!headcountLoading && headcountMap[`dept:${departmentId}`] && (
+                  <div className="hc-util-card">
+                    <div className="hc-util-label">Department Headcount</div>
+                    <div className="hc-util-bar">
+                      <div className="hc-util-fill" style={{
+                        width: `${headcountMap[`dept:${departmentId}`].max_headcount > 0
+                          ? Math.min(100, Math.round((headcountMap[`dept:${departmentId}`].count / headcountMap[`dept:${departmentId}`].max_headcount) * 100))
+                          : 0}%`,
+                        background: (headcountMap[`dept:${departmentId}`].vacant != null && headcountMap[`dept:${departmentId}`].vacant <= 0) ? '#ef4444' : '#22c55e',
+                      }} />
+                    </div>
+                    <div className="hc-util-text">
+                      <span>{headcountMap[`dept:${departmentId}`].count} filled</span>
+                      <span>/</span>
+                      <span>{headcountMap[`dept:${departmentId}`].max_headcount > 0 ? headcountMap[`dept:${departmentId}`].max_headcount : '\u221E'} max</span>
+                      {headcountMap[`dept:${departmentId}`].vacant != null && (
+                        <span className={headcountMap[`dept:${departmentId}`].vacant <= 0 ? 'hc-util-warning' : 'hc-util-ok'}>
+                          &middot; {headcountMap[`dept:${departmentId}`].vacant} vacant
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {form.title_id && headcountMap[`title:${form.title_id}`] && (
+                  <div className="hc-util-card" style={{ marginTop: 8 }}>
+                    <div className="hc-util-label">Title Headcount</div>
+                    <div className="hc-util-bar">
+                      <div className="hc-util-fill" style={{
+                        width: `${headcountMap[`title:${form.title_id}`].max_headcount > 0
+                          ? Math.min(100, Math.round((headcountMap[`title:${form.title_id}`].count / headcountMap[`title:${form.title_id}`].max_headcount) * 100))
+                          : 0}%`,
+                        background: (headcountMap[`title:${form.title_id}`].vacant != null && headcountMap[`title:${form.title_id}`].vacant <= 0) ? '#ef4444' : '#22c55e',
+                      }} />
+                    </div>
+                    <div className="hc-util-text">
+                      <span>{headcountMap[`title:${form.title_id}`].count} filled</span>
+                      <span>/</span>
+                      <span>{headcountMap[`title:${form.title_id}`].max_headcount > 0 ? headcountMap[`title:${form.title_id}`].max_headcount : '\u221E'} max</span>
+                      {headcountMap[`title:${form.title_id}`].vacant != null && (
+                        <span className={headcountMap[`title:${form.title_id}`].vacant <= 0 ? 'hc-util-warning' : 'hc-util-ok'}>
+                          &middot; {headcountMap[`title:${form.title_id}`].vacant} vacant
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="form-group" style={{ marginTop: form.title_id ? 12 : 0 }}>
                   <label>Title *</label>
                   <select className="form-control" value={form.title_id}
                     onChange={(e) => setForm({ ...form, title_id: e.target.value })} required disabled={!departmentId}>

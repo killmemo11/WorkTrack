@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -381,6 +382,17 @@ async function hireCandidate(req, res) {
 
   const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+  // Validate headcount capacity before hiring
+  if (department_id || title_id) {
+    const capacity = await checkHeadcountCapacity({ department_id: department_id || undefined, title_id: title_id || undefined });
+    if (!capacity.hasCapacity) {
+      const reasons = [];
+      if (capacity.deptOverLimit) reasons.push(`Department at capacity (${capacity.deptAvailable} remaining)`);
+      if (capacity.titleOverLimit) reasons.push(`Title at capacity (${capacity.titleAvailable} remaining)`);
+      return res.status(400).json({ error: `Cannot hire — headcount limit exceeded. ${reasons.join('; ')}.` });
+    }
+  }
 
   await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [id]);
   await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)",

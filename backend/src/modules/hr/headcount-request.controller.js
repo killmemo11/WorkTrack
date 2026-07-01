@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { createNotification } = require('../../shared/services/notification.service');
+const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 
 async function createRequest(req, res) {
   const { department_id, title_id, quantity, job_type, reason, priority } = req.body;
@@ -11,6 +12,15 @@ async function createRequest(req, res) {
 
   const requesterId = req.employee?.id || req.admin?.id;
   if (!requesterId) return res.status(401).json({ error: 'Authentication required' });
+
+  // Validate headcount capacity
+  const capacity = await checkHeadcountCapacity({ department_id: deptId, title_id, additional: quantity || 1 });
+  if (!capacity.hasCapacity) {
+    const reasons = [];
+    if (capacity.deptOverLimit) reasons.push(`Department at capacity (${capacity.deptAvailable} remaining)`);
+    if (capacity.titleOverLimit) reasons.push(`Title at capacity (${capacity.titleAvailable} remaining)`);
+    return res.status(400).json({ error: `Headcount limit exceeded. ${reasons.join('; ')}.` });
+  }
 
   const [result] = await pool.query(
     `INSERT INTO headcount_requests (requester_id, department_id, title_id, quantity, job_type, reason, priority)
@@ -71,6 +81,15 @@ async function approveRequest(req, res) {
   const [request] = await pool.query('SELECT * FROM headcount_requests WHERE id = ? AND status = ?', [id, 'pending']);
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
+
+  // Re-validate headcount capacity (situation may have changed since request was created)
+  const capacity = await checkHeadcountCapacity({ department_id: r.department_id, title_id: r.title_id, additional: r.quantity });
+  if (!capacity.hasCapacity) {
+    const reasons = [];
+    if (capacity.deptOverLimit) reasons.push(`Department at capacity (${capacity.deptAvailable} remaining)`);
+    if (capacity.titleOverLimit) reasons.push(`Title at capacity (${capacity.titleAvailable} remaining)`);
+    return res.status(400).json({ error: `Cannot approve — headcount limit exceeded. ${reasons.join('; ')}.` });
+  }
 
   await pool.query(
     'UPDATE headcount_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?',
