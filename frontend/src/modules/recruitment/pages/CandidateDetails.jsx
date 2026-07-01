@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate, formatDateTime } from '../../../shared/utils/date';
 
 
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
@@ -248,7 +249,7 @@ export default function CandidateDetails() {
                 <tbody>
                   {candidate.history.map(h => (
                     <tr key={h.id}>
-                      <td>{h.created_at?.slice(0, 16).replace('T', ' ')}</td>
+                      <td>{formatDateTime(h.created_at)}</td>
                       <td>{h.stage}</td>
                       <td>{h.note || '—'}</td>
                       <td>{h.created_by || 'system'}</td>
@@ -329,7 +330,7 @@ export default function CandidateDetails() {
                       <tr key={o.id}>
                         <td>{o.position}</td>
                         <td>{o.salary}</td>
-                        <td>{o.start_date}</td>
+                        <td>{formatDate(o.start_date)}</td>
                         <td>{o.status}</td>
                       </tr>
                     ))}

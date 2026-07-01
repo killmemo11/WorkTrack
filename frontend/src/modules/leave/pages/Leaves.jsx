@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../../shared/api';
+import { formatDate } from '../../../shared/utils/date';
 import LeaveFormModal from '../../../shared/components/LeaveFormModal';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import ResignationModal from '../../../shared/components/ResignationModal';
@@ -85,8 +86,8 @@ export default function Leaves() {
             {data.leaves.map((l) => (
               <tr key={l.id}>
                 <td><span className="badge badge-employee">{typeLabels[l.type] || l.type}</span></td>
-                <td>{l.start_date}</td>
-                <td>{l.end_date}</td>
+                <td>{formatDate(l.start_date)}</td>
+                <td>{formatDate(l.end_date)}</td>
                 <td className="cell-mono">{l.days_count}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {l.reason || <span style={{ color: '#999' }}>—</span>}

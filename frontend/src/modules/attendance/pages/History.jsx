@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../../shared/api';
+import { formatDate } from '../../../shared/utils/date';
 
 function calcDuration(r) {
   if (!r.sign_out_time) return '—';
@@ -86,7 +87,7 @@ export default function History() {
               <tbody>
                 {data.records.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.date}</td>
+                    <td>{formatDate(r.date)}</td>
                     <td><span className={`badge ${r.type === 'office' ? 'badge-warning' : 'badge-active'}`}>{(r.type || 'wfh').toUpperCase()}</span></td>
                     <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
                     <td>{r.sign_out_time ? new Date(r.sign_out_time).toLocaleTimeString() : '—'}</td>

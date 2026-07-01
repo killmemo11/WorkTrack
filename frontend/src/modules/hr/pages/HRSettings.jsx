@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
@@ -549,7 +550,7 @@ export default function HRSettings() {
                     {holidays.map((h) => (
                       <tr key={h.id}>
                         <td className="cell-mono">{h.id}</td>
-                        <td>{h.date}</td>
+                        <td>{formatDate(h.date)}</td>
                         <td>{h.name || <span style={{color:'#999'}}>—</span>}</td>
                         <td>
                           <button className="btn btn-sm btn-danger" onClick={() => setHolidayDeleteConfirm(h)}>Delete</button>

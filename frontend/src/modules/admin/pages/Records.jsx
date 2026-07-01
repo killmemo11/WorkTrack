@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
@@ -160,7 +161,7 @@ export default function AdminRecords() {
             <tbody>
               {data.records.map((r) => (
                 <tr key={r.id}>
-                  <td className="cell-mono">{r.date}</td>
+                  <td className="cell-mono">{formatDate(r.date)}</td>
                   <td><span className={`badge ${r.type === 'office' ? 'badge-office' : 'badge-wfh'}`}>{(r.type || 'wfh').toUpperCase()}</span></td>
                   <td><strong>{r.employee_name}</strong></td>
                   <td className="cell-mono">{r.emp_number || '—'}</td>

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 export default function AdminResignations() {
@@ -104,7 +105,7 @@ export default function AdminResignations() {
               {data.map((r) => (
                 <tr key={r.id}>
                   <td><strong>{r.employee_name}</strong></td>
-                  <td>{r.resignation_date}</td>
+                  <td>{formatDate(r.resignation_date)}</td>
                   <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.reason || <span style={{ color: '#999' }}>—</span>}
                   </td>

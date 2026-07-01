@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import hrApi from '../api/hrApi';
+import { formatDate } from '../utils/date';
 
 export default function IDCardModal({ employeeId, onClose }) {
   const [card, setCard] = useState(null);
@@ -40,7 +41,7 @@ export default function IDCardModal({ employeeId, onClose }) {
         <div class="dept">${card.department}</div>
         <div class="position">${card.position}</div>
         <div class="info">
-          <strong>Hire Date:</strong> ${card.hire_date}<br/>
+          <strong>Hire Date:</strong> ${formatDate(card.hire_date)}<br/>
           <strong>Contract:</strong> ${card.contract_type}<br/>
           <strong>Nationality:</strong> ${card.nationality}<br/>
           <strong>Gender:</strong> ${card.gender}<br/>
@@ -71,10 +72,10 @@ export default function IDCardModal({ employeeId, onClose }) {
               <div style={{ color: '#3b82f6', fontSize: 14, margin: '4px 0' }}>{card.department}</div>
               <div style={{ color: '#666', fontSize: 13 }}>{card.position}</div>
               <div style={{ textAlign: 'left', fontSize: 12, lineHeight: 1.8, marginTop: 12 }}>
-                <strong>Hire Date:</strong> {card.hire_date}<br />
+                <strong>Hire Date:</strong> {formatDate(card.hire_date)}<br />
                 <strong>Contract:</strong> {card.contract_type}<br />
                 <strong>Nationality:</strong> {card.nationality}<br />
-                <strong>Birth Date:</strong> {card.birth_date}<br />
+                <strong>Birth Date:</strong> {formatDate(card.birth_date)}<br />
                 <strong>Status:</strong> {card.status}
               </div>
               <div style={{ fontSize: 10, color: '#999', marginTop: 12, borderTop: '1px solid #eee', paddingTop: 6 }}>{card.company_name || ''}</div>

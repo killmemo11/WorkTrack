@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
@@ -110,7 +111,7 @@ export default function AdminLeaves() {
                   </td>
                   <td>{l.department_name || <span style={{ color: '#999' }}>—</span>}</td>
                   <td><span className="badge badge-employee">{typeLabels[l.type] || l.type}</span></td>
-                  <td>{l.start_date} → {l.end_date}</td>
+                  <td>{formatDate(l.start_date)} → {formatDate(l.end_date)}</td>
                   <td className="cell-mono">{l.days_count}</td>
                   <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {l.reason || <span style={{ color: '#999' }}>—</span>}
@@ -150,8 +151,8 @@ export default function AdminLeaves() {
             title={actionTarget.is_self_approval ? '⚠️ Self-Approval' : 'Approve Leave'}
             message={
               actionTarget.is_self_approval
-                ? `You are approving YOUR OWN leave request.\nSince you are the only admin, this is allowed, but please confirm carefully.\n\nApprove ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${actionTarget.start_date} → ${actionTarget.end_date}, ${actionTarget.days_count} day(s))? Balance will be deducted.`
-                : `Approve ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${actionTarget.start_date} → ${actionTarget.end_date}, ${actionTarget.days_count} day(s))? Balance will be deducted.`
+                ? `You are approving YOUR OWN leave request.\nSince you are the only admin, this is allowed, but please confirm carefully.\n\nApprove ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${formatDate(actionTarget.start_date)} → ${formatDate(actionTarget.end_date)}, ${actionTarget.days_count} day(s))? Balance will be deducted.`
+                : `Approve ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${formatDate(actionTarget.start_date)} → ${formatDate(actionTarget.end_date)}, ${actionTarget.days_count} day(s))? Balance will be deducted.`
             }
             confirmText="Approve"
             confirmClass="btn btn-primary"
