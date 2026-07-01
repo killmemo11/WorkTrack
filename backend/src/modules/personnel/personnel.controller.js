@@ -3,7 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
-const { getFullProfile, getOrganizationTree, getHeadcountReport } = require('./personnel.service');
+const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary } = require('./personnel.service');
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
 const XLSX = require('xlsx');
 const path = require('path');
@@ -429,7 +429,8 @@ async function getOrganization(req, res) {
 
 async function getHeadcount(req, res) {
   const report = await getHeadcountReport();
-  res.json(report);
+  const summary = await getHeadcountSummary();
+  res.json({ ...report, summary });
 }
 
 const EXPORT_COLS = [

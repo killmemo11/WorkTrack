@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
+import hrApi from '../../../shared/api/hrApi';
 import { formatManagerTime, getStatusBadgeClass } from './managerDashboardUtils';
 
 const statusLabels = {
@@ -57,12 +58,17 @@ export default function ManagerDashboard() {
   const { employee } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [headcountSummary, setHeadcountSummary] = useState(null);
   const [error, setError] = useState('');
 
   const fetchTeam = async () => {
     try {
-      const res = await api.get('/manager/team');
-      setData(res.data);
+      const [teamRes, hcRes] = await Promise.all([
+        api.get('/manager/team'),
+        hrApi.get('/reports/headcount').catch(() => null),
+      ]);
+      setData(teamRes.data);
+      if (hcRes) setHeadcountSummary(hcRes.data.summary);
     } catch (err) {
       console.error(err);
       setError('Failed to load team data');
@@ -185,6 +191,25 @@ export default function ManagerDashboard() {
               </div>
             ))}
           </div>
+
+          {headcountSummary && (
+            <div className="chart-card" style={{ marginTop: 20 }}>
+              <h3 className="chart-title">Company Headcount</h3>
+              <div className="dashboard-stats-row" style={{ marginBottom: 0, gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                {[
+                  { label: 'Max', value: headcountSummary.total_max, color: '#3b82f6' },
+                  { label: 'Filled', value: headcountSummary.total_filled, color: '#22c55e' },
+                  { label: 'Vacant', value: headcountSummary.total_vacant, color: '#f59e0b' },
+                  { label: 'Full Depts', value: headcountSummary.full_depts, color: '#ef4444' },
+                ].map(s => (
+                  <div key={s.label} className="mini-stat-card" style={{ borderTop: `3px solid ${s.color}`, padding: '10px 12px' }}>
+                    <div className="mini-stat-number" style={{ color: s.color, fontSize: 20 }}><AnimatedNumber value={s.value} /></div>
+                    <div className="mini-stat-label">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {barData.length > 1 && (
             <div className="chart-card manager-chart-card">

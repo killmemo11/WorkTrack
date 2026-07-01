@@ -90,19 +90,23 @@ async function getOrganizationTree() {
 
 async function getHeadcountReport() {
   const [byDepartment] = await pool.query(
-    `SELECT d.id, d.name, COUNT(e.id) AS count
+    `SELECT d.id, d.name, d.max_headcount,
+            COUNT(e.id) AS count,
+            CASE WHEN d.max_headcount > 0 THEN GREATEST(0, d.max_headcount - COUNT(e.id)) ELSE NULL END AS vacant
      FROM departments d
      LEFT JOIN employees e ON e.department_id = d.id AND (e.is_system IS NULL OR e.is_system = 0)
-     GROUP BY d.id, d.name
+     GROUP BY d.id, d.name, d.max_headcount
      ORDER BY d.name`
   );
-  const [byPosition] = await pool.query(
-    `SELECT p.id, p.title, d.name AS department_name, COUNT(e.id) AS count
-     FROM positions p
-     LEFT JOIN departments d ON p.department_id = d.id
-     LEFT JOIN employees e ON e.position_id = p.id AND (e.is_system IS NULL OR e.is_system = 0)
-     GROUP BY p.id, p.title, d.name
-     ORDER BY p.title`
+  const [byTitle] = await pool.query(
+    `SELECT dt.id, dt.title, dt.max_headcount, d.name AS department_name, d.id AS department_id,
+            COUNT(e.id) AS count,
+            CASE WHEN dt.max_headcount > 0 THEN GREATEST(0, dt.max_headcount - COUNT(e.id)) ELSE NULL END AS vacant
+     FROM department_titles dt
+     JOIN departments d ON dt.department_id = d.id
+     LEFT JOIN employees e ON e.title_id = dt.id AND (e.is_system IS NULL OR e.is_system = 0)
+     GROUP BY dt.id, dt.title, dt.max_headcount, d.name, d.id
+     ORDER BY d.name, dt.sort_order`
   );
   const [byContract] = await pool.query(
     `SELECT COALESCE(ep.contract_type, 'unknown') AS contract_type, COUNT(*) AS count
@@ -111,7 +115,27 @@ async function getHeadcountReport() {
      GROUP BY contract_type
      ORDER BY contract_type`
   );
-  return { byDepartment, byPosition, byContract };
+  return { byDepartment, byTitle, byContract };
 }
 
-module.exports = { getFullProfile, getOrganizationTree, getHeadcountReport };
+async function getHeadcountSummary() {
+  const [deptStats] = await pool.query(
+    `SELECT
+       COUNT(DISTINCT d.id) AS total_depts,
+       SUM(CASE WHEN d.max_headcount > 0 THEN d.max_headcount ELSE 0 END) AS total_max,
+       COUNT(e.id) AS total_filled,
+       SUM(CASE WHEN d.max_headcount > 0 THEN GREATEST(0, d.max_headcount - dept_counts.filled) ELSE 0 END) AS total_vacant,
+       SUM(CASE WHEN d.max_headcount > 0 AND dept_counts.filled >= d.max_headcount THEN 1 ELSE 0 END) AS full_depts
+     FROM departments d
+     LEFT JOIN (
+       SELECT department_id, COUNT(*) AS filled
+       FROM employees
+       WHERE (is_system IS NULL OR is_system = 0)
+       GROUP BY department_id
+     ) dept_counts ON dept_counts.department_id = d.id
+     LEFT JOIN employees e ON e.department_id = d.id AND (e.is_system IS NULL OR e.is_system = 0)`
+  );
+  return deptStats[0] || { total_depts: 0, total_max: 0, total_filled: 0, total_vacant: 0, full_depts: 0 };
+}
+
+module.exports = { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary };

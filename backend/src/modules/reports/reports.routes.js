@@ -3,6 +3,7 @@
 
 const { Router } = require('express');
 const { exportKayanReport, exportAttendanceReport, exportLeaveReport, exportEmployeeSummary } = require('./reports.controller');
+const { getHeadcount } = require('../personnel/personnel.controller');
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.get('/kayan', exportKayanReport);
 router.get('/attendance', exportAttendanceReport);
 router.get('/leaves', exportLeaveReport);
 router.get('/summary', exportEmployeeSummary);
+router.get('/headcount', getHeadcount);
 
 module.exports = router;

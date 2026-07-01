@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import api from '../../../shared/api';
+import hrApi from '../../../shared/api/hrApi';
 
 const DEPT_COLORS = [
   { bg: '#eef2ff', border: '#4f46e5', text: '#4338ca' },
@@ -16,12 +17,19 @@ const DEPT_COLORS = [
 
 export default function OrganizationChart() {
   const [data, setData] = useState(null);
+  const [headcount, setHeadcount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get('/personnel/organization-chart')
-      .then(r => setData(r.data))
+    Promise.all([
+      api.get('/personnel/organization-chart'),
+      hrApi.get('/reports/headcount'),
+    ])
+      .then(([orgRes, hcRes]) => {
+        setData(orgRes.data);
+        setHeadcount(hcRes.data.byDepartment);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -42,6 +50,13 @@ export default function OrganizationChart() {
     data.departments.forEach((d, i) => { map[String(d.id)] = DEPT_COLORS[i % DEPT_COLORS.length]; });
     return map;
   }, [data]);
+
+  const headcountMap = useMemo(() => {
+    if (!headcount) return {};
+    const map = {};
+    headcount.forEach(d => { map[String(d.id)] = d; });
+    return map;
+  }, [headcount]);
 
   const allDepts = useMemo(() => {
     if (!data) return [];
@@ -116,6 +131,14 @@ export default function OrganizationChart() {
       </div>
 
       <div className="org-levels">
+        {headcount && numCols > 0 && (
+          <HeadcountRow
+            activeDepts={activeDepts}
+            headcountMap={headcountMap}
+            deptColorMap={deptColorMap}
+            numCols={numCols}
+          />
+        )}
         {gradeRows.map((grade, gi) => (
           <Fragment key={gi}>
             {gi > 0 && (
@@ -132,6 +155,7 @@ export default function OrganizationChart() {
               managerEmails={managerEmails}
               supervisorIds={supervisorIds}
               deptColorMap={deptColorMap}
+              headcountMap={headcountMap}
               numCols={numCols}
             />
           </Fragment>
@@ -139,6 +163,46 @@ export default function OrganizationChart() {
         {gradeRows.length === 0 && search && (
           <p className="empty-state" style={{ textAlign: 'center', padding: 40 }}>No employees match "<strong>{search}</strong>"</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function HeadcountRow({ activeDepts, headcountMap, deptColorMap, numCols }) {
+  return (
+    <div className="org-grade" style={{ marginBottom: 8 }}>
+      <div className="org-grade-header" style={{ background: '#f1f5f9' }}>
+        <div className="org-grade-title">
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>Headcount</span>
+        </div>
+      </div>
+      <div className="org-grade-body" style={{ display: 'grid', gridTemplateColumns: `repeat(${numCols}, 1fr)`, gap: 12, padding: '10px 16px' }}>
+        {activeDepts.map(dept => {
+          const hc = headcountMap[dept.id];
+          const color = deptColorMap[dept.id] || DEPT_COLORS[0];
+          if (!hc) return <div key={dept.id} />;
+          const pct = hc.max_headcount > 0 ? Math.round((hc.count / hc.max_headcount) * 100) : null;
+          return (
+            <div key={dept.id} style={{ fontSize: 12 }}>
+              {pct != null ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2, color: color.text }}>
+                    <span>{hc.count} / {hc.max_headcount === 0 ? '\u221E' : hc.max_headcount}</span>
+                    <span style={{ fontWeight: 600 }}>{pct}%</span>
+                  </div>
+                  <div className="progress-track" style={{ height: 6, marginBottom: 0 }}>
+                    <div className="progress-fill" style={{
+                      width: `${Math.min(pct, 100)}%`,
+                      background: hc.count > hc.max_headcount ? '#ef4444' : pct >= 90 ? '#f59e0b' : color.border,
+                    }} />
+                  </div>
+                </>
+              ) : (
+                <span className="text-muted">No limit set</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -167,7 +231,7 @@ function ConnectorRow({ activeDepts, prevDepts, currDepts, numCols }) {
   );
 }
 
-function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, deptColorMap, numCols }) {
+function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, deptColorMap, headcountMap, numCols }) {
   return (
     <div className="org-grade">
       <div className="org-grade-header">
