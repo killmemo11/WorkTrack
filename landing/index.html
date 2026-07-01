@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkTrack — Workforce Management Platform</title>
+  <meta name="description" content="WorkTrack is a comprehensive workforce management platform for attendance tracking, leave management, HR tools, and reporting.">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
+      --dark: #1e293b;
+      --gray: #64748b;
+      --light-gray: #f8fafc;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: var(--dark);
+      overflow-x: hidden;
+    }
+
+    /* ── Navbar ── */
+    .navbar-landing {
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e2e8f0;
+      padding: .75rem 0;
+      transition: box-shadow .2s;
+    }
+    .navbar-landing.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+    .navbar-landing .brand {
+      font-weight: 800;
+      font-size: 1.35rem;
+      color: var(--dark);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .navbar-landing .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--gradient);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+    }
+    .navbar-landing .nav-link {
+      font-weight: 500;
+      color: var(--gray);
+      padding: .5rem 1rem !important;
+      transition: color .15s;
+    }
+    .navbar-landing .nav-link:hover { color: var(--primary); }
+    .navbar-landing .btn-login {
+      padding: .5rem 1.25rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: .875rem;
+      color: var(--dark);
+      background: #fff;
+      transition: all .15s;
+      text-decoration: none;
+    }
+    .navbar-landing .btn-login:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 6rem 0 5rem;
+      background: var(--light-gray);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(79,70,229,.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero .badge-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: .8rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--gray);
+      max-width: 540px;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+    .hero .btn-primary-custom {
+      padding: .75rem 2rem;
+      background: var(--gradient);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: transform .15s, box-shadow .15s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .hero .btn-primary-custom:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(79,70,229,.3);
+    }
+    .hero .btn-outline-custom {
+      padding: .75rem 2rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      color: var(--dark);
+      font-weight: 600;
+      font-size: 1rem;
+      background: #fff;
+      transition: all .15s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .hero .btn-outline-custom:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .hero-stats {
+      display: flex;
+      gap: 2.5rem;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    .hero-stats .num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--dark);
+    }
+    .hero-stats .label {
+      font-size: .85rem;
+      color: var(--gray);
+    }
+    .hero-illustration {
+      position: relative;
+    }
+    .hero-illustration .mockup {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.1);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .hero-illustration .mockup-header {
+      background: var(--dark);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-illustration .mockup-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .hero-illustration .mockup-dot:nth-child(2) { background: #f59e0b; }
+    .hero-illustration .mockup-dot:nth-child(3) { background: #22c55e; }
+    .hero-illustration .mockup-body {
+      padding: 20px;
+    }
+    .hero-illustration .mockup-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    .hero-illustration .mockup-row .bar {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      flex: 1;
+    }
+    .hero-illustration .mockup-row .bar.fill { background: var(--primary); }
+    .hero-illustration .mockup-row .bar.fill-green { background: var(--success); }
+    .hero-illustration .mockup-row .bar.fill-yellow { background: var(--warning); }
+    .hero-illustration .mockup-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: .8rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Sections ── */
+    .section-title {
+      font-weight: 800;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      margin-bottom: .75rem;
+    }
+    .section-subtitle {
+      color: var(--gray);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto 3rem;
+    }
+
+    .features { padding: 5rem 0; }
+    .feature-card {
+      padding: 2rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      transition: all .2s;
+      height: 100%;
+      background: #fff;
+    }
+    .feature-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 32px rgba(79,70,229,.1);
+      transform: translateY(-2px);
+    }
+    .feature-card .icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    .feature-card h5 { font-weight: 700; margin-bottom: .5rem; }
+    .feature-card p { color: var(--gray); font-size: .9rem; line-height: 1.6; margin: 0; }
+
+    .how-it-works { padding: 5rem 0; background: var(--light-gray); }
+    .step-card {
+      text-align: center;
+      padding: 2rem 1.5rem;
+    }
+    .step-number {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--gradient);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .step-card h5 { font-weight: 700; margin-bottom: .5rem; }
+    .step-card p { color: var(--gray); font-size: .9rem; line-height: 1.6; margin: 0; }
+
+    .pricing { padding: 5rem 0; }
+    .pricing-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 2rem;
+      background: #fff;
+      transition: all .2s;
+      height: 100%;
+      position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--primary);
+      box-shadow: 0 8px 32px rgba(79,70,229,.12);
+    }
+    .pricing-card.featured .badge-popular {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient);
+      color: #fff;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .pricing-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 32px rgba(79,70,229,.1);
+    }
+    .pricing-card .price { font-size: 2.5rem; font-weight: 800; }
+    .pricing-card .price sub { font-size: 1rem; font-weight: 400; color: var(--gray); }
+    .pricing-card .period { color: var(--gray); font-size: .9rem; }
+    .pricing-card ul { list-style: none; padding: 0; margin: 1.5rem 0; }
+    .pricing-card ul li {
+      padding: .5rem 0;
+      color: var(--gray);
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pricing-card ul li i { color: var(--success); }
+
+    .about-stats {
+      background: var(--dark);
+      color: #fff;
+      padding: 4rem 0;
+    }
+    .about-stats .num { font-size: 2.5rem; font-weight: 800; }
+    .about-stats .label { color: #94a3b8; font-size: .9rem; }
+
+    .contact { padding: 5rem 0; background: var(--light-gray); }
+    .contact .form-control {
+      padding: .75rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: .95rem;
+    }
+    .contact .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    }
+    .contact .btn-submit {
+      padding: .75rem 2rem;
+      background: var(--gradient);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: transform .15s, box-shadow .15s;
+      width: 100%;
+    }
+    .contact .btn-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(79,70,229,.3);
+    }
+
+    .footer {
+      background: var(--dark);
+      color: #94a3b8;
+      padding: 2rem 0;
+    }
+    .footer a { color: #94a3b8; text-decoration: none; transition: color .15s; }
+    .footer a:hover { color: #fff; }
+
+    /* ── Animations ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .hero { padding: 4rem 0 3rem; text-align: center; }
+      .hero p { margin-left: auto; margin-right: auto; }
+      .hero-stats { justify-content: center; }
+      .hero-illustration { margin-top: 2rem; }
+      .pricing-card.featured { margin-top: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ Navbar ═══ -->
+  <nav class="navbar-landing fixed-top">
+    <div class="container d-flex align-items-center justify-content-between">
+      <a href="/" class="brand">
+        <span class="brand-icon"><i class="bi bi-clock"></i></span>
+        WorkTrack
+      </a>
+      <div class="d-none d-md-flex align-items-center gap-3">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+      <a href="/login" class="btn-login"><i class="bi bi-person me-1"></i> Sign In</a>
+    </div>
+  </nav>
+
+  <!-- ═══ Hero ═══ -->
+  <section class="hero">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6 fade-up">
+          <div class="badge-new"><i class="bi bi-star-fill"></i> Trusted by 50+ companies</div>
+          <h1>Workforce Management,<br><span>Simplified</span></h1>
+          <p>Track attendance, manage leaves, generate reports, and streamline HR operations — all in one platform. Built for teams that value efficiency.</p>
+          <div class="d-flex gap-3 flex-wrap">
+            <a href="/login" class="btn-primary-custom"><i class="bi bi-rocket-takeoff me-2"></i>Get Started Free</a>
+            <a href="#features" class="btn-outline-custom"><i class="bi bi-play-circle me-2"></i>See How It Works</a>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <div class="num">50+</div>
+              <div class="label">Companies</div>
+            </div>
+            <div>
+              <div class="num">1.2K</div>
+              <div class="label">Employees</div>
+            </div>
+            <div>
+              <div class="num">98%</div>
+              <div class="label">Uptime</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 hero-illustration fade-up">
+          <div class="mockup">
+            <div class="mockup-header">
+              <span class="mockup-dot"></span>
+              <span class="mockup-dot"></span>
+              <span class="mockup-dot"></span>
+            </div>
+            <div class="mockup-body">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+                <span class="mockup-avatar">JD</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:.85rem">John Doe</div>
+                  <div style="color:#94a3b8;font-size:.75rem">Engineering</div>
+                </div>
+                <span style="background:#dcfce7;color:#16a34a;padding:2px 10px;border-radius:6px;font-size:.75rem;font-weight:600">Signed In</span>
+              </div>
+              <div class="mockup-row"><div class="mockup-avatar" style="background:#fef3c7;color:#d97706">AN</div><div class="bar fill"></div></div>
+              <div class="mockup-row"><div class="mockup-avatar" style="background:#fce7f3;color:#db2777">SM</div><div class="bar fill-green"></div></div>
+              <div class="mockup-row"><div class="mockup-avatar" style="background:#e0f2fe;color:#0284c7">KL</div><div class="bar fill"></div></div>
+              <div class="mockup-row"><div class="mockup-avatar" style="background:#f3e8ff;color:#7c3aed">RT</div><div class="bar fill-yellow"></div></div>
+              <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.8rem">
+                <span style="color:#64748b"><i class="bi bi-check-circle-fill" style="color:#22c55e"></i> 4 signed in</span>
+                <span style="color:#64748b"><i class="bi bi-calendar"></i> Today: Jul 1, 2026</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Features ═══ -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="text-center fade-up">
+        <h2 class="section-title">Everything You Need to Manage Your Workforce</h2>
+        <p class="section-subtitle">From clock-in to payroll data, WorkTrack gives you full visibility into your team's attendance and time-off.</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)"><i class="bi bi-fingerprint"></i></div>
+            <h5>Attendance Tracking</h5>
+            <p>Employees sign in and out with one click. Automatic time calculation, late detection, and real-time dashboard for managers.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#059669,#10b981)"><i class="bi bi-calendar-check"></i></div>
+            <h5>Leave Management</h5>
+            <p>Submit, approve, and track leave requests effortlessly. Annual, sick, casual, and personal leave types with balance tracking.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="bi bi-people"></i></div>
+            <h5>Employee Database</h5>
+            <p>Centralised employee records with ID cards, contracts, departments, positions, and document management in one place.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><i class="bi bi-graph-up-arrow"></i></div>
+            <h5>Reports &amp; Analytics</h5>
+            <p>Export attendance logs, leave summaries, and HR reports. Visual dashboards give you insights at a glance.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#2563eb,#3b82f6)"><i class="bi bi-shield-check"></i></div>
+            <h5>Role-Based Access</h5>
+            <p>Granular permissions for employees, managers, HR, and admins. Each role sees only what they need.</p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="feature-card">
+            <div class="icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"><i class="bi bi-box-arrow-in-right"></i></div>
+            <h5>Quick Onboarding</h5>
+            <p>Add employees in seconds. Generate ID cards, assign departments, and set leave balances — all from the admin panel.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ How It Works ═══ -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="text-center fade-up">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-subtitle">Get your team up and running in minutes. No training required.</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-4 fade-up">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <h5>Create Your Account</h5>
+            <p>Sign up as an admin, add your company details, and invite your team members via email.</p>
+          </div>
+        </div>
+        <div class="col-md-4 fade-up">
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <h5>Set Up Your Team</h5>
+            <p>Define departments, positions, leave policies, and employee profiles. It takes just a few clicks.</p>
+          </div>
+        </div>
+        <div class="col-md-4 fade-up">
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <h5>Start Tracking</h5>
+            <p>Employees sign in/out daily. Managers review attendance and time-off requests from a single dashboard.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Pricing ═══ -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="text-center fade-up">
+        <h2 class="section-title">Simple, Transparent Pricing</h2>
+        <p class="section-subtitle">Start free, upgrade as you grow. No hidden fees, no long-term contracts.</p>
+      </div>
+      <div class="row g-4 justify-content-center">
+        <div class="col-lg-4 col-md-6 fade-up">
+          <div class="pricing-card">
+            <h5 style="font-weight:700">Starter</h5>
+            <div class="price">0 <sub>EGP</sub></div>
+            <div class="period">Forever free</div>
+            <ul>
+              <li><i class="bi bi-check-lg"></i> Up to 10 employees</li>
+              <li><i class="bi bi-check-lg"></i> Attendance tracking</li>
+              <li><i class="bi bi-check-lg"></i> Leave management</li>
+              <li><i class="bi bi-check-lg"></i> Basic reports</li>
+              <li><i class="bi bi-check-lg"></i> Email support</li>
+            </ul>
+            <a href="/login" class="btn-outline-custom d-block text-center" style="width:100%">Get Started</a>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6 fade-up">
+          <div class="pricing-card featured">
+            <div class="badge-popular">Most Popular</div>
+            <h5 style="font-weight:700">Professional</h5>
+            <div class="price">99 <sub>EGP</sub></div>
+            <div class="period">per month, per company</div>
+            <ul>
+              <li><i class="bi bi-check-lg"></i> Unlimited employees</li>
+              <li><i class="bi bi-check-lg"></i> Advanced reports &amp; exports</li>
+              <li><i class="bi bi-check-lg"></i> HR tools &amp; ID cards</li>
+              <li><i class="bi bi-check-lg"></i> Role-based access control</li>
+              <li><i class="bi bi-check-lg"></i> Priority support</li>
+            </ul>
+            <a href="/login" class="btn-primary-custom d-block text-center" style="width:100%">Start Free Trial</a>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6 fade-up">
+          <div class="pricing-card">
+            <h5 style="font-weight:700">Enterprise</h5>
+            <div class="price">Custom</div>
+            <div class="period">tailored to your needs</div>
+            <ul>
+              <li><i class="bi bi-check-lg"></i> Dedicated server</li>
+              <li><i class="bi bi-check-lg"></i> REST API access</li>
+              <li><i class="bi bi-check-lg"></i> Custom integrations</li>
+              <li><i class="bi bi-check-lg"></i> 24/7 phone &amp; email support</li>
+              <li><i class="bi bi-check-lg"></i> On-site training</li>
+            </ul>
+            <a href="#contact" class="btn-outline-custom d-block text-center" style="width:100%">Contact Us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Stats Bar ═══ -->
+  <section class="about-stats">
+    <div class="container">
+      <div class="row text-center g-4">
+        <div class="col-6 col-lg-3 fade-up">
+          <div class="num">50+</div>
+          <div class="label">Active Companies</div>
+        </div>
+        <div class="col-6 col-lg-3 fade-up">
+          <div class="num">1,200+</div>
+          <div class="label">Employees Onboarded</div>
+        </div>
+        <div class="col-6 col-lg-3 fade-up">
+          <div class="num">15K+</div>
+          <div class="label">Daily Sign-Ins</div>
+        </div>
+        <div class="col-6 col-lg-3 fade-up">
+          <div class="num">99.9%</div>
+          <div class="label">System Uptime</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Contact ═══ -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-6 fade-up">
+          <div class="text-center">
+            <h2 class="section-title">Get In Touch</h2>
+            <p class="section-subtitle" style="margin-bottom:2rem">Have questions? Want a demo? Send us a message and we'll get back to you within 24 hours.</p>
+          </div>
+          <form id="contactForm" action="/api/contact" method="POST">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Your Name</label>
+                <input type="text" class="form-control" name="name" required placeholder="John Smith">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Email Address</label>
+                <input type="email" class="form-control" name="email" required placeholder="john@company.com">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Company</label>
+                <input type="text" class="form-control" name="company" placeholder="Your company name">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Message</label>
+                <textarea class="form-control" name="message" rows="4" required placeholder="Tell us about your requirements..."></textarea>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn-submit"><i class="bi bi-send me-2"></i>Send Message</button>
+              </div>
+              <div class="col-12">
+                <div id="formFeedback" class="text-center" style="display:none"></div>
+              </div>
+            </div>
+          </form>
+          <div class="text-center mt-4">
+            <p style="color:var(--gray);font-size:.9rem">
+              <i class="bi bi-envelope me-1"></i> contact@worktrack.ddns.net &nbsp;·&nbsp;
+              <i class="bi bi-telephone me-1"></i> +20 100 000 0000
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-6 text-center text-md-start">
+          <span style="font-weight:700;color:#fff">WorkTrack</span>
+          <span class="ms-2">&copy; 2026 WorkTrack. All rights reserved.</span>
+        </div>
+        <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
+          <a href="#features" class="me-3">Features</a>
+          <a href="#pricing" class="me-3">Pricing</a>
+          <a href="#contact">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function() {
+      // ── Navbar scroll effect ──
+      const navbar = document.querySelector('.navbar-landing');
+      window.addEventListener('scroll', function() {
+        navbar.classList.toggle('scrolled', window.scrollY > 20);
+      });
+
+      // ── Scroll reveal (fade-up) ──
+      const reveal = () => {
+        document.querySelectorAll('.fade-up').forEach(el => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight - 60) el.classList.add('visible');
+        });
+      };
+      window.addEventListener('scroll', reveal);
+      window.addEventListener('load', reveal);
+      reveal();
+
+      // ── Smooth scroll for anchor links ──
+      document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', function(e) {
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+
+      // ── Contact form ──
+      const form = document.getElementById('contactForm');
+      const feedback = document.getElementById('formFeedback');
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+        feedback.style.display = 'none';
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(new FormData(form)))
+          });
+          const data = await res.json();
+          feedback.style.display = 'block';
+          if (res.ok) {
+            feedback.className = 'text-center text-success fw600';
+            feedback.textContent = 'Thank you! We\'ll get back to you within 24 hours.';
+            form.reset();
+          } else {
+            feedback.className = 'text-center text-danger fw600';
+            feedback.textContent = data.error || 'Something went wrong. Please try again.';
+          }
+        } catch (err) {
+          feedback.style.display = 'block';
+          feedback.className = 'text-center text-danger fw600';
+          feedback.textContent = 'Network error. Please try again later.';
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-2"></i>Send Message';
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -217,6 +217,40 @@ app.get('/api/settings/public', async (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Public contact form endpoint (from landing page)
+app.post('/api/contact', async (req, res) => {
+  const { name, email, company, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Name, email, and message are required.' });
+  }
+  if (typeof name !== 'string' || typeof email !== 'string' || typeof message !== 'string') {
+    return res.status(400).json({ error: 'Invalid input format.' });
+  }
+  try {
+    await pool.query(
+      'INSERT INTO contacts (name, email, company, message) VALUES (?, ?, ?, ?)',
+      [name.trim(), email.trim(), (company || '').trim(), message.trim()]
+    );
+    const { sendEmail } = require('./shared/services/email.service');
+    const [settings] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' LIMIT 1");
+    const adminEmail = settings.length > 0 ? settings[0].value : null;
+    if (adminEmail) {
+      await sendEmail(adminEmail, `New Contact: ${name}`, `
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Company:</strong> ${company || '—'}</p>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+      `).catch(() => {});
+    }
+    res.status(201).json({ message: 'Message received. We\'ll get back to you within 24 hours.' });
+  } catch (err) {
+    console.error('Contact form error:', err);
+    res.status(500).json({ error: 'Failed to save message. Please try again.' });
+  }
+});
+
 // Public recruitment routes
 app.post('/api/apply', publicApply);
 app.get('/api/track/:email', publicTrack);

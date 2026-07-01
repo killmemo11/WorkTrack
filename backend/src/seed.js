@@ -1527,6 +1527,25 @@ async function seed() {
     await pool.query('CREATE INDEX idx_tasks_assigned_by ON tasks(assigned_by)');
     console.log('Migration: created tasks table');
   }
+
+  // --- v49: contacts table (Landing Page Contact Form) ---
+  const [contactsTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'contacts'",
+    [process.env.DB_NAME]
+  );
+  if (contactsTable.length === 0) {
+    await pool.query(
+      `CREATE TABLE contacts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        company VARCHAR(255) DEFAULT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`
+    );
+    console.log('Migration: created contacts table');
+  }
 }
 
 module.exports = seed;
