@@ -823,7 +823,7 @@ async function deleteGrade(req, res) {
 
 // ── Department Titles ──────────────────────────────────────────
 async function getDepartmentTitles(req, res) {
-  const departmentId = req.query.department_id || req.employee?.department_id;
+  const departmentId = req.query.department_id || (req.hr ? null : req.employee?.department_id);
   let where = '';
   let params = [];
   if (departmentId) { where = 'WHERE dt.department_id = ?'; params.push(departmentId); }
