@@ -74,10 +74,10 @@ export default function HRSettings() {
   const handleAddDept = async () => {
     if (!deptForm.name.trim()) return;
     try {
-      await hrApi.post('/departments', deptForm);
+      const res = await hrApi.post('/departments', deptForm);
+      setDepartments(prev => [...prev, res.data]);
       setDeptForm({ name: '', manager_email: '', c_level_email: '', parent_department_id: '' });
       setMessage('Department added');
-      fetchDepartments();
     } catch { setMessage('Failed to add department'); }
     setTimeout(() => setMessage(''), 3000);
   };
@@ -85,19 +85,19 @@ export default function HRSettings() {
   const handleEditDept = async () => {
     if (!editingDept) return;
     try {
-      await hrApi.put(`/departments/${editingDept.id}`, editingDept);
+      const res = await hrApi.put(`/departments/${editingDept.id}`, editingDept);
+      setDepartments(prev => prev.map(d => d.id === editingDept.id ? res.data : d));
       setMessage('Department updated');
       setEditingDept(null);
-      fetchDepartments();
     } catch { setMessage('Failed to update department'); }
     setTimeout(() => setMessage(''), 3000);
   };
 
   const handleDeleteDept = async (dept) => {
     try {
-      await hrApi.delete(`/departments/${dept.id}`);
+      const res = await hrApi.delete(`/departments/${dept.id}`);
+      setDepartments(prev => prev.filter(d => d.id !== res.data.id));
       setMessage(`Department "${dept.name}" deleted`);
-      fetchDepartments();
     } catch { setMessage('Failed to delete department'); }
     setDeleteConfirm(null);
     setTimeout(() => setMessage(''), 3000);
@@ -113,10 +113,10 @@ export default function HRSettings() {
   const handleAddHoliday = async () => {
     if (!holidayForm.date) return;
     try {
-      await hrApi.post('/holidays', holidayForm);
+      const res = await hrApi.post('/holidays', holidayForm);
+      setHolidays(prev => [...prev, res.data]);
       setHolidayForm({ date: '', name: '' });
       setMessage('Holiday added');
-      fetchHolidays();
     } catch (err) {
       setMessage('Failed to add holiday: ' + (err.response?.data?.error || err.message));
     }
@@ -125,9 +125,9 @@ export default function HRSettings() {
 
   const handleDeleteHoliday = async (holiday) => {
     try {
-      await hrApi.delete(`/holidays/${holiday.id}`);
+      const res = await hrApi.delete(`/holidays/${holiday.id}`);
+      setHolidays(prev => prev.filter(h => h.id !== res.data.id));
       setMessage(`Holiday "${holiday.name || holiday.date}" deleted`);
-      fetchHolidays();
     } catch { setMessage('Failed to delete holiday'); }
     setHolidayDeleteConfirm(null);
     setTimeout(() => setMessage(''), 3000);
@@ -143,12 +143,12 @@ export default function HRSettings() {
 
   const handleSaveLeaveType = async (lt) => {
     try {
-      await hrApi.put(`/leave-types/${lt.id}`, {
+      const res = await hrApi.put(`/leave-types/${lt.id}`, {
         label: lt.label, default_balance: lt.default_balance, is_active: lt.is_active,
       });
+      setLeaveTypes(prev => prev.map(t => t.id === lt.id ? res.data : t));
       setMessage('Leave type updated');
       setEditingLt(null);
-      fetchLeaveTypes();
     } catch (err) {
       setMessage('Failed: ' + (err.response?.data?.error || err.message));
     }
@@ -175,16 +175,16 @@ export default function HRSettings() {
   const handleAddGrade = async () => {
     if (!gradeForm.grade_level || !gradeForm.name) return;
     try {
-      await hrApi.post('/grades', {
+      const res = await hrApi.post('/grades', {
         grade_level: parseInt(gradeForm.grade_level),
         name: gradeForm.name,
         description: gradeForm.description || null,
         min_salary: gradeForm.min_salary ? parseFloat(gradeForm.min_salary) : null,
         max_salary: gradeForm.max_salary ? parseFloat(gradeForm.max_salary) : null,
       });
+      setGrades(prev => [...prev, res.data]);
       setGradeForm({ grade_level: '', name: '', description: '', min_salary: '', max_salary: '' });
       setMessage('Grade added');
-      fetchGrades();
     } catch { setMessage('Failed to add grade'); }
     setTimeout(() => setMessage(''), 3000);
   };
@@ -192,25 +192,25 @@ export default function HRSettings() {
   const handleEditGrade = async () => {
     if (!editingGrade) return;
     try {
-      await hrApi.put(`/grades/${editingGrade.id}`, {
+      const res = await hrApi.put(`/grades/${editingGrade.id}`, {
         grade_level: parseInt(editingGrade.grade_level),
         name: editingGrade.name,
         description: editingGrade.description || null,
         min_salary: editingGrade.min_salary ? parseFloat(editingGrade.min_salary) : null,
         max_salary: editingGrade.max_salary ? parseFloat(editingGrade.max_salary) : null,
       });
+      setGrades(prev => prev.map(g => g.id === editingGrade.id ? res.data : g));
       setMessage('Grade updated');
       setEditingGrade(null);
-      fetchGrades();
     } catch { setMessage('Failed to update grade'); }
     setTimeout(() => setMessage(''), 3000);
   };
 
   const handleDeleteGrade = async (grade) => {
     try {
-      await hrApi.delete(`/grades/${grade.id}`);
+      const res = await hrApi.delete(`/grades/${grade.id}`);
+      setGrades(prev => prev.filter(g => g.id !== res.data.id));
       setMessage(`Grade "${grade.name}" deleted`);
-      fetchGrades();
     } catch { setMessage('Failed to delete grade'); }
     setGradeDeleteConfirm(null);
     setTimeout(() => setMessage(''), 3000);

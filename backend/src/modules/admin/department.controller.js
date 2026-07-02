@@ -155,7 +155,7 @@ async function deleteDepartment(req, res) {
 
   const adminId = req.admin?.id || req.hr?.id || null;
   await logActivity(null, adminId, 'department_deleted', `Deleted department #${id}`);
-  res.json({ message: 'Department deleted' });
+  res.json({ id: parseInt(id) });
 }
 
 async function downloadTemplate(req, res) {

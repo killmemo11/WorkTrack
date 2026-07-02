@@ -24,7 +24,8 @@ async function updateLeaveType(req, res) {
     'UPDATE leave_types SET label = ?, default_balance = ?, is_active = ? WHERE id = ?',
     [label, default_balance != null ? default_balance : null, is_active ?? 1, id]
   );
-  res.json({ message: 'Leave type updated' });
+  const [updated] = await pool.query('SELECT * FROM leave_types WHERE id = ?', [id]);
+  res.json(updated[0]);
 }
 
 async function resetLeaveBalances(req, res) {

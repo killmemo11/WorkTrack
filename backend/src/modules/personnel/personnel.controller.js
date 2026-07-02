@@ -799,8 +799,9 @@ async function createGrade(req, res) {
     'INSERT INTO grades (grade_level, name, description, min_salary, max_salary) VALUES (?,?,?,?,?)',
     [grade_level, name, description || null, min_salary || null, max_salary || null]
   );
+  const [created] = await pool.query('SELECT * FROM grades WHERE id = ?', [result.insertId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_created', `Created grade: ${name}`);
-  res.status(201).json({ id: result.insertId });
+  res.status(201).json(created[0]);
 }
 
 async function updateGrade(req, res) {
@@ -810,15 +811,16 @@ async function updateGrade(req, res) {
     'UPDATE grades SET grade_level=?, name=?, description=?, min_salary=?, max_salary=? WHERE id=?',
     [grade_level, name, description || null, min_salary || null, max_salary || null, id]
   );
+  const [updated] = await pool.query('SELECT * FROM grades WHERE id = ?', [id]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_updated', `Updated grade #${id}`);
-  res.json({ message: 'Grade updated' });
+  res.json(updated[0]);
 }
 
 async function deleteGrade(req, res) {
   const { id } = req.params;
   await pool.query('DELETE FROM grades WHERE id=?', [id]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_deleted', `Deleted grade #${id}`);
-  res.json({ message: 'Grade deleted' });
+  res.json({ id: parseInt(id) });
 }
 
 // ── Department Titles ──────────────────────────────────────────
@@ -845,6 +847,13 @@ async function getDepartmentTitles(req, res) {
   res.json(rows);
 }
 
+const DEPT_TITLE_SELECT = `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,
+  COALESCE(ec.cnt, 0) AS filled_count
+FROM department_titles dt
+LEFT JOIN departments d ON dt.department_id = d.id
+LEFT JOIN grades g ON dt.grade_id = g.id
+LEFT JOIN (SELECT title_id, COUNT(*) AS cnt FROM employees WHERE (is_system IS NULL OR is_system = 0) GROUP BY title_id) ec ON ec.title_id = dt.id`;
+
 async function createDepartmentTitle(req, res) {
   const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
   if (!department_id || !title) return res.status(400).json({ error: 'department_id and title are required' });
@@ -853,8 +862,9 @@ async function createDepartmentTitle(req, res) {
     [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0]
   );
   await recalcDepartmentMaxHeadcount(department_id);
+  const [created] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [result.insertId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_created', `Created title: ${title}`);
-  res.status(201).json({ id: result.insertId });
+  res.status(201).json(created[0]);
 }
 
 async function updateDepartmentTitle(req, res) {
@@ -868,8 +878,9 @@ async function updateDepartmentTitle(req, res) {
   if (currentRows.length > 0) {
     await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
   }
+  const [updated] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [id]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_updated', `Updated title #${id}`);
-  res.json({ message: 'Department title updated' });
+  res.json(updated[0]);
 }
 
 async function deleteDepartmentTitle(req, res) {
@@ -880,7 +891,7 @@ async function deleteDepartmentTitle(req, res) {
     await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
   }
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_deleted', `Deleted title #${id}`);
-  res.json({ message: 'Department title deleted' });
+  res.json({ id: parseInt(id), department_id: currentRows[0]?.department_id || null });
 }
 
 // ── Evaluation Criteria ────────────────────────────────────────

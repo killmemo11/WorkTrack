@@ -147,9 +147,9 @@ export default function Positions() {
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    setSaving(true);
+      setSaving(true);
     try {
-      await hrApi.put(`/department-titles/${selected.id}`, {
+      const res = await hrApi.put(`/department-titles/${selected.id}`, {
         ...form,
         job_summary: form.job_summary || null,
         key_responsibilities: form.key_responsibilities || null,
@@ -161,8 +161,8 @@ export default function Positions() {
         title_id: selected.id,
         criteria: criteria.filter(c => c.criterion_name && c.weight !== ''),
       });
+      setTitles(prev => prev.map(t => t.id === selected.id ? res.data : t));
       setMsg('Saved successfully');
-      await fetchData();
       setSelected(null);
     } catch (err) {
       setMsg(err.response?.data?.error || 'Save failed');
@@ -184,7 +184,7 @@ export default function Positions() {
     }
     setSaving(true);
     try {
-      await hrApi.post('/department-titles', {
+      const res = await hrApi.post('/department-titles', {
         department_id: addForm.department_id,
         title: addForm.title,
         grade_id: addForm.grade_id || null,
@@ -192,10 +192,10 @@ export default function Positions() {
         technical: !!addForm.technical,
         max_headcount: addForm.max_headcount || 0,
       });
+      setTitles(prev => [...prev, res.data]);
       setMsg('Title added');
       setShowAdd(false);
       setAddForm({ department_id: '', title: '', grade_id: '', description: '', technical: false, max_headcount: '' });
-      await fetchData();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Failed to add title');
     }
@@ -206,10 +206,10 @@ export default function Positions() {
   const handleDeleteTitle = async () => {
     if (!deleteTarget) return;
     try {
-      await hrApi.delete(`/department-titles/${deleteTarget.id}`);
+      const res = await hrApi.delete(`/department-titles/${deleteTarget.id}`);
+      setTitles(prev => prev.filter(t => t.id !== res.data.id));
       setMsg('Title deleted');
       setDeleteTarget(null);
-      await fetchData();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Failed to delete title');
     }

@@ -36,7 +36,7 @@ async function deleteHoliday(req, res) {
   await pool.query('DELETE FROM holidays WHERE id = ?', [id]);
   const label = rows.length > 0 ? `${rows[0].name || ''} (${rows[0].date})` : id;
   await logActivity(null, req.admin?.id || req.hr?.id || null, 'holiday_deleted', `Deleted holiday: ${label}`);
-  res.json({ message: 'Holiday deleted' });
+  res.json({ id: parseInt(id) });
 }
 
 module.exports = { getHolidays, createHoliday, deleteHoliday };
