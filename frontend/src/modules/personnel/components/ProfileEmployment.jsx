@@ -12,6 +12,7 @@ export default function ProfileEmployment({ profile, onUpdate }) {
   const [grades, setGrades] = useState([]);
   const [form, setForm] = useState(profileToForm(profile));
   const [renewMsg, setRenewMsg] = useState('');
+  const [gradeWarning, setGradeWarning] = useState('');
 
   function fmtDate(d) {
     if (!d) return '';
@@ -107,6 +108,7 @@ export default function ProfileEmployment({ profile, onUpdate }) {
     { key: 'title_id', label: 'Position (Title)', type: 'select', options: filteredTitles, valueKey: 'id', displayKey: 'title', emptyLabel: '— Select Department First —' },
     { key: 'department_id', label: 'Department', type: 'select', options: departments, valueKey: 'id', displayKey: 'name', emptyLabel: '— None —' },
     { key: 'grade_id', label: 'Grade', type: 'select', options: grades, valueKey: 'id', displayKey: r => `Grade ${r.grade_level} — ${r.name}`, emptyLabel: '— Auto from Title —' },
+    { key: 'gradeWarning', label: '', type: 'warning' },
     { key: 'supervisor_id', label: 'Supervisor', type: 'select', options: employees.filter(e => e.id !== profile.id), valueKey: 'id', displayKey: 'name', emptyLabel: '— None —' },
     { key: 'hire_date', label: 'Hire Date', type: 'date' },
     { key: 'contract_type', label: 'Contract Type', type: 'select', options: [['permanent','Permanent'],['annual','Annual'],['probation','Probation'],['contractor','Contractor']], inline: true },
@@ -127,14 +129,31 @@ export default function ProfileEmployment({ profile, onUpdate }) {
           {fields.map(f => (
             <label key={f.key}>
               {f.label}
-              {f.type === 'select' ? (
+              {f.type === 'warning' ? (
+                gradeWarning && <div style={{ gridColumn: '1 / -1', fontSize: 13, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 10px' }}>{gradeWarning}</div>
+              ) : f.type === 'select' ? (
                 <select className="form-control" value={form[f.key]} onChange={e => {
                   const val = e.target.value;
                   const extra = {};
-                  if (f.key === 'department_id') extra.title_id = '';
+                  if (f.key === 'department_id') { extra.title_id = ''; setGradeWarning(''); }
                   if (f.key === 'title_id') {
                     const t = positions.find(x => String(x.id) === val);
                     if (t) extra.grade_id = t.grade_id || '';
+                    setGradeWarning('');
+                  }
+                  if (f.key === 'grade_id') {
+                    const t = positions.find(x => String(x.id) === form.title_id);
+                    if (t && val) {
+                      const titleGrade = grades.find(g => String(g.id) === String(t.grade_id));
+                      const selectedGrade = grades.find(g => String(g.id) === String(val));
+                      if (titleGrade && selectedGrade && selectedGrade.grade_level > titleGrade.grade_level) {
+                        setGradeWarning(`Selected grade (${selectedGrade.name}, Lv.${selectedGrade.grade_level}) is higher than the title's grade (${titleGrade.name}, Lv.${titleGrade.grade_level})`);
+                      } else {
+                        setGradeWarning('');
+                      }
+                    } else {
+                      setGradeWarning('');
+                    }
                   }
                   setForm({ ...form, [f.key]: val, ...extra });
                 }}>
