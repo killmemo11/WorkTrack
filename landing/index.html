@@ -1,944 +1,617 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WorkTrack — Workforce Management Platform</title>
-  <meta name="description" content="WorkTrack is a comprehensive workforce management platform for attendance tracking, leave management, HR tools, and reporting.">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" href="/assets/img/logo.png">
+  <title>WorkTrack — Workforce Management, Simplified</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-dark: #4338ca;
-      --primary-light: #eef2ff;
-      --dark: #1e293b;
-      --gray: #64748b;
-      --light-gray: #f8fafc;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #09090b; color: #f4f4f5; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .delay-6 { animation-delay: 0.6s; }
+
+    @keyframes pulse-green {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(79,70,229,0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(79,70,229,0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(79,70,229,0); }
+    }
+    .pulse-indigo { animation: pulse-green 2s infinite; }
+
+    @keyframes border-rotate {
+      from { transform: translate(-50%,-50%) rotate(0deg); }
+      to { transform: translate(-50%,-50%) rotate(360deg); }
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      color: var(--dark);
-      overflow-x: hidden;
-    }
-
-    /* ── Navbar ── */
-    .navbar-landing {
-      background: rgba(255,255,255,.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid #e2e8f0;
-      padding: .75rem 0;
-      transition: box-shadow .2s;
-    }
-    .navbar-landing.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,.06); }
-    .navbar-landing .brand {
-      font-weight: 800;
-      font-size: 1.35rem;
-      color: var(--dark);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .navbar-landing .brand-icon {
-      width: 32px; height: 32px;
-      background: var(--gradient);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 1rem;
-    }
-    .navbar-landing .nav-link {
-      font-weight: 500;
-      color: var(--gray);
-      padding: .5rem 1rem !important;
-      transition: color .15s;
-    }
-    .navbar-landing .nav-link:hover { color: var(--primary); }
-    .navbar-landing .btn-login {
-      padding: .5rem 1.25rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: .875rem;
-      color: var(--dark);
-      background: #fff;
-      transition: all .15s;
-      text-decoration: none;
-    }
-    .navbar-landing .btn-login:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-      background: var(--primary-light);
-    }
-
-    /* ── Hero ── */
-    .hero {
-      padding: 6rem 0 5rem;
-      background: var(--light-gray);
+    .card-glow {
       position: relative;
       overflow: hidden;
     }
-    .hero::before {
+    .card-glow::before {
       content: '';
       position: absolute;
-      top: -40%;
-      right: -20%;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(79,70,229,.08) 0%, transparent 70%);
-      border-radius: 50%;
+      top: 50%; left: 50%;
+      width: 200%; height: 200%;
+      background: conic-gradient(from 0deg, transparent 0 300deg, #4f46e5 360deg);
+      animation: border-rotate 4s linear infinite;
+      z-index: 0;
     }
-    .hero .badge-new {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      background: var(--primary-light);
-      color: var(--primary);
-      font-weight: 600;
-      font-size: .8rem;
-      border-radius: 20px;
-      margin-bottom: 1.5rem;
+    .card-glow::after {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      background: #18181b;
+      border-radius: 23px;
+      z-index: 1;
     }
-    .hero h1 {
-      font-size: clamp(2.2rem, 5vw, 3.5rem);
-      font-weight: 800;
-      line-height: 1.15;
-      margin-bottom: 1.25rem;
-    }
-    .hero h1 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p {
-      font-size: 1.1rem;
-      color: var(--gray);
-      max-width: 540px;
-      line-height: 1.7;
-      margin-bottom: 2rem;
-    }
-    .hero .btn-primary-custom {
-      padding: .75rem 2rem;
-      background: var(--gradient);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: transform .15s, box-shadow .15s;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .hero .btn-primary-custom:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(79,70,229,.3);
-    }
-    .hero .btn-outline-custom {
-      padding: .75rem 2rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      color: var(--dark);
-      font-weight: 600;
-      font-size: 1rem;
-      background: #fff;
-      transition: all .15s;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .hero .btn-outline-custom:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    .hero-stats {
-      display: flex;
-      gap: 2.5rem;
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid #e2e8f0;
-    }
-    .hero-stats .num {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--dark);
-    }
-    .hero-stats .label {
-      font-size: .85rem;
-      color: var(--gray);
-    }
-    .hero-illustration {
-      position: relative;
-    }
-    .hero-illustration .mockup {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.1);
-      overflow: hidden;
-      border: 1px solid #e2e8f0;
-    }
-    .hero-illustration .mockup-header {
-      background: var(--dark);
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .hero-illustration .mockup-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: #ef4444;
-    }
-    .hero-illustration .mockup-dot:nth-child(2) { background: #f59e0b; }
-    .hero-illustration .mockup-dot:nth-child(3) { background: #22c55e; }
-    .hero-illustration .mockup-body {
-      padding: 20px;
-    }
-    .hero-illustration .mockup-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-      align-items: center;
-    }
-    .hero-illustration .mockup-row .bar {
-      height: 10px;
-      background: #e2e8f0;
-      border-radius: 4px;
-      flex: 1;
-    }
-    .hero-illustration .mockup-row .bar.fill { background: var(--primary); }
-    .hero-illustration .mockup-row .bar.fill-green { background: var(--success); }
-    .hero-illustration .mockup-row .bar.fill-yellow { background: var(--warning); }
-    .hero-illustration .mockup-avatar {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: var(--primary-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary);
-      font-weight: 700;
-      font-size: .8rem;
-      flex-shrink: 0;
+    .card-glow > * { position: relative; z-index: 2; }
+
+    .glass-panel {
+      backdrop-filter: blur(12px);
+      background: rgba(24,24,27,0.4);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
-    /* ── Sections ── */
-    .section-title {
-      font-weight: 800;
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      margin-bottom: .75rem;
-    }
-    .section-subtitle {
-      color: var(--gray);
-      font-size: 1.05rem;
-      max-width: 600px;
-      margin: 0 auto 3rem;
+    .hero-gradient {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #09090b 50%);
     }
 
-    .features { padding: 5rem 0; }
+    .text-gradient {
+      background: linear-gradient(to bottom, #f4f4f5, #a1a1aa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-gradient {
+      background: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .feature-card {
-      padding: 2rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      transition: all .2s;
-      height: 100%;
-      background: #fff;
+      transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .feature-card:hover {
-      border-color: var(--primary);
-      box-shadow: 0 12px 48px rgba(79,70,229,.15);
-      transform: translateY(-4px);
-    }
-    .feature-card .icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-      color: #fff;
-    }
-    .feature-card h5 { font-weight: 700; margin-bottom: .5rem; }
-    .feature-card p { color: var(--gray); font-size: .9rem; line-height: 1.6; margin: 0; }
-
-    .how-it-works { padding: 5rem 0; background: var(--light-gray); }
-    .step-card {
-      text-align: center;
-      padding: 2rem 1.5rem;
-    }
-    .step-number {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      background: var(--gradient);
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-    }
-    .step-card h5 { font-weight: 700; margin-bottom: .5rem; }
-    .step-card p { color: var(--gray); font-size: .9rem; line-height: 1.6; margin: 0; }
-
-    .pricing { padding: 5rem 0; }
-    .pricing-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 2rem;
-      background: #fff;
-      transition: all .2s;
-      height: 100%;
-      position: relative;
-    }
-    .pricing-card.featured {
-      border-color: var(--primary);
-      box-shadow: 0 8px 32px rgba(79,70,229,.12);
-    }
-    .pricing-card.featured .badge-popular {
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--gradient);
-      color: #fff;
-      padding: 4px 16px;
-      border-radius: 20px;
-      font-size: .8rem;
-      font-weight: 600;
-    }
-    .pricing-card:hover {
-      border-color: var(--primary);
-      box-shadow: 0 8px 32px rgba(79,70,229,.1);
-    }
-    .pricing-card .price { font-size: 2.5rem; font-weight: 800; }
-    .pricing-card .price sub { font-size: 1rem; font-weight: 400; color: var(--gray); }
-    .pricing-card .period { color: var(--gray); font-size: .9rem; }
-    .pricing-card ul { list-style: none; padding: 0; margin: 1.5rem 0; }
-    .pricing-card ul li {
-      padding: .5rem 0;
-      color: var(--gray);
-      font-size: .9rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .pricing-card ul li i { color: var(--success); }
-
-    .about-stats {
-      background: var(--dark);
-      color: #fff;
-      padding: 4rem 0;
-    }
-    .about-stats .num { font-size: 2.5rem; font-weight: 800; }
-    .about-stats .label { color: #94a3b8; font-size: .9rem; }
-
-    .contact { padding: 5rem 0; background: var(--light-gray); }
-    .contact .form-control {
-      padding: .75rem 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: .95rem;
-    }
-    .contact .form-control:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79,70,229,.1);
-    }
-    .contact .btn-submit {
-      padding: .75rem 2rem;
-      background: var(--gradient);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: transform .15s, box-shadow .15s;
-      width: 100%;
-    }
-    .contact .btn-submit:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(79,70,229,.3);
+      transform: scale(1.02);
+      border-color: rgba(99,102,241,0.3);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
     }
 
-    .footer {
-      background: var(--dark);
-      color: #94a3b8;
-      padding: 2rem 0;
-    }
-    .footer a { color: #94a3b8; text-decoration: none; transition: color .15s; }
-    .footer a:hover { color: #fff; }
-
-    /* ── Animations ── */
-    .fade-up {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-    .fade-up.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── Testimonials ── */
-    .testimonials { padding: 5rem 0; background: #fff; }
-    .testimonial-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-align: center;
-      background: #fff;
-      transition: all .2s;
-    }
-    .testimonial-card:hover {
-      border-color: var(--primary);
-      box-shadow: 0 8px 32px rgba(79,70,229,.1);
-    }
-    .testimonial-card .stars {
-      color: #fbbf24;
-      font-size: .95rem;
-      margin-bottom: .5rem;
-    }
-    .testimonial-card p {
-      color: var(--gray);
-      font-size: .9rem;
-      line-height: 1.6;
-      margin-bottom: 1rem;
-      font-style: italic;
-    }
-    .testimonial-card .author {
-      font-weight: 600;
-      color: var(--dark);
-    }
-    .testimonial-card .role {
-      color: var(--gray);
-      font-size: .8rem;
-    }
-
-    /* ── FAQ ── */
-    .faq { padding: 5rem 0; background: var(--light-gray); }
-    .faq-item {
-      border-bottom: 1px solid #e2e8f0;
-      padding: 1.5rem 0;
-      cursor: pointer;
-    }
-    .faq-item .question {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 600;
-      color: var(--dark);
-    }
-    .faq-item .icon {
-      color: var(--primary);
-      transition: transform .2s;
-    }
-    .faq-item.active .icon { transform: rotate(180deg); }
-    .faq-item .answer {
-      color: var(--gray);
-      font-size: .9rem;
-      line-height: 1.6;
+    .faq-answer {
       max-height: 0;
       overflow: hidden;
-      transition: max-height .2s;
+      transition: max-height 400ms ease, padding 400ms ease;
     }
-    .faq-item.active .answer { max-height: 500px; padding-top: 1rem; }
+    .faq-answer.open { max-height: 300px; }
 
-    @media (max-width: 768px) {
-      .hero { padding: 4rem 0 3rem; text-align: center; }
-      .hero p { margin-left: auto; margin-right: auto; }
-      .hero-stats { justify-content: center; }
-      .hero-illustration { margin-top: 2rem; }
-      .pricing-card.featured { margin-top: 1rem; }
+    .toast {
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .stat-item {
+      transition: all 300ms ease;
+    }
+    .stat-item:hover {
+      transform: translateY(-4px);
+    }
+
+    .pricing-card {
+      transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .pricing-card:hover {
+      transform: translateY(-6px);
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen overflow-x-hidden">
 
-  <!-- ═══ Navbar ═══ -->
-  <nav class="navbar-landing fixed-top">
-    <div class="container d-flex align-items-center justify-content-between">
-      <a href="/" class="brand">
-        <img src="/assets/img/logo.png" alt="WorkTrack" style="height:36px;width:auto">
-      </a>
-      <div class="d-none d-md-flex align-items-center gap-3">
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#pricing" class="nav-link">Pricing</a>
-        <a href="#contact" class="nav-link">Contact</a>
+  <!-- Toast -->
+  <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl glass-panel border border-indigo-500/30 flex items-center gap-3">
+    <span class="iconify text-indigo-500 text-xl" data-icon="lucide:check-circle"></span>
+    <span id="toast-msg" class="text-sm font-medium text-zinc-100">Success!</span>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 h-16 flex items-center px-6" style="backdrop-filter: blur(12px); background: rgba(9,9,11,0.8); border-bottom: 1px solid rgba(255,255,255,0.05);">
+    <div class="max-w-6xl mx-auto w-full flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
+          <span class="iconify text-black text-lg" data-icon="lucide:clock"></span>
+        </div>
+        <span class="font-semibold text-zinc-100 tracking-tight">WorkTrack</span>
       </div>
-      <a href="/login" class="btn-login"><i class="bi bi-person me-1"></i> Sign In</a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Features</a>
+        <a href="#pricing" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Pricing</a>
+        <a href="#faq" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">FAQ</a>
+        <a href="/login" class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">Sign In</a>
+      </div>
+      <a href="/login" class="bg-zinc-100 text-zinc-900 text-sm font-medium px-5 py-2 rounded-full hover:scale-105 active:scale-95 transition-transform duration-150" style="box-shadow: 0 10px 15px -3px rgba(255,255,255,0.05);">
+        Get Started
+      </a>
     </div>
   </nav>
 
-  <!-- ═══ Hero ═══ -->
-  <section class="hero">
-    <div class="container">
-      <div class="row align-items-center g-5">
-        <div class="col-lg-6 fade-up">
-          <div class="badge-new"><i class="bi bi-star-fill"></i> Trusted by 50+ companies • 99.9% Uptime</div>
-          <h1>Stop Wasting Time<br>on <span>Employee Management</span></h1>
-          <p>Save 80% of your HR time. Track attendance, approve leaves, manage reports—all in minutes. One platform. Zero headaches. Built for companies that want to grow, not manage paperwork.</p>
-          <div class="d-flex gap-3 flex-wrap">
-            <a href="/login" class="btn-primary-custom"><i class="bi bi-rocket-takeoff me-2"></i>Start Free 30 Days</a>
-            <a href="#features" class="btn-outline-custom"><i class="bi bi-play-circle me-2"></i>Live Demo</a>
+  <!-- Hero -->
+  <section class="hero-gradient pt-36 pb-24 px-6 relative overflow-hidden">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[450px] rounded-full opacity-20" style="background: radial-gradient(circle, #4f46e5 0%, transparent 70%); filter: blur(120px);"></div>
+    <div class="absolute top-40 right-0 w-64 h-64 rounded-full opacity-10" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%); filter: blur(80px);"></div>
+
+    <div class="max-w-4xl mx-auto text-center relative z-10">
+      <div class="fade-in-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 mb-8">
+        <span class="w-2 h-2 rounded-full bg-indigo-500 pulse-indigo"></span>
+        <span class="text-xs font-medium text-indigo-400 uppercase tracking-wider">Trusted by 50+ Companies</span>
+      </div>
+
+      <h1 class="fade-in-up delay-1 text-4xl md:text-7xl font-semibold tracking-tight leading-[1.05] mb-6">
+        <span class="text-gradient">Workforce Management,</span><br>
+        <span class="brand-gradient">Simplified</span>
+      </h1>
+
+      <p class="fade-in-up delay-2 text-zinc-400 text-base md:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+        Track attendance, manage leaves, generate reports, and streamline HR operations — all in one platform. Built for teams that value efficiency.
+      </p>
+
+      <div class="fade-in-up delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/login" class="group bg-indigo-500 hover:bg-indigo-400 text-white font-semibold px-8 py-4 rounded-2xl text-sm transition-all duration-150 hover:scale-105 active:scale-95 flex items-center gap-2" style="box-shadow: 0 10px 15px -3px rgba(99,102,241,0.2);">
+          Start Free Trial
+          <span class="iconify group-hover:translate-x-1 transition-transform" data-icon="lucide:arrow-right"></span>
+        </a>
+        <a href="#features" class="text-zinc-400 hover:text-zinc-100 font-medium px-8 py-4 rounded-2xl text-sm transition-colors duration-300 flex items-center gap-2 border border-zinc-800 hover:border-zinc-600">
+          <span class="iconify" data-icon="lucide:play-circle"></span>
+          See How It Works
+        </a>
+      </div>
+
+      <p class="fade-in-up delay-4 text-xs text-zinc-600 mt-4">No credit card required · 30-day free trial · Instant setup</p>
+    </div>
+  </section>
+
+  <!-- Social Proof / Stats -->
+  <section class="border-y border-zinc-800/50 py-10 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+        <div class="stat-item text-center fade-in-up">
+          <div class="text-3xl font-bold text-indigo-400">50+</div>
+          <div class="text-xs text-zinc-500 mt-1">Companies Trust Us</div>
+        </div>
+        <div class="stat-item text-center fade-in-up delay-1">
+          <div class="text-3xl font-bold text-indigo-400">99.9%</div>
+          <div class="text-xs text-zinc-500 mt-1">Uptime SLA</div>
+        </div>
+        <div class="stat-item text-center fade-in-up delay-2">
+          <div class="text-3xl font-bold text-indigo-400">12k+</div>
+          <div class="text-xs text-zinc-500 mt-1">Employees Onboarded</div>
+        </div>
+        <div class="stat-item text-center fade-in-up delay-3">
+          <div class="text-3xl font-bold text-indigo-400">4.9/5</div>
+          <div class="text-xs text-zinc-500 mt-1">User Rating</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="features" class="py-24 px-6 relative">
+    <div class="absolute top-1/3 left-0 w-96 h-96 rounded-full opacity-10" style="background: radial-gradient(circle, #4f46e5 0%, transparent 70%); filter: blur(100px);"></div>
+
+    <div class="max-w-6xl mx-auto relative z-10">
+      <div class="text-center mb-16">
+        <h2 class="fade-in-up text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Everything you need to<br>manage your workforce</h2>
+        <p class="fade-in-up delay-1 text-zinc-500 text-base max-w-xl mx-auto">One platform. Zero headaches. All the tools your HR team needs to run smoothly.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="fade-in-up delay-1 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:fingerprint"></span>
           </div>
-          <div class="hero-stats">
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Attendance Tracking</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Real-time check-in/check-out with GPS verification, QR codes, and automated late/early alerts.</p>
+        </div>
+
+        <div class="fade-in-up delay-2 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:calendar-check"></span>
+          </div>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Leave Management</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Streamlined leave requests, auto-balance calculations, manager approvals, and annual leave calendar.</p>
+        </div>
+
+        <div class="fade-in-up delay-3 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:file-text"></span>
+          </div>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Reports & Analytics</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Generate insightful reports on attendance, absences, overtime, and workforce trends with one click.</p>
+        </div>
+
+        <div class="fade-in-up delay-2 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:users"></span>
+          </div>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Employee Directory</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Centralized employee profiles with documents, contracts, skills, job history, and organizational charts.</p>
+        </div>
+
+        <div class="fade-in-up delay-3 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:target"></span>
+          </div>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Recruitment ATS</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Full applicant tracking with job postings, candidate screening, interviews, offers, and automated scoring.</p>
+        </div>
+
+        <div class="fade-in-up delay-4 feature-card glass-panel rounded-2xl p-8 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-5">
+            <span class="iconify text-indigo-400 text-2xl" data-icon="lucide:smartphone"></span>
+          </div>
+          <h3 class="text-lg font-semibold text-zinc-100 mb-3">Mobile Ready</h3>
+          <p class="text-sm text-zinc-500 leading-relaxed">Fully responsive design. Managers can approve requests, view reports, and manage their team from anywhere.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Showcase -->
+  <section class="py-24 px-6 relative">
+    <div class="absolute top-1/2 right-0 w-80 h-80 rounded-full opacity-10" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%); filter: blur(100px);"></div>
+
+    <div class="max-w-6xl mx-auto relative z-10">
+      <div class="text-center mb-16">
+        <h2 class="fade-in-up text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Built for HR teams that<br>mean business</h2>
+        <p class="fade-in-up delay-1 text-zinc-500 text-base max-w-xl mx-auto">Advanced capabilities that transform how you manage your people.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6" id="feature-cards"></div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-24 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="fade-in-up text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Simple, transparent pricing</h2>
+        <p class="fade-in-up delay-1 text-zinc-500 text-base max-w-xl mx-auto">Start free, upgrade when you need more. No hidden fees, no surprises.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <!-- Starter -->
+        <div class="fade-in-up delay-1 pricing-card glass-panel rounded-3xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold tracking-tight text-zinc-100 mb-1">Starter</h3>
+            <p class="text-sm text-zinc-500">For small teams</p>
+          </div>
+          <div class="mb-6">
+            <span class="text-4xl font-semibold text-zinc-100">Free</span>
+            <span class="text-zinc-500 text-sm">/forever</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Up to 10 employees</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Basic attendance tracking</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Manual leave requests</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-600"><span class="iconify text-zinc-800" data-icon="lucide:x"></span> Reports & analytics</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-600"><span class="iconify text-zinc-800" data-icon="lucide:x"></span> Recruitment ATS</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-600"><span class="iconify text-zinc-800" data-icon="lucide:x"></span> Priority support</li>
+          </ul>
+          <a href="/login" class="w-full py-3 rounded-xl border border-zinc-700 text-zinc-400 text-sm font-medium hover:border-zinc-500 hover:text-zinc-200 text-center transition-all duration-300">Get Started</a>
+        </div>
+
+        <!-- Professional -->
+        <div class="fade-in-up delay-2 card-glow rounded-3xl p-8 flex flex-col">
+          <div class="mb-6 flex items-center justify-between">
             <div>
-              <div class="num">50+</div>
-              <div class="label">Companies</div>
+              <h3 class="text-lg font-semibold tracking-tight text-zinc-100 mb-1">Professional</h3>
+              <p class="text-sm text-zinc-500">For growing companies</p>
             </div>
-            <div>
-              <div class="num">1.2K</div>
-              <div class="label">Employees</div>
-            </div>
-            <div>
-              <div class="num">98%</div>
-              <div class="label">Uptime</div>
-            </div>
+            <span class="text-[10px] font-semibold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-500/20">Most Popular</span>
           </div>
+          <div class="mb-6">
+            <span class="text-4xl font-semibold text-zinc-100">$9</span>
+            <span class="text-zinc-500 text-sm">/employee/month</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> Unlimited employees</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> GPS + QR attendance</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> Auto leave balance</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> Reports & analytics</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> Employee directory</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-300"><span class="iconify text-indigo-500" data-icon="lucide:check"></span> Email support</li>
+          </ul>
+          <a href="/login" class="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold text-center transition-all duration-150 hover:scale-[1.02] active:scale-95" style="box-shadow: 0 10px 15px -3px rgba(99,102,241,0.2);">Start Free Trial</a>
+          <p class="text-[11px] text-zinc-600 text-center mt-3">14-day free trial, no credit card</p>
         </div>
-        <div class="col-lg-6 hero-illustration fade-up">
-          <div class="mockup">
-            <div class="mockup-header">
-              <span class="mockup-dot"></span>
-              <span class="mockup-dot"></span>
-              <span class="mockup-dot"></span>
-            </div>
-            <div class="mockup-body">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-                <span class="mockup-avatar">JD</span>
-                <div style="flex:1">
-                  <div style="font-weight:600;font-size:.85rem">John Doe</div>
-                  <div style="color:#94a3b8;font-size:.75rem">Engineering</div>
-                </div>
-                <span style="background:#dcfce7;color:#16a34a;padding:2px 10px;border-radius:6px;font-size:.75rem;font-weight:600">Signed In</span>
-              </div>
-              <div class="mockup-row"><div class="mockup-avatar" style="background:#fef3c7;color:#d97706">AN</div><div class="bar fill"></div></div>
-              <div class="mockup-row"><div class="mockup-avatar" style="background:#fce7f3;color:#db2777">SM</div><div class="bar fill-green"></div></div>
-              <div class="mockup-row"><div class="mockup-avatar" style="background:#e0f2fe;color:#0284c7">KL</div><div class="bar fill"></div></div>
-              <div class="mockup-row"><div class="mockup-avatar" style="background:#f3e8ff;color:#7c3aed">RT</div><div class="bar fill-yellow"></div></div>
-              <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.8rem">
-                <span style="color:#64748b"><i class="bi bi-check-circle-fill" style="color:#22c55e"></i> 4 signed in</span>
-                <span style="color:#64748b"><i class="bi bi-calendar"></i> Today: Jul 1, 2026</span>
-              </div>
-            </div>
+
+        <!-- Enterprise -->
+        <div class="fade-in-up delay-3 pricing-card glass-panel rounded-3xl p-8 flex flex-col">
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold tracking-tight text-zinc-100 mb-1">Enterprise</h3>
+            <p class="text-sm text-zinc-500">For large organizations</p>
           </div>
+          <div class="mb-6">
+            <span class="text-4xl font-semibold text-zinc-100">Custom</span>
+          </div>
+          <ul class="space-y-3 mb-8 flex-1">
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Everything in Professional</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Recruitment ATS</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Custom integrations & API</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> SSO & advanced security</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Dedicated account manager</li>
+            <li class="flex items-center gap-2.5 text-sm text-zinc-400"><span class="iconify text-zinc-600" data-icon="lucide:check"></span> Priority 24/7 support</li>
+          </ul>
+          <a href="#contact" class="w-full py-3 rounded-xl border border-zinc-700 text-zinc-400 text-sm font-medium hover:border-zinc-500 hover:text-zinc-200 text-center transition-all duration-300">Contact Sales</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ═══ Features ═══ -->
-  <section class="features" id="features">
-    <div class="container">
-      <div class="text-center fade-up">
-        <h2 class="section-title">Everything You Need to Manage Your Workforce</h2>
-        <p class="section-subtitle">From clock-in to payroll data, WorkTrack gives you full visibility into your team's attendance and time-off.</p>
+  <!-- Testimonials -->
+  <section class="py-24 px-6 border-t border-zinc-800/50">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="fade-in-up text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Trusted by HR leaders</h2>
+        <p class="fade-in-up delay-1 text-zinc-500 text-base max-w-xl mx-auto">See why companies choose WorkTrack to manage their workforce.</p>
       </div>
-      <div class="row g-4">
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)"><i class="bi bi-fingerprint"></i></div>
-            <h5>Attendance Tracking</h5>
-            <p>Employees sign in and out with one click. Automatic time calculation, late detection, and real-time dashboard for managers.</p>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#059669,#10b981)"><i class="bi bi-calendar-check"></i></div>
-            <h5>Leave Management</h5>
-            <p>Submit, approve, and track leave requests effortlessly. Annual, sick, casual, and personal leave types with balance tracking.</p>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="bi bi-people"></i></div>
-            <h5>Employee Database</h5>
-            <p>Centralised employee records with ID cards, contracts, departments, positions, and document management in one place.</p>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#dc2626,#ef4444)"><i class="bi bi-graph-up-arrow"></i></div>
-            <h5>Reports &amp; Analytics</h5>
-            <p>Export attendance logs, leave summaries, and HR reports. Visual dashboards give you insights at a glance.</p>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#2563eb,#3b82f6)"><i class="bi bi-shield-check"></i></div>
-            <h5>Role-Based Access</h5>
-            <p>Granular permissions for employees, managers, HR, and admins. Each role sees only what they need.</p>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4 fade-up">
-          <div class="feature-card">
-            <div class="icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7)"><i class="bi bi-box-arrow-in-right"></i></div>
-            <h5>Quick Onboarding</h5>
-            <p>Add employees in seconds. Generate ID cards, assign departments, and set leave balances — all from the admin panel.</p>
-          </div>
-        </div>
-      </div>
+
+      <div class="grid md:grid-cols-3 gap-6" id="testimonials"></div>
     </div>
   </section>
 
-  <!-- ═══ How It Works ═══ -->
-  <section class="how-it-works" id="how-it-works">
-    <div class="container">
-      <div class="text-center fade-up">
-        <h2 class="section-title">How It Works</h2>
-        <p class="section-subtitle">Get your team up and running in minutes. No training required.</p>
+  <!-- FAQ Section -->
+  <section id="faq" class="py-24 px-6 border-t border-zinc-800/50">
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="fade-in-up text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Frequently asked questions</h2>
+        <p class="fade-in-up delay-1 text-zinc-500 text-base">Everything you need to know about WorkTrack.</p>
       </div>
-      <div class="row g-4">
-        <div class="col-md-4 fade-up">
-          <div class="step-card">
-            <div class="step-number">1</div>
-            <h5>Create Your Account</h5>
-            <p>Sign up as an admin, add your company details, and invite your team members via email.</p>
-          </div>
-        </div>
-        <div class="col-md-4 fade-up">
-          <div class="step-card">
-            <div class="step-number">2</div>
-            <h5>Set Up Your Team</h5>
-            <p>Define departments, positions, leave policies, and employee profiles. It takes just a few clicks.</p>
-          </div>
-        </div>
-        <div class="col-md-4 fade-up">
-          <div class="step-card">
-            <div class="step-number">3</div>
-            <h5>Start Tracking</h5>
-            <p>Employees sign in/out daily. Managers review attendance and time-off requests from a single dashboard.</p>
-          </div>
-        </div>
-      </div>
+
+      <div class="fade-in-up delay-2 space-y-3" id="faq-list"></div>
     </div>
   </section>
 
-  <!-- ═══ Pricing ═══ -->
-  <section class="pricing" id="pricing">
-    <div class="container">
-      <div class="text-center fade-up">
-        <h2 class="section-title">Simple, Transparent Pricing</h2>
-        <p class="section-subtitle">Start free, upgrade as you grow. No hidden fees, no long-term contracts.</p>
+  <!-- Contact / Final CTA -->
+  <section id="contact" class="py-24 px-6 relative overflow-hidden">
+    <div class="absolute inset-0" style="background: radial-gradient(circle at 50% 100%, #1e1b4b 0%, #09090b 60%);"></div>
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] rounded-full opacity-15" style="background: radial-gradient(circle, #4f46e5 0%, transparent 70%); filter: blur(120px);"></div>
+
+    <div class="max-w-3xl mx-auto text-center relative z-10">
+      <div class="fade-in-up inline-flex items-center gap-2 mb-6">
+        <span class="iconify text-indigo-500 text-2xl" data-icon="lucide:sparkles"></span>
       </div>
-      <div class="row g-4 justify-content-center">
-        <div class="col-lg-4 col-md-6 fade-up">
-          <div class="pricing-card">
-            <h5 style="font-weight:700">Starter</h5>
-            <div class="price">0 <sub>EGP</sub></div>
-            <div class="period">Forever free</div>
-            <ul>
-              <li><i class="bi bi-check-lg"></i> Up to 10 employees</li>
-              <li><i class="bi bi-check-lg"></i> Attendance tracking</li>
-              <li><i class="bi bi-check-lg"></i> Leave management</li>
-              <li><i class="bi bi-check-lg"></i> Basic reports</li>
-              <li><i class="bi bi-check-lg"></i> Email support</li>
-            </ul>
-            <a href="/login" class="btn-outline-custom d-block text-center" style="width:100%">Get Started</a>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6 fade-up">
-          <div class="pricing-card featured">
-            <div class="badge-popular">Most Popular</div>
-            <h5 style="font-weight:700">Professional</h5>
-            <div class="price">99 <sub>EGP</sub></div>
-            <div class="period">per month, per company</div>
-            <ul>
-              <li><i class="bi bi-check-lg"></i> Unlimited employees</li>
-              <li><i class="bi bi-check-lg"></i> Advanced reports &amp; exports</li>
-              <li><i class="bi bi-check-lg"></i> HR tools &amp; ID cards</li>
-              <li><i class="bi bi-check-lg"></i> Role-based access control</li>
-              <li><i class="bi bi-check-lg"></i> Priority support</li>
-            </ul>
-            <a href="/login" class="btn-primary-custom d-block text-center" style="width:100%">Start Free Trial</a>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6 fade-up">
-          <div class="pricing-card">
-            <h5 style="font-weight:700">Enterprise</h5>
-            <div class="price">Custom</div>
-            <div class="period">tailored to your needs</div>
-            <ul>
-              <li><i class="bi bi-check-lg"></i> Dedicated server</li>
-              <li><i class="bi bi-check-lg"></i> REST API access</li>
-              <li><i class="bi bi-check-lg"></i> Custom integrations</li>
-              <li><i class="bi bi-check-lg"></i> 24/7 phone &amp; email support</li>
-              <li><i class="bi bi-check-lg"></i> On-site training</li>
-            </ul>
-            <a href="#contact" class="btn-outline-custom d-block text-center" style="width:100%">Contact Us</a>
-          </div>
-        </div>
+      <h2 class="fade-in-up delay-1 text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Ready to transform your HR?</h2>
+      <p class="fade-in-up delay-2 text-zinc-400 text-base md:text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+        Join 50+ companies saving time and money with WorkTrack. Start your free trial today.
+      </p>
+      <div class="fade-in-up delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/login" class="group bg-indigo-500 hover:bg-indigo-400 text-white font-semibold px-10 py-4 rounded-2xl text-sm transition-all duration-150 hover:scale-105 active:scale-95 flex items-center gap-2" style="box-shadow: 0 10px 15px -3px rgba(99,102,241,0.2);">
+          Start Free Trial
+          <span class="iconify group-hover:translate-x-1 transition-transform" data-icon="lucide:arrow-right"></span>
+        </a>
       </div>
+      <p class="fade-in-up delay-4 text-xs text-zinc-600 mt-5">No credit card required · 30-day free trial</p>
     </div>
   </section>
 
-  <!-- ═══ Testimonials ═══ -->
-  <section class="testimonials">
-    <div class="container">
-      <div class="text-center fade-up">
-        <h2 class="section-title">What Our Customers Say</h2>
-        <p class="section-subtitle">Companies trust WorkTrack to manage their workforce efficiently.</p>
+  <!-- Footer -->
+  <footer class="border-t border-zinc-800/50 py-12 px-6">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-md bg-indigo-500 flex items-center justify-center">
+          <span class="iconify text-black text-sm" data-icon="lucide:clock"></span>
+        </div>
+        <span class="text-sm font-semibold text-zinc-300">WorkTrack</span>
       </div>
-      <div class="row g-4">
-        <div class="col-lg-4 fade-up">
-          <div class="testimonial-card">
-            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
-            <p>"WorkTrack cut our HR paperwork in half. Attendance tracking is now instant, and approvals take seconds instead of days. Our team loves it."</p>
-            <div class="author">Ahmed Hassan</div>
-            <div class="role">HR Manager, TechCorp Egypt</div>
-          </div>
-        </div>
-        <div class="col-lg-4 fade-up">
-          <div class="testimonial-card">
-            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
-            <p>"We switched from Excel sheets to WorkTrack. The reports are incredible. Now I can see attendance patterns and make better decisions in real time."</p>
-            <div class="author">Fatima Al-Mansouri</div>
-            <div class="role">Operations Director, BuildNext ME</div>
-          </div>
-        </div>
-        <div class="col-lg-4 fade-up">
-          <div class="testimonial-card">
-            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
-            <p>"Best investment for our HR team. Setup took 30 minutes, and our 80+ employees were online by the next day. No training needed—it's that intuitive."</p>
-            <div class="author">Mohammed Rashid</div>
-            <div class="role">CEO, Digital Solutions LLC</div>
-          </div>
-        </div>
+      <div class="flex items-center gap-6">
+        <a href="#" class="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Privacy Policy</a>
+        <a href="#" class="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Terms of Service</a>
+        <a href="#contact" class="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Contact Us</a>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══ Stats Bar ═══ -->
-  <section class="about-stats">
-    <div class="container">
-      <div class="row text-center g-4">
-        <div class="col-6 col-lg-3 fade-up">
-          <div class="num">50+</div>
-          <div class="label">Active Companies</div>
-        </div>
-        <div class="col-6 col-lg-3 fade-up">
-          <div class="num">1,200+</div>
-          <div class="label">Employees Onboarded</div>
-        </div>
-        <div class="col-6 col-lg-3 fade-up">
-          <div class="num">15K+</div>
-          <div class="label">Daily Sign-Ins</div>
-        </div>
-        <div class="col-6 col-lg-3 fade-up">
-          <div class="num">99.9%</div>
-          <div class="label">System Uptime</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══ FAQ ═══ -->
-  <section class="faq" id="faq">
-    <div class="container">
-      <div class="text-center fade-up">
-        <h2 class="section-title">Frequently Asked Questions</h2>
-        <p class="section-subtitle">Got questions? We've got answers.</p>
-      </div>
-      <div class="row justify-content-center fade-up">
-        <div class="col-lg-8">
-          <div class="faq-item active">
-            <div class="question">
-              <span>How long does setup take?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">Setup takes less than 30 minutes. Add your company details, departments, and employees—then you're ready to go. Most companies are live on day one.</div>
-          </div>
-          <div class="faq-item">
-            <div class="question">
-              <span>Can we import our existing employee data?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">Yes! Upload a CSV file with employee details, and we'll import everything automatically. We support bulk actions for faster onboarding.</div>
-          </div>
-          <div class="faq-item">
-            <div class="question">
-              <span>Is there a free trial?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">Yes. You get 30 days free on the Professional plan with full access to all features. No credit card required to start.</div>
-          </div>
-          <div class="faq-item">
-            <div class="question">
-              <span>What about data security and backups?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">We use enterprise-grade encryption, daily backups, and 99.9% uptime SLA. Your data is always safe and recoverable.</div>
-          </div>
-          <div class="faq-item">
-            <div class="question">
-              <span>Can managers approve leaves on mobile?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">Absolutely. The app is fully responsive. Managers can approve requests, view reports, and manage their team from anywhere.</div>
-          </div>
-          <div class="faq-item">
-            <div class="question">
-              <span>Do you offer customer support?</span>
-              <i class="bi bi-chevron-down icon"></i>
-            </div>
-            <div class="answer">Yes. Starter plan includes email support. Professional and Enterprise plans get priority support with faster response times.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══ Contact ═══ -->
-  <section class="contact" id="contact">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-6 fade-up">
-          <div class="text-center">
-            <h2 class="section-title">Ready to Transform Your HR?</h2>
-            <p class="section-subtitle" style="margin-bottom:2rem">Join 50+ companies saving time and money with WorkTrack. Get a personalized demo or start your free trial today.</p>
-          </div>
-          <form id="contactForm" action="/api/contact" method="POST">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Your Name</label>
-                <input type="text" class="form-control" name="name" required placeholder="John Smith">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Email Address</label>
-                <input type="email" class="form-control" name="email" required placeholder="john@company.com">
-              </div>
-              <div class="col-12">
-                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Company</label>
-                <input type="text" class="form-control" name="company" placeholder="Your company name">
-              </div>
-              <div class="col-12">
-                <label class="form-label fw600" style="font-weight:600;font-size:.9rem">Message</label>
-                <textarea class="form-control" name="message" rows="4" required placeholder="Tell us about your requirements..."></textarea>
-              </div>
-              <div class="col-12">
-                <button type="submit" class="btn-submit"><i class="bi bi-send me-2"></i>Send Message</button>
-              </div>
-              <div class="col-12">
-                <div id="formFeedback" class="text-center" style="display:none"></div>
-              </div>
-            </div>
-          </form>
-          <div class="text-center mt-4">
-            <p style="color:var(--gray);font-size:.9rem">
-              <i class="bi bi-envelope me-1"></i> contact@worktrack.ddns.net &nbsp;·&nbsp;
-              <i class="bi bi-telephone me-1"></i> +20 100 000 0000
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══ Footer ═══ -->
-  <footer class="footer">
-    <div class="container">
-      <div class="row align-items-center">
-        <div class="col-md-6 text-center text-md-start">
-          <span style="font-weight:700;color:#fff">WorkTrack</span>
-          <span class="ms-2">&copy; 2026 WorkTrack. All rights reserved.</span>
-        </div>
-        <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
-          <a href="#features" class="me-3">Features</a>
-          <a href="#pricing" class="me-3">Pricing</a>
-          <a href="#contact">Contact</a>
-        </div>
-      </div>
+      <p class="text-xs text-zinc-700">&copy; 2026 WorkTrack. All rights reserved.</p>
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    (function() {
-      // ── Navbar scroll effect ──
-      const navbar = document.querySelector('.navbar-landing');
-      window.addEventListener('scroll', function() {
-        navbar.classList.toggle('scrolled', window.scrollY > 20);
+    // Toast
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Feature Cards
+    const showcaseFeatures = [
+      {
+        icon: 'lucide:bar-chart-3',
+        title: 'Deep Analytics Dashboard',
+        desc: 'Get real-time insights into attendance patterns, leave trends, overtime costs, and workforce productivity with interactive charts and exportable reports.',
+        image: 'https://picsum.photos/seed/worktrack1/600/340.jpg'
+      },
+      {
+        icon: 'lucide:git-pull-request',
+        title: 'Automated Screening',
+        desc: 'Set minimum requirements per position — education, experience, skills, certifications. Our AI-powered engine auto-scores candidates and recommends the best fits.',
+        image: 'https://picsum.photos/seed/worktrack2/600/340.jpg'
+      },
+      {
+        icon: 'lucide:calendar-range',
+        title: 'Smart Leave Calendar',
+        desc: 'Visual overview of all leave requests across departments. Spot conflicts, approve or reject with one click, and track remaining balances automatically.',
+        image: 'https://picsum.photos/seed/worktrack3/600/340.jpg'
+      },
+      {
+        icon: 'lucide:shield-check',
+        title: 'Compliance & Audit Trail',
+        desc: 'Every action is logged. Full audit trail for attendance edits, leave approvals, and profile changes. Export logs for compliance reporting.',
+        image: 'https://picsum.photos/seed/worktrack4/600/340.jpg'
+      }
+    ];
+
+    const cardsEl = document.getElementById('feature-cards');
+    showcaseFeatures.forEach((f, i) => {
+      cardsEl.innerHTML += `
+        <div class="fade-in-up delay-${i + 1} feature-card glass-panel rounded-3xl overflow-hidden cursor-pointer">
+          <div class="h-44 overflow-hidden relative">
+            <img src="${f.image}" alt="${f.title}" class="w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(24,24,27,1) 0%, rgba(24,24,27,0.3) 50%, transparent 100%);"></div>
+            <div class="absolute bottom-4 left-6">
+              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-2">
+                <span class="iconify text-indigo-400 text-lg" data-icon="${f.icon}"></span>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 pt-2">
+            <h3 class="text-lg font-semibold tracking-tight text-zinc-100 mb-2">${f.title}</h3>
+            <p class="text-sm text-zinc-500 leading-relaxed">${f.desc}</p>
+          </div>
+        </div>
+      `;
+    });
+
+    // Testimonials
+    const testimonials = [
+      {
+        name: 'Ahmed Hassan',
+        role: 'HR Manager, TechCorp Egypt',
+        avatar: 'https://picsum.photos/seed/ahmed/80/80.jpg',
+        text: 'WorkTrack cut our HR paperwork in half. Attendance tracking is now instant, and approvals take seconds instead of days. Our team loves it.'
+      },
+      {
+        name: 'Fatima Al-Mansouri',
+        role: 'Operations Director, BuildNext ME',
+        avatar: 'https://picsum.photos/seed/fatima/80/80.jpg',
+        text: 'We switched from Excel sheets to WorkTrack. The reports are incredible. Now I can see attendance patterns and make better decisions in real time.'
+      },
+      {
+        name: 'Mohammed Rashid',
+        role: 'CEO, Digital Solutions LLC',
+        avatar: 'https://picsum.photos/seed/mohammed/80/80.jpg',
+        text: 'Best investment for our HR team. Setup took 30 minutes, and our 80+ employees were online by the next day. No training needed — it\'s that intuitive.'
+      }
+    ];
+
+    const testEl = document.getElementById('testimonials');
+    testimonials.forEach((t, i) => {
+      testEl.innerHTML += `
+        <div class="fade-in-up delay-${i + 1} glass-panel rounded-2xl p-6 flex flex-col">
+          <div class="flex gap-0.5 mb-4">
+            <span class="iconify text-amber-400 text-sm" data-icon="lucide:star"></span>
+            <span class="iconify text-amber-400 text-sm" data-icon="lucide:star"></span>
+            <span class="iconify text-amber-400 text-sm" data-icon="lucide:star"></span>
+            <span class="iconify text-amber-400 text-sm" data-icon="lucide:star"></span>
+            <span class="iconify text-amber-400 text-sm" data-icon="lucide:star"></span>
+          </div>
+          <p class="text-sm text-zinc-400 leading-relaxed flex-1 mb-5">"${t.text}"</p>
+          <div class="flex items-center gap-3 pt-4 border-t border-zinc-800/50">
+            <img src="${t.avatar}" class="w-9 h-9 rounded-full object-cover" alt="${t.name}">
+            <div>
+              <div class="text-sm font-medium text-zinc-200">${t.name}</div>
+              <div class="text-xs text-zinc-600">${t.role}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    // FAQ
+    const faqs = [
+      {
+        q: 'How long does setup take?',
+        a: 'Setup takes less than 30 minutes. Add your company details, departments, and employees — then you\'re ready to go. Most companies are live on day one.'
+      },
+      {
+        q: 'Can we import our existing employee data?',
+        a: 'Yes! Upload a CSV file with employee details, and we\'ll import everything automatically. We support bulk actions for faster onboarding.'
+      },
+      {
+        q: 'Is there a free trial?',
+        a: 'Yes. You get 30 days free on the Professional plan with full access to all features. No credit card required to start.'
+      },
+      {
+        q: 'What about data security and backups?',
+        a: 'We use enterprise-grade encryption, daily backups, and 99.9% uptime SLA. Your data is always safe and recoverable.'
+      },
+      {
+        q: 'Can managers approve leaves on mobile?',
+        a: 'Absolutely. The app is fully responsive. Managers can approve requests, view reports, and manage their team from anywhere.'
+      },
+      {
+        q: 'What kind of support do you offer?',
+        a: 'Starter plan includes email support. Professional and Enterprise plans get priority support with faster response times. Enterprise includes a dedicated account manager.'
+      }
+    ];
+
+    const faqEl = document.getElementById('faq-list');
+    faqs.forEach((f, i) => {
+      faqEl.innerHTML += `
+        <div class="glass-panel rounded-2xl overflow-hidden">
+          <button onclick="toggleFaq(${i})" class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-zinc-800/20 transition-colors duration-300">
+            <span class="text-sm font-medium text-zinc-200 pr-4">${f.q}</span>
+            <span id="faq-icon-${i}" class="iconify text-zinc-500 text-lg shrink-0 transition-transform duration-300" data-icon="lucide:plus"></span>
+          </button>
+          <div id="faq-answer-${i}" class="faq-answer px-6">
+            <p class="text-sm text-zinc-500 leading-relaxed pb-4">${f.a}</p>
+          </div>
+        </div>
+      `;
+    });
+
+    function toggleFaq(i) {
+      const answer = document.getElementById(`faq-answer-${i}`);
+      const icon = document.getElementById(`faq-icon-${i}`);
+      const isOpen = answer.classList.contains('open');
+      document.querySelectorAll('.faq-answer').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('[id^="faq-icon-"]').forEach(el => {
+        el.setAttribute('data-icon', 'lucide:plus');
+        el.style.transform = 'rotate(0deg)';
       });
+      if (!isOpen) {
+        answer.classList.add('open');
+        icon.setAttribute('data-icon', 'lucide:minus');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
 
-      // ── Scroll reveal (fade-up) ──
-      const reveal = () => {
-        document.querySelectorAll('.fade-up').forEach(el => {
-          const rect = el.getBoundingClientRect();
-          if (rect.top < window.innerHeight - 60) el.classList.add('visible');
-        });
-      };
-      window.addEventListener('scroll', reveal);
-      window.addEventListener('load', reveal);
-      reveal();
-
-      // ── Smooth scroll for anchor links ──
-      document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', function(e) {
-          const target = document.querySelector(this.getAttribute('href'));
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        });
-      });
-
-      // ── FAQ Toggle ──
-      document.querySelectorAll('.faq-item .question').forEach(q => {
-        q.addEventListener('click', function() {
-          const item = this.parentElement;
-          const isActive = item.classList.contains('active');
-          
-          document.querySelectorAll('.faq-item').forEach(i => {
-            i.classList.remove('active');
-          });
-          
-          if (!isActive) {
-            item.classList.add('active');
-          }
-        });
-      });
-
-      // ── Contact form ──
-      const form = document.getElementById('contactForm');
-      const feedback = document.getElementById('formFeedback');
-      form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = form.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
-        feedback.style.display = 'none';
-
-        try {
-          const res = await fetch(form.action, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(Object.fromEntries(new FormData(form)))
-          });
-          const data = await res.json();
-          feedback.style.display = 'block';
-          if (res.ok) {
-            feedback.className = 'text-center text-success fw600';
-            feedback.textContent = 'Thank you! We\'ll get back to you within 24 hours.';
-            form.reset();
-          } else {
-            feedback.className = 'text-center text-danger fw600';
-            feedback.textContent = data.error || 'Something went wrong. Please try again.';
-          }
-        } catch (err) {
-          feedback.style.display = 'block';
-          feedback.className = 'text-center text-danger fw600';
-          feedback.textContent = 'Network error. Please try again later.';
+    // Intersection Observer
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+          observer.unobserve(entry.target);
         }
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send me-2"></i>Send Message';
       });
-    })();
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in-up').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
   </script>
 </body>
 </html>
