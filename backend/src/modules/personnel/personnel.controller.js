@@ -840,7 +840,7 @@ async function getDepartmentTitles(req, res) {
        GROUP BY title_id
      ) ec ON ec.title_id = dt.id
      ${where}
-     ORDER BY d.name, dt.sort_order`, params
+     ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, params
   );
   res.json(rows);
 }
