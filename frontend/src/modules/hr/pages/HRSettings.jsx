@@ -8,7 +8,7 @@ import HRLayout from '../../../shared/components/Layout/HRLayout';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 export default function HRSettings() {
-  const [activeTab, setActiveTab] = useState('departments');
+  const [activeTab, setActiveTab] = useState('master-lists');
 
   const [settings, setSettings] = useState({
     work_week_start: 'Sunday', work_week_end: 'Thursday',
@@ -36,6 +36,14 @@ export default function HRSettings() {
   const [editingGrade, setEditingGrade] = useState(null);
   const [gradeDeleteConfirm, setGradeDeleteConfirm] = useState(null);
 
+  const [mlSkills, setMlSkills] = useState([]);
+  const [mlCerts, setMlCerts] = useState([]);
+  const [mlActiveSubtab, setMlActiveSubtab] = useState('skills');
+  const [mlNewName, setMlNewName] = useState('');
+  const [mlEditing, setMlEditing] = useState(null);
+  const [mlEditName, setMlEditName] = useState('');
+  const [mlConfirm, setMlConfirm] = useState(null);
+
 
   const [ceoEmail, setCeoEmail] = useState('');
 
@@ -62,6 +70,7 @@ export default function HRSettings() {
     if (activeTab === 'holidays') fetchHolidays();
     if (activeTab === 'leave-types') fetchLeaveTypes();
     if (activeTab === 'grades') fetchGrades();
+    if (activeTab === 'master-lists') { fetchMlSkills(); fetchMlCerts(); }
   }, [activeTab]);
 
   const fetchDepartments = async () => {
@@ -216,6 +225,44 @@ export default function HRSettings() {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const fetchMlSkills = async () => {
+    try { const res = await hrApi.get('/master-skills'); setMlSkills(res.data); }
+    catch { setMessage('Failed to load skills'); }
+  };
+  const fetchMlCerts = async () => {
+    try { const res = await hrApi.get('/master-certifications'); setMlCerts(res.data); }
+    catch { setMessage('Failed to load certifications'); }
+  };
+
+  const handleMlAdd = async () => {
+    const name = mlNewName.trim();
+    if (!name) return;
+    try {
+      if (mlActiveSubtab === 'skills') { await hrApi.post('/master-skills', { name }); await fetchMlSkills(); }
+      else { await hrApi.post('/master-certifications', { name }); await fetchMlCerts(); }
+      setMlNewName(''); setMessage(`"${name}" added`);
+    } catch (err) { setMessage(err.response?.data?.error || 'Failed to add'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+  const handleMlUpdate = async () => {
+    const name = mlEditName.trim();
+    if (!name || !mlEditing) return;
+    try {
+      if (mlActiveSubtab === 'skills') { await hrApi.put(`/master-skills/${mlEditing.id}`, { name }); await fetchMlSkills(); }
+      else { await hrApi.put(`/master-certifications/${mlEditing.id}`, { name }); await fetchMlCerts(); }
+      setMlEditing(null); setMlEditName(''); setMessage(`Updated to "${name}"`);
+    } catch (err) { setMessage(err.response?.data?.error || 'Failed to update'); }
+    setTimeout(() => setMessage(''), 3000);
+  };
+  const handleMlDelete = async (id) => {
+    try {
+      if (mlActiveSubtab === 'skills') { await hrApi.delete(`/master-skills/${id}`); await fetchMlSkills(); }
+      else { await hrApi.delete(`/master-certifications/${id}`); await fetchMlCerts(); }
+      setMessage('Deleted');
+    } catch { setMessage('Failed to delete'); }
+    setMlConfirm(null);
+    setTimeout(() => setMessage(''), 3000);
+  };
 
 
   const handleSaveWorkWeek = async () => {
@@ -247,6 +294,7 @@ export default function HRSettings() {
           <button className={`settings-tab ${activeTab === 'holidays' ? 'active' : ''}`} onClick={() => setActiveTab('holidays')}>Holidays & Work Week</button>
           <button className={`settings-tab ${activeTab === 'leave-types' ? 'active' : ''}`} onClick={() => setActiveTab('leave-types')}>Leave Types</button>
           <button className={`settings-tab ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>Grades</button>
+          <button className={`settings-tab ${activeTab === 'master-lists' ? 'active' : ''}`} onClick={() => setActiveTab('master-lists')}>Master Lists</button>
         </div>
 
         <div className="settings-form">
@@ -817,6 +865,73 @@ export default function HRSettings() {
                   Add Grade
                 </button>
               </div>
+            </>
+          )}
+
+          {activeTab === 'master-lists' && (
+            <>
+              <div className="settings-section-title">Master Lists</div>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
+                Add and manage skills and certifications used across recruitment requirements.
+              </p>
+              {message && <div className={`alert ${message.toLowerCase().includes('failed') ? 'alert-error' : 'alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                <button className={`btn btn-sm ${mlActiveSubtab === 'skills' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setMlActiveSubtab('skills')}>Skills</button>
+                <button className={`btn btn-sm ${mlActiveSubtab === 'certs' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setMlActiveSubtab('certs')}>Certifications</button>
+              </div>
+              <div className="card">
+                <div className="card-body">
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    <input className="form-control" value={mlNewName}
+                      onChange={e => setMlNewName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleMlAdd(); }}
+                      placeholder={`Add new ${mlActiveSubtab === 'skills' ? 'skill' : 'certification'}...`}
+                      style={{ maxWidth: 400 }} />
+                    <button className="btn btn-primary" onClick={handleMlAdd} disabled={!mlNewName.trim()}>+ Add</button>
+                  </div>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 60 }}>#</th>
+                        <th>Name</th>
+                        <th style={{ width: 200 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(mlActiveSubtab === 'skills' ? mlSkills : mlCerts).length === 0 ? (
+                        <tr><td colSpan={3} className="text-center">No {mlActiveSubtab === 'skills' ? 'skills' : 'certifications'} yet. Add one above.</td></tr>
+                      ) : (mlActiveSubtab === 'skills' ? mlSkills : mlCerts).map(item => (
+                        <tr key={item.id}>
+                          <td>{item.id}</td>
+                          <td>
+                            {mlEditing?.id === item.id ? (
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <input className="form-control form-control-sm" value={mlEditName}
+                                  onChange={e => setMlEditName(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleMlUpdate(); if (e.key === 'Escape') setMlEditing(null); }}
+                                  style={{ maxWidth: 300 }} />
+                                <button className="btn btn-sm btn-primary" onClick={handleMlUpdate}>Save</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => setMlEditing(null)}>Cancel</button>
+                              </div>
+                            ) : item.name}
+                          </td>
+                          <td>
+                            <button className="btn btn-sm btn-outline" onClick={() => { setMlEditing(item); setMlEditName(item.name); }}>Edit</button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => setMlConfirm(item)} style={{ marginLeft: 4 }}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {mlConfirm && (
+                <ConfirmModal
+                  message={`Delete "${mlConfirm.name}"?`}
+                  onConfirm={() => handleMlDelete(mlConfirm.id)}
+                  onCancel={() => setMlConfirm(null)}
+                />
+              )}
             </>
           )}
 

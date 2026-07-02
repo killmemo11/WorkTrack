@@ -193,6 +193,16 @@ app.put('/api/hr/settings/work-week', requireHR, async (req, res) => {
   res.json(settings);
 });
 
+// HR master lists CRUD
+app.get('/api/hr/master-skills', requireHR, listSkills);
+app.post('/api/hr/master-skills', requireHR, createSkill);
+app.put('/api/hr/master-skills/:id', requireHR, updateSkill);
+app.delete('/api/hr/master-skills/:id', requireHR, deleteSkill);
+app.get('/api/hr/master-certifications', requireHR, listCertifications);
+app.post('/api/hr/master-certifications', requireHR, createCertification);
+app.put('/api/hr/master-certifications/:id', requireHR, updateCertification);
+app.delete('/api/hr/master-certifications/:id', requireHR, deleteCertification);
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/recruitment', requireService('service_recruitment', 'Recruitment is disabled'), recAdminRouter);
 app.use('/api/hr', requireHR, hrRoutes);
