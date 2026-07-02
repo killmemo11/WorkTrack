@@ -172,7 +172,16 @@ export default function Positions() {
   };
 
   const handleAddTitle = async () => {
-    if (!addForm.department_id || !addForm.title.trim()) return;
+    if (!addForm.department_id) {
+      setMsg('Please select a department');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
+    if (!addForm.title.trim()) {
+      setMsg('Please enter a title');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
     setSaving(true);
     try {
       await hrApi.post('/department-titles', {
@@ -321,13 +330,12 @@ export default function Positions() {
       )}
 
       {departments.map((dept, idx) => {
-        const deptTitles = grouped[dept.id];
-        if (!deptTitles || deptTitles.length === 0) return null;
-
+        const deptTitles = grouped[dept.id] || [];
         const deptFilled = deptTitles.reduce((s, t) => s + (t.filled_count || 0), 0);
         const deptMax = deptTitles.reduce((s, t) => s + (t.max_headcount || 0), 0);
         const deptPct = deptMax > 0 ? deptFilled / deptMax : 0;
         const isCollapsed = collapsed[dept.id];
+        const isEmpty = deptTitles.length === 0;
 
         return (
           <div key={dept.id} style={{
@@ -376,28 +384,40 @@ export default function Positions() {
             {/* Cards Grid */}
             {!isCollapsed && (
               <div style={{ padding: 16 }}>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {deptTitles.map((t, tIdx) => {
-                    const grade = t.grade_id ? gradeMap[t.grade_id] : null;
-                    return (
-                      <div key={t.id} style={{ animation: `fadeSlideUp ${0.15 + tIdx * 0.03}s ease-out` }}>
-                        <TitleCard
-                          title={t.title}
-                          grade={grade?.name || null}
-                          gradeLevel={grade?.grade_level || null}
-                          description={t.description}
-                          technical={!!t.technical}
-                          filled={t.filled_count || 0}
-                          max={t.max_headcount || 0}
-                          created_at={t.created_at}
-                          hasCriteria={false}
-                          onClick={() => openEdit(t)}
-                          onDelete={() => setDeleteTarget(t)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                {isEmpty ? (
+                  <div style={{ textAlign: 'center', padding: '30px 20px', color: '#94a3b8' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#64748b', marginBottom: 8 }}>
+                      No titles in this department yet
+                    </div>
+                    <button className="btn btn-sm btn-primary" onClick={() => { setAddForm({ ...addForm, department_id: dept.id }); setShowAdd(true); }}>
+                      + Add First Title
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {deptTitles.map((t, tIdx) => {
+                      const grade = t.grade_id ? gradeMap[t.grade_id] : null;
+                      return (
+                        <div key={t.id} style={{ animation: `fadeSlideUp ${0.15 + tIdx * 0.03}s ease-out` }}>
+                          <TitleCard
+                            title={t.title}
+                            grade={grade?.name || null}
+                            gradeLevel={grade?.grade_level || null}
+                            description={t.description}
+                            technical={!!t.technical}
+                            filled={t.filled_count || 0}
+                            max={t.max_headcount || 0}
+                            created_at={t.created_at}
+                            hasCriteria={false}
+                            onClick={() => openEdit(t)}
+                            onDelete={() => setDeleteTarget(t)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
