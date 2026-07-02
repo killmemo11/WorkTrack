@@ -251,8 +251,8 @@
     }
     .feature-card:hover {
       border-color: var(--primary);
-      box-shadow: 0 8px 32px rgba(79,70,229,.1);
-      transform: translateY(-2px);
+      box-shadow: 0 12px 48px rgba(79,70,229,.15);
+      transform: translateY(-4px);
     }
     .feature-card .icon {
       width: 48px; height: 48px;
@@ -385,6 +385,70 @@
       transform: translateY(0);
     }
 
+    /* ── Testimonials ── */
+    .testimonials { padding: 5rem 0; background: #fff; }
+    .testimonial-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      background: #fff;
+      transition: all .2s;
+    }
+    .testimonial-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 32px rgba(79,70,229,.1);
+    }
+    .testimonial-card .stars {
+      color: #fbbf24;
+      font-size: .95rem;
+      margin-bottom: .5rem;
+    }
+    .testimonial-card p {
+      color: var(--gray);
+      font-size: .9rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+    .testimonial-card .author {
+      font-weight: 600;
+      color: var(--dark);
+    }
+    .testimonial-card .role {
+      color: var(--gray);
+      font-size: .8rem;
+    }
+
+    /* ── FAQ ── */
+    .faq { padding: 5rem 0; background: var(--light-gray); }
+    .faq-item {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1.5rem 0;
+      cursor: pointer;
+    }
+    .faq-item .question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      color: var(--dark);
+    }
+    .faq-item .icon {
+      color: var(--primary);
+      transition: transform .2s;
+    }
+    .faq-item.active .icon { transform: rotate(180deg); }
+    .faq-item .answer {
+      color: var(--gray);
+      font-size: .9rem;
+      line-height: 1.6;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .2s;
+    }
+    .faq-item.active .answer { max-height: 500px; padding-top: 1rem; }
+
     @media (max-width: 768px) {
       .hero { padding: 4rem 0 3rem; text-align: center; }
       .hero p { margin-left: auto; margin-right: auto; }
@@ -416,12 +480,12 @@
     <div class="container">
       <div class="row align-items-center g-5">
         <div class="col-lg-6 fade-up">
-          <div class="badge-new"><i class="bi bi-star-fill"></i> Trusted by 50+ companies</div>
-          <h1>Workforce Management,<br><span>Simplified</span></h1>
-          <p>Track attendance, manage leaves, generate reports, and streamline HR operations — all in one platform. Built for teams that value efficiency.</p>
+          <div class="badge-new"><i class="bi bi-star-fill"></i> Trusted by 50+ companies • 99.9% Uptime</div>
+          <h1>Stop Wasting Time<br>on <span>Employee Management</span></h1>
+          <p>Save 80% of your HR time. Track attendance, approve leaves, manage reports—all in minutes. One platform. Zero headaches. Built for companies that want to grow, not manage paperwork.</p>
           <div class="d-flex gap-3 flex-wrap">
-            <a href="/login" class="btn-primary-custom"><i class="bi bi-rocket-takeoff me-2"></i>Get Started Free</a>
-            <a href="#features" class="btn-outline-custom"><i class="bi bi-play-circle me-2"></i>See How It Works</a>
+            <a href="/login" class="btn-primary-custom"><i class="bi bi-rocket-takeoff me-2"></i>Start Free 30 Days</a>
+            <a href="#features" class="btn-outline-custom"><i class="bi bi-play-circle me-2"></i>Live Demo</a>
           </div>
           <div class="hero-stats">
             <div>
@@ -614,6 +678,42 @@
     </div>
   </section>
 
+  <!-- ═══ Testimonials ═══ -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="text-center fade-up">
+        <h2 class="section-title">What Our Customers Say</h2>
+        <p class="section-subtitle">Companies trust WorkTrack to manage their workforce efficiently.</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-lg-4 fade-up">
+          <div class="testimonial-card">
+            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+            <p>"WorkTrack cut our HR paperwork in half. Attendance tracking is now instant, and approvals take seconds instead of days. Our team loves it."</p>
+            <div class="author">Ahmed Hassan</div>
+            <div class="role">HR Manager, TechCorp Egypt</div>
+          </div>
+        </div>
+        <div class="col-lg-4 fade-up">
+          <div class="testimonial-card">
+            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+            <p>"We switched from Excel sheets to WorkTrack. The reports are incredible. Now I can see attendance patterns and make better decisions in real time."</p>
+            <div class="author">Fatima Al-Mansouri</div>
+            <div class="role">Operations Director, BuildNext ME</div>
+          </div>
+        </div>
+        <div class="col-lg-4 fade-up">
+          <div class="testimonial-card">
+            <div class="stars"><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i></div>
+            <p>"Best investment for our HR team. Setup took 30 minutes, and our 80+ employees were online by the next day. No training needed—it's that intuitive."</p>
+            <div class="author">Mohammed Rashid</div>
+            <div class="role">CEO, Digital Solutions LLC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══ Stats Bar ═══ -->
   <section class="about-stats">
     <div class="container">
@@ -638,14 +738,70 @@
     </div>
   </section>
 
+  <!-- ═══ FAQ ═══ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="text-center fade-up">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Got questions? We've got answers.</p>
+      </div>
+      <div class="row justify-content-center fade-up">
+        <div class="col-lg-8">
+          <div class="faq-item active">
+            <div class="question">
+              <span>How long does setup take?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">Setup takes less than 30 minutes. Add your company details, departments, and employees—then you're ready to go. Most companies are live on day one.</div>
+          </div>
+          <div class="faq-item">
+            <div class="question">
+              <span>Can we import our existing employee data?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">Yes! Upload a CSV file with employee details, and we'll import everything automatically. We support bulk actions for faster onboarding.</div>
+          </div>
+          <div class="faq-item">
+            <div class="question">
+              <span>Is there a free trial?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">Yes. You get 30 days free on the Professional plan with full access to all features. No credit card required to start.</div>
+          </div>
+          <div class="faq-item">
+            <div class="question">
+              <span>What about data security and backups?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">We use enterprise-grade encryption, daily backups, and 99.9% uptime SLA. Your data is always safe and recoverable.</div>
+          </div>
+          <div class="faq-item">
+            <div class="question">
+              <span>Can managers approve leaves on mobile?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">Absolutely. The app is fully responsive. Managers can approve requests, view reports, and manage their team from anywhere.</div>
+          </div>
+          <div class="faq-item">
+            <div class="question">
+              <span>Do you offer customer support?</span>
+              <i class="bi bi-chevron-down icon"></i>
+            </div>
+            <div class="answer">Yes. Starter plan includes email support. Professional and Enterprise plans get priority support with faster response times.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══ Contact ═══ -->
   <section class="contact" id="contact">
     <div class="container">
       <div class="row justify-content-center">
         <div class="col-lg-6 fade-up">
           <div class="text-center">
-            <h2 class="section-title">Get In Touch</h2>
-            <p class="section-subtitle" style="margin-bottom:2rem">Have questions? Want a demo? Send us a message and we'll get back to you within 24 hours.</p>
+            <h2 class="section-title">Ready to Transform Your HR?</h2>
+            <p class="section-subtitle" style="margin-bottom:2rem">Join 50+ companies saving time and money with WorkTrack. Get a personalized demo or start your free trial today.</p>
           </div>
           <form id="contactForm" action="/api/contact" method="POST">
             <div class="row g-3">
@@ -728,6 +884,22 @@
           if (target) {
             e.preventDefault();
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+
+      // ── FAQ Toggle ──
+      document.querySelectorAll('.faq-item .question').forEach(q => {
+        q.addEventListener('click', function() {
+          const item = this.parentElement;
+          const isActive = item.classList.contains('active');
+          
+          document.querySelectorAll('.faq-item').forEach(i => {
+            i.classList.remove('active');
+          });
+          
+          if (!isActive) {
+            item.classList.add('active');
           }
         });
       });
