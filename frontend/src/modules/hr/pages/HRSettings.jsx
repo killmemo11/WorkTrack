@@ -18,7 +18,7 @@ export default function HRSettings() {
   const [message, setMessage] = useState('');
 
   const [departments, setDepartments] = useState([]);
-  const [deptForm, setDeptForm] = useState({ name: '', manager_email: '', c_level_email: '', parent_department_id: '', max_headcount: '' });
+  const [deptForm, setDeptForm] = useState({ name: '', manager_email: '', c_level_email: '', parent_department_id: '' });
   const [editingDept, setEditingDept] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -75,7 +75,7 @@ export default function HRSettings() {
     if (!deptForm.name.trim()) return;
     try {
       await hrApi.post('/departments', deptForm);
-      setDeptForm({ name: '', manager_email: '', c_level_email: '', parent_department_id: '', max_headcount: '' });
+      setDeptForm({ name: '', manager_email: '', c_level_email: '', parent_department_id: '' });
       setMessage('Department added');
       fetchDepartments();
     } catch { setMessage('Failed to add department'); }
@@ -423,12 +423,6 @@ export default function HRSettings() {
                               </select>
                             </td>
                             <td>
-                              <input type="number" className="form-control" min="0" style={{width:80}}
-                                value={editingDept.max_headcount ?? ''}
-                                onChange={(e) => setEditingDept({ ...editingDept, max_headcount: e.target.value })}
-                                placeholder="0" />
-                            </td>
-                            <td>
                               <input type="email" className="form-control" style={{width:'100%'}}
                                 value={editingDept.manager_email}
                                 onChange={(e) => setEditingDept({ ...editingDept, manager_email: e.target.value })} />
@@ -456,13 +450,13 @@ export default function HRSettings() {
                               })()}
                             </td>
                             <td className="cell-mono">
-                              {dept.max_headcount > 0 ? dept.max_headcount : <span style={{color:'#999'}}>&infin;</span>}
+                              {dept.max_headcount > 0 ? `${dept.max_headcount} (auto)` : <span style={{color:'#999'}}>&infin;</span>}
                             </td>
                             <td>{dept.manager_email || <span style={{color:'#999'}}>—</span>}</td>
                             <td>{dept.c_level_email || <span style={{color:'#999'}}>—</span>}</td>
                             <td>
                               <div className="dept-table-actions">
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '', parent_department_id: dept.parent_department_id || '', max_headcount: dept.max_headcount ?? '' })}>Edit</button>
+                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '', parent_department_id: dept.parent_department_id || '' })}>Edit</button>
                                 <button className="btn btn-sm btn-danger" onClick={() => setDeleteConfirm(dept)}>Delete</button>
                               </div>
                             </td>
@@ -493,13 +487,6 @@ export default function HRSettings() {
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
-                </label>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Max Headcount</span>
-                  <input type="number" className="form-control" min="0" style={{width:'100%'}}
-                    value={deptForm.max_headcount}
-                    onChange={(e) => setDeptForm({ ...deptForm, max_headcount: e.target.value })}
-                    placeholder="0 = unlimited" />
                 </label>
                 <label>
                   <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Manager Email</span>

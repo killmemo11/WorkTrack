@@ -123,17 +123,16 @@ async function getHeadcountSummary() {
     `SELECT
        COUNT(DISTINCT d.id) AS total_depts,
        SUM(CASE WHEN d.max_headcount > 0 THEN d.max_headcount ELSE 0 END) AS total_max,
-       COUNT(e.id) AS total_filled,
-       SUM(CASE WHEN d.max_headcount > 0 THEN GREATEST(0, d.max_headcount - dept_counts.filled) ELSE 0 END) AS total_vacant,
-       SUM(CASE WHEN d.max_headcount > 0 AND dept_counts.filled >= d.max_headcount THEN 1 ELSE 0 END) AS full_depts
+       COALESCE(dept_counts.filled, 0) AS total_filled,
+       SUM(CASE WHEN d.max_headcount > 0 THEN GREATEST(0, d.max_headcount - COALESCE(dept_counts.filled, 0)) ELSE 0 END) AS total_vacant,
+       SUM(CASE WHEN d.max_headcount > 0 AND COALESCE(dept_counts.filled, 0) >= d.max_headcount THEN 1 ELSE 0 END) AS full_depts
      FROM departments d
      LEFT JOIN (
        SELECT department_id, COUNT(*) AS filled
        FROM employees
        WHERE (is_system IS NULL OR is_system = 0)
        GROUP BY department_id
-     ) dept_counts ON dept_counts.department_id = d.id
-     LEFT JOIN employees e ON e.department_id = d.id AND (e.is_system IS NULL OR e.is_system = 0)`
+     ) dept_counts ON dept_counts.department_id = d.id`
   );
   return deptStats[0] || { total_depts: 0, total_max: 0, total_filled: 0, total_vacant: 0, full_depts: 0 };
 }

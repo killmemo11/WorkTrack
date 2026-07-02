@@ -5,7 +5,7 @@ const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary } = require('./personnel.service');
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
-const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
+const { checkHeadcountCapacity, recalcDepartmentMaxHeadcount } = require('../../shared/utils/headcount.util');
 const XLSX = require('xlsx');
 const path = require('path');
 
@@ -845,6 +845,7 @@ async function createDepartmentTitle(req, res) {
     'INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0]
   );
+  await recalcDepartmentMaxHeadcount(department_id);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_created', `Created title: ${title}`);
   res.status(201).json({ id: result.insertId });
 }
@@ -852,17 +853,25 @@ async function createDepartmentTitle(req, res) {
 async function updateDepartmentTitle(req, res) {
   const { id } = req.params;
   const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
+  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ?', [id]);
   await pool.query(
     'UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=? WHERE id=?',
     [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, id]
   );
+  if (currentRows.length > 0) {
+    await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
+  }
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_updated', `Updated title #${id}`);
   res.json({ message: 'Department title updated' });
 }
 
 async function deleteDepartmentTitle(req, res) {
   const { id } = req.params;
+  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ?', [id]);
   await pool.query('DELETE FROM department_titles WHERE id=?', [id]);
+  if (currentRows.length > 0) {
+    await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
+  }
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_deleted', `Deleted title #${id}`);
   res.json({ message: 'Department title deleted' });
 }

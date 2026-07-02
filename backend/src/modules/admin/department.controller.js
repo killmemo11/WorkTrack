@@ -10,17 +10,16 @@ async function getDepartments(req, res) {
 }
 
 async function createDepartment(req, res) {
-  const { name, manager_email, c_level_email, parent_department_id, max_headcount } = req.body;
+  const { name, manager_email, c_level_email, parent_department_id } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Department name is required' });
   }
   const newMgrEmail = (manager_email || '').trim();
   const newCleEmail = (c_level_email || '').trim();
   const newParentId = parent_department_id ? parseInt(parent_department_id, 10) || null : null;
-  const newMaxHc = max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0;
   const [result] = await pool.query(
-    'INSERT INTO departments (name, manager_email, c_level_email, parent_department_id, max_headcount) VALUES (?, ?, ?, ?, ?)',
-    [name.trim(), newMgrEmail, newCleEmail, newParentId, newMaxHc]
+    'INSERT INTO departments (name, manager_email, c_level_email, parent_department_id) VALUES (?, ?, ?, ?)',
+    [name.trim(), newMgrEmail, newCleEmail, newParentId]
   );
   if (newMgrEmail) {
     await pool.query(
@@ -42,7 +41,7 @@ async function createDepartment(req, res) {
 
 async function updateDepartment(req, res) {
   const { id } = req.params;
-  const { name, manager_email, c_level_email, parent_department_id, max_headcount } = req.body;
+  const { name, manager_email, c_level_email, parent_department_id } = req.body;
 
   const [oldRows] = await pool.query('SELECT manager_email, c_level_email FROM departments WHERE id = ?', [id]);
   const oldMgrEmail = oldRows.length > 0 ? (oldRows[0].manager_email || '').trim() : '';
@@ -54,7 +53,6 @@ async function updateDepartment(req, res) {
   if (manager_email !== undefined) { fields.push('manager_email = ?'); values.push((manager_email || '').trim()); }
   if (c_level_email !== undefined) { fields.push('c_level_email = ?'); values.push((c_level_email || '').trim()); }
   if (parent_department_id !== undefined) { fields.push('parent_department_id = ?'); values.push(parent_department_id ? parseInt(parent_department_id, 10) || null : null); }
-  if (max_headcount !== undefined) { fields.push('max_headcount = ?'); values.push(Math.max(0, parseInt(max_headcount, 10) || 0)); }
   if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
   values.push(id);
   await pool.query(`UPDATE departments SET ${fields.join(', ')} WHERE id = ?`, values);
@@ -163,9 +161,9 @@ async function deleteDepartment(req, res) {
 async function downloadTemplate(req, res) {
   const XLSX = require('xlsx');
   const wb = XLSX.utils.book_new();
-  const data = [['Name', 'Manager Email', 'C-Level Email', 'Max Headcount', 'Parent Dept Name']];
+  const data = [['Name', 'Manager Email', 'C-Level Email', 'Parent Dept Name']];
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 35 }, { wch: 16 }, { wch: 30 }];
+  ws['!cols'] = [{ wch: 30 }, { wch: 35 }, { wch: 35 }, { wch: 30 }];
   XLSX.utils.book_append_sheet(wb, ws, 'Departments');
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   res.setHeader('Content-Disposition', 'attachment; filename="departments_template.xlsx"');
@@ -190,7 +188,6 @@ async function importDepartments(req, res) {
   const nameIdx = header.findIndex((h) => h && h.toString().toLowerCase().includes('name'));
   const mgrIdx = header.findIndex((h) => h && h.toString().toLowerCase().includes('manager'));
   const cleIdx = header.findIndex((h) => h && h.toString().toLowerCase().includes('c-level'));
-  const maxIdx = header.findIndex((h) => h && h.toString().toLowerCase().includes('max headcount'));
   const parentIdx = header.findIndex((h) => h && h.toString().toLowerCase().includes('parent dept'));
   if (nameIdx === -1) {
     return res.status(400).json({ error: 'Could not find "Name" column. Use the provided template.' });
@@ -210,9 +207,8 @@ async function importDepartments(req, res) {
     const name = nameVal;
     const managerEmail = mgrIdx >= 0 && row[mgrIdx] ? row[mgrIdx].toString().trim() : '';
     const cLevelEmail = cleIdx >= 0 && row[cleIdx] ? row[cleIdx].toString().trim() : '';
-    const maxHeadcount = maxIdx >= 0 && row[maxIdx] ? parseInt(row[maxIdx].toString().trim(), 10) || 0 : 0;
     const parentName = parentIdx >= 0 && row[parentIdx] ? row[parentIdx].toString().trim() : '';
-    toCreate.push({ name, managerEmail, cLevelEmail, maxHeadcount, parentName });
+    toCreate.push({ name, managerEmail, cLevelEmail, parentName });
   }
 
   // Batch check existing names
@@ -242,10 +238,10 @@ async function importDepartments(req, res) {
         );
         for (const p of parents) parentMap[p.name] = p.id;
       }
-      const values = batch.map(() => '(?, ?, ?, ?, ?)').join(',');
-      const params = batch.flatMap(r => [r.name, r.managerEmail || null, r.cLevelEmail || null, r.maxHeadcount || 0, parentMap[r.parentName] || null]);
+      const values = batch.map(() => '(?, ?, ?, ?)').join(',');
+      const params = batch.flatMap(r => [r.name, r.managerEmail || null, r.cLevelEmail || null, parentMap[r.parentName] || null]);
       await pool.query(
-        `INSERT INTO departments (name, manager_email, c_level_email, max_headcount, parent_department_id) VALUES ${values}`,
+        `INSERT INTO departments (name, manager_email, c_level_email, parent_department_id) VALUES ${values}`,
         params
       );
       created = batch.length;

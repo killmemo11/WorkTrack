@@ -1,5 +1,14 @@
 const pool = require('../config/database');
 
+async function recalcDepartmentMaxHeadcount(departmentId) {
+  if (!departmentId) return;
+  const [[{ sum }]] = await pool.query(
+    'SELECT COALESCE(SUM(max_headcount), 0) AS sum FROM department_titles WHERE department_id = ?',
+    [departmentId]
+  );
+  await pool.query('UPDATE departments SET max_headcount = ? WHERE id = ?', [sum, departmentId]);
+}
+
 async function checkHeadcountCapacity({ department_id, title_id, exclude_employee_id, additional = 1 }) {
   const result = { hasCapacity: true, deptOverLimit: false, titleOverLimit: false, deptAvailable: null, titleAvailable: null };
 
@@ -48,4 +57,4 @@ async function checkHeadcountCapacity({ department_id, title_id, exclude_employe
   return result;
 }
 
-module.exports = { checkHeadcountCapacity };
+module.exports = { checkHeadcountCapacity, recalcDepartmentMaxHeadcount };
