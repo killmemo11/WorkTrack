@@ -7,7 +7,7 @@ export default function Footer() {
       textAlign: 'center', padding: '8px 16px', fontSize: 11, color: '#94a3b8',
       background: '#f8fafc', borderTop: '1px solid #e2e8f0',
     }}>
-      &copy; 2026 Mohamed Yehia — WorkTrack HRIS
+      &copy; 2026 Mohamed Yehia
     </div>
   );
 }
