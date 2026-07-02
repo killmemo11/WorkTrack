@@ -1649,11 +1649,11 @@ async function seed() {
     console.log('Migration: added qualification columns to recruitment_candidates');
   }
 
-  const [srTable] = await pool.query(
+  const [srTable2] = await pool.query(
     "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'screening_results'",
     [process.env.DB_NAME]
   );
-  if (srTable.length === 0) {
+  if (srTable2.length === 0) {
     await pool.query(
       `CREATE TABLE screening_results (
         id INT AUTO_INCREMENT PRIMARY KEY,
