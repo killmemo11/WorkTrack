@@ -27,6 +27,7 @@ const { requireService } = require('./shared/middleware/service.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
 const { adminRouter: recAdminRouter, hrRouter: recHrRouter } = require('./modules/recruitment/recruitment.routes');
 const { publicApply, publicTrack, getActiveJobs, listPublicInterviews, respondToInterview } = require('./modules/recruitment/recruitment.controller');
+const { listSkills, createSkill, updateSkill, deleteSkill, listCertifications, createCertification, updateCertification, deleteCertification } = require('./modules/admin/master-lists.controller');
 
 const app = express();
 
@@ -257,6 +258,18 @@ app.get('/api/track/:email', publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
 app.get('/api/interviews/:email', listPublicInterviews);
 app.put('/api/interviews/respond', respondToInterview);
+
+// Master Lists (read for HR/Public, CRUD for Admin)
+app.get('/api/master-skills', listSkills);
+app.get('/api/master-certifications', listCertifications);
+app.get('/api/admin/master-skills', requireITAuth, listSkills);
+app.post('/api/admin/master-skills', requireITAuth, createSkill);
+app.put('/api/admin/master-skills/:id', requireITAuth, updateSkill);
+app.delete('/api/admin/master-skills/:id', requireITAuth, deleteSkill);
+app.get('/api/admin/master-certifications', requireITAuth, listCertifications);
+app.post('/api/admin/master-certifications', requireITAuth, createCertification);
+app.put('/api/admin/master-certifications/:id', requireITAuth, updateCertification);
+app.delete('/api/admin/master-certifications/:id', requireITAuth, deleteCertification);
 
 // SPA fallback for production — serve index.html for non-API, non-static routes
 if (fs.existsSync(frontendDist)) {

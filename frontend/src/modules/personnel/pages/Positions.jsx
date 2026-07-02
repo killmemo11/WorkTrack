@@ -2,6 +2,20 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import TitleCard from '../components/TitleCard';
+import MasterSelect from '../../../shared/components/MasterSelect';
+
+const EXP_OPTIONS = [
+  { value: '', label: '— None —', rank: 0 },
+  { value: '0-1', label: 'Less than 1 year', rank: 1 },
+  { value: '1-2', label: '1–2 years', rank: 2 },
+  { value: '2-3', label: '2–3 years', rank: 3 },
+  { value: '3-5', label: '3–5 years', rank: 4 },
+  { value: '5-7', label: '5–7 years', rank: 5 },
+  { value: '7-10', label: '7–10 years', rank: 6 },
+  { value: '10-15', label: '10–15 years', rank: 7 },
+  { value: '15-20', label: '15–20 years', rank: 8 },
+  { value: '20+', label: 'More than 20 years', rank: 9 },
+];
 
 const GRADE_LABELS = [
   { key: '', label: 'All Grades' },
@@ -741,55 +755,34 @@ export default function Positions() {
                     </div>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label style={{ fontWeight: 600, fontSize: 13 }}>Minimum Years of Experience</label>
-                      <input className="form-control" type="number" min="0"
-                        value={form.min_experience_years}
+                      <select className="form-control" value={form.min_experience_years}
                         onChange={e => setForm({ ...form, min_experience_years: e.target.value })}
-                        style={{ width: '100%' }} placeholder="e.g. 3" />
+                        style={{ width: '100%' }}>
+                        {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}{o.rank > 0 ? ` (Rank ${o.rank})` : ''}</option>)}
+                      </select>
                     </div>
                   </div>
-                  {['required_skills', 'required_certs', 'preferred_skills'].map(field => {
-                    const label = field === 'required_skills' ? 'Required Skills'
-                      : field === 'required_certs' ? 'Required Certifications'
-                      : 'Preferred Skills';
-                    const hint = field === 'preferred_skills'
-                      ? 'Preferred skills give bonus but won\'t auto-reject if missing'
-                      : 'Candidates missing these will be auto-rejected';
-                    const items = form[field] || [];
-                    return (
-                      <div key={field} className="form-group" style={{ marginBottom: 12 }}>
-                        <label style={{ fontWeight: 600, fontSize: 13 }}>{label}</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 10px', border: '1px solid #dde1e9', borderRadius: 8, background: '#fff', minHeight: 40, marginTop: 4 }}>
-                          {items.map((item, i) => (
-                            <span key={i} style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                              background: field === 'preferred_skills' ? '#e8f5e9' : '#e3f2fd',
-                              color: field === 'preferred_skills' ? '#2e7d32' : '#1565c0',
-                            }}>
-                              {item}
-                              <span onClick={() => setForm({ ...form, [field]: items.filter((_, j) => j !== i) })}
-                                style={{ cursor: 'pointer', fontSize: 14, lineHeight: 1, opacity: 0.6 }}>&times;</span>
-                            </span>
-                          ))}
-                          <input
-                            placeholder={`Type and press Enter to add ${field === 'required_skills' ? 'a skill' : field === 'required_certs' ? 'a certification' : 'a preferred skill'}`}
-                            style={{ border: 'none', outline: 'none', flex: 1, minWidth: 140, fontSize: 13, background: 'transparent' }}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' || e.key === ',') {
-                                e.preventDefault();
-                                const val = e.target.value.trim();
-                                if (val && !items.includes(val)) {
-                                  setForm({ ...form, [field]: [...items, val] });
-                                }
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8892a8', marginTop: 4 }}>{hint}</div>
-                      </div>
-                    );
-                  })}
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>Required Skills</label>
+                    <MasterSelect type="skills" value={form.required_skills}
+                      onChange={v => setForm({ ...form, required_skills: v })}
+                      placeholder="Type to search and add required skills..." />
+                    <div style={{ fontSize: 11, color: '#8892a8', marginTop: 4 }}>Candidates missing these will be auto-rejected</div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>Required Certifications</label>
+                    <MasterSelect type="certs" value={form.required_certs}
+                      onChange={v => setForm({ ...form, required_certs: v })}
+                      placeholder="Type to search and add required certifications..." />
+                    <div style={{ fontSize: 11, color: '#8892a8', marginTop: 4 }}>Candidates missing these will be auto-rejected</div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>Preferred Skills</label>
+                    <MasterSelect type="skills" value={form.preferred_skills}
+                      onChange={v => setForm({ ...form, preferred_skills: v })}
+                      placeholder="Type to search and add preferred skills..." />
+                    <div style={{ fontSize: 11, color: '#8892a8', marginTop: 4 }}>Preferred skills give bonus but won't auto-reject if missing</div>
+                  </div>
                 </div>
               )}
             </div>

@@ -7,8 +7,32 @@ import hrApi from '../../../shared/api/hrApi';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
+import MasterSelect from '../../../shared/components/MasterSelect';
 
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+
+const EDU_LEVELS = [
+  { value: '', label: '— Select —' },
+  { value: 'high_school', label: 'High School' },
+  { value: 'diploma', label: 'Diploma' },
+  { value: 'associate', label: 'Associate Degree' },
+  { value: 'bachelor', label: 'Bachelor\'s Degree' },
+  { value: 'master', label: 'Master\'s Degree' },
+  { value: 'phd', label: 'PhD / Doctorate' },
+];
+
+const EXP_OPTIONS = [
+  { value: '', label: '— Select —', rank: 0 },
+  { value: '0-1', label: 'Less than 1 year', rank: 1 },
+  { value: '1-2', label: '1–2 years', rank: 2 },
+  { value: '2-3', label: '2–3 years', rank: 3 },
+  { value: '3-5', label: '3–5 years', rank: 4 },
+  { value: '5-7', label: '5–7 years', rank: 5 },
+  { value: '7-10', label: '7–10 years', rank: 6 },
+  { value: '10-15', label: '10–15 years', rank: 7 },
+  { value: '15-20', label: '15–20 years', rank: 8 },
+  { value: '20+', label: 'More than 20 years', rank: 9 },
+];
 
 export default function Candidates() {
   const navigate = useNavigate();
@@ -28,7 +52,7 @@ export default function Candidates() {
   const [hireResult, setHireResult] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [message, setMessage] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', phone: '', job_title: '', stage: 'applied', technical: false, notes: '', source: 'Manual' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', job_title: '', stage: 'applied', technical: false, notes: '', source: 'Manual', education_level: '', experience_years: '', skills: [], certifications: [] });
   const [boardView, setBoardView] = useState(false);
   const [boardCandidates, setBoardCandidates] = useState([]);
   const [boardLoading, setBoardLoading] = useState(false);
@@ -82,7 +106,7 @@ export default function Candidates() {
   };
 
   const openCreate = () => {
-    setForm({ name: '', email: '', phone: '', job_title: '', stage: 'applied', technical: false, notes: '', source: 'Manual' });
+    setForm({ name: '', email: '', phone: '', job_title: '', stage: 'applied', technical: false, notes: '', source: 'Manual', education_level: '', experience_years: '', skills: [], certifications: [] });
     setShowForm(true);
   };
 
@@ -267,6 +291,7 @@ export default function Candidates() {
               <th>Email</th>
               <th>Position</th>
               <th>Stage</th>
+              <th>Screening</th>
               <th>Source</th>
               <th>Score</th>
               <th>Actions</th>
@@ -274,13 +299,22 @@ export default function Candidates() {
           </thead>
           <tbody>
             {candidates.length === 0 ? (
-              <tr><td colSpan={7} className="text-center">No candidates found</td></tr>
+              <tr><td colSpan={8} className="text-center">No candidates found</td></tr>
             ) : candidates.map(c => (
               <tr key={c.id}>
                 <td><a href="#" onClick={e => { e.preventDefault(); navigate(`/hr/candidates/${c.id}`); }} className="link">{c.name}</a></td>
                 <td>{c.email}</td>
                 <td>{c.job_title}</td>
                 <td>{stageBadge(c.stage)}</td>
+                <td>{c.screening_status ? (
+                  <span style={{
+                    fontSize: 12, padding: '2px 8px', borderRadius: 10, fontWeight: 600,
+                    background: c.screening_status === 'most_recommended' ? '#e8f5e9' : c.screening_status === 'recommended' ? '#e3f2fd' : '#fce4ec',
+                    color: c.screening_status === 'most_recommended' ? '#2e7d32' : c.screening_status === 'recommended' ? '#1565c0' : '#c62828',
+                  }}>
+                    {c.screening_status === 'most_recommended' ? '🔵 Most Rec.' : c.screening_status === 'recommended' ? '✅ Rec.' : '❌ Rej.'}
+                  </span>
+                ) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}</td>
                 <td>{c.source}</td>
                 <td>{c.score_comm || 0}/{c.score_tech || 0}/{c.score_fit || 0}</td>
                 <td>
@@ -397,6 +431,29 @@ export default function Candidates() {
                 <option>Referral</option>
                 <option>Agency</option>
               </select>
+            </div>
+            <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, margin: '12px 0' }}>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: '#1a1a2e' }}>Qualifications</div>
+              <div className="form-group">
+                <label>Education Level</label>
+                <select className="form-control" value={form.education_level} onChange={e => setForm({ ...form, education_level: e.target.value })} style={{ width: '100%' }}>
+                  {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Years of Experience</label>
+                <select className="form-control" value={form.experience_years} onChange={e => setForm({ ...form, experience_years: e.target.value })} style={{ width: '100%' }}>
+                  {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Skills</label>
+                <MasterSelect type="skills" value={form.skills || []} onChange={v => setForm({ ...form, skills: v })} placeholder="Search and select skills..." />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Certifications</label>
+                <MasterSelect type="certs" value={form.certifications || []} onChange={v => setForm({ ...form, certifications: v })} placeholder="Search and select certifications..." />
+              </div>
             </div>
             <div className="form-group">
               <label>

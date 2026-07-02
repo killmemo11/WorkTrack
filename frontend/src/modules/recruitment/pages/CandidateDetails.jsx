@@ -10,6 +10,7 @@ import { formatDate, formatDateTime } from '../../../shared/utils/date';
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
 const EDU_LABEL = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
+const EXP_LABEL = { '0-1': 'Less than 1 year', '1-2': '1–2 years', '2-3': '2–3 years', '3-5': '3–5 years', '5-7': '5–7 years', '7-10': '7–10 years', '10-15': '10–15 years', '15-20': '15–20 years', '20+': 'More than 20 years' };
 
 export default function CandidateDetails() {
   const { id } = useParams();
@@ -187,9 +188,9 @@ export default function CandidateDetails() {
               <div><strong>Source:</strong> {candidate.source || '—'}</div>
               <div><strong>Scores:</strong> C:{candidate.score_comm || 0} T:{candidate.score_tech || 0} F:{candidate.score_fit || 0}</div>
               {candidate.education_level && <div><strong>Education:</strong> {EDU_LABEL[candidate.education_level] || candidate.education_level}</div>}
-              {candidate.experience_years != null && <div><strong>Experience:</strong> {candidate.experience_years} years</div>}
-              {candidate.skills && (() => { try { const s = typeof candidate.skills === 'string' ? JSON.parse(candidate.skills) : candidate.skills; return s.length > 0 ? <div><strong>Skills:</strong> {s.join(', ')}</div> : null; } catch { return null; } })()}
-              {candidate.certifications && (() => { try { const c = typeof candidate.certifications === 'string' ? JSON.parse(candidate.certifications) : candidate.certifications; return c.length > 0 ? <div><strong>Certs:</strong> {c.join(', ')}</div> : null; } catch { return null; } })()}
+              {candidate.experience_years && <div><strong>Experience:</strong> {EXP_LABEL[candidate.experience_years] || candidate.experience_years}</div>}
+              {candidate.skills_display?.length > 0 && <div><strong>Skills:</strong> {candidate.skills_display.join(', ')}</div>}
+              {candidate.certs_display?.length > 0 && <div><strong>Certs:</strong> {candidate.certs_display.join(', ')}</div>}
               <div>
                 <strong>CV:</strong>{' '}
                 {candidate.cv_filename ? (
@@ -252,28 +253,56 @@ export default function CandidateDetails() {
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32 }}>{candidate.screening.status === 'passed' ? '✅' : candidate.screening.status === 'rejected' ? '❌' : '⏳'}</span>
+                  <span style={{ fontSize: 32 }}>
+                    {candidate.screening.overall_status === 'most_recommended' ? '🔵' : candidate.screening.overall_status === 'recommended' ? '✅' : '❌'}
+                  </span>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 16, textTransform: 'capitalize' }}>{candidate.screening.status}</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, textTransform: 'capitalize' }}>
+                      {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
+                        : candidate.screening.overall_status === 'recommended' ? 'Recommended'
+                        : 'Rejected'}
+                    </div>
                     <div style={{ fontSize: 12, color: '#8892a8' }}>{formatDateTime(candidate.screening.created_at)}</div>
                   </div>
                 </div>
-                <div style={{ background: '#f4f6fb', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                <div style={{
+                  background: candidate.screening.overall_status === 'most_recommended' ? '#e8f5e9'
+                    : candidate.screening.overall_status === 'recommended' ? '#e3f2fd'
+                    : '#fce4ec',
+                  padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13,
+                  color: candidate.screening.overall_status === 'most_recommended' ? '#2e7d32'
+                    : candidate.screening.overall_status === 'recommended' ? '#1565c0'
+                    : '#c62828',
+                }}>
                   <strong>Requirements met:</strong> {candidate.screening.requirements_met} / {candidate.screening.requirements_total}
                 </div>
-                {candidate.screening.details && (
+                {candidate.screening.requirement_results && (
                   <div>
                     <h4 style={{ fontSize: 14, marginBottom: 8 }}>Detail Breakdown</h4>
                     <table className="table">
-                      <thead><tr><th>Requirement</th><th>Candidate</th><th>Result</th></tr></thead>
+                      <thead><tr><th>Requirement</th><th>Expected</th><th>Provided</th><th>Status</th></tr></thead>
                       <tbody>
-                        {(typeof candidate.screening.details === 'string' ? JSON.parse(candidate.screening.details) : candidate.screening.details).map((d, i) => (
-                          <tr key={i}>
-                            <td style={{ textTransform: 'capitalize' }}>{d.requirement}</td>
-                            <td>{d.candidate ?? '—'}</td>
-                            <td>{d.passed ? <span style={{ color: '#2e7d32' }}>✓ Pass</span> : <span style={{ color: '#c62828' }}>✗ Fail</span>}</td>
-                          </tr>
-                        ))}
+                        {(candidate.screening.requirement_results || []).map((r, i) => {
+                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Required Skills', required_certs: 'Certifications' };
+                          const expectedStr = r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
+                            : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
+                            : r.expected;
+                          const providedStr = r.requirement === 'education_level' ? EDU_LABEL[r.provided] || r.provided
+                            : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
+                            : r.provided;
+                          return (
+                            <tr key={i}>
+                              <td>{labelMap[r.requirement] || r.requirement}</td>
+                              <td>{expectedStr ?? '—'}</td>
+                              <td>{providedStr ?? '—'}</td>
+                              <td>
+                                {r.status === 'most_recommended' ? <span style={{ color: '#2e7d32' }}>🔵 Most Rec.</span>
+                                  : r.status === 'recommended' ? <span style={{ color: '#1565c0' }}>✅ Rec.</span>
+                                  : <span style={{ color: '#c62828' }}>❌ Rejected</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

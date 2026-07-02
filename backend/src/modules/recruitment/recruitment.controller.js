@@ -85,7 +85,7 @@ async function listCandidates(req, res) {
   const perPage = Math.min(parseInt(req.query.per_page) || 20, 100);
   const offset = (page - 1) * perPage;
 
-  let sql = `SELECT c.*, (SELECT hh.note FROM recruitment_history hh WHERE hh.candidate_id = c.id ORDER BY hh.created_at DESC LIMIT 1) AS last_note FROM recruitment_candidates c WHERE 1=1`;
+  let sql = `SELECT c.*, (SELECT hh.note FROM recruitment_history hh WHERE hh.candidate_id = c.id ORDER BY hh.created_at DESC LIMIT 1) AS last_note, (SELECT sr.overall_status FROM screening_results sr WHERE sr.candidate_id = c.id ORDER BY sr.created_at DESC LIMIT 1) AS screening_status FROM recruitment_candidates c WHERE 1=1`;
   let countSql = 'SELECT COUNT(*) AS total FROM recruitment_candidates WHERE 1=1';
   const args = [];
   const countArgs = [];
@@ -126,7 +126,36 @@ async function getCandidate(req, res) {
   const [offers] = await pool.query('SELECT * FROM recruitment_offers WHERE candidate_id = ? ORDER BY created_at DESC LIMIT 1', [id]);
   const [screening] = await pool.query('SELECT * FROM screening_results WHERE candidate_id = ? ORDER BY created_at DESC LIMIT 1', [id]);
 
-  res.json({ ...candidate, history, scorecards, offers, screening: screening[0] || null });
+  // Resolve skill/cert IDs to names from master lists
+  let screeningResult = screening[0] || null;
+  if (screeningResult) {
+    if (screeningResult.details && typeof screeningResult.details === 'string') screeningResult.details = JSON.parse(screeningResult.details);
+    if (screeningResult.requirement_results && typeof screeningResult.requirement_results === 'string') screeningResult.requirement_results = JSON.parse(screeningResult.requirement_results);
+  }
+  // Resolve skill/cert IDs to names for candidate and screening
+  const [allSkills] = await pool.query('SELECT id, name FROM master_skills');
+  const [allCerts] = await pool.query('SELECT id, name FROM master_certifications');
+  const skillMap = Object.fromEntries(allSkills.map(s => [s.id, s.name]));
+  const certMap = Object.fromEntries(allCerts.map(c => [c.id, c.name]));
+
+  if (candidate.skills) {
+    const ids = typeof candidate.skills === 'string' ? JSON.parse(candidate.skills) : candidate.skills;
+    candidate.skills_display = Array.isArray(ids) ? ids.map(id => skillMap[parseInt(id, 10)] || `#${id}`).filter(Boolean) : [];
+  }
+  if (candidate.certifications) {
+    const ids = typeof candidate.certifications === 'string' ? JSON.parse(candidate.certifications) : candidate.certifications;
+    candidate.certs_display = Array.isArray(ids) ? ids.map(id => certMap[parseInt(id, 10)] || `#${id}`).filter(Boolean) : [];
+  }
+
+  if (screeningResult && screeningResult.requirement_results) {
+    for (const rr of screeningResult.requirement_results) {
+      if (rr.requirement === 'required_skills' && Array.isArray(rr.skill_details)) {
+        for (const sd of rr.skill_details) sd.skill_name = skillMap[parseInt(sd.skill_id, 10)] || `#${sd.skill_id}`;
+      }
+    }
+  }
+
+  res.json({ ...candidate, history, scorecards, offers, screening: screeningResult });
 }
 
 async function createCandidate(req, res) {
@@ -136,7 +165,7 @@ async function createCandidate(req, res) {
   const [result] = await pool.query(
     `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years != null ? parseInt(experience_years, 10) : null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
+    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
   );
   await pool.query(
     'INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)',
@@ -298,7 +327,7 @@ async function publicApply(req, res) {
   const [result] = await pool.query(
     `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years != null ? parseInt(experience_years, 10) : null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
+    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
   );
   await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
     [result.insertId, 'applied', 'Application submitted via candidate portal']);

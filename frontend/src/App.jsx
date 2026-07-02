@@ -41,6 +41,7 @@ import AssetCatalog from './modules/admin/pages/AssetCatalog';
 import AdminDocuments from './modules/admin/pages/Documents';
 import ContractTemplates from './modules/admin/pages/ContractTemplates';
 import AdminChecklists from './modules/admin/pages/Checklists';
+import MasterLists from './modules/admin/pages/MasterLists';
 import Layout from './shared/components/Layout/Layout';
 import AdminLayout from './shared/components/Layout/AdminLayout';
 import HRSettings from './modules/hr/pages/HRSettings';
@@ -115,6 +116,7 @@ export default function App() {
           <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/activity-log" element={<ActivityLog />} />
+            <Route path="/admin/master-lists" element={<MasterLists />} />
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/settings" />} />
           {/* HR Panel — HR Employees only */}

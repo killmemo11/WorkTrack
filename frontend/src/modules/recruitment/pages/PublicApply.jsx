@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import MasterSelect from '../../../shared/components/MasterSelect';
 
 const EDU_LEVELS = [
   { value: '', label: '— Select —' },
@@ -13,6 +14,19 @@ const EDU_LEVELS = [
   { value: 'bachelor', label: 'Bachelor\'s Degree' },
   { value: 'master', label: 'Master\'s Degree' },
   { value: 'phd', label: 'PhD / Doctorate' },
+];
+
+const EXP_OPTIONS = [
+  { value: '', label: '— Select —', rank: 0 },
+  { value: '0-1', label: 'Less than 1 year', rank: 1 },
+  { value: '1-2', label: '1–2 years', rank: 2 },
+  { value: '2-3', label: '2–3 years', rank: 3 },
+  { value: '3-5', label: '3–5 years', rank: 4 },
+  { value: '5-7', label: '5–7 years', rank: 5 },
+  { value: '7-10', label: '7–10 years', rank: 6 },
+  { value: '10-15', label: '10–15 years', rank: 7 },
+  { value: '15-20', label: '15–20 years', rank: 8 },
+  { value: '20+', label: 'More than 20 years', rank: 9 },
 ];
 
 export default function PublicApply() {
@@ -30,8 +44,6 @@ export default function PublicApply() {
   const [experienceYears, setExperienceYears] = useState('');
   const [skills, setSkills] = useState([]);
   const [certifications, setCertifications] = useState([]);
-  const [skillInput, setSkillInput] = useState('');
-  const [certInput, setCertInput] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -66,21 +78,6 @@ export default function PublicApply() {
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const addTag = (arr, setter, input, setInput) => {
-    const val = input.trim();
-    if (val && !arr.includes(val)) setter([...arr, val]);
-    setInput('');
-  };
-
-  const removeTag = (arr, setter, idx) => setter(arr.filter((_, i) => i !== idx));
-
-  const handleTagKey = (arr, setter, input, setInput) => (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addTag(arr, setter, input, setInput);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -199,35 +196,19 @@ export default function PublicApply() {
 
               <div className="form-group">
                 <label>Years of Experience</label>
-                <input type="number" className="form-control" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} min="0" max="50" placeholder="e.g. 5" style={{ width: '100%' }} />
+                <select className="form-control" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} style={{ width: '100%' }}>
+                  {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
               </div>
 
               <div className="form-group">
                 <label>Skills</label>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '6px 10px', border: '1px solid #d0d5e0', borderRadius: 6, background: '#fff', minHeight: 38 }}>
-                  {skills.map((s, i) => (
-                    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e3f2fd', padding: '2px 8px', borderRadius: 6, fontSize: 13, color: '#1565c0' }}>
-                      ⚙️ {s}
-                      <span onClick={() => removeTag(skills, setSkills, i)} style={{ cursor: 'pointer', marginLeft: 2, fontWeight: 700, color: '#888', fontSize: 14 }}>&times;</span>
-                    </span>
-                  ))}
-                  <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={handleTagKey(skills, setSkills, skillInput, setSkillInput)}
-                    onBlur={() => addTag(skills, setSkills, skillInput, setSkillInput)} placeholder="Type & press Enter" style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, minWidth: 120 }} />
-                </div>
+                <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." />
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
                 <label>Certifications</label>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '6px 10px', border: '1px solid #d0d5e0', borderRadius: 6, background: '#fff', minHeight: 38 }}>
-                  {certifications.map((c, i) => (
-                    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#fce4ec', padding: '2px 8px', borderRadius: 6, fontSize: 13, color: '#c62828' }}>
-                      📜 {c}
-                      <span onClick={() => removeTag(certifications, setCertifications, i)} style={{ cursor: 'pointer', marginLeft: 2, fontWeight: 700, color: '#888', fontSize: 14 }}>&times;</span>
-                    </span>
-                  ))}
-                  <input value={certInput} onChange={e => setCertInput(e.target.value)} onKeyDown={handleTagKey(certifications, setCertifications, certInput, setCertInput)}
-                    onBlur={() => addTag(certifications, setCertifications, certInput, setCertInput)} placeholder="Type & press Enter" style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, minWidth: 120 }} />
-                </div>
+                <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." />
               </div>
             </div>
 

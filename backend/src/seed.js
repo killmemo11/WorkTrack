@@ -1661,9 +1661,11 @@ async function seed() {
         title_id INT DEFAULT NULL,
         job_id INT DEFAULT NULL,
         status ENUM('passed','rejected','manual') NOT NULL DEFAULT 'manual',
+        overall_status ENUM('rejected','recommended','most_recommended') DEFAULT NULL,
         requirements_met INT DEFAULT 0,
         requirements_total INT DEFAULT 0,
         details JSON DEFAULT NULL,
+        requirement_results JSON DEFAULT NULL,
         automated TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
@@ -1673,6 +1675,70 @@ async function seed() {
     );
     await pool.query('CREATE INDEX idx_screening_candidate ON screening_results(candidate_id)');
     console.log('Migration: created screening_results table');
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // v56 — Master lists for Skills & Certifications
+  //         + Exp years → VARCHAR for dropdown ranges
+  // ═══════════════════════════════════════════════════════════════
+  const [mskTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'master_skills'",
+    [process.env.DB_NAME]
+  );
+  if (mskTable.length === 0) {
+    await pool.query(
+      `CREATE TABLE master_skills (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`
+    );
+    console.log('Migration: created master_skills table');
+  }
+
+  const [mcertTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'master_certifications'",
+    [process.env.DB_NAME]
+  );
+  if (mcertTable.length === 0) {
+    await pool.query(
+      `CREATE TABLE master_certifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`
+    );
+    console.log('Migration: created master_certifications table');
+  }
+
+  // Change experience_years columns from INT to VARCHAR for dropdown ranges
+  const [expCol1] = await pool.query(
+    "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'department_titles' AND COLUMN_NAME = 'min_experience_years'",
+    [process.env.DB_NAME]
+  );
+  if (expCol1.length > 0 && expCol1[0].DATA_TYPE === 'int') {
+    await pool.query(`ALTER TABLE department_titles MODIFY COLUMN min_experience_years VARCHAR(10) DEFAULT NULL`);
+    console.log('Migration: department_titles.min_experience_years → VARCHAR');
+  }
+
+  const [expCol2] = await pool.query(
+    "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'experience_years'",
+    [process.env.DB_NAME]
+  );
+  if (expCol2.length > 0 && expCol2[0].DATA_TYPE === 'int') {
+    await pool.query(`ALTER TABLE recruitment_candidates MODIFY COLUMN experience_years VARCHAR(10) DEFAULT NULL`);
+    console.log('Migration: recruitment_candidates.experience_years → VARCHAR');
+  }
+
+  // Add overall_status column to screening_results if not exists
+  const [osCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'screening_results' AND COLUMN_NAME = 'overall_status'",
+    [process.env.DB_NAME]
+  );
+  if (osCol.length === 0) {
+    await pool.query(`ALTER TABLE screening_results ADD COLUMN overall_status ENUM('rejected','recommended','most_recommended') DEFAULT NULL AFTER status`);
+    await pool.query("ALTER TABLE screening_results ADD COLUMN requirement_results JSON DEFAULT NULL AFTER details");
+    console.log('Migration: added overall_status + requirement_results to screening_results');
   }
 }
 
