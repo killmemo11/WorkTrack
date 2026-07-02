@@ -828,10 +828,17 @@ async function getDepartmentTitles(req, res) {
   let params = [];
   if (departmentId) { where = 'WHERE dt.department_id = ?'; params.push(departmentId); }
   const [rows] = await pool.query(
-    `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level
+    `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,
+            COALESCE(ec.cnt, 0) AS filled_count
      FROM department_titles dt
      LEFT JOIN departments d ON dt.department_id = d.id
      LEFT JOIN grades g ON dt.grade_id = g.id
+     LEFT JOIN (
+       SELECT title_id, COUNT(*) AS cnt
+       FROM employees
+       WHERE (is_system IS NULL OR is_system = 0)
+       GROUP BY title_id
+     ) ec ON ec.title_id = dt.id
      ${where}
      ORDER BY d.name, dt.sort_order`, params
   );

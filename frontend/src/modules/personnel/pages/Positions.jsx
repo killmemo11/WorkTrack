@@ -1,20 +1,15 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import hrApi from '../../../shared/api/hrApi';
-
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import TitleCard from '../components/TitleCard';
 
-const ICONS = {
-  Intern:      '🎓',
-  Junior:      '🌱',
-  Senior:      '⭐',
-  Supervisor:  '👔',
-  Manager:     '🏆',
-  SectionHead: '📊',
-  'C-Level':   '👑',
-};
+const GRADE_LABELS = [
+  { key: '', label: 'All Grades' },
+  { key: 'junior', label: 'Junior', maxLevel: 3 },
+  { key: 'senior', label: 'Senior', maxLevel: 6 },
+  { key: 'manager', label: 'Manager', maxLevel: 9 },
+  { key: 'executive', label: 'Executive', maxLevel: 99 },
+];
 
 export default function Positions() {
   const [titles, setTitles] = useState([]);
@@ -22,35 +17,118 @@ export default function Positions() {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [hovered, setHovered] = useState(null);
-  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [criteria, setCriteria] = useState([]);
   const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
+  const [addForm, setAddForm] = useState({ department_id: '', title: '', grade_id: '', description: '', technical: false, max_headcount: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editTab, setEditTab] = useState('basic');
-  const hoverRef = useRef(null);
 
-  useEffect(() => {
-    Promise.all([
-      hrApi.get('/department-titles').then(r => setTitles(r.data)),
-      hrApi.get('/departments').then(r => setDepartments(r.data)),
-      hrApi.get('/grades').then(r => setGrades(r.data)),
-    ]).catch(() => {}).finally(() => setLoading(false));
+  const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('');
+  const [collapsed, setCollapsed] = useState({});
+
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [titlesRes, deptsRes, gradesRes] = await Promise.all([
+        hrApi.get('/department-titles'),
+        hrApi.get('/departments'),
+        hrApi.get('/grades'),
+      ]);
+      setTitles(titlesRes.data);
+      setDepartments(deptsRes.data);
+      setGrades(gradesRes.data);
+    } catch {} finally {
+      setLoading(false);
+    }
   }, []);
 
-  const grouped = {};
-  titles.forEach(t => {
-    if (!grouped[t.department_id]) grouped[t.department_id] = [];
-    grouped[t.department_id].push(t);
-  });
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const gradeMap = useMemo(() => {
+    const m = {};
+    grades.forEach(g => { m[g.id] = g; });
+    return m;
+  }, [grades]);
+
+  const filteredTitles = useMemo(() => {
+    let list = [...titles];
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(t => t.title.toLowerCase().includes(q));
+    }
+
+    if (deptFilter) {
+      list = list.filter(t => t.department_id === parseInt(deptFilter));
+    }
+
+    if (gradeFilter) {
+      const label = GRADE_LABELS.find(g => g.key === gradeFilter);
+      if (label) {
+        list = list.filter(t => {
+          const g = t.grade_id ? gradeMap[t.grade_id] : null;
+          return g && g.grade_level <= label.maxLevel;
+        });
+      }
+    }
+
+    return list;
+  }, [titles, search, deptFilter, gradeFilter, gradeMap]);
+
+  const grouped = useMemo(() => {
+    const g = {};
+    filteredTitles.forEach(t => {
+      if (!g[t.department_id]) g[t.department_id] = [];
+      g[t.department_id].push(t);
+    });
+    return g;
+  }, [filteredTitles]);
+
+  const stats = useMemo(() => {
+    let totalFilled = 0, totalMax = 0, totalDepts = 0;
+    const deptIds = new Set();
+    titles.forEach(t => {
+      deptIds.add(t.department_id);
+      totalFilled += t.filled_count || 0;
+      totalMax += t.max_headcount || 0;
+    });
+    totalDepts = deptIds.size;
+    return { totalTitles: titles.length, totalFilled, totalMax, totalDepts };
+  }, [titles]);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setSearch(val), 200);
+  };
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const openEdit = async (t) => {
     setSelected(t);
-    setForm({ title: t.title, grade_id: t.grade_id || '', description: t.description || '', technical: !!t.technical, job_summary: t.job_summary || '', key_responsibilities: t.key_responsibilities || '', qualifications: t.qualifications || '', technical_skills: t.technical_skills || '', core_competencies: t.core_competencies || '', max_headcount: t.max_headcount ?? '' });
+    setForm({
+      title: t.title, grade_id: t.grade_id || '', description: t.description || '',
+      technical: !!t.technical, job_summary: t.job_summary || '',
+      key_responsibilities: t.key_responsibilities || '', qualifications: t.qualifications || '',
+      technical_skills: t.technical_skills || '', core_competencies: t.core_competencies || '',
+      max_headcount: t.max_headcount ?? '',
+    });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
       setCriteria(res.data.length > 0 ? res.data : [{ criterion_name: '', weight: '' }]);
@@ -58,8 +136,7 @@ export default function Positions() {
   };
 
   const handleCriteriaChange = (idx, field, value) => {
-    const updated = criteria.map((c, i) => i === idx ? { ...c, [field]: value } : c);
-    setCriteria(updated);
+    setCriteria(criteria.map((c, i) => i === idx ? { ...c, [field]: value } : c));
   };
 
   const addCriteriaRow = () => setCriteria([...criteria, { criterion_name: '', weight: '' }]);
@@ -85,8 +162,7 @@ export default function Positions() {
         criteria: criteria.filter(c => c.criterion_name && c.weight !== ''),
       });
       setMsg('Saved successfully');
-      const res = await hrApi.get('/department-titles');
-      setTitles(res.data);
+      await fetchData();
       setSelected(null);
     } catch (err) {
       setMsg(err.response?.data?.error || 'Save failed');
@@ -105,18 +181,12 @@ export default function Positions() {
         grade_id: addForm.grade_id || null,
         description: addForm.description || null,
         technical: !!addForm.technical,
-        job_summary: addForm.job_summary || null,
-        key_responsibilities: addForm.key_responsibilities || null,
-        qualifications: addForm.qualifications || null,
-        technical_skills: addForm.technical_skills || null,
-        core_competencies: addForm.core_competencies || null,
         max_headcount: addForm.max_headcount || 0,
       });
       setMsg('Title added');
       setShowAdd(false);
-      setAddForm({ department_id: '', title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
-      const res = await hrApi.get('/department-titles');
-      setTitles(res.data);
+      setAddForm({ department_id: '', title: '', grade_id: '', description: '', technical: false, max_headcount: '' });
+      await fetchData();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Failed to add title');
     }
@@ -130,74 +200,211 @@ export default function Positions() {
       await hrApi.delete(`/department-titles/${deleteTarget.id}`);
       setMsg('Title deleted');
       setDeleteTarget(null);
-      const res = await hrApi.get('/department-titles');
-      setTitles(res.data);
+      await fetchData();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Failed to delete title');
     }
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const handleMouseEnter = (t, e) => {
-    setHovered(t);
-    const rect = e.currentTarget.getBoundingClientRect();
-    setHoverPos({ x: rect.left + rect.width / 2, y: rect.top - 8 });
+  const toggleCollapse = (deptId) => {
+    setCollapsed(prev => ({ ...prev, [deptId]: !prev[deptId] }));
   };
-
-  const handleMouseLeave = () => setHovered(null);
 
   if (loading) return <div className="loading">Loading...</div>;
 
-  const gradeMap = {};
-  grades.forEach(g => { gradeMap[g.id] = g; });
-
   return (
     <>
+      {/* ── Page Header ── */}
       <div className="page-header">
-        <h2>Job Architecture</h2>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Title</button>
+        <div>
+          <h2 style={{ margin: 0 }}>Job Architecture</h2>
+          <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.85rem' }}>
+            {stats.totalDepts} departments · {stats.totalTitles} titles · {stats.totalFilled} filled · {stats.totalMax} max HC
+          </p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Title
+        </button>
       </div>
 
-      {msg && <div className="alert alert-info">{msg}</div>}
+      {msg && <div className="alert alert-info" style={{ marginBottom: 16 }}>{msg}</div>}
 
-      {departments.map(dept => {
-        const deptTitles = grouped[dept.id] || [];
+      {/* ── Search + Filters Row ── */}
+      <div style={{
+        display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
+          <input
+            ref={searchRef}
+            type="text"
+            className="form-control"
+            placeholder="Search titles..."
+            defaultValue={search}
+            onChange={handleSearchChange}
+            style={{ width: '100%', paddingLeft: 32, fontSize: '0.85rem' }}
+          />
+          <kbd style={{
+            position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+            background: '#e2e8f0', border: '1px solid #cbd5e1', borderRadius: 3,
+            padding: '0 5px', fontSize: '0.65rem', color: '#64748b',
+          }}>⌘K</kbd>
+        </div>
+
+        <select className="form-control" value={deptFilter}
+          onChange={e => setDeptFilter(e.target.value)}
+          style={{ width: 160, fontSize: '0.8rem' }}>
+          <option value="">All Departments</option>
+          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+
+        <select className="form-control" value={gradeFilter}
+          onChange={e => setGradeFilter(e.target.value)}
+          style={{ width: 140, fontSize: '0.8rem' }}>
+          {GRADE_LABELS.map(g => (
+            <option key={g.key} value={g.key}>{g.label}</option>
+          ))}
+        </select>
+
+        {filteredTitles.length < titles.length && (
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            {filteredTitles.length} of {titles.length} results
+          </span>
+        )}
+      </div>
+
+      {/* ── Stats Row ── */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 24,
+      }}>
+        {[
+          { label: 'Departments', value: stats.totalDepts, icon: '🏢', color: '#6366f1' },
+          { label: 'Titles', value: stats.totalTitles, icon: '📋', color: '#3b82f6' },
+          { label: 'Filled', value: stats.totalFilled, icon: '👥', color: '#22c55e' },
+          { label: 'Max HC', value: stats.totalMax, icon: '📊', color: '#f59e0b' },
+          { label: 'Utilization', value: stats.totalMax > 0 ? `${Math.round(stats.totalFilled / stats.totalMax * 100)}%` : '—', icon: '📈', color: '#a855f7' },
+        ].map(s => (
+          <div key={s.label} style={{
+            background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0',
+            padding: '10px 14px', textAlign: 'center',
+            borderTop: `3px solid ${s.color}`,
+          }}>
+            <div style={{ fontSize: 18, marginBottom: 2 }}>{s.icon}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Empty Search State ── */}
+      {search && filteredTitles.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: '#475569' }}>No titles match "{search}"</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Try a different search term or clear filters</div>
+          <button className="btn btn-outline" style={{ marginTop: 16 }} onClick={() => { setSearch(''); if (searchRef.current) searchRef.current.value = ''; setDeptFilter(''); setGradeFilter(''); }}>
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      {/* ── Department Sections ── */}
+      {!search && filteredTitles.length === 0 && titles.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: '#475569' }}>No titles yet</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Start by adding your first job title</div>
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add First Title</button>
+        </div>
+      )}
+
+      {departments.map((dept, idx) => {
+        const deptTitles = grouped[dept.id];
+        if (!deptTitles || deptTitles.length === 0) return null;
+
+        const deptFilled = deptTitles.reduce((s, t) => s + (t.filled_count || 0), 0);
+        const deptMax = deptTitles.reduce((s, t) => s + (t.max_headcount || 0), 0);
+        const deptPct = deptMax > 0 ? deptFilled / deptMax : 0;
+        const isCollapsed = collapsed[dept.id];
+
         return (
-          <div key={dept.id} style={{ marginBottom: 32 }}>
-            <h3 style={{ color: '#1a1a2e', borderBottom: '2px solid #eee', paddingBottom: 8, marginBottom: 16 }}>
-              {dept.name}
-            </h3>
-            {deptTitles.length === 0 ? (
-              <p style={{ color: '#999' }}>No titles yet</p>
-            ) : (
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {deptTitles.map(t => {
-                  const grade = t.grade_id ? gradeMap[t.grade_id] : null;
-                  const icon = ICONS[t.title] || '📋';
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => openEdit(t)}
-                      onMouseEnter={(e) => handleMouseEnter(t, e)}
-                      onMouseLeave={handleMouseLeave}
-                      className="card"
-                      style={{ width: 140, height: 140, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, transition: 'transform .15s, box-shadow .15s', position: 'relative' }}
-                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,.12)'; }}
-                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-                    >
-                      <div style={{ fontSize: 32 }}>{icon}</div>
-                      <div style={{ fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>{t.title}</div>
-                      {grade && <div style={{ fontSize: '0.7rem', color: '#666' }}>Grade {grade.grade_level}</div>}
-                      {t.technical ? <span className="badge badge-primary" style={{ fontSize: '0.6rem' }}>Tech</span> : null}
+          <div key={dept.id} style={{
+            marginBottom: 16, background: '#fff', borderRadius: 10,
+            border: '1px solid #e2e8f0', overflow: 'hidden',
+            animation: `fadeSlideUp ${0.2 + idx * 0.03}s ease-out`,
+          }}>
+            {/* Department Header */}
+            <div
+              onClick={() => toggleCollapse(dept.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 16px', cursor: 'pointer',
+                background: '#f8fafc', borderBottom: isCollapsed ? 'none' : '1px solid #e2e8f0',
+                userSelect: 'none',
+              }}
+            >
+              <span style={{ fontSize: 12, color: '#94a3b8', transition: 'transform .2s', transform: isCollapsed ? 'rotate(-90deg)' : '' }}>
+                ▼
+              </span>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1e293b', flex: 1 }}>
+                {dept.name}
+                <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 12, marginLeft: 8 }}>
+                  {deptTitles.length} title{deptTitles.length > 1 ? 's' : ''}
+                </span>
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', color: '#64748b' }}>
+                <span>👥 {deptFilled}/{deptMax || '∞'}</span>
+                {deptMax > 0 && (
+                  <>
+                    <div style={{ width: 60, height: 5, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${Math.min(deptPct * 100, 100)}%`, height: '100%',
+                        background: deptPct >= 1 ? '#ef4444' : deptPct >= 0.8 ? '#f59e0b' : '#22c55e',
+                        borderRadius: 3, transition: 'width .4s ease',
+                      }} />
                     </div>
-                  );
-                })}
+                    <span style={{ fontWeight: 600, color: deptPct >= 1 ? '#ef4444' : deptPct >= 0.8 ? '#f59e0b' : '#22c55e' }}>
+                      {Math.round(deptPct * 100)}%
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Cards Grid */}
+            {!isCollapsed && (
+              <div style={{ padding: 16 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {deptTitles.map((t, tIdx) => {
+                    const grade = t.grade_id ? gradeMap[t.grade_id] : null;
+                    return (
+                      <div key={t.id} style={{ animation: `fadeSlideUp ${0.15 + tIdx * 0.03}s ease-out` }}>
+                        <TitleCard
+                          title={t.title}
+                          grade={grade?.name || null}
+                          gradeLevel={grade?.grade_level || null}
+                          description={t.description}
+                          technical={!!t.technical}
+                          filled={t.filled_count || 0}
+                          max={t.max_headcount || 0}
+                          created_at={t.created_at}
+                          hasCriteria={false}
+                          onClick={() => openEdit(t)}
+                          onDelete={() => setDeleteTarget(t)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         );
       })}
 
+      {/* ── Delete Confirmation ── */}
       {deleteTarget && (
         <ConfirmModal
           title="Delete Title"
@@ -207,6 +414,7 @@ export default function Positions() {
         />
       )}
 
+      {/* ── Add Modal ── */}
       {showAdd && (
         <div className="modal-overlay" onClick={() => setShowAdd(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
@@ -217,7 +425,7 @@ export default function Positions() {
                 onChange={e => setAddForm({ ...addForm, department_id: e.target.value })}
                 style={{ width: '100%' }}>
                 <option value="">— Select —</option>
-                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name} ({d.max_headcount > 0 ? `${d.max_headcount} HC` : '∞'})</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -252,7 +460,6 @@ export default function Positions() {
                 onChange={e => setAddForm({ ...addForm, max_headcount: e.target.value })}
                 placeholder="0 = unlimited" style={{ width: '100%' }} />
             </div>
-
             <div className="modal-actions">
               <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleAddTitle} disabled={saving}>
@@ -263,27 +470,10 @@ export default function Positions() {
         </div>
       )}
 
-      {/* Tooltip */}
-      {hovered && (
-        <div style={{
-          position: 'fixed', left: hoverPos.x, top: hoverPos.y, transform: 'translate(-50%, -100%)',
-          background: '#1a1a2e', color: '#fff', padding: '10px 14px', borderRadius: 8,
-          fontSize: '0.8rem', maxWidth: 280, zIndex: 9999, pointerEvents: 'none',
-          boxShadow: '0 4px 16px rgba(0,0,0,.2)',
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{hovered.title}</div>
-          {hovered.description && <div style={{ color: '#ccc', marginBottom: 4 }}>{hovered.description}</div>}
-          {hovered.grade_name && <div>Grade: {hovered.grade_name} (Lv.{hovered.grade_level})</div>}
-          {hovered.max_headcount > 0 && <div>Max Headcount: {hovered.max_headcount}</div>}
-        </div>
-      )}
-
-      {/* Edit Modal */}
+      {/* ── Edit Modal ── */}
       {selected && (
         <div className="modal-overlay" onClick={() => { setSelected(null); setEditTab('basic'); }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 680, padding: 0, overflow: 'hidden' }}>
-
-            {/* ── Header ── */}
             <div style={{ padding: '24px 28px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 22 }}>✏️</span>
@@ -293,13 +483,12 @@ export default function Positions() {
                 style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
             </div>
 
-            {/* ── Tab Bar ── */}
             <div style={{ display: 'flex', gap: 0, padding: '0 28px', margin: '16px 28px 0', background: '#f4f6fb', borderRadius: 10 }}>
               {[
                 { key: 'basic', label: 'Basic Info', icon: '📋' },
                 { key: 'details', label: 'Job Details', icon: '📝' },
                 { key: 'criteria', label: 'Evaluation Criteria', icon: '📊' },
-              ].map((tab, i) => (
+              ].map(tab => (
                 <div key={tab.key}
                   onClick={() => setEditTab(tab.key)}
                   style={{
@@ -316,10 +505,7 @@ export default function Positions() {
               ))}
             </div>
 
-            {/* ── Tab Content ── */}
             <div style={{ padding: '20px 28px', minHeight: 260 }}>
-
-              {/* ═══ Tab: Basic Info ═══ */}
               {editTab === 'basic' && (
                 <div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -361,7 +547,6 @@ export default function Positions() {
                 </div>
               )}
 
-              {/* ═══ Tab: Job Details ═══ */}
               {editTab === 'details' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="card" style={{ margin: 0, background: '#fafbfc', border: '1px solid #eef0f5' }}>
@@ -373,7 +558,7 @@ export default function Positions() {
                       <textarea className="form-control" rows={4}
                         value={form.job_summary}
                         onChange={e => setForm({ ...form, job_summary: e.target.value })}
-                        placeholder="Write a compelling summary of the role, its impact, and why someone should apply..."
+                        placeholder="Write a compelling summary of the role..."
                         style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                     </div>
                   </div>
@@ -387,7 +572,7 @@ export default function Positions() {
                         <textarea className="form-control" rows={5}
                           value={form.key_responsibilities}
                           onChange={e => setForm({ ...form, key_responsibilities: e.target.value })}
-                          placeholder="List the main responsibilities and day-to-day tasks for this role..."
+                          placeholder="List the main responsibilities..."
                           style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                       </div>
                     </div>
@@ -400,7 +585,7 @@ export default function Positions() {
                         <textarea className="form-control" rows={5}
                           value={form.qualifications}
                           onChange={e => setForm({ ...form, qualifications: e.target.value })}
-                          placeholder="Required education, certifications, years of experience..."
+                          placeholder="Required education, certifications..."
                           style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                       </div>
                     </div>
@@ -415,7 +600,7 @@ export default function Positions() {
                         <textarea className="form-control" rows={5}
                           value={form.technical_skills}
                           onChange={e => setForm({ ...form, technical_skills: e.target.value })}
-                          placeholder="Specific tools, technologies, software, or methodologies required..."
+                          placeholder="Specific tools, technologies..."
                           style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                       </div>
                     </div>
@@ -428,7 +613,7 @@ export default function Positions() {
                         <textarea className="form-control" rows={5}
                           value={form.core_competencies}
                           onChange={e => setForm({ ...form, core_competencies: e.target.value })}
-                          placeholder="Soft skills, behavioral traits, and core values expected..."
+                          placeholder="Soft skills, behavioral traits..."
                           style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                       </div>
                     </div>
@@ -436,7 +621,6 @@ export default function Positions() {
                 </div>
               )}
 
-              {/* ═══ Tab: Evaluation Criteria ═══ */}
               {editTab === 'criteria' && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -455,12 +639,11 @@ export default function Positions() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {criteria.map((c, idx) => (
-                        <div key={idx}
-                          style={{
-                            display: 'flex', gap: 10, alignItems: 'center',
-                            padding: '10px 14px', background: '#fafbfc', borderRadius: 8,
-                            border: '1px solid #eef0f5',
-                          }}>
+                        <div key={idx} style={{
+                          display: 'flex', gap: 10, alignItems: 'center',
+                          padding: '10px 14px', background: '#fafbfc', borderRadius: 8,
+                          border: '1px solid #eef0f5',
+                        }}>
                           <span style={{ fontWeight: 600, fontSize: 12, color: '#8892a8', width: 24 }}>#{idx + 1}</span>
                           <input className="form-control" placeholder="Criterion name (e.g. Quality of Work)"
                             value={c.criterion_name}
@@ -503,7 +686,6 @@ export default function Positions() {
               )}
             </div>
 
-            {/* ── Footer ── */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '16px 28px', borderTop: '1px solid #eef0f5',
@@ -520,6 +702,13 @@ export default function Positions() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 }
