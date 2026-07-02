@@ -5,6 +5,16 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const EDU_LEVELS = [
+  { value: '', label: '— Select —' },
+  { value: 'high_school', label: 'High School' },
+  { value: 'diploma', label: 'Diploma' },
+  { value: 'associate', label: 'Associate Degree' },
+  { value: 'bachelor', label: 'Bachelor\'s Degree' },
+  { value: 'master', label: 'Master\'s Degree' },
+  { value: 'phd', label: 'PhD / Doctorate' },
+];
+
 export default function PublicApply() {
   const [searchParams] = useSearchParams();
   const jobId = searchParams.get('job');
@@ -14,7 +24,14 @@ export default function PublicApply() {
   const [selectedJobId, setSelectedJobId] = useState(jobId || '');
   const [jobTitle, setJobTitle] = useState('');
   const [technical, setTechnical] = useState(false);
+  const [jobMinReqs, setJobMinReqs] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', cover: '' });
+  const [educationLevel, setEducationLevel] = useState('');
+  const [experienceYears, setExperienceYears] = useState('');
+  const [skills, setSkills] = useState([]);
+  const [certifications, setCertifications] = useState([]);
+  const [skillInput, setSkillInput] = useState('');
+  const [certInput, setCertInput] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,6 +47,7 @@ export default function PublicApply() {
             setJobTitle(match.title);
             setTechnical(!!match.technical);
             setSelectedJobId(jobId);
+            setJobMinReqs(match.min_requirements || null);
           }
         }
       })
@@ -43,10 +61,26 @@ export default function PublicApply() {
     const match = jobs.find(j => String(j.id) === id);
     setJobTitle(match ? match.title : '');
     setTechnical(match ? !!match.technical : false);
+    setJobMinReqs(match?.min_requirements || null);
   };
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const addTag = (arr, setter, input, setInput) => {
+    const val = input.trim();
+    if (val && !arr.includes(val)) setter([...arr, val]);
+    setInput('');
+  };
+
+  const removeTag = (arr, setter, idx) => setter(arr.filter((_, i) => i !== idx));
+
+  const handleTagKey = (arr, setter, input, setInput) => (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(arr, setter, input, setInput);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -61,12 +95,21 @@ export default function PublicApply() {
         job_title: jobTitle,
         technical,
         source: 'Portal',
+        education_level: educationLevel || null,
+        experience_years: experienceYears ? parseInt(experienceYears, 10) : null,
+        skills: skills.length > 0 ? skills : null,
+        certifications: certifications.length > 0 ? certifications : null,
       });
       setSuccess(res.data);
       setForm({ name: '', email: '', phone: '', cover: '' });
+      setEducationLevel('');
+      setExperienceYears('');
+      setSkills([]);
+      setCertifications([]);
       setSelectedJobId('');
       setJobTitle('');
       setTechnical(false);
+      setJobMinReqs(null);
     } catch (err) {
       setError(err.response?.data?.error || 'Submission failed');
     } finally {
@@ -127,6 +170,65 @@ export default function PublicApply() {
             <div className="form-group">
               <label>Phone</label>
               <input name="phone" type="tel" className="form-control" value={form.phone} onChange={handleChange} style={{ width: '100%' }} />
+            </div>
+
+            {/* ── Qualification Fields ── */}
+            {selectedJobId && jobMinReqs && (
+              <div style={{ padding: '12px 14px', background: '#fff8e1', borderRadius: 8, marginBottom: 16, fontSize: 13, border: '1px solid #ffe082' }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🎯</span> This position requires:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {jobMinReqs.min_education_level && <span style={{ background: '#fff', padding: '2px 8px', borderRadius: 6, border: '1px solid #ffe082' }}>🎓 {EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
+                  {jobMinReqs.min_experience_years != null && <span style={{ background: '#fff', padding: '2px 8px', borderRadius: 6, border: '1px solid #ffe082' }}>📅 {jobMinReqs.min_experience_years}+ years</span>}
+                  {(jobMinReqs.required_skills || []).map(s => <span key={s} style={{ background: '#e3f2fd', padding: '2px 8px', borderRadius: 6 }}>⚙️ {s}</span>)}
+                  {(jobMinReqs.required_certs || []).map(c => <span key={c} style={{ background: '#fce4ec', padding: '2px 8px', borderRadius: 6 }}>📜 {c}</span>)}
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: '#1a1a2e' }}>Qualifications</div>
+
+              <div className="form-group">
+                <label>Education Level</label>
+                <select className="form-control" value={educationLevel} onChange={e => setEducationLevel(e.target.value)} style={{ width: '100%' }}>
+                  {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Years of Experience</label>
+                <input type="number" className="form-control" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} min="0" max="50" placeholder="e.g. 5" style={{ width: '100%' }} />
+              </div>
+
+              <div className="form-group">
+                <label>Skills</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '6px 10px', border: '1px solid #d0d5e0', borderRadius: 6, background: '#fff', minHeight: 38 }}>
+                  {skills.map((s, i) => (
+                    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e3f2fd', padding: '2px 8px', borderRadius: 6, fontSize: 13, color: '#1565c0' }}>
+                      ⚙️ {s}
+                      <span onClick={() => removeTag(skills, setSkills, i)} style={{ cursor: 'pointer', marginLeft: 2, fontWeight: 700, color: '#888', fontSize: 14 }}>&times;</span>
+                    </span>
+                  ))}
+                  <input value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={handleTagKey(skills, setSkills, skillInput, setSkillInput)}
+                    onBlur={() => addTag(skills, setSkills, skillInput, setSkillInput)} placeholder="Type & press Enter" style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, minWidth: 120 }} />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Certifications</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '6px 10px', border: '1px solid #d0d5e0', borderRadius: 6, background: '#fff', minHeight: 38 }}>
+                  {certifications.map((c, i) => (
+                    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#fce4ec', padding: '2px 8px', borderRadius: 6, fontSize: 13, color: '#c62828' }}>
+                      📜 {c}
+                      <span onClick={() => removeTag(certifications, setCertifications, i)} style={{ cursor: 'pointer', marginLeft: 2, fontWeight: 700, color: '#888', fontSize: 14 }}>&times;</span>
+                    </span>
+                  ))}
+                  <input value={certInput} onChange={e => setCertInput(e.target.value)} onKeyDown={handleTagKey(certifications, setCertifications, certInput, setCertInput)}
+                    onBlur={() => addTag(certifications, setCertifications, certInput, setCertInput)} placeholder="Type & press Enter" style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, minWidth: 120 }} />
+                </div>
+              </div>
             </div>
 
             <div className="form-group">

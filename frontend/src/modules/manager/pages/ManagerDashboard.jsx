@@ -111,7 +111,7 @@ export default function ManagerDashboard() {
 
   return (
     <div className="page manager-dashboard-page">
-      <div className="manager-hero-card">
+      <div className="manager-hero-card card-glass card-animate">
         <div>
           <p className="manager-eyebrow">Team Operations</p>
           <h1>My Team</h1>
@@ -133,7 +133,7 @@ export default function ManagerDashboard() {
               { key: 'on_leave', label: 'On Leave', color: '#f59e0b', icon: 'leave' },
               { key: 'absent', label: 'Absent', color: '#ef4444', icon: 'alert' },
             ].map((s) => (
-              <div key={s.key} className="mini-stat-card manager-mini-card" style={{ borderTop: `3px solid ${s.color}` }}>
+              <div key={s.key} className="mini-stat-card manager-mini-card card-surface card-animate" style={{ borderTop: `3px solid ${s.color}` }}>
                 <div className="mini-stat-icon" style={{ color: s.color, background: `${s.color}12` }}>
                   <ManagerIcon name={s.icon} size={16} />
                 </div>
@@ -161,7 +161,7 @@ export default function ManagerDashboard() {
               </p>
             </div>
 
-            <div className="chart-card">
+            <div className="chart-card card-surface card-animate">
               <h3 className="chart-title">Today's Status</h3>
               <div className="manager-status-pills">
                 {[
@@ -183,7 +183,7 @@ export default function ManagerDashboard() {
               { label: 'Pending Approvals', icon: 'approval', path: '/manager/approvals', color: '#4f46e5' },
               { label: 'Team Overview', icon: 'team', path: '/manager/team', color: '#3b82f6' },
             ].map((a) => (
-              <div key={a.label} className="manager-action-card" style={{ borderLeftColor: a.color }} onClick={() => navigate(a.path)}>
+              <div key={a.label} className="manager-action-card card-surface card-animate" style={{ borderLeftColor: a.color }} onClick={() => navigate(a.path)}>
                 <div className="manager-action-icon" style={{ color: a.color }}>
                   <ManagerIcon name={a.icon} size={18} />
                 </div>
@@ -193,7 +193,7 @@ export default function ManagerDashboard() {
           </div>
 
           {headcountSummary && (
-            <div className="chart-card" style={{ marginTop: 20 }}>
+            <div className="chart-card card-surface card-animate" style={{ marginTop: 20 }}>
               <h3 className="chart-title">Company Headcount</h3>
               <div className="dashboard-stats-row" style={{ marginBottom: 0, gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 {[
@@ -212,7 +212,7 @@ export default function ManagerDashboard() {
           )}
 
           {barData.length > 1 && (
-            <div className="chart-card manager-chart-card">
+            <div className="chart-card manager-chart-card card-surface card-animate">
               <h3 className="chart-title">Period Work Days by Team Member</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={barData} barGap={4}>
@@ -227,7 +227,7 @@ export default function ManagerDashboard() {
         </>
       )}
 
-      <div className="table-wrapper manager-table-wrapper">
+      <div className="table-wrapper manager-table-wrapper card-surface card-animate">
         <div className="table-header-row">
           <h3>Team Attendance List</h3>
           <span className="table-pill">{team?.length || 0} Records</span>

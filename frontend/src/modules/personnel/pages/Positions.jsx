@@ -18,7 +18,7 @@ export default function Positions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [criteria, setCriteria] = useState([]);
-  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '' });
+  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '', min_education_level: '', min_experience_years: '', required_skills: [], required_certs: [], preferred_skills: [] });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -128,6 +128,11 @@ export default function Positions() {
       key_responsibilities: t.key_responsibilities || '', qualifications: t.qualifications || '',
       technical_skills: t.technical_skills || '', core_competencies: t.core_competencies || '',
       max_headcount: t.max_headcount ?? '',
+      min_education_level: t.min_education_level || '',
+      min_experience_years: t.min_experience_years ?? '',
+      required_skills: Array.isArray(t.required_skills) ? t.required_skills : [],
+      required_certs: Array.isArray(t.required_certs) ? t.required_certs : [],
+      preferred_skills: Array.isArray(t.preferred_skills) ? t.preferred_skills : [],
     });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
@@ -156,6 +161,11 @@ export default function Positions() {
         qualifications: form.qualifications || null,
         technical_skills: form.technical_skills || null,
         core_competencies: form.core_competencies || null,
+        min_education_level: form.min_education_level || null,
+        min_experience_years: form.min_experience_years || null,
+        required_skills: form.required_skills,
+        required_certs: form.required_certs,
+        preferred_skills: form.preferred_skills,
       });
       await hrApi.post('/evaluation-criteria', {
         title_id: selected.id,
@@ -508,6 +518,7 @@ export default function Positions() {
                 { key: 'basic', label: 'Basic Info', icon: '📋' },
                 { key: 'details', label: 'Job Details', icon: '📝' },
                 { key: 'criteria', label: 'Evaluation Criteria', icon: '📊' },
+                { key: 'requirements', label: 'Minimum Requirements', icon: '🎯' },
               ].map(tab => (
                 <div key={tab.key}
                   onClick={() => setEditTab(tab.key)}
@@ -702,6 +713,83 @@ export default function Positions() {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {editTab === 'requirements' && (
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a2e', marginBottom: 16 }}>
+                    🎯 Minimum Requirements
+                    <div style={{ fontWeight: 400, fontSize: 12, color: '#8892a8', marginTop: 2 }}>
+                      Candidates who don't meet these will be auto-rejected when applying to jobs with this title.
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontWeight: 600, fontSize: 13 }}>Minimum Education Level</label>
+                      <select className="form-control" value={form.min_education_level}
+                        onChange={e => setForm({ ...form, min_education_level: e.target.value })}
+                        style={{ width: '100%' }}>
+                        <option value="">— None —</option>
+                        <option value="high_school">High School</option>
+                        <option value="diploma">Diploma</option>
+                        <option value="associate">Associate Degree</option>
+                        <option value="bachelor">Bachelor's Degree</option>
+                        <option value="master">Master's Degree</option>
+                        <option value="phd">PhD / Doctorate</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontWeight: 600, fontSize: 13 }}>Minimum Years of Experience</label>
+                      <input className="form-control" type="number" min="0"
+                        value={form.min_experience_years}
+                        onChange={e => setForm({ ...form, min_experience_years: e.target.value })}
+                        style={{ width: '100%' }} placeholder="e.g. 3" />
+                    </div>
+                  </div>
+                  {['required_skills', 'required_certs', 'preferred_skills'].map(field => {
+                    const label = field === 'required_skills' ? 'Required Skills'
+                      : field === 'required_certs' ? 'Required Certifications'
+                      : 'Preferred Skills';
+                    const hint = field === 'preferred_skills'
+                      ? 'Preferred skills give bonus but won\'t auto-reject if missing'
+                      : 'Candidates missing these will be auto-rejected';
+                    const items = form[field] || [];
+                    return (
+                      <div key={field} className="form-group" style={{ marginBottom: 12 }}>
+                        <label style={{ fontWeight: 600, fontSize: 13 }}>{label}</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 10px', border: '1px solid #dde1e9', borderRadius: 8, background: '#fff', minHeight: 40, marginTop: 4 }}>
+                          {items.map((item, i) => (
+                            <span key={i} style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                              background: field === 'preferred_skills' ? '#e8f5e9' : '#e3f2fd',
+                              color: field === 'preferred_skills' ? '#2e7d32' : '#1565c0',
+                            }}>
+                              {item}
+                              <span onClick={() => setForm({ ...form, [field]: items.filter((_, j) => j !== i) })}
+                                style={{ cursor: 'pointer', fontSize: 14, lineHeight: 1, opacity: 0.6 }}>&times;</span>
+                            </span>
+                          ))}
+                          <input
+                            placeholder={`Type and press Enter to add ${field === 'required_skills' ? 'a skill' : field === 'required_certs' ? 'a certification' : 'a preferred skill'}`}
+                            style={{ border: 'none', outline: 'none', flex: 1, minWidth: 140, fontSize: 13, background: 'transparent' }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ',') {
+                                e.preventDefault();
+                                const val = e.target.value.trim();
+                                if (val && !items.includes(val)) {
+                                  setForm({ ...form, [field]: [...items, val] });
+                                }
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8892a8', marginTop: 4 }}>{hint}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

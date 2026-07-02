@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
 import { buildDashboardInsights } from './dashboardInsights';
@@ -53,13 +53,17 @@ function ElapsedTimer({ signInTime }) {
 function LoadingSkeleton() {
   return (
     <div className="dashboard">
-      <div className="skeleton-card" style={{ height: 100 }} />
+      <div className="skeleton-card" style={{ height: 110 }} />
+      <div className="dashboard-top-grid">
+        <div className="skeleton-card" style={{ height: 240 }} />
+        <div className="skeleton-card" style={{ height: 240 }} />
+      </div>
       <div className="dashboard-stats-row">
-        {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-card" style={{ height: 100 }} />)}
+        {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-card" style={{ height: 110 }} />)}
       </div>
       <div className="dashboard-charts-row">
-        <div className="skeleton-card" style={{ height: 200 }} />
-        <div className="skeleton-card" style={{ height: 200 }} />
+        <div className="skeleton-card" style={{ height: 220 }} />
+        <div className="skeleton-card" style={{ height: 220 }} />
       </div>
     </div>
   );
@@ -369,11 +373,11 @@ export default function Dashboard() {
   const isMissingSignOut = (day) => day.signed_in && !day.signed_out && !day.is_future && day.date !== todayStr;
 
   const quickActions = [
-    ...(services.service_leaves !== '0' ? [{ label: 'Leave Requests', icon: '🏖️', path: '/leaves', color: '#4f46e5' }] : []),
-    { label: 'Attendance Calendar', icon: '📅', path: '/calendar', color: '#22c55e' },
-    { label: 'Attendance History', icon: '📋', path: '/history', color: '#3b82f6' },
-    { label: 'Missing Sign-Out', icon: '⚠️', path: '/missing-signout', color: '#f59e0b' },
-    { label: 'My Profile', icon: '👤', path: '/profile', color: '#8b5cf6' },
+    ...(services.service_leaves !== '0' ? [{ label: 'Leave Requests', icon: '🏖️', path: '/leaves', color: '#4f46e5', meta: 'Submit or track' }] : []),
+    { label: 'Attendance Calendar', icon: '📅', path: '/calendar', color: '#22c55e', meta: 'Plan your week' },
+    { label: 'Attendance History', icon: '📋', path: '/history', color: '#3b82f6', meta: 'Review records' },
+    { label: 'Missing Sign-Out', icon: '⚠️', path: '/missing-signout', color: '#f59e0b', meta: 'Resolve quickly' },
+    { label: 'My Profile', icon: '👤', path: '/profile', color: '#8b5cf6', meta: 'Update details' },
   ];
 
   const insights = useMemo(() => buildDashboardInsights({
@@ -391,93 +395,139 @@ export default function Dashboard() {
   return (
     <>
       <div className="dashboard">
-        <div className="welcome-card">
-          <h1>Welcome, {employee?.name}</h1>
-          <p className="date">{today}</p>
+        <div className="welcome-card card-glass card-animate">
+          <div className="welcome-card-content">
+            <div>
+              <div className="welcome-eyebrow">Today at a glance</div>
+              <h1>Welcome back, {employee?.name}</h1>
+              <p className="date">{today}</p>
+              <p className="welcome-copy">Track attendance, keep requests moving, and stay focused on what matters today.</p>
+            </div>
+            <div className="welcome-actions">
+              <button className="btn btn-light" onClick={() => navigate('/calendar')}>View Calendar</button>
+              <button className="btn btn-primary" onClick={() => navigate('/requests')}>Open Requests</button>
+            </div>
+          </div>
         </div>
 
-        {/* Status Card — primary action, shown right after welcome */}
-        <div className="status-card">
-          {!status?.signedIn ? (
-            <div className="status-not-started">
-              <div className="status-icon-badge status-pending">
-                <DashboardIcon name="clock" size={28} />
-              </div>
-              <h2>Not Signed In</h2>
-              <p>Start your work day</p>
-              {signError && <div className="alert alert-error"><span>⚠️</span> {signError}</div>}
-              {gpsError && <div className="alert alert-error"><span>⚠️</span> {gpsError}</div>}
-              {hasSignInServices ? (
-                <div className="signin-buttons">
-                  {services.service_wfh === '1' && canWfh && (
-                    <button onClick={() => signInWithLocation('wfh')} disabled={gpsLoading} className="btn btn-primary btn-lg">
-                      {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏠 Sign In (WFH)'}
-                    </button>
-                  )}
-                  {services.service_office_attendance === '1' && (
-                    <button onClick={() => signInWithLocation('office')} disabled={gpsLoading} className="btn btn-outline btn-lg">
-                      {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏢 Sign In (Office)'}
-                    </button>
-                  )}
+        <div className="dashboard-top-grid">
+          <div className="status-card card-surface card-animate">
+            {!status?.signedIn ? (
+              <div className="status-not-started">
+                <div className="status-icon-badge status-pending">
+                  <DashboardIcon name="clock" size={28} />
                 </div>
-              ) : (
-                <p className="no-service-msg">No attendance methods are currently enabled. Contact your administrator.</p>
-              )}
-            </div>
-          ) : !status?.signedOut ? (
-            <div className="status-active">
-              {signError && <div className="alert alert-error" style={{ marginBottom: 16 }}><span>⚠️</span> {signError}</div>}
-              <div className="status-icon-badge status-active-badge">
-                <DashboardIcon name="check" size={28} />
+                <h2>Not Signed In</h2>
+                <p>Start your work day</p>
+                {signError && <div className="alert alert-error"><span>⚠️</span> {signError}</div>}
+                {gpsError && <div className="alert alert-error"><span>⚠️</span> {gpsError}</div>}
+                {hasSignInServices ? (
+                  <div className="signin-buttons">
+                    {services.service_wfh === '1' && canWfh && (
+                      <button onClick={() => signInWithLocation('wfh')} disabled={gpsLoading} className="btn btn-primary btn-lg">
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏠 Sign In (WFH)'}
+                      </button>
+                    )}
+                    {services.service_office_attendance === '1' && (
+                      <button onClick={() => signInWithLocation('office')} disabled={gpsLoading} className="btn btn-outline btn-lg">
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏢 Sign In (Office)'}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="no-service-msg">No attendance methods are currently enabled. Contact your administrator.</p>
+                )}
               </div>
-              <h2>Signed In <span className="status-type-badge">
-                {(status.record.type || 'wfh').charAt(0).toUpperCase() + (status.record.type || 'wfh').slice(1)}
-              </span></h2>
-              <p className="signed-in-time">
-                Signed in at: {new Date(status.record.sign_in_time).toLocaleTimeString()}
-                <ElapsedTimer signInTime={status.record.sign_in_time} />
-              </p>
-              <div className="signout-form">
-                <textarea
-                  placeholder="Add notes for today (optional)..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                />
-                <div className="signout-footer">
-                  <span className="char-count">{notes.length}/500</span>
-                  <button onClick={async () => {
-                    try {
-                      await api.post('/attendance/sign-out', { notes });
-                      await fetchData();
-                      setNotes('');
-                      setSignError('');
-                    } catch (err) {
-                      setSignError(err.response?.data?.error || 'Failed to sign out');
-                    }
-                  }} className="btn btn-danger btn-lg">
-                    Sign Out
-                  </button>
+            ) : !status?.signedOut ? (
+              <div className="status-active">
+                {signError && <div className="alert alert-error" style={{ marginBottom: 16 }}><span>⚠️</span> {signError}</div>}
+                <div className="status-icon-badge status-active-badge">
+                  <DashboardIcon name="check" size={28} />
+                </div>
+                <h2>Signed In <span className="status-type-badge">
+                  {(status.record.type || 'wfh').charAt(0).toUpperCase() + (status.record.type || 'wfh').slice(1)}
+                </span></h2>
+                <p className="signed-in-time">
+                  Signed in at: {new Date(status.record.sign_in_time).toLocaleTimeString()}
+                  <ElapsedTimer signInTime={status.record.sign_in_time} />
+                </p>
+                <div className="signout-form">
+                  <textarea
+                    placeholder="Add notes for today (optional)..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                  />
+                  <div className="signout-footer">
+                    <span className="char-count">{notes.length}/500</span>
+                    <button onClick={async () => {
+                      try {
+                        await api.post('/attendance/sign-out', { notes });
+                        await fetchData();
+                        setNotes('');
+                        setSignError('');
+                      } catch (err) {
+                        setSignError(err.response?.data?.error || 'Failed to sign out');
+                      }
+                    }} className="btn btn-danger btn-lg">
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="status-complete">
-              <div className="status-icon-badge status-complete-badge">
-                <DashboardIcon name="check" size={28} />
+            ) : (
+              <div className="status-complete">
+                <div className="status-icon-badge status-complete-badge">
+                  <DashboardIcon name="check" size={28} />
+                </div>
+                <h2>Day Complete</h2>
+                {status.record.type && (
+                  <p style={{ fontSize: '0.9rem', color: '#666' }}>Type: {(status.record.type).charAt(0).toUpperCase() + status.record.type.slice(1)}</p>
+                )}
+                <p>Signed in: {new Date(status.record.sign_in_time).toLocaleTimeString()}</p>
+                <p>Signed out: {new Date(status.record.sign_out_time).toLocaleTimeString()}</p>
+                <p className="day-duration">
+                  Duration: {Math.round((new Date(status.record.sign_out_time) - new Date(status.record.sign_in_time)) / 3600000)}h
+                </p>
               </div>
-              <h2>Day Complete</h2>
-              {status.record.type && (
-                <p style={{ fontSize: '0.9rem', color: '#666' }}>Type: {(status.record.type).charAt(0).toUpperCase() + status.record.type.slice(1)}</p>
-              )}
-              <p>Signed in: {new Date(status.record.sign_in_time).toLocaleTimeString()}</p>
-              <p>Signed out: {new Date(status.record.sign_out_time).toLocaleTimeString()}</p>
-              <p className="day-duration">
-                Duration: {Math.round((new Date(status.record.sign_out_time) - new Date(status.record.sign_in_time)) / 3600000)}h
-              </p>
+            )}
+          </div>
+
+          <div className="focus-card card-surface card-animate">
+            <div className="focus-card-header">
+              <div>
+                <p className="focus-card-label">Your overview</p>
+                <h3>Built for a smooth day</h3>
+              </div>
+              <div className="focus-chip">Live</div>
             </div>
-          )}
+            <div className="focus-metrics">
+              <div className="focus-metric">
+                <span className="focus-metric-label">Attendance rate</span>
+                <strong>{attendanceRate}%</strong>
+              </div>
+              <div className="focus-metric">
+                <span className="focus-metric-label">Present days</span>
+                <strong>{summary?.total_present || 0}</strong>
+              </div>
+              <div className="focus-metric">
+                <span className="focus-metric-label">Leave days</span>
+                <strong>{summary?.leave_days || 0}</strong>
+              </div>
+            </div>
+            <div className="focus-actions">
+              <button className="btn btn-outline btn-full" onClick={() => navigate('/history')}>View History</button>
+              <button className="btn btn-primary btn-full" onClick={() => navigate('/calendar')}>Open Calendar</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-section-header">
+          <div>
+            <h3>Key metrics</h3>
+            <p>Stay on top of the important numbers from one place.</p>
+          </div>
         </div>
 
         <div className="insights-grid">
@@ -492,13 +542,13 @@ export default function Dashboard() {
 
         <div className="dashboard-stats-row">
           {[
-            { key: 'office_days', label: 'Office Days', cls: 'stat-office', icon: '🏢', path: '/history' },
-            { key: 'wfh_days', label: 'WFH Days', cls: 'stat-wfh', icon: '🏠', path: '/history' },
-            { key: 'absence_days', label: 'Absence Days', cls: 'stat-absent', icon: '❌', path: '/history' },
-            { key: 'holidays_count', label: 'Public Holidays', cls: 'stat-holiday', icon: '🎉', path: null },
-            { key: 'total_work_days', label: 'Work Days', cls: 'stat-total', icon: '📅', path: null },
+            { key: 'office_days', label: 'Office Days', cls: 'stat-office', icon: '🏢', path: '/history', caption: 'On-site attendance' },
+            { key: 'wfh_days', label: 'WFH Days', cls: 'stat-wfh', icon: '🏠', path: '/history', caption: 'Remote days' },
+            { key: 'absence_days', label: 'Absence Days', cls: 'stat-absent', icon: '❌', path: '/history', caption: 'Days missed' },
+            { key: 'holidays_count', label: 'Public Holidays', cls: 'stat-holiday', icon: '🎉', path: null, caption: 'Holiday calendar' },
+            { key: 'total_work_days', label: 'Work Days', cls: 'stat-total', icon: '📅', path: null, caption: 'Scheduled days' },
           ].map((s) => (
-            <div key={s.key} className={`mini-stat-card ${s.cls} ${s.path ? 'clickable-stat' : ''}`}
+            <div key={s.key} className={`mini-stat-card card-surface card-animate ${s.cls} ${s.path ? 'clickable-stat' : ''}`}
               onClick={() => s.path && navigate(s.path)} title={s.path ? `View ${s.label}` : ''}>
               <div className="mini-stat-icon">
                 {s.key === 'office_days' && <DashboardIcon name="office" size={18} />}
@@ -511,18 +561,22 @@ export default function Dashboard() {
                 {summary ? <AnimatedNumber value={summary[s.key] || 0} /> : 0}
               </div>
               <div className="mini-stat-label">{s.label}</div>
+              <div className="mini-stat-caption">{s.caption}</div>
             </div>
           ))}
         </div>
 
         <div className="dashboard-charts-row">
-          <div className="chart-card">
-            <h3 className="chart-title">
-              Attendance Rate
+          <div className="chart-card card-surface card-animate">
+            <div className="chart-card-header">
+              <div>
+                <h3 className="chart-title">Attendance Rate</h3>
+                <p className="chart-subtitle">Your consistency across the current month</p>
+              </div>
               <span className={`rate-badge ${attendanceRate >= 90 ? 'rate-good' : attendanceRate >= 75 ? 'rate-ok' : 'rate-bad'}`}>
                 {attendanceRate}%
               </span>
-            </h3>
+            </div>
             <div className="progress-track">
               <div className="progress-fill" style={{ width: `${attendanceRate}%`, background: attendanceRate >= 90 ? '#22c55e' : attendanceRate >= 75 ? '#f59e0b' : '#ef4444' }} />
             </div>
@@ -531,12 +585,17 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="chart-card">
-            <h3 className="chart-title">This Month</h3>
+          <div className="chart-card card-surface card-animate">
+            <div className="chart-card-header">
+              <div>
+                <h3 className="chart-title">This Month</h3>
+                <p className="chart-subtitle">A quick view of your attendance mix</p>
+              </div>
+            </div>
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72} innerRadius={44}>
                     {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip />
@@ -548,23 +607,36 @@ export default function Dashboard() {
         </div>
 
         {barData.length > 1 && (
-          <div className="chart-card" style={{ padding: 24 }}>
-            <h3 className="chart-title">Monthly Trend</h3>
-            <ResponsiveContainer width="100%" height={250}>
+          <div className="chart-card chart-card-visual card-surface card-animate">
+            <div className="chart-card-header">
+              <div>
+                <h3 className="chart-title">Monthly Trend</h3>
+                <p className="chart-subtitle">Office vs WFH across recent months</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={barData} barGap={4}>
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                 <Tooltip />
-                <Bar dataKey="office" name="Office" fill={BAR_COLORS.office} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="wfh" name="WFH" fill={BAR_COLORS.wfh} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="office" name="Office" fill={BAR_COLORS.office} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="wfh" name="WFH" fill={BAR_COLORS.wfh} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
+        <div className="dashboard-section-header">
+          <div>
+            <h3>Quick actions</h3>
+            <p>Jump into the most useful tasks in a single click.</p>
+          </div>
+        </div>
+
         <div className="quick-actions-row">
           {quickActions.map((a) => (
-            <div key={a.label} className="quick-action-card" style={{ borderLeftColor: a.color }}
+            <div key={a.label} className="quick-action-card card-surface card-animate" style={{ borderLeftColor: a.color }}
               onClick={() => navigate(a.path)}>
               <span className="quick-action-icon">
                 {a.label === 'Leave Requests' && <DashboardIcon name="leave" size={22} />}
@@ -573,13 +645,16 @@ export default function Dashboard() {
                 {a.label === 'Missing Sign-Out' && <DashboardIcon name="alert" size={22} />}
                 {a.label === 'My Profile' && <DashboardIcon name="profile" size={22} />}
               </span>
-              <span className="quick-action-label">{a.label}</span>
+              <div className="quick-action-text">
+                <span className="quick-action-label">{a.label}</span>
+                <span className="quick-action-meta">{a.meta}</span>
+              </div>
             </div>
           ))}
         </div>
 
         {calendarData && (
-          <div className="calendar-card">
+          <div className="calendar-card card-surface card-animate">
             <div className="calendar-header">
               <h3>Attendance Calendar</h3>
               <span className="period-label">

@@ -270,6 +270,35 @@ export default function Jobs() {
                   </div>
                 )}
 
+                {form.title_id && (() => {
+                  const t = titles.find(x => String(x.id) === form.title_id);
+                  if (!t || (!t.min_education_level && t.min_experience_years == null && (!t.required_skills || t.required_skills.length === 0) && (!t.required_certs || t.required_certs.length === 0))) return null;
+                  const eduLabel = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
+                  const skills = Array.isArray(t.required_skills) ? t.required_skills : [];
+                  const certs = Array.isArray(t.required_certs) ? t.required_certs : [];
+                  const prefSkills = Array.isArray(t.preferred_skills) ? t.preferred_skills : [];
+                  return (
+                    <div style={{ padding: '14px 16px', background: '#fff8e1', borderRadius: 8, marginBottom: 20, fontSize: 13, border: '1px solid #ffe082' }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>🎯</span> Auto-Screening Minimum Requirements
+                        <span style={{ fontSize: 11, fontWeight: 400, color: '#8892a8' }}>(candidates below these will be auto-rejected)</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                        {t.min_education_level && <span style={{ background: '#fff', padding: '3px 10px', borderRadius: 6, border: '1px solid #ffe082' }}>🎓 {eduLabel[t.min_education_level] || t.min_education_level}</span>}
+                        {t.min_experience_years != null && <span style={{ background: '#fff', padding: '3px 10px', borderRadius: 6, border: '1px solid #ffe082' }}>📅 {t.min_experience_years}+ years</span>}
+                        {skills.map(s => <span key={s} style={{ background: '#e3f2fd', padding: '3px 10px', borderRadius: 6, border: '1px solid #90caf9', color: '#1565c0' }}>⚙️ {s}</span>)}
+                        {certs.map(c => <span key={c} style={{ background: '#fce4ec', padding: '3px 10px', borderRadius: 6, border: '1px solid #f48fb1', color: '#c62828' }}>📜 {c}</span>)}
+                      </div>
+                      {prefSkills.length > 0 && (
+                        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#8892a8' }}>Preferred:</span>
+                          {prefSkills.map(s => <span key={s} style={{ background: '#e8f5e9', padding: '2px 8px', borderRadius: 6, fontSize: 12, color: '#2e7d32' }}>⭐ {s}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontWeight: 600, fontSize: 13 }}>Employment Type</label>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>

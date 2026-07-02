@@ -1616,6 +1616,64 @@ async function seed() {
     );
     console.log('Migration: added multi-level approval columns to headcount_requests');
   }
+
+  // --- v55: minimum requirements for department_titles + auto-screening ---
+  const [minEduCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'department_titles' AND COLUMN_NAME = 'min_education_level'",
+    [process.env.DB_NAME]
+  );
+  if (minEduCol.length === 0) {
+    await pool.query(
+      `ALTER TABLE department_titles
+       ADD COLUMN min_education_level VARCHAR(50) DEFAULT NULL AFTER max_headcount,
+       ADD COLUMN min_experience_years INT DEFAULT NULL AFTER min_education_level,
+       ADD COLUMN required_skills JSON DEFAULT NULL AFTER min_experience_years,
+       ADD COLUMN required_certs JSON DEFAULT NULL AFTER required_skills,
+       ADD COLUMN preferred_skills JSON DEFAULT NULL AFTER required_certs`
+    );
+    console.log('Migration: added minimum requirements columns to department_titles');
+  }
+
+  const [candEduCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'education_level'",
+    [process.env.DB_NAME]
+  );
+  if (candEduCol.length === 0) {
+    await pool.query(
+      `ALTER TABLE recruitment_candidates
+       ADD COLUMN education_level VARCHAR(50) DEFAULT NULL AFTER source,
+       ADD COLUMN experience_years INT DEFAULT NULL AFTER education_level,
+       ADD COLUMN skills JSON DEFAULT NULL AFTER experience_years,
+       ADD COLUMN certifications JSON DEFAULT NULL AFTER skills`
+    );
+    console.log('Migration: added qualification columns to recruitment_candidates');
+  }
+
+  const [srTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'screening_results'",
+    [process.env.DB_NAME]
+  );
+  if (srTable.length === 0) {
+    await pool.query(
+      `CREATE TABLE screening_results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        title_id INT DEFAULT NULL,
+        job_id INT DEFAULT NULL,
+        status ENUM('passed','rejected','manual') NOT NULL DEFAULT 'manual',
+        requirements_met INT DEFAULT 0,
+        requirements_total INT DEFAULT 0,
+        details JSON DEFAULT NULL,
+        automated TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (title_id) REFERENCES department_titles(id) ON DELETE SET NULL,
+        FOREIGN KEY (job_id) REFERENCES recruitment_jobs(id) ON DELETE SET NULL
+      )`
+    );
+    await pool.query('CREATE INDEX idx_screening_candidate ON screening_results(candidate_id)');
+    console.log('Migration: created screening_results table');
+  }
 }
 
 module.exports = seed;

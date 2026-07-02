@@ -124,30 +124,43 @@ async function getCandidate(req, res) {
   const [history] = await pool.query('SELECT * FROM recruitment_history WHERE candidate_id = ? ORDER BY created_at', [id]);
   const [scorecards] = await pool.query('SELECT * FROM recruitment_scorecards WHERE candidate_id = ? ORDER BY created_at', [id]);
   const [offers] = await pool.query('SELECT * FROM recruitment_offers WHERE candidate_id = ? ORDER BY created_at DESC LIMIT 1', [id]);
+  const [screening] = await pool.query('SELECT * FROM screening_results WHERE candidate_id = ? ORDER BY created_at DESC LIMIT 1', [id]);
 
-  res.json({ ...candidate, history, scorecards, offers });
+  res.json({ ...candidate, history, scorecards, offers, screening: screening[0] || null });
 }
 
 async function createCandidate(req, res) {
-  const { name, email, phone, job_id, job_title, stage, technical, notes, source } = req.body;
+  const { name, email, phone, job_id, job_title, stage, technical, notes, source, education_level, experience_years, skills, certifications } = req.body;
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
   const [result] = await pool.query(
-    'INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source) VALUES (?,?,?,?,?,?,?,?,?)',
-    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual']
+    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years != null ? parseInt(experience_years, 10) : null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
   );
   await pool.query(
     'INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)',
     [result.insertId, stage || 'applied', 'Candidate added manually', req.admin?.username || 'HR']
   );
   const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [result.insertId]);
+
+  try {
+    const { autoScreen } = require('../../shared/services/screening.service');
+    if (job_id) {
+      const [jobs] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      if (jobs.length > 0 && jobs[0].title_id) {
+        await autoScreen(result.insertId, jobs[0].title_id, job_id);
+      }
+    }
+  } catch (e) { console.error('Auto-screening error:', e); }
+
   logActivity(null, req.admin?.id || req.hr?.id || null, 'candidate_created', `Created candidate: ${name}`);
   res.status(201).json(candidate);
 }
 
 async function updateCandidate(req, res) {
   const { id } = req.params;
-  const allowed = ['name', 'email', 'phone', 'job_id', 'job_title', 'stage', 'notes', 'score_comm', 'score_tech', 'score_fit', 'test_done'];
+  const allowed = ['name', 'email', 'phone', 'job_id', 'job_title', 'stage', 'notes', 'score_comm', 'score_tech', 'score_fit', 'test_done', 'education_level', 'experience_years', 'skills', 'certifications'];
   const updates = [];
   const args = [];
   for (const col of allowed) {
@@ -276,18 +289,29 @@ async function createOffer(req, res) {
 
 // ── Public: Apply ──────────────────────────────────────────────
 async function publicApply(req, res) {
-  const { name, email, phone, job_id, job_title, technical, cover, source } = req.body;
+  const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications } = req.body;
   if (!name || !email || !job_title) return res.status(400).json({ error: 'name, email, and job_title are required' });
 
   const [existing] = await pool.query('SELECT id FROM recruitment_candidates WHERE email=? AND job_title=?', [email, job_title]);
   if (existing.length > 0) return res.status(400).json({ error: 'You have already applied for this position' });
 
   const [result] = await pool.query(
-    'INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source) VALUES (?,?,?,?,?,?,?,?,?)',
-    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal']
+    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years != null ? parseInt(experience_years, 10) : null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
   );
   await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
     [result.insertId, 'applied', 'Application submitted via candidate portal']);
+
+  try {
+    const { autoScreen } = require('../../shared/services/screening.service');
+    if (job_id) {
+      const [jobs] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      if (jobs.length > 0 && jobs[0].title_id) {
+        await autoScreen(result.insertId, jobs[0].title_id, job_id);
+      }
+    }
+  } catch (e) { console.error('Auto-screening error:', e); }
 
   const ref = `APP-${new Date().getFullYear()}-${String(result.insertId).padStart(3, '0')}`;
   let emailSent = false;
@@ -343,9 +367,30 @@ async function publicTrack(req, res) {
 // ── Get active jobs (public) ───────────────────────────────────
 async function getActiveJobs(req, res) {
   const [rows] = await pool.query(
-    "SELECT id, title, department, type, technical, description, created_at FROM recruitment_jobs WHERE status = 'active' ORDER BY created_at DESC"
+    `SELECT j.id, j.title, j.department, j.type, j.technical, j.description, j.created_at,
+       JSON_OBJECT(
+         'min_education_level', dt.min_education_level,
+         'min_experience_years', dt.min_experience_years,
+         'required_skills', dt.required_skills,
+         'required_certs', dt.required_certs,
+         'preferred_skills', dt.preferred_skills
+       ) AS min_requirements
+     FROM recruitment_jobs j
+     LEFT JOIN department_titles dt ON j.title_id = dt.id
+     WHERE j.status = 'active'
+     ORDER BY j.created_at DESC`
   );
-  res.json(rows);
+  const result = rows.map(r => ({
+    ...r,
+    min_requirements: typeof r.min_requirements === 'string' ? JSON.parse(r.min_requirements) : r.min_requirements,
+    min_requirements: r.min_requirements ? {
+      ...r.min_requirements,
+      required_skills: JSON.parse(r.min_requirements.required_skills || '[]'),
+      required_certs: JSON.parse(r.min_requirements.required_certs || '[]'),
+      preferred_skills: JSON.parse(r.min_requirements.preferred_skills || '[]'),
+    } : null,
+  }));
+  res.json(result);
 }
 
 // ── Export CSV ─────────────────────────────────────────────────

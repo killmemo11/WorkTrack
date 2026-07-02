@@ -9,6 +9,8 @@ import { formatDate, formatDateTime } from '../../../shared/utils/date';
 
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
+const EDU_LABEL = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
+
 export default function CandidateDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -166,7 +168,7 @@ export default function CandidateDetails() {
       {message && <div className="alert alert-info">{message}</div>}
 
       <div className="tabs" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-        {['info', 'history', 'scorecards', 'offers'].map(tab => (
+        {['info', 'screening', 'history', 'scorecards', 'offers'].map(tab => (
           <button key={tab} className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab(tab)}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
@@ -184,6 +186,10 @@ export default function CandidateDetails() {
               <div><strong>Stage:</strong> {candidate.stage}</div>
               <div><strong>Source:</strong> {candidate.source || '—'}</div>
               <div><strong>Scores:</strong> C:{candidate.score_comm || 0} T:{candidate.score_tech || 0} F:{candidate.score_fit || 0}</div>
+              {candidate.education_level && <div><strong>Education:</strong> {EDU_LABEL[candidate.education_level] || candidate.education_level}</div>}
+              {candidate.experience_years != null && <div><strong>Experience:</strong> {candidate.experience_years} years</div>}
+              {candidate.skills && (() => { try { const s = typeof candidate.skills === 'string' ? JSON.parse(candidate.skills) : candidate.skills; return s.length > 0 ? <div><strong>Skills:</strong> {s.join(', ')}</div> : null; } catch { return null; } })()}
+              {candidate.certifications && (() => { try { const c = typeof candidate.certifications === 'string' ? JSON.parse(candidate.certifications) : candidate.certifications; return c.length > 0 ? <div><strong>Certs:</strong> {c.join(', ')}</div> : null; } catch { return null; } })()}
               <div>
                 <strong>CV:</strong>{' '}
                 {candidate.cv_filename ? (
@@ -233,6 +239,47 @@ export default function CandidateDetails() {
               <button className="btn btn-primary" onClick={handleMove} disabled={!moveStage}>Move</button>
               <button className="btn btn-success" onClick={openHireModal} style={{ marginLeft: 8 }}>Hire</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Screening Tab */}
+      {activeTab === 'screening' && (
+        <div className="card">
+          <div className="card-body">
+            {!candidate.screening ? (
+              <p className="text-center" style={{ color: '#8892a8' }}>No auto-screening result available for this candidate.</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span style={{ fontSize: 32 }}>{candidate.screening.status === 'passed' ? '✅' : candidate.screening.status === 'rejected' ? '❌' : '⏳'}</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, textTransform: 'capitalize' }}>{candidate.screening.status}</div>
+                    <div style={{ fontSize: 12, color: '#8892a8' }}>{formatDateTime(candidate.screening.created_at)}</div>
+                  </div>
+                </div>
+                <div style={{ background: '#f4f6fb', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                  <strong>Requirements met:</strong> {candidate.screening.requirements_met} / {candidate.screening.requirements_total}
+                </div>
+                {candidate.screening.details && (
+                  <div>
+                    <h4 style={{ fontSize: 14, marginBottom: 8 }}>Detail Breakdown</h4>
+                    <table className="table">
+                      <thead><tr><th>Requirement</th><th>Candidate</th><th>Result</th></tr></thead>
+                      <tbody>
+                        {(typeof candidate.screening.details === 'string' ? JSON.parse(candidate.screening.details) : candidate.screening.details).map((d, i) => (
+                          <tr key={i}>
+                            <td style={{ textTransform: 'capitalize' }}>{d.requirement}</td>
+                            <td>{d.candidate ?? '—'}</td>
+                            <td>{d.passed ? <span style={{ color: '#2e7d32' }}>✓ Pass</span> : <span style={{ color: '#c62828' }}>✗ Fail</span>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

@@ -77,12 +77,13 @@ export default function CEODashboard() {
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="page-header ceo-hero-card card-glass card-animate">
         <div>
+          <p className="manager-eyebrow">Executive Overview</p>
           <h1>Company Overview</h1>
           <p className="subtitle">C-Level dashboard — attendance & leave analytics</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="ceo-select-group">
           <select className="form-control" value={month} onChange={(e) => setMonth(parseInt(e.target.value))} style={{ width: 'auto', minWidth: 140 }}>
             {monthNames.map((name, i) => (
               <option key={i + 1} value={i + 1}>{name}</option>
@@ -111,7 +112,7 @@ export default function CEODashboard() {
               { key: 'absent_today', label: 'Absent Today', color: '#ef4444', icon: '❌' },
               { key: null, label: 'Attendance Rate', color: '#3b82f6', icon: '📊', value: data.summary.attendance_rate + '%' },
             ].map((s) => (
-              <div key={s.label} className="mini-stat-card" style={{ borderTop: `3px solid ${s.color}` }}>
+              <div key={s.label} className="mini-stat-card card-surface card-animate" style={{ borderTop: `3px solid ${s.color}` }}>
                 <div className="mini-stat-icon">{s.icon}</div>
                 <div className="mini-stat-number" style={{ color: s.color }}>{s.value ?? data.summary[s.key]}</div>
                 <div className="mini-stat-label">{s.label}</div>
@@ -121,7 +122,7 @@ export default function CEODashboard() {
 
           <div className="dashboard-charts-row">
             {pieData.length > 0 && (
-              <div className="chart-card">
+              <div className="chart-card card-surface card-animate">
                 <h3 className="chart-title">Today's Distribution</h3>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
@@ -136,7 +137,7 @@ export default function CEODashboard() {
             )}
 
             {pieData.length > 0 && (
-              <div className="chart-card">
+              <div className="chart-card card-surface card-animate">
                 <h3 className="chart-title">
                   Overall Attendance Rate
                   <span className={`rate-badge ${data.summary.attendance_rate >= 90 ? 'rate-good' : data.summary.attendance_rate >= 75 ? 'rate-ok' : 'rate-bad'}`}>
@@ -157,7 +158,7 @@ export default function CEODashboard() {
           </div>
 
           {deptBarData.length > 1 && (
-            <div className="chart-card" style={{ padding: 24, marginBottom: 20 }}>
+            <div className="chart-card card-surface card-animate" style={{ padding: 24, marginBottom: 20 }}>
               <h3 className="chart-title">Department Comparison — Today</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={deptBarData} barGap={4}>
@@ -174,7 +175,7 @@ export default function CEODashboard() {
           )}
 
           {data.departments.map((dept) => (
-            <div key={dept.id} className="card" style={{ marginBottom: 20 }}>
+            <div key={dept.id} className="card card-surface card-animate" style={{ marginBottom: 20 }}>
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                 <div>
                   <h3 style={{ margin: 0 }}>{dept.name}</h3>
@@ -208,7 +209,7 @@ export default function CEODashboard() {
                 </div>
               </div>
 
-              <div className="table-wrapper">
+              <div className="table-wrapper card-surface">
                 <table className="table">
                   <thead>
                     <tr>

@@ -854,12 +854,23 @@ LEFT JOIN departments d ON dt.department_id = d.id
 LEFT JOIN grades g ON dt.grade_id = g.id
 LEFT JOIN (SELECT title_id, COUNT(*) AS cnt FROM employees WHERE (is_system IS NULL OR is_system = 0) GROUP BY title_id) ec ON ec.title_id = dt.id`;
 
+function serializeJSON(val) {
+  if (val == null) return null;
+  if (Array.isArray(val)) return JSON.stringify(val.length ? val : []);
+  if (typeof val === 'string') {
+    try { const p = JSON.parse(val); return Array.isArray(p) ? val : null; }
+    catch { return null; }
+  }
+  return null;
+}
+
 async function createDepartmentTitle(req, res) {
-  const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
+  const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills } = req.body;
   if (!department_id || !title) return res.status(400).json({ error: 'department_id and title are required' });
   const [result] = await pool.query(
-    'INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0]
+    `INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years != null ? parseInt(min_experience_years, 10) : null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills)]
   );
   await recalcDepartmentMaxHeadcount(department_id);
   const [created] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [result.insertId]);
@@ -869,11 +880,11 @@ async function createDepartmentTitle(req, res) {
 
 async function updateDepartmentTitle(req, res) {
   const { id } = req.params;
-  const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount } = req.body;
+  const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills } = req.body;
   const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ?', [id]);
   await pool.query(
-    'UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=? WHERE id=?',
-    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, id]
+    `UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=?, min_education_level=?, min_experience_years=?, required_skills=?, required_certs=?, preferred_skills=? WHERE id=?`,
+    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years != null ? parseInt(min_experience_years, 10) : null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills), id]
   );
   if (currentRows.length > 0) {
     await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
