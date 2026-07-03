@@ -63,6 +63,7 @@ export default function Navbar() {
         ) : (
           <>
             <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''} aria-current={isActive('/dashboard') ? 'page' : undefined}>Dashboard</Link>
+            <Link to="/attendance" className={isActive('/attendance') ? 'active' : ''} aria-current={isActive('/attendance') ? 'page' : undefined}>Attendance</Link>
             <Link to="/personnel/my-tasks" className={isActive('/personnel/my-tasks') ? 'active' : ''}>My Tasks</Link>
             <Link to="/personnel/organization-chart" className={isActive('/personnel/organization-chart') ? 'active' : ''}>Org Chart</Link>
             <Link to="/calendar" className={isActive('/calendar') ? 'active' : ''} aria-current={isActive('/calendar') ? 'page' : undefined}>Calendar</Link>

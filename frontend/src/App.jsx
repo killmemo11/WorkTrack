@@ -92,7 +92,8 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ─── Public (Employee) Routes with Layout ─── */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<EmployeeDashboard />} />
+            <Route path="/attendance" element={<Dashboard />} />
             <Route path="/calendar" element={<AttendanceCalendar />} />
             <Route path="/history" element={<History />} />
             <Route path="/requests" element={<Requests />} />
@@ -177,7 +178,6 @@ export default function App() {
           <Route path="/personnel/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
           <Route path="/personnel/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
           <Route path="/personnel/organization-chart" element={<ProtectedRoute><OrganizationChart /></ProtectedRoute>} />
-          <Route path="/personnel/dashboard" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
           <Route path="/manager/dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
           <Route path="/ceo/dashboard" element={<ProtectedRoute><CEODashboard /></ProtectedRoute>} />
           {/* Career Portal — Redirect to standalone portal */}
