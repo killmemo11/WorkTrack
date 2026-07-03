@@ -20,7 +20,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const msg = err.response?.data;

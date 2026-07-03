@@ -169,7 +169,7 @@ async function verify(req, res) {
 }
 
 async function login(req, res) {
-  const { username, password } = req.body;
+  const { username, password, rememberMe } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
@@ -216,7 +216,7 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
     process.env.JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: rememberMe ? '7d' : '12h' }
   );
 
   const deptName = (finalEmp.department_name || '').toLowerCase().replace(/\s+/g, ' ');
