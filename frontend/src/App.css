@@ -2925,6 +2925,28 @@ select.form-control { cursor: pointer; }
   text-align: center;
 }
 
+/* ───────────────────────────────────────────
+   Register Page Specific Styles
+   ─────────────────────────────────────────── */
+.login-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-field-group .login-field {
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .login-field-group {
+    flex-direction: row;
+    gap: 16px;
+  }
+  .login-field-group .login-field {
+    flex: 1;
+  }
+}
+
 @media (max-width: 480px) {
   .login-card-modern { padding: 32px 24px; }
   .login-modern-header h1 { font-size: 1.5rem; }
