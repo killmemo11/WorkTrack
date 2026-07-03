@@ -47,6 +47,7 @@ router.get('/organization-chart', requireAuth, getOrganization);
 router.post('/my-avatar', requireAuth, upload.single('file'), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
 router.post('/resignation', requireAuth, requireReadWrite, submitResignation);
 router.get('/my-assets', requireAuth, getMyAssets);
+router.get('/dashboard', requireAuth, getEmployeeDashboard);
 router.get('/my-assets/history', requireAuth, getMyAssetHistory);
 router.get('/my-contracts', requireAuth, getMyContracts);
 router.get('/my-contracts/:id/content', requireAuth, getMyContractContent);

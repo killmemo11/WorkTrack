@@ -53,10 +53,6 @@ const ACTION_LABELS = {
   asset_disposed: 'Asset Disposed',
   holiday_created: 'Holiday Created',
   holiday_deleted: 'Holiday Deleted',
-  department_created: 'Department Created',
-  department_updated: 'Department Updated',
-  department_deleted: 'Department Deleted',
-  departments_imported: 'Departments Imported',
   position_created: 'Position Created',
   position_updated: 'Position Updated',
   position_deleted: 'Position Deleted',
@@ -80,7 +76,6 @@ const ACTION_LABELS = {
   candidate_deleted: 'Candidate Deleted',
   candidate_moved: 'Candidate Moved',
   scorecard_added: 'Scorecard Added',
-  offer_created: 'Offer Created',
 };
 
 export default function ActivityLog() {

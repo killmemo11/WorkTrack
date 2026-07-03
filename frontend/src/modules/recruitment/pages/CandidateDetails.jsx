@@ -244,74 +244,110 @@ export default function CandidateDetails() {
         </div>
       )}
 
-      {/* Screening Tab */}
-      {activeTab === 'screening' && (
-        <div className="card">
-          <div className="card-body">
-            {!candidate.screening ? (
-              <p className="text-center" style={{ color: '#8892a8' }}>No auto-screening result available for this candidate.</p>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32 }}>
-                    {candidate.screening.overall_status === 'most_recommended' ? '🔵' : candidate.screening.overall_status === 'recommended' ? '✅' : '❌'}
-                  </span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 16, textTransform: 'capitalize' }}>
-                      {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
-                        : candidate.screening.overall_status === 'recommended' ? 'Recommended'
-                        : 'Rejected'}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#8892a8' }}>{formatDateTime(candidate.screening.created_at)}</div>
-                  </div>
-                </div>
-                <div style={{
-                  background: candidate.screening.overall_status === 'most_recommended' ? '#e8f5e9'
-                    : candidate.screening.overall_status === 'recommended' ? '#e3f2fd'
-                    : '#fce4ec',
-                  padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13,
-                  color: candidate.screening.overall_status === 'most_recommended' ? '#2e7d32'
-                    : candidate.screening.overall_status === 'recommended' ? '#1565c0'
-                    : '#c62828',
-                }}>
-                  <strong>Requirements met:</strong> {candidate.screening.requirements_met} / {candidate.screening.requirements_total}
-                </div>
-                {candidate.screening.requirement_results && (
-                  <div>
-                    <h4 style={{ fontSize: 14, marginBottom: 8 }}>Detail Breakdown</h4>
-                    <table className="table">
-                      <thead><tr><th>Requirement</th><th>Expected</th><th>Provided</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {(candidate.screening.requirement_results || []).map((r, i) => {
-                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Required Skills', required_certs: 'Certifications' };
-                          const expectedStr = r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
-                            : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
-                            : r.expected;
-                          const providedStr = r.requirement === 'education_level' ? EDU_LABEL[r.provided] || r.provided
-                            : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
-                            : r.provided;
-                          return (
-                            <tr key={i}>
-                              <td>{labelMap[r.requirement] || r.requirement}</td>
-                              <td>{expectedStr ?? '—'}</td>
-                              <td>{providedStr ?? '—'}</td>
-                              <td>
-                                {r.status === 'most_recommended' ? <span style={{ color: '#2e7d32' }}>🔵 Most Rec.</span>
-                                  : r.status === 'recommended' ? <span style={{ color: '#1565c0' }}>✅ Rec.</span>
-                                  : <span style={{ color: '#c62828' }}>❌ Rejected</span>}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+       {/* Screening Tab */}
+       {activeTab === 'screening' && (
+         <div className="card">
+           <div className="card-body">
+             {!candidate.screening ? (
+               <p className="text-center" style={{ color: '#8892a8' }}>No auto-screening result available for this candidate.</p>
+             ) : (
+               <>
+                 <div className="dashboard-header" style={{ marginBottom: '24px', padding: '24px' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                     <span style={{ fontSize: '48px' }}>
+                       {candidate.screening.overall_status === 'most_recommended' ? '🔵' : candidate.screening.overall_status === 'recommended' ? '✅' : '❌'}
+                     </span>
+                     <div>
+                       <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
+                         {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
+                           : candidate.screening.overall_status === 'recommended' ? 'Recommended'
+                           : 'Rejected'}
+                       </div>
+                       <div style={{ fontSize: '14px', opacity: '0.8' }}>{formatDateTime(candidate.screening.created_at)}</div>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <div style={{
+                   background: candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.1)'
+                     : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.1)'
+                     : 'rgba(239, 68, 68, 0.1)',
+                   border: candidate.screening.overall_status === 'most_recommended' ? '1px solid rgba(34, 197, 94, 0.3)'
+                     : candidate.screening.overall_status === 'recommended' ? '1px solid rgba(59, 130, 246, 0.3)'
+                     : '1px solid rgba(239, 68, 68, 0.3)',
+                   padding: '16px', borderRadius: '12px', marginBottom: '24px',
+                   color: candidate.screening.overall_status === 'most_recommended' ? '#16a34a'
+                     : candidate.screening.overall_status === 'recommended' ? '#2563eb'
+                     : '#dc2626',
+                 }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div>
+                       <strong style={{ fontSize: '16px' }}>Screening Result</strong>
+                       <div style={{ fontSize: '14px', opacity: '0.8', marginTop: '4px' }}>
+                         Requirements met: {candidate.screening.requirements_met} / {candidate.screening.requirements_total}
+                       </div>
+                     </div>
+                     <div style={{ fontSize: '14px', opacity: '0.8' }}>
+                       Auto-screened on {formatDate(candidate.screening.created_at)}
+                     </div>
+                   </div>
+                 </div>
+                 
+                 {candidate.screening.requirement_results && (
+                   <div>
+                     <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#f4f4f5' }}>
+                       Requirement Breakdown
+                     </h4>
+                     <div style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', overflow: 'hidden' }}>
+                       <table className="table" style={{ margin: 0 }}>
+                         <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                           <tr>
+                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Requirement</th>
+                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Expected</th>
+                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Provided</th>
+                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Status</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {(candidate.screening.requirement_results || []).map((r, i) => {
+                             const labelMap = { education_level: 'Education Level', experience_years: 'Experience Years', required_skills: 'Required Skills', required_certs: 'Required Certifications' };
+                             const expectedStr = r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
+                               : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
+                               : Array.isArray(r.expected) ? r.expected.join(', ') : r.expected;
+                             const providedStr = r.requirement === 'education_level' ? EDU_LABEL[r.provided] || r.provided
+                               : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
+                               : Array.isArray(r.provided) ? r.provided.join(', ') : r.provided;
+                             return (
+                               <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                 <td style={{ padding: '12px', fontSize: '14px', color: '#f4f4f5' }}>
+                                   {labelMap[r.requirement] || r.requirement}
+                                 </td>
+                                 <td style={{ padding: '12px', fontSize: '14px', color: '#a1a1aa' }}>
+                                   {expectedStr || '—'}
+                                 </td>
+                                 <td style={{ padding: '12px', fontSize: '14px', color: '#a1a1aa' }}>
+                                   {providedStr || '—'}
+                                 </td>
+                                 <td style={{ padding: '12px', fontSize: '14px' }}>
+                                   {r.status === 'most_recommended' ? 
+                                     <span style={{ color: '#22c55e', fontWeight: '600' }}>🔵 Most Recommended</span>
+                                     : r.status === 'recommended' ? 
+                                     <span style={{ color: '#3b82f6', fontWeight: '600' }}>✅ Recommended</span>
+                                     : <span style={{ color: '#ef4444', fontWeight: '600' }}>❌ Rejected</span>}
+                                 </td>
+                               </tr>
+                             );
+                           })}
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+                 )}
+               </>
+             )}
+           </div>
+         </div>
+       )}
 
       {/* History Tab */}
       {activeTab === 'history' && (

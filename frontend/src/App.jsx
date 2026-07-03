@@ -28,6 +28,9 @@ import AdminReports from './modules/admin/pages/Reports';
 import AdminSettings from './modules/admin/pages/Settings';
 import AdminLeaves from './modules/admin/pages/AdminLeaves';
 import AuditLog from './modules/admin/pages/AuditLog';
+import EmployeeDashboard from './modules/personnel/pages/EmployeeDashboard';
+import ManagerDashboard from './modules/manager/pages/ManagerDashboard';
+import CEODashboard from './modules/ceo/pages/CEODashboard';
 import ActivityLog from './modules/admin/pages/ActivityLog';
 import AdminSignoutRequests from './modules/admin/pages/SignoutRequests';
 import AdminResignations from './modules/admin/pages/AdminResignations';
@@ -71,9 +74,7 @@ function PeopleProfileRedirect() {
   return <Navigate to={`/hr/people/employees/${id}/profile`} replace />;
 }
 
-const Dashboard = lazy(() => import('./modules/attendance/pages/Dashboard'));
-const ManagerDashboard = lazy(() => import('./modules/manager/pages/ManagerDashboard'));
-const CEODashboard = lazy(() => import('./modules/ceo/pages/CEODashboard'));
+  const Dashboard = lazy(() => import('./modules/attendance/pages/Dashboard'));
 
 export default function App() {
   return (
@@ -176,6 +177,9 @@ export default function App() {
           <Route path="/personnel/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
           <Route path="/personnel/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
           <Route path="/personnel/organization-chart" element={<ProtectedRoute><OrganizationChart /></ProtectedRoute>} />
+          <Route path="/personnel/dashboard" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+          <Route path="/manager/dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
+          <Route path="/ceo/dashboard" element={<ProtectedRoute><CEODashboard /></ProtectedRoute>} />
           {/* Career Portal — Redirect to standalone portal */}
           <Route path="/careers" element={<PortalRedirect />} />
           <Route path="/careers/*" element={<PortalRedirect />} />
