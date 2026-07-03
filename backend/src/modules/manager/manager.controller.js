@@ -97,6 +97,55 @@ async function getManagerTeamDashboard(req, res) {
   const periodMap = {};
   for (const p of periodAttendance) periodMap[p.employee_id] = p;
 
+  // Get team performance metrics
+  const [performanceMetrics] = await pool.query(
+    `SELECT 
+       AVG(a.days_worked) as avg_days_worked,
+       AVG(a.missing_sign_outs) as avg_missing_sign_outs,
+       AVG(a.office_days) as avg_office_days,
+       AVG(a.wfh_days) as avg_wfh_days
+     FROM (
+       SELECT a.employee_id,
+              COUNT(*) as days_worked,
+              SUM(CASE WHEN a.sign_out_time IS NULL THEN 1 ELSE 0 END) as missing_sign_outs,
+              SUM(CASE WHEN a.type = 'office' THEN 1 ELSE 0 END) as office_days,
+              SUM(CASE WHEN a.type = 'wfh' OR a.type IS NULL THEN 1 ELSE 0 END) as wfh_days
+       FROM attendance_records a
+       WHERE a.date >= ? AND a.date <= ? AND a.employee_id IN (${team.length ? team.map(() => '?').join(',') : 'NULL'})
+       GROUP BY a.employee_id
+     ) as a`,
+    [periodStart, periodEnd, ...team.map((e) => e.id)]
+  );
+
+  // Get task completion rates (if tasks exist)
+  let taskCompletion = { total: 0, completed: 0, pending: 0 };
+  try {
+    const [tasks] = await pool.query(
+      `SELECT 
+         COUNT(*) as total,
+         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+         SUM(CASE WHEN status IN ('pending', 'in_progress') THEN 1 ELSE 0 END) as pending
+       FROM tasks
+       WHERE assigned_to IN (${team.length ? team.map(() => '?').join(',') : 'NULL'})`,
+      team.map((e) => e.id)
+    );
+    taskCompletion = tasks[0];
+  } catch (err) {
+    // Tasks table might not exist yet
+  }
+
+  // Get team engagement metrics
+  const [engagementMetrics] = await pool.query(
+    `SELECT 
+       COUNT(*) as total_employees,
+       SUM(CASE WHEN e.is_active = 1 THEN 1 ELSE 0 END) as active_employees,
+       SUM(CASE WHEN e.is_active = 0 THEN 1 ELSE 0 END) as inactive_employees,
+       AVG(TIMESTAMPDIFF(DAY, e.created_at, CURDATE())) as avg_tenure_days
+     FROM employees e
+     WHERE e.department_id = ?`,
+    [deptId]
+  );
+
   const teamWithStatus = team.map((e) => {
     const att = attMap[e.id];
     const pending = pendingMap[e.id] || 0;
@@ -130,6 +179,26 @@ async function getManagerTeamDashboard(req, res) {
     absent: teamWithStatus.filter((e) => e.today_status === 'absent').length,
     on_leave: teamWithStatus.filter((e) => e.today_status === 'leave').length,
     department_name: deptRows[0]?.name || '',
+    performance_metrics: {
+      avg_days_worked: performanceMetrics[0].avg_days_worked || 0,
+      avg_missing_sign_outs: performanceMetrics[0].avg_missing_sign_outs || 0,
+      avg_office_days: performanceMetrics[0].avg_office_days || 0,
+      avg_wfh_days: performanceMetrics[0].avg_wfh_days || 0,
+    },
+    task_completion: {
+      total: taskCompletion.total || 0,
+      completed: taskCompletion.completed || 0,
+      pending: taskCompletion.pending || 0,
+      completion_rate: taskCompletion.total ? Math.round((taskCompletion.completed / taskCompletion.total) * 100) : 0
+    },
+    engagement_metrics: {
+      total_employees: engagementMetrics[0].total_employees || 0,
+      active_employees: engagementMetrics[0].active_employees || 0,
+      inactive_employees: engagementMetrics[0].inactive_employees || 0,
+      avg_tenure_days: engagementMetrics[0].avg_tenure_days || 0,
+      active_rate: engagementMetrics[0].total_employees ? 
+        Math.round((engagementMetrics[0].active_employees / engagementMetrics[0].total_employees) * 100) : 0
+    }
   };
 
   res.json({ team: teamWithStatus, summary });

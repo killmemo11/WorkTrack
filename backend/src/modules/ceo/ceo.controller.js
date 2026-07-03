@@ -61,8 +61,8 @@ async function getCeoDashboard(req, res) {
     // Get departments with manager info
     const [deptRows] = await pool.query(
       `SELECT d.*,
-        (SELECT e.name FROM employees e WHERE e.email = d.manager_email LIMIT 1) AS manager_name
-       FROM departments d ORDER BY d.name ASC`
+         (SELECT e.name FROM employees e WHERE e.email = d.manager_email LIMIT 1) AS manager_name
+        FROM departments d ORDER BY d.name ASC`
     );
 
     // Get pending leave counts per department for CEO read-only view
@@ -159,6 +159,56 @@ async function getCeoDashboard(req, res) {
     for (const b of allBalances) {
       if (!balanceMap[b.employee_id]) balanceMap[b.employee_id] = {};
       balanceMap[b.employee_id][b.leave_type] = parseFloat(b.balance);
+    }
+
+    // Get recruitment metrics
+    let recruitmentMetrics = { total: 0, hired: 0, pending: 0 };
+    try {
+      const [recruitment] = await pool.query(
+        `SELECT 
+           COUNT(*) as total,
+           SUM(CASE WHEN status = 'hired' THEN 1 ELSE 0 END) as hired,
+           SUM(CASE WHEN status IN ('pending', 'interview') THEN 1 ELSE 0 END) as pending
+         FROM recruitment_candidates`,
+        []
+      );
+      recruitmentMetrics = recruitment[0];
+    } catch (err) {
+      // Recruitment table might not exist yet
+    }
+
+    // Get headcount metrics
+    let headcountMetrics = { total: 0, capacity: 0, utilization: 0 };
+    try {
+      const [headcount] = await pool.query(
+        `SELECT 
+           COUNT(*) as total,
+           SUM(max_headcount) as capacity,
+           SUM(CASE WHEN max_headcount > 0 THEN 1 ELSE 0 END) as departments_with_capacity
+         FROM departments`,
+        []
+      );
+      headcountMetrics = headcount[0];
+      headcountMetrics.utilization = headcountMetrics.capacity > 0 ? 
+        Math.round((headcountMetrics.total / headcountMetrics.capacity) * 100) : 0;
+    } catch (err) {
+      // Headcount metrics might not be available
+    }
+
+    // Get performance review metrics
+    let performanceMetrics = { total: 0, completed: 0, pending: 0 };
+    try {
+      const [performance] = await pool.query(
+        `SELECT 
+           COUNT(*) as total,
+           SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+           SUM(CASE WHEN status IN ('pending', 'in_progress') THEN 1 ELSE 0 END) as pending
+         FROM performance_reviews`,
+        []
+      );
+      performanceMetrics = performance[0];
+    } catch (err) {
+      // Performance reviews table might not exist yet
     }
 
     // If viewer is a department C-Level (not global CEO), only show their departments
@@ -302,6 +352,23 @@ async function getCeoDashboard(req, res) {
         absent_today: todayIsWorkDay ? empTotals.absent_today : 0,
         attendance_rate: totalAttendanceRate,
         month_work_days: totalWorkDays,
+        recruitment_metrics: {
+          total_candidates: recruitmentMetrics.total || 0,
+          hired: recruitmentMetrics.hired || 0,
+          pending: recruitmentMetrics.pending || 0,
+          hiring_rate: recruitmentMetrics.total ? Math.round((recruitmentMetrics.hired / recruitmentMetrics.total) * 100) : 0
+        },
+        headcount_metrics: {
+          total_employees: headcountMetrics.total || 0,
+          total_capacity: headcountMetrics.capacity || 0,
+          utilization_rate: headcountMetrics.utilization || 0
+        },
+        performance_metrics: {
+          total_reviews: performanceMetrics.total || 0,
+          completed: performanceMetrics.completed || 0,
+          pending: performanceMetrics.pending || 0,
+          completion_rate: performanceMetrics.total ? Math.round((performanceMetrics.completed / performanceMetrics.total) * 100) : 0
+        }
       },
       departments,
     });

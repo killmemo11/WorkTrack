@@ -19,6 +19,117 @@ async function getPositions(req, res) {
   res.json(rows);
 }
 
+async function getEmployeeDashboard(req, res) {
+  const employeeId = req.employee.id;
+  
+  try {
+    // Get employee basic info
+    const [employeeRows] = await pool.query(
+      `SELECT e.*, d.name AS department_name, p.title AS position_title
+       FROM employees e
+       LEFT JOIN departments d ON e.department_id = d.id
+       LEFT JOIN positions p ON e.position_id = p.id
+       WHERE e.id = ?`,
+      [employeeId]
+    );
+    const employee = employeeRows[0];
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    // Get today's attendance
+    const [todayAttendance] = await pool.query(
+      `SELECT * FROM attendance_records 
+       WHERE employee_id = ? AND date = CURDATE()`,
+      [employeeId]
+    );
+
+    // Get attendance statistics for this month
+    const [monthStats] = await pool.query(
+      `SELECT 
+         COUNT(*) as total_days,
+         SUM(CASE WHEN status = 'signed_in' THEN 1 ELSE 0 END) as present_days,
+         SUM(CASE WHEN status = 'on_leave' THEN 1 ELSE 0 END) as leave_days,
+         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_days
+       FROM attendance_records 
+       WHERE employee_id = ? AND MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())`,
+      [employeeId]
+    );
+
+    // Get leave balance
+    const [leaveBalance] = await pool.query(
+      `SELECT 
+         SUM(CASE WHEN type = 'annual' THEN balance ELSE 0 END) as annual_balance,
+         SUM(CASE WHEN type = 'sick' THEN balance ELSE 0 END) as sick_balance,
+         SUM(CASE WHEN type = 'unpaid' THEN balance ELSE 0 END) as unpaid_balance
+       FROM leave_balances 
+       WHERE employee_id = ?`,
+      [employeeId]
+    );
+
+    // Get upcoming tasks (if tasks module exists)
+    let upcomingTasks = [];
+    try {
+      const [tasks] = await pool.query(
+        `SELECT * FROM tasks 
+         WHERE assigned_to = ? AND status IN ('pending', 'in_progress') 
+         AND due_date >= CURDATE()
+         ORDER BY due_date LIMIT 5`,
+        [employeeId]
+      );
+      upcomingTasks = tasks;
+    } catch (err) {
+      // Tasks table might not exist yet
+    }
+
+    // Get recent notifications
+    let recentNotifications = [];
+    try {
+      const [notifications] = await pool.query(
+        `SELECT * FROM notifications 
+         WHERE employee_id = ? 
+         ORDER BY created_at DESC LIMIT 5`,
+        [employeeId]
+      );
+      recentNotifications = notifications;
+    } catch (err) {
+      // Notifications table might not exist yet
+    }
+
+    res.json({
+      employee: {
+        name: employee.name,
+        email: employee.email,
+        department: employee.department_name,
+        position: employee.position_title,
+        avatar: employee.avatar
+      },
+      today: {
+        attendance: todayAttendance || null,
+        status: todayAttendance?.status || 'not_signed_in'
+      },
+      monthlyStats: {
+        totalDays: monthStats[0].total_days || 0,
+        presentDays: monthStats[0].present_days || 0,
+        leaveDays: monthStats[0].leave_days || 0,
+        absentDays: monthStats[0].absent_days || 0,
+        attendanceRate: monthStats[0].total_days ? 
+          Math.round((monthStats[0].present_days / monthStats[0].total_days) * 100) : 0
+      },
+      leaveBalance: {
+        annual: leaveBalance[0].annual_balance || 0,
+        sick: leaveBalance[0].sick_balance || 0,
+        unpaid: leaveBalance[0].unpaid_balance || 0
+      },
+      upcomingTasks,
+      recentNotifications
+    });
+  } catch (err) {
+    console.error('Error fetching employee dashboard:', err);
+    res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+}
+
 async function createPosition(req, res) {
   const { title, department_id, description, technical } = req.body;
   if (!title || !title.trim()) {
