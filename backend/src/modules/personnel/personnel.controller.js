@@ -48,9 +48,9 @@ async function getEmployeeDashboard(req, res) {
     const [monthStats] = await pool.query(
       `SELECT 
          COUNT(*) as total_days,
-         SUM(CASE WHEN status = 'signed_in' THEN 1 ELSE 0 END) as present_days,
-         SUM(CASE WHEN status = 'on_leave' THEN 1 ELSE 0 END) as leave_days,
-         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_days
+         SUM(CASE WHEN sign_out_time IS NOT NULL THEN 1 ELSE 0 END) as present_days,
+         0 as leave_days,
+         0 as absent_days
        FROM attendance_records 
        WHERE employee_id = ? AND MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())`,
       [employeeId]
@@ -59,9 +59,9 @@ async function getEmployeeDashboard(req, res) {
     // Get leave balance
     const [leaveBalance] = await pool.query(
       `SELECT 
-         SUM(CASE WHEN type = 'annual' THEN balance ELSE 0 END) as annual_balance,
-         SUM(CASE WHEN type = 'sick' THEN balance ELSE 0 END) as sick_balance,
-         SUM(CASE WHEN type = 'unpaid' THEN balance ELSE 0 END) as unpaid_balance
+         SUM(CASE WHEN leave_type = 'annual' THEN balance ELSE 0 END) as annual_balance,
+         SUM(CASE WHEN leave_type = 'sick' THEN balance ELSE 0 END) as sick_balance,
+         SUM(CASE WHEN leave_type = 'casual' THEN balance ELSE 0 END) as casual_balance
        FROM leave_balances 
        WHERE employee_id = ?`,
       [employeeId]
@@ -105,8 +105,8 @@ async function getEmployeeDashboard(req, res) {
         avatar: employee.avatar
       },
       today: {
-        attendance: todayAttendance || null,
-        status: todayAttendance?.status || 'not_signed_in'
+        attendance: todayAttendance[0] || null,
+        status: todayAttendance[0] ? (todayAttendance[0].sign_out_time ? 'signed_out' : 'signed_in') : 'not_signed_in'
       },
       monthlyStats: {
         totalDays: monthStats[0].total_days || 0,
@@ -119,7 +119,7 @@ async function getEmployeeDashboard(req, res) {
       leaveBalance: {
         annual: leaveBalance[0].annual_balance || 0,
         sick: leaveBalance[0].sick_balance || 0,
-        unpaid: leaveBalance[0].unpaid_balance || 0
+        casual: leaveBalance[0].casual_balance || 0
       },
       upcomingTasks,
       recentNotifications
