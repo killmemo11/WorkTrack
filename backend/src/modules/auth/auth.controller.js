@@ -240,7 +240,7 @@ async function login(req, res) {
   const finalEmp = finalRows[0];
 
   const token = jwt.sign(
-    { id: userId, email: user.email, role: user.role || 'admin' },
+    { id: userId, email: user.email || user.username, role: user.role || 'admin' },
     process.env.JWT_SECRET,
     { expiresIn: rememberMe ? '7d' : '12h' }
   );
@@ -248,21 +248,24 @@ async function login(req, res) {
   const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
   const isHr = deptName === 'hr' || deptName === 'human resources';
   if (isHr) {
-    logActivity(null, userId, 'hr_login', `HR employee logged in: ${user.name}`);
+    logActivity(null, userId, 'hr_login', `HR employee logged in: ${user.name || user.username}`);
   }
+
+  const employeeName = user.name || user.username || 'IT Admin';
+  const employeeEmail = user.email || user.username || 'admin@worktrack.local';
 
   res.json({ 
     token, 
     employee: { 
       id: userId, 
-      name: user.name, 
-      email: user.email, 
-      phone: user.phone, 
+      name: employeeName, 
+      email: employeeEmail, 
+      phone: user.phone || '', 
       role: user.role || 'admin',
       can_wfh: finalEmp?.can_wfh,
       is_manager: isManager, 
       department_id: finalEmp?.department_id, 
-      department_name: finalEmp?.department_name, 
+      department_name: finalEmp?.department_name || 'IT',
       is_hr: isHr, 
       is_global_ceo: isGlobalCeo 
     } 
@@ -377,8 +380,14 @@ async function forgotPassword(req, res) {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
-  const [rows] = await pool.query('SELECT * FROM employees WHERE email = ? AND is_verified = 1', [email]);
+  let [rows] = await pool.query('SELECT * FROM employees WHERE email = ? AND is_verified = 1', [email]);
+  
   if (rows.length === 0) {
+    // Check admin_users (but don't allow password reset for them via email)
+    const [adminRows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [email]);
+    if (adminRows.length > 0) {
+      return res.status(400).json({ error: 'Admin accounts cannot reset password via email. Contact system administrator.' });
+    }
     return res.status(400).json({ error: 'No verified account found with this email' });
   }
 
@@ -392,11 +401,12 @@ async function forgotPassword(req, res) {
 
   try {
     await sendPasswordResetEmail(rows[0], code);
+    res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
     console.error('Failed to send password reset email:', err.message);
+    // If SMTP not configured, return the code directly for testing
+    res.json({ message: 'Development mode - password reset code', email, code });
   }
-
-  res.json({ message: 'Reset code sent to your email.', email });
 }
 
 async function resetPassword(req, res) {
