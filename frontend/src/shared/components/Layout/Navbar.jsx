@@ -52,47 +52,83 @@ export default function Navbar() {
       <div className="nav-brand">
         <Link to="/dashboard">
           <img src={logo || '/logo.png'} alt="WorkTrack" className="nav-logo" />
-          WorkTrack
+          <span className="nav-brand-text">WorkTrack</span>
         </Link>
       </div>
       <div className="nav-links">
         {employee?.is_global_ceo ? (
           <>
-            <Link to="/ceo" className={isActive('/ceo') ? 'active' : ''} aria-current={isActive('/ceo') ? 'page' : undefined} style={{ fontWeight: 700 }}>Company Overview</Link>
+            <Link to="/ceo" className={`nav-link${isActive('/ceo') ? ' active' : ''}`} aria-current={isActive('/ceo') ? 'page' : undefined}>
+              <span className="iconify" data-icon="lucide:building2" /> Company Overview
+            </Link>
           </>
         ) : (
           <>
-            <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''} aria-current={isActive('/dashboard') ? 'page' : undefined}>Dashboard</Link>
-            <Link to="/attendance" className={isActive('/attendance') ? 'active' : ''} aria-current={isActive('/attendance') ? 'page' : undefined}>Attendance</Link>
-            <Link to="/personnel/my-tasks" className={isActive('/personnel/my-tasks') ? 'active' : ''}>My Tasks</Link>
-            <Link to="/personnel/organization-chart" className={isActive('/personnel/organization-chart') ? 'active' : ''}>Org Chart</Link>
-            <Link to="/calendar" className={isActive('/calendar') ? 'active' : ''} aria-current={isActive('/calendar') ? 'page' : undefined}>Calendar</Link>
-            <Link to="/history" className={isActive('/history') ? 'active' : ''} aria-current={isActive('/history') ? 'page' : undefined}>History</Link>
-            {employee?.is_global_ceo !== true && <Link to="/requests" className={isActive('/requests') ? 'active' : ''} aria-current={isActive('/requests') ? 'page' : undefined}>Requests</Link>}
-            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
-              <Link to="/manager/team" className={isActive('/manager/team') ? 'active' : ''} aria-current={isActive('/manager/team') ? 'page' : undefined}>Team</Link>
-            )}
-            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
-              <Link to="/manager/tasks" className={isActive('/manager/tasks') ? 'active' : ''}>Team Tasks</Link>
-            )}
-            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
-              <Link to="/manager/team-requests" className={isActive('/manager/team-requests') ? 'active' : ''} aria-current={isActive('/manager/team-requests') ? 'page' : undefined}>Hiring Request</Link>
-            )}
-            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
-              <Link to="/manager/approvals" className={isActive('/manager/approvals') ? 'active' : ''} aria-current={isActive('/manager/approvals') ? 'page' : undefined}>
-                Approvals
-                {approvalsCount > 0 && <span className="badge badge-warning" style={{ marginLeft: 6, fontSize: 11 }}>{approvalsCount}</span>}
+            <Link to="/dashboard" className={`nav-link${isActive('/dashboard') ? ' active' : ''}`} aria-current={isActive('/dashboard') ? 'page' : undefined}>
+              <span className="iconify" data-icon="lucide:layout-dashboard" /> Dashboard
+            </Link>
+            <Link to="/attendance" className={`nav-link${isActive('/attendance') ? ' active' : ''}`} aria-current={isActive('/attendance') ? 'page' : undefined}>
+              <span className="iconify" data-icon="lucide:fingerprint" /> Attendance
+            </Link>
+            <Link to="/personnel/my-tasks" className={`nav-link${isActive('/personnel/my-tasks') ? ' active' : ''}`}>
+              <span className="iconify" data-icon="lucide:check-square" /> My Tasks
+            </Link>
+            <Link to="/personnel/organization-chart" className={`nav-link${isActive('/personnel/organization-chart') ? ' active' : ''}`}>
+              <span className="iconify" data-icon="lucide:git-branch" /> Org Chart
+            </Link>
+            <Link to="/calendar" className={`nav-link${isActive('/calendar') ? ' active' : ''}`} aria-current={isActive('/calendar') ? 'page' : undefined}>
+              <span className="iconify" data-icon="lucide:calendar" /> Calendar
+            </Link>
+            <Link to="/history" className={`nav-link${isActive('/history') ? ' active' : ''}`} aria-current={isActive('/history') ? 'page' : undefined}>
+              <span className="iconify" data-icon="lucide:clock" /> History
+            </Link>
+            {employee?.is_global_ceo !== true && (
+              <Link to="/requests" className={`nav-link${isActive('/requests') ? ' active' : ''}`} aria-current={isActive('/requests') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:file-text" /> Requests
               </Link>
             )}
-            {employee?.role === 'admin' && <Link to="/admin/settings" className={isActive('/admin') ? 'active' : ''} aria-current={isActive('/admin') ? 'page' : undefined}>Admin Panel</Link>}
-            {employee?.is_hr && <Link to="/hr" className={isActive('/hr') ? 'active' : ''} aria-current={isActive('/hr') ? 'page' : undefined}>HR Panel</Link>}
+            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
+              <Link to="/manager/team" className={`nav-link${isActive('/manager/team') ? ' active' : ''}`} aria-current={isActive('/manager/team') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:users" /> Team
+              </Link>
+            )}
+            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
+              <Link to="/manager/tasks" className={`nav-link${isActive('/manager/tasks') ? ' active' : ''}`}>
+                <span className="iconify" data-icon="lucide:list-todo" /> Team Tasks
+              </Link>
+            )}
+            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
+              <Link to="/manager/team-requests" className={`nav-link${isActive('/manager/team-requests') ? ' active' : ''}`} aria-current={isActive('/manager/team-requests') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:user-plus" /> Hiring Request
+              </Link>
+            )}
+            {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
+              <Link to="/manager/approvals" className={`nav-link${isActive('/manager/approvals') ? ' active' : ''}`} aria-current={isActive('/manager/approvals') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:clipboard-check" /> Approvals
+                {approvalsCount > 0 && <span className="glass-badge glass-badge-warning" style={{ marginLeft: 6, fontSize: 10 }}>{approvalsCount}</span>}
+              </Link>
+            )}
+            {employee?.role === 'admin' && (
+              <Link to="/admin/settings" className={`nav-link${isActive('/admin') ? ' active' : ''}`} aria-current={isActive('/admin') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:shield" /> Admin Panel
+              </Link>
+            )}
+            {employee?.is_hr && (
+              <Link to="/hr" className={`nav-link${isActive('/hr') ? ' active' : ''}`} aria-current={isActive('/hr') ? 'page' : undefined}>
+                <span className="iconify" data-icon="lucide:briefcase" /> HR Panel
+              </Link>
+            )}
           </>
         )}
       </div>
       <div className="nav-user">
-        <Link to="/personnel/my-profile" style={{ color: '#fff', textDecoration: 'none', marginRight: 12 }} aria-current={isActive('/personnel/my-profile') ? 'page' : undefined}>{employee?.name}</Link>
+        <Link to="/personnel/my-profile" className="nav-user-link" aria-current={isActive('/personnel/my-profile') ? 'page' : undefined}>
+          <span className="iconify" data-icon="lucide:user" /> {employee?.name}
+        </Link>
         <NotificationBell />
-        <button onClick={handleLogout} className="btn btn-sm" style={{ marginLeft: 8 }}>Logout</button>
+        <button onClick={handleLogout} className="glass-btn glass-btn-sm">
+          <span className="iconify" data-icon="lucide:log-out" /> Logout
+        </button>
       </div>
     </nav>
   );

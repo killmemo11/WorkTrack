@@ -42,29 +42,46 @@ export default function HRLayout({ children }) {
           {servicePeople && (
             <>
               <div className="admin-nav-section-label">PEOPLE</div>
-              <Link to="/hr/people/employees" className={prefix('/hr/people')}>👥 People</Link>
+              <Link to="/hr/people/employees" className={prefix('/hr/people')}>
+                <span className="iconify" data-icon="lucide:users" /> People
+              </Link>
             </>
           )}
 
           {serviceRecruitment && (
             <>
               <div className="admin-nav-section-label">RECRUITMENT</div>
-              <Link to="/hr/recruitment/candidates" className={prefix('/hr/recruitment')}>🎯 Recruitment</Link>
+              <Link to="/hr/recruitment/candidates" className={prefix('/hr/recruitment')}>
+                <span className="iconify" data-icon="lucide:target" /> Recruitment
+              </Link>
             </>
           )}
 
           <div className="admin-nav-section-label">TIME & ATTENDANCE</div>
-          <Link to="/hr/attendance/records" className={prefix('/hr/attendance')}>⏰ Time & Attendance</Link>
+          <Link to="/hr/attendance/records" className={prefix('/hr/attendance')}>
+            <span className="iconify" data-icon="lucide:clock" /> Time & Attendance
+          </Link>
 
           <div className="admin-nav-section-label">TOOLS</div>
-          <Link to="/hr/hr-settings" className={isActive('/hr/hr-settings')}>⚙️ HR Settings</Link>
-          <Link to="/hr/audit-log" className={isActive('/hr/audit-log')}>📋 Balance Audit</Link>
-          <Link to="/hr/assets" className={isActive('/hr/assets')}>📦 Assets</Link>
+          <Link to="/hr/hr-settings" className={isActive('/hr/hr-settings')}>
+            <span className="iconify" data-icon="lucide:settings" /> HR Settings
+          </Link>
+          <Link to="/hr/audit-log" className={isActive('/hr/audit-log')}>
+            <span className="iconify" data-icon="lucide:clipboard-list" /> Balance Audit
+          </Link>
+          <Link to="/hr/assets" className={isActive('/hr/assets')}>
+            <span className="iconify" data-icon="lucide:package" /> Assets
+          </Link>
         </nav>
         <div className="admin-sidebar-footer">
-          <Link to="/dashboard" className="admin-nav-link">&larr; Back to App</Link>
-          <button onClick={handleLogout} className="btn btn-sm btn-outline" style={{width:'100%',marginTop:8}}>Logout</button>
-          <div className="admin-user" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Link to="/dashboard" className="admin-nav-link">
+            <span className="iconify" data-icon="lucide:arrow-left" /> Back to App
+          </Link>
+          <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
+            <span className="iconify" data-icon="lucide:log-out" /> Logout
+          </button>
+          <div className="admin-user">
+            <span className="iconify" data-icon="lucide:user" style={{fontSize:'0.8rem'}} />
             {employee?.name || employee?.username} <HrNotificationBell />
           </div>
         </div>

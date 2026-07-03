@@ -34,15 +34,24 @@ export default function AdminLayout() {
           <Link to="/admin"><img src={logo || '/logo.png'} alt="" className="admin-logo" />WorkTrack</Link>
         </div>
         <nav className="admin-nav">
-          <Link to="/admin/settings" className={isActive('/admin/settings')}>Settings</Link>
-          <Link to="/admin/activity-log" className={isActive('/admin/activity-log')}>Activity Log</Link>
+          <Link to="/admin/settings" className={isActive('/admin/settings')}>
+            <span className="iconify" data-icon="lucide:settings" /> Settings
+          </Link>
+          <Link to="/admin/activity-log" className={isActive('/admin/activity-log')}>
+            <span className="iconify" data-icon="lucide:activity" /> Activity Log
+          </Link>
         </nav>
         <div className="admin-sidebar-footer">
-          <Link to="/dashboard" className="admin-nav-link">&larr; Back to App</Link>
-          <button onClick={handleLogout} className="btn btn-sm btn-outline" style={{width:'100%',marginTop:8}}>Logout</button>
-          <div className="admin-user" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span>{admin?.name || admin?.username}</span>
-            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{admin?.type === 'admin' ? 'IT Admin' : 'Admin'}</span>
+          <Link to="/dashboard" className="admin-nav-link">
+            <span className="iconify" data-icon="lucide:arrow-left" /> Back to App
+          </Link>
+          <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
+            <span className="iconify" data-icon="lucide:log-out" /> Logout
+          </button>
+          <div className="admin-user">
+            <span className="iconify" data-icon="lucide:user" style={{fontSize:'0.8rem'}} />
+            {admin?.name || admin?.username}
+            <span style={{ fontSize: '0.65rem', opacity: 0.6, marginLeft:2 }}>{admin?.type === 'admin' ? 'IT Admin' : 'Admin'}</span>
             <AdminNotificationBell />
           </div>
         </div>
