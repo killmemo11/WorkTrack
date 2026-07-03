@@ -174,58 +174,99 @@ async function login(req, res) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  const [rows] = await pool.query('SELECT * FROM employees WHERE username = ?', [username]);
+  // First try admin_users table
+  let [rows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [username]);
+  
+  // If not found in admin_users, try employees table
+  if (rows.length === 0) {
+    [rows] = await pool.query('SELECT * FROM employees WHERE username = ?', [username]);
+  }
+  
   if (rows.length === 0) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
-  const employee = rows[0];
+  const user = rows[0];
 
-  if (!employee.password_hash) {
-    return res.status(401).json({ error: 'Invalid username or password' });
+  // Check password based on table
+  let valid = false;
+  if (user.password_hash) {
+    valid = await bcrypt.compare(password, user.password_hash);
+  } else if (user.password) {
+    // For admin_users with plain text password (legacy)
+    valid = password === user.password;
   }
 
-  const valid = await bcrypt.compare(password, employee.password_hash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
-  if (!employee.is_verified) {
-    return res.status(403).json({ error: 'Email not verified. Please check your inbox.', email: employee.email });
+  // Check verification and status based on user type
+  let isVerified = true;
+  let isActive = true;
+  let userEmail = user.email || user.username;
+  let userName = user.name || user.username;
+
+  if (user.is_verified !== undefined) {
+    isVerified = user.is_verified;
+  }
+  
+  if (user.is_active !== undefined) {
+    isActive = user.is_active;
   }
 
-  if (!employee.is_active) {
+  if (!isVerified) {
+    return res.status(403).json({ error: 'Email not verified. Please check your inbox.', email: userEmail });
+  }
+
+  if (!isActive) {
     return res.status(403).json({ error: 'Your account has been deactivated. Contact admin.' });
   }
 
   // Auto-detect manager role
-  const isManager = await syncManagerRole(employee.id, employee.email);
+  const isManager = await syncManagerRole(user.id || user.employee_id, user.email);
   // Auto-detect C-level role
-  const isGlobalCeo = await syncCLevelRoles(employee.id, employee.email);
+  const isGlobalCeo = await syncCLevelRoles(user.id || user.employee_id, user.email);
 
-  // Re-fetch
+  // Re-fetch with proper ID handling
+  const userId = user.id || user.employee_id;
   const [finalRows] = await pool.query(
     `SELECT e.*, d.name AS department_name
      FROM employees e
      LEFT JOIN departments d ON e.department_id = d.id
      WHERE e.id = ?`,
-    [employee.id]
+    [userId]
   );
   const finalEmp = finalRows[0];
 
   const token = jwt.sign(
-    { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
+    { id: userId, email: user.email, role: user.role || 'admin' },
     process.env.JWT_SECRET,
     { expiresIn: rememberMe ? '7d' : '12h' }
   );
 
-  const deptName = (finalEmp.department_name || '').toLowerCase().replace(/\s+/g, ' ');
+  const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
   const isHr = deptName === 'hr' || deptName === 'human resources';
   if (isHr) {
-    logActivity(null, finalEmp.id, 'hr_login', `HR employee logged in: ${finalEmp.name}`);
+    logActivity(null, userId, 'hr_login', `HR employee logged in: ${user.name}`);
   }
 
-  res.json({ token, employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: isHr, is_global_ceo: isGlobalCeo } });
+  res.json({ 
+    token, 
+    employee: { 
+      id: userId, 
+      name: user.name, 
+      email: user.email, 
+      phone: user.phone, 
+      role: user.role || 'admin',
+      can_wfh: finalEmp?.can_wfh,
+      is_manager: isManager, 
+      department_id: finalEmp?.department_id, 
+      department_name: finalEmp?.department_name, 
+      is_hr: isHr, 
+      is_global_ceo: isGlobalCeo 
+    } 
+  });
 }
 
 async function resendCode(req, res) {
