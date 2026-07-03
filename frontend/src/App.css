@@ -2914,6 +2914,17 @@ select.form-control { cursor: pointer; }
 }
 .login-register-link:hover { color: #a5b4fc; }
 
+/* ───────────────────────────────────────────
+   Register Page Specific Styles
+   ─────────────────────────────────────────── */
+.login-domain-hint {
+  font-size: 0.8rem;
+  color: #71717a;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
 @media (max-width: 480px) {
   .login-card-modern { padding: 32px 24px; }
   .login-modern-header h1 { font-size: 1.5rem; }
