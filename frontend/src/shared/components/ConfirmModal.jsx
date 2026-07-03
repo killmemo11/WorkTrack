@@ -3,13 +3,22 @@
 
 export default function ConfirmModal({ title, message, onConfirm, onCancel, confirmText, confirmClass }) {
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{title}</h2>
-        <p style={{ whiteSpace: 'pre-wrap' }}>{message}</p>
-        <div className="modal-actions">
-          <button className="btn btn-outline" onClick={onCancel}>Cancel</button>
-          <button className={confirmClass || 'btn btn-danger'} onClick={onConfirm}>{confirmText || 'Delete'}</button>
+    <div className="glass-modal-overlay" onClick={onCancel}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-header">
+          <h3 className="glass-modal-title">{title}</h3>
+          <button className="glass-modal-close" onClick={onCancel}>
+            <span className="iconify" data-icon="lucide:x" />
+          </button>
+        </div>
+        <div className="glass-modal-body">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{message}</p>
+        </div>
+        <div className="glass-modal-footer">
+          <button className="glass-btn glass-btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className={confirmClass || 'glass-btn glass-btn-danger'} onClick={onConfirm}>
+            {confirmText || 'Delete'}
+          </button>
         </div>
       </div>
     </div>

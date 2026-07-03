@@ -26,7 +26,7 @@ const formats = [
 
 export default function RichTextEditor({ value, onChange, placeholder, style }) {
   return (
-    <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, ...style }}>
+    <div className="glass-rich-editor" style={style}>
       <ReactQuill
         theme="snow"
         value={value || ''}

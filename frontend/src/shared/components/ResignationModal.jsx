@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState } from 'react';
 import api from '../api';
 
@@ -30,59 +27,62 @@ export default function ResignationModal({ onClose, onSubmitted }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+        <div className="glass-modal-header">
+          <h3 className="glass-modal-title">
+            {step === 'form' ? 'Submit Resignation' : 'Confirm Resignation'}
+          </h3>
+          <button className="glass-modal-close" onClick={onClose}>
+            <span className="iconify" data-icon="lucide:x" />
+          </button>
+        </div>
+
         {step === 'form' ? (
           <>
-            <div className="resign-header">
-              <span className="resign-icon">⚠️</span>
-              <h2>Submit Resignation</h2>
-            </div>
-            <p className="resign-intro">Please provide your last working day and reason for leaving. Your manager will review your request.</p>
-            {error && <div className="alert alert-error">{error}</div>}
+            <p className="glass-form-hint" style={{ marginBottom: 16 }}>
+              Please provide your last working day and reason for leaving. Your manager will review your request.
+            </p>
+            {error && <div className="glass-alert glass-alert-danger">{error}</div>}
             <form onSubmit={handleSubmit}>
-              <label className="resign-field">
-                <span className="resign-field-label">Last Working Day *</span>
-                <input type="date" className="form-control" value={form.resignation_date}
+              <div className="glass-form-group">
+                <label className="glass-label">Last Working Day *</label>
+                <input type="date" className="glass-input" value={form.resignation_date}
                   onChange={e => setForm({ ...form, resignation_date: e.target.value })} required />
-              </label>
-              <label className="resign-field">
-                <span className="resign-field-label">Reason for Leaving</span>
-                <textarea className="form-control" rows={4} value={form.reason}
+              </div>
+              <div className="glass-form-group">
+                <label className="glass-label">Reason for Leaving</label>
+                <textarea className="glass-textarea" rows={4} value={form.reason}
                   onChange={e => setForm({ ...form, reason: e.target.value })} placeholder="Share your reason (optional)…" />
-              </label>
-              <div className="modal-actions" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn btn-danger">Continue →</button>
+              </div>
+              <div className="glass-modal-footer" style={{ marginTop: 16 }}>
+                <button type="button" className="glass-btn glass-btn-ghost" onClick={onClose}>Cancel</button>
+                <button type="submit" className="glass-btn glass-btn-primary">Continue →</button>
               </div>
             </form>
           </>
         ) : (
           <>
-            <div className="resign-header">
-              <span className="resign-icon resign-icon-warn">🔔</span>
-              <h2>Confirm Resignation</h2>
-            </div>
-            {error && <div className="alert alert-error">{error}</div>}
-            <div className="resign-summary">
-              <div className="resign-summary-row">
-                <span className="resign-summary-label">Last Working Day</span>
-                <span className="resign-summary-value">{formatDate(form.resignation_date)}</span>
+            {error && <div className="glass-alert glass-alert-danger">{error}</div>}
+            <div className="glass-form-preview" style={{ marginBottom: 16 }}>
+              <div className="glass-detail-row">
+                <span className="glass-detail-label">Last Working Day</span>
+                <span className="glass-detail-value">{formatDate(form.resignation_date)}</span>
               </div>
               {form.reason && (
-                <div className="resign-summary-row">
-                  <span className="resign-summary-label">Reason</span>
-                  <span className="resign-summary-value">{form.reason}</span>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Reason</span>
+                  <span className="glass-detail-value">{form.reason}</span>
                 </div>
               )}
             </div>
-            <div className="resign-notice">
+            <div className="glass-alert glass-alert-warning" style={{ marginBottom: 16 }}>
               <strong>Please note:</strong> This action cannot be undone. Your account will be deactivated after the resignation date.
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-actions" style={{ marginTop: 16 }}>
-                <button type="button" className="btn btn-outline" onClick={() => setStep('form')}>← Back</button>
-                <button type="submit" className="btn btn-danger">Confirm Resignation</button>
+              <div className="glass-modal-footer" style={{ marginTop: 0 }}>
+                <button type="button" className="glass-btn glass-btn-ghost" onClick={() => setStep('form')}>← Back</button>
+                <button type="submit" className="glass-btn glass-btn-danger">Confirm Resignation</button>
               </div>
             </form>
           </>

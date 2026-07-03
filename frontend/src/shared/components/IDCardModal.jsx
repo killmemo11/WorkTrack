@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import hrApi from '../api/hrApi';
 import { formatDate } from '../utils/date';
@@ -57,12 +54,19 @@ export default function IDCardModal({ employeeId, onClose }) {
   if (loading) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+        <div className="glass-modal-header">
+          <h3 className="glass-modal-title">Employee ID Card</h3>
+          <button className="glass-modal-close" onClick={onClose}>
+            <span className="iconify" data-icon="lucide:x" />
+          </button>
+        </div>
         {card && (
           <>
             <div style={{
-              width: 300, margin: '0 auto', border: '2px solid #1a1a2e', borderRadius: 12, padding: 20, background: '#fff'
+              width: 300, margin: '0 auto', border: '2px solid #1a1a2e', borderRadius: 12, padding: 20,
+              background: '#fff', color: '#000',
             }}>
               {card.photo_url
                 ? <img src={card.photo_url} alt="" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #1a1a2e', marginBottom: 8 }} />
@@ -81,8 +85,8 @@ export default function IDCardModal({ employeeId, onClose }) {
               <div style={{ fontSize: 10, color: '#999', marginTop: 12, borderTop: '1px solid #eee', paddingTop: 6 }}>{card.company_name || ''}</div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16 }}>
-              <button className="btn btn-primary" onClick={handlePrint}>Print</button>
-              <button className="btn btn-outline" onClick={onClose}>Close</button>
+              <button className="glass-btn glass-btn-primary" onClick={handlePrint}>Print</button>
+              <button className="glass-btn glass-btn-ghost" onClick={onClose}>Close</button>
             </div>
           </>
         )}

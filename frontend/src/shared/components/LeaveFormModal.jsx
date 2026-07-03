@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useMemo } from 'react';
 import api from '../api';
 
@@ -68,73 +65,75 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
-        <h2>New Leave Request</h2>
-        {error && <div className="alert alert-error">{error}</div>}
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+        <div className="glass-modal-header">
+          <h3 className="glass-modal-title">New Leave Request</h3>
+          <button className="glass-modal-close" onClick={onClose}>
+            <span className="iconify" data-icon="lucide:x" />
+          </button>
+        </div>
+        {error && <div className="glass-alert glass-alert-danger">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <label>
-              Leave Type
-              <select className="form-control" value={type} onChange={(e) => setType(e.target.value)} style={{ width: '100%' }}>
-                {Object.entries(typeLabels).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}{needsBalance ? ` (${getBalance(k)} days left)` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="glass-form-group">
+            <label className="glass-label">Leave Type</label>
+            <select className="glass-select" value={type} onChange={(e) => setType(e.target.value)}>
+              {Object.entries(typeLabels).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}{needsBalance ? ` (${getBalance(k)} days left)` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="modal-grid" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 4 }}>
-            <label>
-              Start Date
-              <input type="date" className="form-control" value={startDate}
-                onChange={(e) => setStartDate(e.target.value)} required style={{ width: '100%' }} />
-            </label>
-            <label>
-              End Date
-              <input type="date" className="form-control" value={endDate}
-                onChange={(e) => setEndDate(e.target.value)} required style={{ width: '100%' }} />
-            </label>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            <div className="glass-form-group" style={{ flex: 1 }}>
+              <label className="glass-label">Start Date</label>
+              <input type="date" className="glass-input" value={startDate}
+                onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div className="glass-form-group" style={{ flex: 1 }}>
+              <label className="glass-label">End Date</label>
+              <input type="date" className="glass-input" value={endDate}
+                onChange={(e) => setEndDate(e.target.value)} required />
+            </div>
           </div>
 
           {daysCount > 0 && (
-            <div style={{ textAlign: 'center', padding: '8px 0 4px', fontSize: '0.85rem', color: '#666' }}>
-              <strong style={{ color: typeColors[type], fontSize: '1rem' }}>{daysCount}</strong> {daysCount === 1 ? 'day' : 'days'} total
+            <div style={{ textAlign: 'center', padding: '4px 0 8px', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+              <strong style={{ color: typeColors[type], fontSize: '1.1rem' }}>{daysCount}</strong> {daysCount === 1 ? 'day' : 'days'} total
             </div>
           )}
 
           {needsBalance && pending > 0 && (
-            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600, padding: '2px 0 4px' }}>
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--warning)', fontWeight: 600, padding: '2px 0 4px' }}>
               You have {pending} pending {type} day{pending > 1 ? 's' : ''}
             </div>
           )}
 
           {lowBalance && (
-            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#ef4444', fontWeight: 600, padding: '2px 0 4px' }}>
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--error)', fontWeight: 600, padding: '2px 0 4px' }}>
               Low balance: only {balance} {type} day{balance > 1 ? 's' : ''} remaining
             </div>
           )}
 
-          <label style={{ display: 'block', marginTop: 8 }}>
-            Reason
-            <textarea className="form-control" value={reason}
-              onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Optional reason…"
-              style={{ width: '100%', resize: 'vertical', marginTop: 4 }} />
-          </label>
+          <div className="glass-form-group">
+            <label className="glass-label">Reason</label>
+            <textarea className="glass-textarea" value={reason}
+              onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Optional reason…" />
+          </div>
 
-          <div style={{ fontSize: '0.78rem', color: '#888', padding: '8px 0 4px', lineHeight: 1.5 }}>
+          <div className="glass-form-hint" style={{ marginBottom: 16 }}>
             {needsApproval
               ? 'This request will be sent to your department manager for approval.'
               : 'This request will be sent to HR for approval.'}
             {needsBalance && total != null && ` Your current ${typeLabels[type]} balance: ${balance} of ${total} days.`}
           </div>
 
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <div className="glass-modal-footer" style={{ marginTop: 0 }}>
+            <button type="button" className="glass-btn glass-btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="glass-btn glass-btn-primary" disabled={submitting}>
               {submitting ? 'Submitting…' : 'Submit Request'}
             </button>
           </div>

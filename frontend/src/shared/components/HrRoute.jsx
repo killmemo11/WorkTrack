@@ -6,7 +6,12 @@ import { useAuth } from '../context/AuthContext';
 
 export default function HrRoute({ children }) {
   const { employee, loading } = useAuth();
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
   if (!employee) return <Navigate to="/login" />;
   if (!employee.is_hr) return <Navigate to="/dashboard" />;
   return children;

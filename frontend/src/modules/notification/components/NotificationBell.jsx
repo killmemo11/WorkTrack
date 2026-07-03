@@ -5,7 +5,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
 
-const typeIcons = { success: '✅', warning: '⚠️', error: '❌', info: 'ℹ️' };
+const typeIcons = {
+  success: { icon: 'lucide:check-circle', color: 'var(--success)' },
+  warning: { icon: 'lucide:alert-triangle', color: 'var(--warning)' },
+  error: { icon: 'lucide:x-circle', color: 'var(--error)' },
+  info: { icon: 'lucide:info', color: '#3b82f6' },
+};
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -75,13 +80,14 @@ export default function NotificationBell() {
   return (
     <div className="notif-bell" ref={ref}>
       <button className="notif-bell-btn" onClick={toggleOpen} title="Notifications">
-        <span className="notif-icon">🔔</span>
+        <span className="iconify" data-icon="lucide:bell" />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
       {toast && (
         <div className="notif-toast" onClick={() => { setToast(null); toggleOpen(); }}>
-          <span>🔔 {toast.message}</span>
+          <span className="iconify" data-icon="lucide:bell" style={{ color: 'var(--brand-primary)' }} />
+          <span>{toast.message}</span>
         </div>
       )}
 
@@ -90,27 +96,32 @@ export default function NotificationBell() {
           <div className="notif-header">
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <button className="btn btn-xs btn-ghost" onClick={markAllRead}>Mark all read</button>
+              <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={markAllRead}>Mark all read</button>
             )}
           </div>
           <div className="notif-list">
             {notifications.length === 0 && (
               <div className="notif-empty">No notifications</div>
             )}
-            {notifications.slice(0, 10).map((n) => (
-              <div key={n.id}
-                className={`notif-item ${!n.is_read ? 'notif-unread' : ''}`}
-                onClick={() => handleClick(n)}>
-                <span className="notif-item-icon">{typeIcons[n.type] || 'ℹ️'}</span>
-                <div className="notif-item-content">
-                  <div className="notif-item-title">{n.title}</div>
-                  <div className="notif-item-msg">{n.message}</div>
-                  <div className="notif-item-time">
-                    {n.created_at ? new Date(n.created_at).toLocaleDateString() + ' ' + new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+            {notifications.slice(0, 10).map((n) => {
+              const typeInfo = typeIcons[n.type] || typeIcons.info;
+              return (
+                <div key={n.id}
+                  className={`notif-item ${!n.is_read ? 'notif-unread' : ''}`}
+                  onClick={() => handleClick(n)}>
+                  <span className="notif-item-icon">
+                    <span className="iconify" data-icon={typeInfo.icon} style={{ color: typeInfo.color }} />
+                  </span>
+                  <div className="notif-item-content">
+                    <div className="notif-item-title">{n.title}</div>
+                    <div className="notif-item-msg">{n.message}</div>
+                    <div className="notif-item-time">
+                      {n.created_at ? new Date(n.created_at).toLocaleDateString() + ' ' + new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {notifications.length > 10 && (
               <div className="notif-view-all" onClick={() => { setOpen(false); navigate('/notifications'); }}>
                 View all {notifications.length} notifications →

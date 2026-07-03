@@ -16,6 +16,11 @@ export default function AdminRoute({ children }) {
     }
   }, [admin, hasToken, recheck]);
 
-  if (loading || rechecking) return <div className="loading">Loading...</div>;
+  if (loading || rechecking) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
   return admin ? children : (hasToken ? <Navigate to="/dashboard" /> : <Navigate to="/admin/login" />);
 }

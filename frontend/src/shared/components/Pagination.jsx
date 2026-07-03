@@ -9,14 +9,18 @@ export default function Pagination({ page, totalPages, onPageChange }) {
   for (let i = start; i <= end; i++) pages.push(i);
 
   return (
-    <div className="pagination">
-      <button className="btn btn-sm btn-outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</button>
-      {start > 1 && <><button className="btn btn-sm btn-outline" onClick={() => onPageChange(1)}>1</button>{start > 2 && <span className="page-info">...</span>}</>}
+    <div className="glass-pagination">
+      <button className="glass-page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <span className="iconify" data-icon="lucide:chevron-left" />
+      </button>
+      {start > 1 && <><button className="glass-page-btn" onClick={() => onPageChange(1)}>1</button>{start > 2 && <span style={{ color: 'var(--text-faint)', fontSize: '0.85rem' }}>...</span>}</>}
       {pages.map((p) => (
-        <button key={p} className={`btn btn-sm ${p === page ? 'btn-primary' : 'btn-outline'}`} onClick={() => onPageChange(p)}>{p}</button>
+        <button key={p} className={`glass-page-btn${p === page ? ' active' : ''}`} onClick={() => onPageChange(p)}>{p}</button>
       ))}
-      {end < totalPages && <><span className="page-info">...</span><button className="btn btn-sm btn-outline" onClick={() => onPageChange(totalPages)}>{totalPages}</button></>}
-      <button className="btn btn-sm btn-outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
+      {end < totalPages && <><span style={{ color: 'var(--text-faint)', fontSize: '0.85rem' }}>...</span><button className="glass-page-btn" onClick={() => onPageChange(totalPages)}>{totalPages}</button></>}
+      <button className="glass-page-btn" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        <span className="iconify" data-icon="lucide:chevron-right" />
+      </button>
     </div>
   );
 }
