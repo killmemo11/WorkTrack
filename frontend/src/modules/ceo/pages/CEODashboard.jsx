@@ -66,7 +66,10 @@ export default function CEODashboard() {
     );
   }
 
-  const { month, is_current_month, today, summary, departments, recruitment_metrics, headcount_metrics, performance_metrics } = dashboardData;
+  const { month, is_current_month, today, summary, departments } = dashboardData;
+  const recruitment_metrics = summary.recruitment_metrics;
+  const headcount_metrics = summary.headcount_metrics;
+  const performance_metrics = summary.performance_metrics;
 
   return (
     <div className="ceo-dashboard">
@@ -144,7 +147,7 @@ export default function CEODashboard() {
             <div className="metric-icon">📈</div>
             <div className="metric-content">
               <h3>Headcount Utilization</h3>
-              <p className="metric-value">{headcount_metrics.utilization}%</p>
+              <p className="metric-value">{headcount_metrics.utilization_rate}%</p>
               <p className="metric-subtext">
                 {headcount_metrics.total_employees} of {headcount_metrics.total_capacity} capacity
               </p>
@@ -273,7 +276,7 @@ export default function CEODashboard() {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Utilization Rate:</span>
-                  <span className="stat-value">{headcount_metrics.utilization}%</span>
+                  <span className="stat-value">{headcount_metrics.utilization_rate}%</span>
                 </div>
               </div>
             </div>
