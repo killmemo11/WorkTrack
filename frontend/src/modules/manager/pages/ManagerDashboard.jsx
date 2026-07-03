@@ -66,7 +66,19 @@ export default function ManagerDashboard() {
     );
   }
 
-  const { team, summary, performance_metrics, task_completion, engagement_metrics } = dashboardData;
+  const { team, summary } = dashboardData;
+  if (!summary) {
+    return (
+      <div className="dashboard-empty">
+        <div className="empty-icon">📊</div>
+        <h3>No Team Data Available</h3>
+        <p>You are not assigned to a department. Please contact your administrator.</p>
+      </div>
+    );
+  }
+  const performance_metrics = summary.performance_metrics || {};
+  const task_completion = summary.task_completion || {};
+  const engagement_metrics = summary.engagement_metrics || {};
 
   return (
     <div className="manager-dashboard">
@@ -254,7 +266,7 @@ export default function ManagerDashboard() {
             <h3>Task Completion</h3>
             <div className="indicator-content">
               <div className="indicator-bar">
-                <div className="indicator-fill" style={{ width: task_completion.completion_rate }}></div>
+                <div className="indicator-fill" style={{ width: task_completion.completion_rate + '%' }}></div>
               </div>
               <p className="indicator-text">
                 {task_completion.completion_rate}% completion rate
@@ -266,7 +278,7 @@ export default function ManagerDashboard() {
             <h3>Team Engagement</h3>
             <div className="indicator-content">
               <div className="indicator-bar">
-                <div className="indicator-fill" style={{ width: engagement_metrics.active_rate }}></div>
+                <div className="indicator-fill" style={{ width: engagement_metrics.active_rate + '%' }}></div>
               </div>
               <p className="indicator-text">
                 {engagement_metrics.active_rate}% active rate
