@@ -1056,6 +1056,7 @@ module.exports = {
   changeEmployeeStatus, getEmployeeTimeline,
   getMyProfile, updateMyProfile, getMyDocuments,
   getOrganization, getHeadcount,
+  getEmployeeDashboard,
   exportProfiles, importProfiles,
   renewContract, submitResignation,
   getGrades, createGrade, updateGrade, deleteGrade,
