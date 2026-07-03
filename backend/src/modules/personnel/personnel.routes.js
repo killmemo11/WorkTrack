@@ -29,6 +29,7 @@ const {
   getOrganization,
   uploadAvatar,
   submitResignation,
+  getEmployeeDashboard,
 } = require('./personnel.controller');
 const {
   getMyAssets, getMyAssetHistory,
