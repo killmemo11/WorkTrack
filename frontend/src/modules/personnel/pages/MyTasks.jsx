@@ -1,7 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../../shared/api';
 
-// Constants for better maintainability
+// Toast notification component
+const Toast = ({ message, type = 'error', onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const icons = {
+    success: 'lucide:check-circle',
+    error: 'lucide:alert-circle',
+    info: 'lucide:info'
+  };
+
+  return (
+    <div className={`glass-toast glass-toast-${type}`} onClick={onClose}>
+      <span className="iconify" data-icon={icons[type]} />
+      {message}
+    </div>
+  );
+};
+
 const API_ENDPOINTS = {
   TASKS: '/tasks',
   TASK_STATUS: (taskId) => `/tasks/${taskId}/status`,
@@ -31,26 +51,15 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
       onUpdateStatus(task.id, newStatus);
     } catch (error) {
       console.error('Failed to update task status:', error);
-      // In a real app, show user feedback here
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleComplete = async () => {
-    setIsUpdating(true);
-    try {
-      await api.patch(API_ENDPOINTS.TASK_STATUS(task.id), { status: 'completed' });
-      onUpdateStatus(task.id, 'completed');
-    } catch (error) {
-      console.error('Failed to complete task:', error);
-      // In a real app, show user feedback here
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+  const isOverdue = task.due_date && 
+    task.status !== 'completed' && 
+    task.status !== 'cancelled' && 
+    new Date(task.due_date) < new Date();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
@@ -145,7 +154,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
           {task.status !== 'completed' && task.status !== 'cancelled' && (
             <button
               className="glass-btn glass-btn-sm glass-btn-primary"
-              onClick={handleComplete}
+              onClick={() => handleStatusChange('completed')}
               disabled={isUpdating}
             >
               <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4, fontSize: 12 }}></span>
@@ -166,7 +175,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
   );
 };
 
-const TaskDetailsModal = ({ task, onClose }) => {
+const TaskDetailsModal = ({ task, onClose, onViewHistory }) => {
   if (!task) return null;
 
   const formatDate = (dateString) => {
@@ -196,34 +205,34 @@ const TaskDetailsModal = ({ task, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{task.title}</h2>
-          <button className="modal-close" onClick={onClose}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-header">
+          <h2 className="glass-modal-title">{task.title}</h2>
+          <button className="glass-modal-close" onClick={onClose}>
             <span className="iconify" data-icon="lucide:x" />
           </button>
         </div>
-        <div className="modal-body">
+        <div className="glass-modal-body">
           <div className="task-details">
             <div className="task-info">
               <div className="info-row">
                 <span className="label">Priority:</span>
-                <span className={`badge ${PRIORITY_CONFIG.badges[task.priority]}`}>
+                <span className={`glass-badge ${PRIORITY_CONFIG.badges[task.priority]}`}>
                   {PRIORITY_CONFIG.labels[task.priority]}
                 </span>
               </div>
               <div className="info-row">
                 <span className="label">Status:</span>
                 <span 
-                  className={`badge ${STATUS_CONFIG.badges[task.status]}`}
+                  className={`glass-badge ${STATUS_CONFIG.badges[task.status]}`}
                   style={{ color: getStatusColor(task.status) }}
                 >
                   {STATUS_CONFIG.labels[task.status]}
                 </span>
               </div>
               <div className="info-row">
-                <span className="label">Due Date:</span>
+                <span className="label">Due:</span>
                 <span>{formatDate(task.due_date)}</span>
               </div>
               <div className="info-row">
@@ -253,25 +262,19 @@ const TaskDetailsModal = ({ task, onClose }) => {
                 <p>{task.notes}</p>
               </div>
             )}
-            
-            {task.attachments && task.attachments.length > 0 && (
-              <div className="task-attachments">
-                <h3>Attachments</h3>
-                <div className="attachments-list">
-                  {task.attachments.map((attachment, idx) => (
-                    <div key={idx} className="attachment-item">
-                      <span className="iconify" data-icon="lucide:paperclip" style={{ marginRight: 8 }} />
-                      <a href={attachment.url} target="_blank" rel="noopener noreferrer">
-                        {attachment.filename}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
-        <div className="modal-footer">
+        <div className="glass-modal-footer" style={{ justifyContent: 'space-between' }}>
+          <button 
+            className="glass-btn glass-btn-sm glass-btn-ghost"
+            onClick={() => {
+              onClose();
+              onViewHistory(task);
+            }}
+          >
+            <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4 }} />
+            View History
+          </button>
           <button className="glass-btn glass-btn-secondary" onClick={onClose}>
             Close
           </button>
@@ -296,16 +299,32 @@ const TaskHistoryModal = ({ task, onClose }) => {
 
   if (!task) return null;
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{task.title} - History</h2>
-          <button className="modal-close" onClick={onClose}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-header">
+          <h2 className="glass-modal-title">{task.title} - History</h2>
+          <button className="glass-modal-close" onClick={onClose}>
             <span className="iconify" data-icon="lucide:x" />
           </button>
         </div>
-        <div className="modal-body">
+        <div className="glass-modal-body">
           {loading ? (
             <div className="glass-loading">
               <div className="spinner" />
@@ -323,7 +342,7 @@ const TaskHistoryModal = ({ task, onClose }) => {
                 <div key={idx} className="history-entry">
                   <div className="history-header">
                     <span className="history-user">{entry.user_name}</span>
-                    <span className="history-date">{new Date(entry.created_at).toLocaleString()}</span>
+                    <span className="history-date">{formatDate(entry.created_at)}</span>
                   </div>
                   <div className="history-action">
                     {entry.action}
@@ -333,7 +352,7 @@ const TaskHistoryModal = ({ task, onClose }) => {
             </div>
           )}
         </div>
-        <div className="modal-footer">
+        <div className="glass-modal-footer">
           <button className="glass-btn glass-btn-secondary" onClick={onClose}>
             Close
           </button>
@@ -359,15 +378,15 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Task Templates</h2>
-          <button className="modal-close" onClick={onClose}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-header">
+          <h2 className="glass-modal-title">Task Templates</h2>
+          <button className="glass-modal-close" onClick={onClose}>
             <span className="iconify" data-icon="lucide:x" />
           </button>
         </div>
-        <div className="modal-body">
+        <div className="glass-modal-body">
           {loading ? (
             <div className="glass-loading">
               <div className="spinner" />
@@ -384,7 +403,7 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
               {templates.map(template => (
                 <div 
                   key={template.id} 
-                  className="template-card glass-card card-hover"
+                  className="template-card glass-panel card-hover"
                   onClick={() => {
                     onSelectTemplate(template);
                     onClose();
@@ -409,7 +428,7 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
             </div>
           )}
         </div>
-        <div className="modal-footer">
+        <div className="glass-modal-footer">
           <button className="glass-btn glass-btn-secondary" onClick={onClose}>
             Close
           </button>
@@ -419,9 +438,8 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
   );
 };
 
-const CalendarView = ({ tasks, onDateSelect }) => {
+const CalendarView = ({ tasks }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null);
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -433,12 +451,10 @@ const CalendarView = ({ tasks, onDateSelect }) => {
     
     const days = [];
     
-    // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
     
-    // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
     }
@@ -452,7 +468,12 @@ const CalendarView = ({ tasks, onDateSelect }) => {
   const getTasksForDate = (day) => {
     if (!day) return [];
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return tasks.filter(task => task.due_date === dateStr);
+    return tasks.filter(task => {
+      if (!task.due_date) return false;
+      const taskDate = new Date(task.due_date);
+      const taskDateStr = `${taskDate.getFullYear()}-${String(taskDate.getMonth() + 1).padStart(2, '0')}-${String(taskDate.getDate()).padStart(2, '0')}`;
+      return taskDateStr === dateStr;
+    });
   };
 
   const handlePrevMonth = () => {
@@ -520,31 +541,40 @@ const CalendarView = ({ tasks, onDateSelect }) => {
   );
 };
 
-const CreateTaskModal = ({ isOpen, onClose, onCreate }) => {
+const CreateTaskModal = ({ isOpen, onClose, onCreate, teamMembers }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'medium',
     due_date: '',
     notes: '',
-    template_id: null
+    assigned_to: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.assigned_to) {
+      setError('Please select an employee to assign this task to');
+      return;
+    }
     setLoading(true);
+    setError('');
     try {
       await api.post(API_ENDPOINTS.CREATE_TASK, {
-        ...formData,
-        status: 'pending'
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        due_date: formData.due_date || null,
+        notes: formData.notes,
+        assigned_to: formData.assigned_to
       });
       onCreate();
-      setFormData({ title: '', description: '', priority: 'medium', due_date: '', notes: '', template_id: null });
+      setFormData({ title: '', description: '', priority: 'medium', due_date: '', notes: '', assigned_to: '' });
       onClose();
     } catch (error) {
-      console.error('Failed to create task:', error);
-      // In a real app, show user feedback here
+      setError(error.response?.data?.error || 'Failed to create task');
     } finally {
       setLoading(false);
     }
@@ -553,16 +583,21 @@ const CreateTaskModal = ({ isOpen, onClose, onCreate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Create New Task</h2>
-          <button className="modal-close" onClick={onClose}>
+    <div className="glass-modal-overlay" onClick={onClose}>
+      <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-header">
+          <h2 className="glass-modal-title">Create New Task</h2>
+          <button className="glass-modal-close" onClick={onClose}>
             <span className="iconify" data-icon="lucide:x" />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className="glass-modal-body">
+            {error && (
+              <div style={{ padding: 10, background: 'rgba(239,68,68,0.1)', borderRadius: 8, color: 'var(--error)', fontSize: '0.85rem', marginBottom: 12 }}>
+                {error}
+              </div>
+            )}
             <div className="form-group">
               <label>Title *</label>
               <input
@@ -573,6 +608,22 @@ const CreateTaskModal = ({ isOpen, onClose, onCreate }) => {
                 className="glass-input"
                 placeholder="Enter task title"
               />
+            </div>
+            <div className="form-group">
+              <label>Assign to *</label>
+              <select
+                value={formData.assigned_to}
+                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                className="glass-select"
+                required
+              >
+                <option value="">Select employee...</option>
+                {teamMembers.map(member => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Description</label>
@@ -616,7 +667,7 @@ const CreateTaskModal = ({ isOpen, onClose, onCreate }) => {
               />
             </div>
           </div>
-          <div className="modal-footer">
+          <div className="glass-modal-footer">
             <button
               type="button"
               className="glass-btn glass-btn-secondary"
@@ -648,7 +699,6 @@ export default function MyTasks() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [filters, setFilters] = useState({
@@ -657,15 +707,17 @@ export default function MyTasks() {
     search: ''
   });
   const [bulkStatus, setBulkStatus] = useState('');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban' or 'calendar'
+  const [viewMode, setViewMode] = useState('list');
   const [stats, setStats] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
-  const pageRef = useRef(page);
+  const [toast, setToast] = useState(null);
+  const [sortBy, setSortBy] = useState('due_date');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+  };
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -673,7 +725,7 @@ export default function MyTasks() {
     try {
       const params = new URLSearchParams({
         mine: 'true',
-        page: pageRef.current.toString(),
+        page: page.toString(),
         limit: '20'
       });
 
@@ -682,9 +734,9 @@ export default function MyTasks() {
       if (filters.search) params.append('search', filters.search);
 
       const response = await api.get(`${API_ENDPOINTS.TASKS}?${params}`);
-      const newTasks = response.data;
+      let newTasks = response.data;
       
-      if (pageRef.current === 1) {
+      if (page === 1) {
         setTasks(newTasks);
       } else {
         setTasks(prev => [...prev, ...newTasks]);
@@ -692,29 +744,29 @@ export default function MyTasks() {
       
       setHasMore(newTasks.length === 20);
     } catch (err) {
-      console.error('Failed to load tasks:', err);
       setError('Failed to load tasks. Please try again later.');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [page, filters]);
 
   const fetchStats = useCallback(async () => {
     try {
       const response = await api.get(API_ENDPOINTS.TASK_STATS);
       setStats(response.data);
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      // Stats are optional
     }
   }, []);
 
   const fetchUserRole = useCallback(async () => {
     try {
       const response = await api.get('/auth/me');
-      setUserRole(response.data.role);
-      setTeamMembers(response.data.team_members || []);
+      const emp = response.data;
+      setUserRole(emp.role);
+      setTeamMembers(emp.team_members || []);
     } catch (err) {
-      console.error('Failed to fetch user role:', err);
+      console.error('Failed to fetch user info:', err);
     }
   }, []);
 
@@ -726,22 +778,13 @@ export default function MyTasks() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl/Cmd + A to select all
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
         setSelectedTasks(new Set(tasks.map(t => t.id)));
       }
-      
-      // Delete key to delete selected tasks
       if (e.key === 'Delete' && selectedTasks.size > 0) {
         e.preventDefault();
-        handleBulkDelete();
-      }
-      
-      // Space key to toggle task selection
-      if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        // In a real app, you might want to implement this
+        setShowDeleteConfirm(true);
       }
     };
 
@@ -757,6 +800,7 @@ export default function MyTasks() {
 
   const handleCreateTask = () => {
     setShowCreateModal(false);
+    showToast('Task created successfully', 'success');
     fetchTasks();
   };
 
@@ -787,39 +831,40 @@ export default function MyTasks() {
   };
 
   const handleBulkUpdateStatus = async () => {
-    if (bulkStatus && selectedTasks.size > 0) {
-      try {
-        await Promise.all(
-          Array.from(selectedTasks).map(taskId => 
-            api.patch(API_ENDPOINTS.TASK_STATUS(taskId), { status: bulkStatus })
-          )
-        );
-        setTasks(prev => prev.map(task => 
-          selectedTasks.has(task.id) ? { ...task, status: bulkStatus } : task
-        ));
-        setSelectedTasks(new Set());
-        setBulkStatus('');
-      } catch (error) {
-        console.error('Failed to update bulk tasks:', error);
-        // In a real app, show user feedback here
-      }
+    if (!bulkStatus || selectedTasks.size === 0) return;
+    try {
+      await Promise.all(
+        Array.from(selectedTasks).map(taskId => 
+          api.patch(API_ENDPOINTS.TASK_STATUS(taskId), { status: bulkStatus })
+        )
+      );
+      setTasks(prev => prev.map(task => 
+        selectedTasks.has(task.id) ? { ...task, status: bulkStatus } : task
+      ));
+      const count = selectedTasks.size;
+      setSelectedTasks(new Set());
+      setBulkStatus('');
+      showToast(`Updated ${count} task${count !== 1 ? 's' : ''} to ${STATUS_CONFIG.labels[bulkStatus]}`, 'success');
+    } catch (error) {
+      showToast('Failed to update tasks');
     }
   };
 
   const handleBulkDelete = async () => {
-    if (selectedTasks.size > 0) {
-      try {
-        await Promise.all(
-          Array.from(selectedTasks).map(taskId => 
-            api.delete(`${API_ENDPOINTS.TASKS}/${taskId}`)
-          )
-        );
-        setTasks(prev => prev.filter(task => !selectedTasks.has(task.id)));
-        setSelectedTasks(new Set());
-      } catch (error) {
-        console.error('Failed to delete bulk tasks:', error);
-        // In a real app, show user feedback here
-      }
+    if (selectedTasks.size === 0) return;
+    try {
+      await Promise.all(
+        Array.from(selectedTasks).map(taskId => 
+          api.delete(`${API_ENDPOINTS.TASKS}/${taskId}`)
+        )
+      );
+      setTasks(prev => prev.filter(task => !selectedTasks.has(task.id)));
+      const count = selectedTasks.size;
+      setSelectedTasks(new Set());
+      setShowDeleteConfirm(false);
+      showToast(`Deleted ${count} task${count !== 1 ? 's' : ''}`, 'success');
+    } catch (error) {
+      showToast('Failed to delete tasks');
     }
   };
 
@@ -829,12 +874,28 @@ export default function MyTasks() {
     }
   };
 
-  const filteredTasks = tasks.filter(task => {
-    if (filters.status && task.status !== filters.status) return false;
-    if (filters.priority && task.priority !== filters.priority) return false;
-    if (filters.search && !task.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    return true;
-  });
+  const filteredTasks = tasks
+    .filter(task => {
+      if (filters.status && task.status !== filters.status) return false;
+      if (filters.priority && task.priority !== filters.priority) return false;
+      if (filters.search && !task.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'due_date') {
+        const dateA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+        const dateB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+        return dateA - dateB;
+      }
+      if (sortBy === 'created_at') {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }
+      if (sortBy === 'priority') {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+      }
+      return 0;
+    });
 
   const canCreateTasks = userRole === 'manager' && teamMembers.length > 0;
 
@@ -842,7 +903,7 @@ export default function MyTasks() {
     return (
       <div className="glass-loading">
         <div className="spinner" />
-        <span>Loading...</span>
+        <span>Loading tasks...</span>
       </div>
     );
   }
@@ -862,12 +923,41 @@ export default function MyTasks() {
 
   return (
     <div className="page">
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+
+      {showDeleteConfirm && (
+        <div className="glass-modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="glass-modal-header">
+              <h2 className="glass-modal-title">Confirm Delete</h2>
+              <button className="glass-modal-close" onClick={() => setShowDeleteConfirm(false)}>
+                <span className="iconify" data-icon="lucide:x" />
+              </button>
+            </div>
+            <div className="glass-modal-body">
+              <p>Are you sure you want to delete {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''}?</p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>This action cannot be undone.</p>
+            </div>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-secondary" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </button>
+              <button className="glass-btn glass-btn-danger" onClick={handleBulkDelete}>
+                Delete {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="glass-page-header">
         <div>
           <h1>My Tasks</h1>
           <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Tasks assigned to you by your manager</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {canCreateTasks && (
             <button
               className="glass-btn glass-btn-primary"
@@ -879,20 +969,16 @@ export default function MyTasks() {
           )}
           <div className="view-mode-toggle" style={{ display: 'flex', gap: 4 }}>
             <button
-              className={`glass-btn ${viewMode === 'list' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
+              className={`glass-btn glass-btn-sm ${viewMode === 'list' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
               onClick={() => setViewMode('list')}
+              title="List view"
             >
               <span className="iconify" data-icon="lucide:list" />
             </button>
             <button
-              className={`glass-btn ${viewMode === 'kanban' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
-              onClick={() => setViewMode('kanban')}
-            >
-              <span className="iconify" data-icon="lucide:columns" />
-            </button>
-            <button
-              className={`glass-btn ${viewMode === 'calendar' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
+              className={`glass-btn glass-btn-sm ${viewMode === 'calendar' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
               onClick={() => setViewMode('calendar')}
+              title="Calendar view"
             >
               <span className="iconify" data-icon="lucide:calendar" />
             </button>
@@ -901,68 +987,50 @@ export default function MyTasks() {
       </div>
 
       {stats && (
-        <div className="task-stats" style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-dim)', borderRadius: 8 }}>
+        <div className="bulk-actions" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-            <div>
-              <span className="stats-label">Total Tasks:</span>
-              <span className="stats-value">{stats.total}</span>
-            </div>
-            <div>
-              <span className="stats-label">Completed:</span>
-              <span className="stats-value">{stats.completed}</span>
-            </div>
-            <div>
-              <span className="stats-label">In Progress:</span>
-              <span className="stats-value">{stats.in_progress}</span>
-            </div>
-            <div>
-              <span className="stats-label">Pending:</span>
-              <span className="stats-value">{stats.pending}</span>
-            </div>
-            <div>
-              <span className="stats-label">Completion Rate:</span>
-              <span className="stats-value">{stats.completion_rate}%</span>
-            </div>
+            <div><span className="stats-label">Total:</span><span className="stats-value">{stats.total}</span></div>
+            <div><span className="stats-label">Completed:</span><span className="stats-value">{stats.completed}</span></div>
+            <div><span className="stats-label">In Progress:</span><span className="stats-value">{stats.in_progress}</span></div>
+            <div><span className="stats-label">Pending:</span><span className="stats-value">{stats.pending}</span></div>
+            <div><span className="stats-label">Rate:</span><span className="stats-value">{stats.completion_rate}%</span></div>
           </div>
         </div>
       )}
 
       {selectedTasks.size > 0 && (
-        <div className="bulk-actions" style={{ marginBottom: 16, padding: 12, backgroundColor: 'var(--bg-dim)', borderRadius: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ color: 'var(--text)' }}>
-              {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
-            </span>
-            <select
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value)}
-              className="glass-select"
-              style={{ minWidth: 120 }}
-            >
-              <option value="">Change status</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <button
-              className="glass-btn glass-btn-sm glass-btn-danger"
-              onClick={handleBulkDelete}
-            >
-              <span className="iconify" data-icon="lucide:trash" style={{ marginRight: 4, fontSize: 12 }}></span>
-              Delete
+        <div className="bulk-actions">
+          <span style={{ color: 'var(--text)' }}>
+            {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
+          </span>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+            className="glass-select"
+            style={{ minWidth: 120 }}
+          >
+            <option value="">Change status</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          {bulkStatus && (
+            <button className="glass-btn glass-btn-sm glass-btn-success" onClick={handleBulkUpdateStatus}>
+              Apply
             </button>
-            <button
-              className="glass-btn glass-btn-sm glass-btn-secondary"
-              onClick={() => setSelectedTasks(new Set())}
-            >
-              Cancel
-            </button>
-          </div>
+          )}
+          <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setShowDeleteConfirm(true)}>
+            <span className="iconify" data-icon="lucide:trash" style={{ marginRight: 4, fontSize: 12 }}></span>
+            Delete
+          </button>
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setSelectedTasks(new Set())}>
+            Cancel
+          </button>
         </div>
       )}
 
-      <div className="task-filters" style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div className="task-filters" style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="filter-group">
           <label>Status</label>
           <select
@@ -990,6 +1058,18 @@ export default function MyTasks() {
             <option value="high">High</option>
           </select>
         </div>
+        <div className="filter-group">
+          <label>Sort</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="glass-select"
+          >
+            <option value="due_date">Due Date</option>
+            <option value="created_at">Created</option>
+            <option value="priority">Priority</option>
+          </select>
+        </div>
         <div className="filter-group" style={{ flex: 1, minWidth: 200 }}>
           <label>Search</label>
           <input
@@ -1013,19 +1093,26 @@ export default function MyTasks() {
               onChange={handleSelectAll}
               className="task-checkbox"
             />
-            <span style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Select all</span>
+            <span style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Select all ({filteredTasks.length} tasks)</span>
           </div>
-          {filteredTasks.map(task => (
-            <TaskCard 
-              key={task.id} 
-              task={task} 
-              onUpdateStatus={handleUpdateStatus}
-              onViewDetails={handleViewDetails}
-              isSelected={selectedTasks.has(task.id)}
-              onSelect={handleSelectTask}
-              progress={task.progress || undefined}
-            />
-          ))}
+          {filteredTasks.length === 0 ? (
+            <div className="glass-empty">
+              <span className="iconify" data-icon="lucide:check-square" style={{ fontSize: 48, opacity: 0.4 }}></span>
+              <h3>No tasks found</h3>
+              <p>{tasks.length === 0 ? 'No tasks assigned yet.' : 'No tasks match your current filters.'}</p>
+            </div>
+          ) : (
+            filteredTasks.map(task => (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onUpdateStatus={handleUpdateStatus}
+                onViewDetails={handleViewDetails}
+                isSelected={selectedTasks.has(task.id)}
+                onSelect={handleSelectTask}
+              />
+            ))
+          )}
           
           {hasMore && (
             <div className="load-more-container" style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -1045,6 +1132,7 @@ export default function MyTasks() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreateTask}
+        teamMembers={teamMembers}
       />
 
       <TaskDetailsModal
@@ -1053,6 +1141,7 @@ export default function MyTasks() {
           setShowDetailsModal(false);
           setSelectedTask(null);
         }}
+        onViewHistory={handleViewHistory}
       />
 
       <TaskHistoryModal
@@ -1060,15 +1149,6 @@ export default function MyTasks() {
         onClose={() => {
           setShowHistoryModal(false);
           setSelectedTask(null);
-        }}
-      />
-
-      <TaskTemplateModal
-        isOpen={showTemplateModal}
-        onClose={() => setShowTemplateModal(false)}
-        onSelectTemplate={(template) => {
-          setShowCreateModal(true);
-          // In a real app, you would populate the form with template data
         }}
       />
     </div>

@@ -368,6 +368,20 @@ async function me(req, res) {
     emp.is_manager = isManager;
     emp.is_global_ceo = isGlobalCeo;
     emp.is_hr = (emp.department_name || '').toLowerCase().replace(/\s+/g, ' ') === 'hr' || (emp.department_name || '').toLowerCase().replace(/\s+/g, ' ') === 'human resources';
+
+    // Include team members if user is a manager
+    if (emp.role === 'manager' || isManager) {
+      const [members] = await pool.query(
+        `SELECT e.id, e.name, e.email, e.employee_id
+         FROM employees e
+         WHERE e.department_id = ? AND e.is_active = 1 AND e.id != ?
+         ORDER BY e.name ASC`,
+        [emp.department_id, emp.id]
+      );
+      emp.team_members = members;
+    } else {
+      emp.team_members = [];
+    }
   }
   res.json(emp);
 }

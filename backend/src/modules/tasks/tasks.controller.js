@@ -44,38 +44,35 @@ async function createTask(req, res) {
 
 async function listTasks(req, res) {
   const empId = req.employee.id;
-  const { mine } = req.query;
+  const { mine, page = 1, limit = 20, status, priority, search } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const pageSize = parseInt(limit);
+
+  let whereClause = '';
+  const params = [];
 
   if (mine === 'true') {
-    const [rows] = await pool.query(
-      `SELECT t.*, 
-        assigned_by_emp.name AS assigned_by_name,
-        assigned_to_emp.name AS assigned_to_name
-       FROM tasks t
-       JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
-       JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-       WHERE t.assigned_to = ?
-       ORDER BY t.created_at DESC`,
-      [empId]
-    );
-    return res.json(rows);
+    whereClause = 'WHERE t.assigned_to = ?';
+    params.push(empId);
+  } else if (MANAGER_ROLES.includes(req.employee.role)) {
+    whereClause = 'WHERE (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))';
+    params.push(empId, req.employee.department_id);
+  } else {
+    whereClause = 'WHERE t.assigned_to = ?';
+    params.push(empId);
   }
 
-  if (MANAGER_ROLES.includes(req.employee.role)) {
-    const [rows] = await pool.query(
-      `SELECT t.*, 
-        assigned_by_emp.name AS assigned_by_name,
-        assigned_to_emp.name AS assigned_to_name
-       FROM tasks t
-       JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
-       JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-       WHERE t.assigned_by = ? OR t.assigned_to IN (
-         SELECT id FROM employees WHERE department_id = ?
-       )
-       ORDER BY t.created_at DESC`,
-      [empId, req.employee.department_id]
-    );
-    return res.json(rows);
+  if (status) {
+    whereClause += ' AND t.status = ?';
+    params.push(status);
+  }
+  if (priority) {
+    whereClause += ' AND t.priority = ?';
+    params.push(priority);
+  }
+  if (search) {
+    whereClause += ' AND t.title LIKE ?';
+    params.push(`%${search}%`);
   }
 
   const [rows] = await pool.query(
@@ -85,9 +82,10 @@ async function listTasks(req, res) {
      FROM tasks t
      JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
      JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-     WHERE t.assigned_to = ?
-     ORDER BY t.created_at DESC`,
-    [empId]
+     ${whereClause}
+     ORDER BY t.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset]
   );
   res.json(rows);
 }
