@@ -2,6 +2,11 @@ import { useState, useEffect, useMemo, Fragment, useRef } from 'react';
 import api from '../../../shared/api';
 import hrApi from '../../../shared/api/hrApi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ChevronDown, ChevronRight, ZoomIn, ZoomOut, Download, Printer, Filter, X, Search, 
+  User, Mail, Phone, Calendar, Award, TrendingUp, Users, Building, 
+  ChevronLeft, AlertCircle 
+} from 'lucide-react';
 
 export default function OrganizationChart() {
   const [data, setData] = useState(null);
@@ -12,7 +17,24 @@ export default function OrganizationChart() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [hoveredEmployee, setHoveredEmployee] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [expandedDepts, setExpandedDepts] = useState(new Set());
+  const [filters, setFilters] = useState({});
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -102,16 +124,114 @@ export default function OrganizationChart() {
   }, [selectedEmployee, data]);
 
   if (loading) return (
-    <div className="page">
-      <div className="glass-loading"><div className="spinner" /><span>Loading organization chart...</span></div>
+    <div className="page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div className="glass-loading" style={{ 
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-glass)',
+        borderRadius: '12px',
+        padding: '32px 40px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16
+      }}>
+        <div className="spinner" style={{ 
+          width: 48, 
+          height: 48, 
+          border: '4px solid var(--border-glass)',
+          borderTop: '4px solid var(--brand-primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <span style={{ 
+          fontSize: 16, 
+          fontWeight: 500, 
+          color: 'var(--text-primary)' 
+        }}>
+          Loading organization chart...
+        </span>
+        <p style={{ 
+          fontSize: 13, 
+          color: 'var(--text-secondary)' 
+        }}>
+          Fetching company hierarchy data
+        </p>
+      </div>
     </div>
   );
   if (error) return (
-    <div className="page">
-      <div className="glass-alert glass-alert-danger">
-        <span className="iconify" data-icon="lucide:alert-circle" style={{ marginRight: 8 }} />
-        Could not load organization chart.
-        <br /><small style={{ opacity: 0.7 }}>{error}</small>
+    <div className="page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div className="glass-alert glass-alert-danger" style={{ 
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-danger)',
+        borderRadius: '12px',
+        padding: '32px 40px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        maxWidth: 500
+      }}>
+        <div style={{ 
+          fontSize: 48, 
+          color: 'var(--color-danger)', 
+          marginBottom: 16 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <AlertCircle size={48} />
+          </div>
+        </div>
+        <h3 style={{ 
+          fontSize: 18, 
+          fontWeight: 600, 
+          color: 'var(--text-primary)', 
+          marginBottom: 8 
+        }}>
+          Could not load organization chart
+        </h3>
+        <p style={{ 
+          fontSize: 14, 
+          color: 'var(--text-secondary)', 
+          marginBottom: 16 
+        }}>
+          {error}
+        </p>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ 
+              background: 'var(--brand-primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = 'var(--brand-primary-hover)'}
+            onMouseLeave={(e) => e.target.style.background = 'var(--brand-primary)'}
+          >
+            Retry
+          </button>
+          <button 
+            onClick={() => window.location.href = '/personnel/employees'}
+            style={{ 
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = 'var(--bg-hover)'}
+            onMouseLeave={(e) => e.target.style.background = 'var(--bg-elevated)'}
+          >
+            View Employees
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -126,6 +246,19 @@ export default function OrganizationChart() {
 
   const numCols = activeDepts.length;
 
+  const toggleDept = (deptId) => {
+    const newExpanded = new Set(expandedDepts);
+    if (newExpanded.has(deptId)) {
+      newExpanded.delete(deptId);
+    } else {
+      newExpanded.add(deptId);
+    }
+    setExpandedDepts(newExpanded);
+  };
+
+  const handleZoomIn = () => setZoomLevel(Math.min(zoomLevel + 0.1, 2));
+  const handleZoomOut = () => setZoomLevel(Math.max(zoomLevel - 0.1, 0.5));
+
   return (
     <motion.div
       ref={containerRef}
@@ -133,37 +266,59 @@ export default function OrganizationChart() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="page"
+      style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
     >
       <motion.div
         initial={{ y: -20 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         className="glass-page-header"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, padding: '0 20px' }}
       >
         <motion.div
           initial={{ x: -20 }}
           animate={{ x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <h1>Organization Chart</h1>
-          <p className="subtitle">Company hierarchy by grade level</p>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Organization Chart</h1>
+          <p className="subtitle" style={{ fontSize: '14px', fontWeight: 400, margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>Company hierarchy by grade level</p>
         </motion.div>
         <motion.div
           initial={{ x: 20 }}
           animate={{ x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          style={{ position: 'relative' }}
+          style={{ display: 'flex', gap: 12, alignItems: 'center' }}
         >
-          <input
-            type="text"
-            placeholder="Search employee..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="glass-input"
-            style={{ paddingLeft: 32, minWidth: 220 }}
-          />
-          <span className="iconify" data-icon="lucide:search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none', color: 'var(--text-dim)' }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--bg-elevated)', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+            <button 
+              onClick={handleZoomOut}
+              style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              title="Zoom Out"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span style={{ fontSize: '12px', color: 'var(--text-dim)', minWidth: '30px', textAlign: 'center' }}>
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button 
+              onClick={handleZoomIn}
+              style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              title="Zoom In"
+            >
+              <ZoomIn size={16} />
+            </button>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search employee..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="glass-input"
+              style={{ paddingLeft: 36, minWidth: 240, fontSize: '14px' }}
+            />
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-dim)' }} />
+          </div>
         </motion.div>
       </motion.div>
 
@@ -241,9 +396,36 @@ export default function OrganizationChart() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               className="glass-empty"
+              style={{ 
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: '12px',
+                padding: '32px',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+              }}
             >
-              <span className="iconify" data-icon="lucide:search-x" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
-              <h3>No employees match &quot;<strong>{search}</strong>&quot;</h3>
+              <div style={{ 
+                fontSize: 64, 
+                color: 'var(--text-dim)', 
+                marginBottom: 16 
+              }}>
+                <Search size={64} />
+              </div>
+              <h3 style={{ 
+                fontSize: 18, 
+                fontWeight: 600, 
+                color: 'var(--text-primary)', 
+                marginBottom: 8 
+              }}>
+                No employees match &quot;<strong>{search}</strong>&quot;
+              </h3>
+              <p style={{ 
+                fontSize: 14, 
+                color: 'var(--text-secondary)' 
+              }}>
+                Try adjusting your search terms or check if the employee exists in the system
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -257,40 +439,169 @@ export default function OrganizationChart() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="employee-details-modal"
             onClick={() => setSelectedEmployee(null)}
+            style={{ background: 'rgba(0, 0, 0, 0.5)' }}
           >
-            <div className="employee-details-content" onClick={(e) => e.stopPropagation()}>
-              <div className="employee-details-header">
-                <button onClick={() => setSelectedEmployee(null)} className="close-btn">
-                  <span className="iconify" data-icon="lucide:x" />
-                </button>
-                <div className="employee-avatar">
+            <motion.div
+              className="employee-details-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: '12px',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+                maxWidth: 400,
+                overflow: 'hidden'
+              }}
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="employee-details-header" style={{ 
+                background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%)',
+                padding: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div className="employee-avatar" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   {selectedEmployeeData.avatar_path
-                    ? <img src={`/${selectedEmployeeData.avatar_path}`} alt="" />
-                    : <span>{selectedEmployeeData.name?.[0]?.toUpperCase()}</span>}
+                    ? <img src={`/${selectedEmployeeData.avatar_path}`} alt="" style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid white' }} />
+                    : <div style={{ 
+                        width: 48, 
+                        height: 48, 
+                        borderRadius: '50%', 
+                        background: 'var(--brand-primary)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        color: 'white', 
+                        fontSize: 20, 
+                        fontWeight: 600 
+                      }}>
+                        {selectedEmployeeData.name?.[0]?.toUpperCase()}
+                      </div>}
+                  <div>
+                    <h3 style={{ 
+                      fontSize: 18, 
+                      fontWeight: 600, 
+                      color: 'white', 
+                      margin: 0 
+                    }}>
+                      {selectedEmployeeData.name}
+                    </h3>
+                    <p style={{ 
+                      fontSize: 14, 
+                      color: 'rgba(255, 255, 255, 0.9)', 
+                      margin: 0 
+                    }}>
+                      {selectedEmployeeData.position_title || '—'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedEmployee(null)}
+                  style={{ 
+                    background: 'rgba(255, 255, 255, 0.2)', 
+                    border: 'none', 
+                    borderRadius: '50%', 
+                    width: 32, 
+                    height: 32, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    cursor: 'pointer',
+                    color: 'white',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+                  onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="employee-details-body" style={{ padding: '20px' }}>
+                <div className="employee-info" style={{ spaceY: '16px' }}>
+                  <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Mail size={16} style={{ color: 'var(--text-dim)' }} />
+                    <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Email:</span>
+                    <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>{selectedEmployeeData.email}</span>
+                  </div>
+                  <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Building size={16} style={{ color: 'var(--text-dim)' }} />
+                    <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Department:</span>
+                    <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>{selectedEmployeeData.department_name}</span>
+                  </div>
+                  <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Calendar size={16} style={{ color: 'var(--text-dim)' }} />
+                    <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Grade Level:</span>
+                    <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>Lv.{selectedEmployeeData.grade_level}</span>
+                  </div>
+                  {selectedEmployeeData.phone && (
+                    <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Phone size={16} style={{ color: 'var(--text-dim)' }} />
+                      <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Phone:</span>
+                      <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>{selectedEmployeeData.phone}</span>
+                    </div>
+                  )}
+                  {selectedEmployeeData.hire_date && (
+                    <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Calendar size={16} style={{ color: 'var(--text-dim)' }} />
+                      <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Hire Date:</span>
+                      <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
+                        {new Date(selectedEmployeeData.hire_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                  {selectedEmployeeData.performance_rating && (
+                    <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <TrendingUp size={16} style={{ color: 'var(--text-dim)' }} />
+                      <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Performance:</span>
+                      <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
+                        {selectedEmployeeData.performance_rating}/5
+                      </span>
+                    </div>
+                  )}
+                  {selectedEmployeeData.certifications && selectedEmployeeData.certifications.length > 0 && (
+                    <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Award size={16} style={{ color: 'var(--text-dim)' }} />
+                      <span className="label" style={{ fontSize: 14, color: 'var(--text-secondary)', width: 80 }}>Certifications:</span>
+                      <span className="value" style={{ fontSize: 14, color: 'var(--text-primary)' }}>
+                        {selectedEmployeeData.certifications.length} certified
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div style={{ 
+                  marginTop: 20, 
+                  padding: '12px', 
+                  background: 'var(--bg-elevated)', 
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-glass)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Team Information</span>
+                    <span style="font-size: 12px; color: var(--text-dim)">Direct reports: {selectedEmployeeData.direct_reports || 0}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-primary)' }}>
+                        {selectedEmployeeData.team_size || 0}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Team Size</div>
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--brand-secondary)' }}>
+                        {selectedEmployeeData.years_of_service || 0}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Years of Service</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="employee-details-body">
-                <h3>{selectedEmployeeData.name}</h3>
-                <div className="employee-info">
-                  <div className="info-row">
-                    <span className="label">Position:</span>
-                    <span className="value">{selectedEmployeeData.position_title}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Department:</span>
-                    <span className="value">{selectedEmployeeData.department_name}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Email:</span>
-                    <span className="value">{selectedEmployeeData.email}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Grade Level:</span>
-                    <span className="value">Lv.{selectedEmployeeData.grade_level}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -300,48 +611,108 @@ export default function OrganizationChart() {
 
 function HeadcountRow({ activeDepts, headcountMap, numCols }) {
   return (
-    <div className="org-grade" style={{ marginBottom: 8 }}>
-      <div className="org-grade-header" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
-        <div className="org-grade-title">
-          <span className="iconify" data-icon="lucide:bar-chart-2" style={{ marginRight: 6, fontSize: 13 }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Headcount</span>
+    <div className="org-grade" style={{ marginBottom: 16 }}>
+      <div className="org-grade-header" style={{ 
+        background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 100%)', 
+        borderBottom: '1px solid var(--border-glass)', 
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+      }}>
+        <div className="org-grade-title" style={{ display: 'flex', alignItems: 'center', padding: '12px 16px' }}>
+          <TrendingUp size={16} style={{ marginRight: 8, color: 'var(--brand-primary)' }} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Department Headcount</span>
         </div>
       </div>
-      <div className="org-grade-body" style={{ display: 'grid', gridTemplateColumns: `repeat(${numCols}, 1fr)`, gap: 12, padding: '10px 16px' }}>
+      <div className="org-grade-body" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: `repeat(${numCols}, 1fr)`, 
+        gap: 16, 
+        padding: '16px', 
+        background: 'var(--bg-elevated)' 
+      }}>
         {activeDepts.map(dept => {
           const hc = headcountMap[dept.id];
           if (!hc) return <div key={dept.id} />;
           const pct = hc.max_headcount > 0 ? Math.round((hc.count / hc.max_headcount) * 100) : null;
+          const isOverCapacity = hc.count > hc.max_headcount;
+          const isNearCapacity = pct >= 90 && !isOverCapacity;
+          
           return (
             <motion.div
               key={dept.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ fontSize: 12 }}
+              style={{ 
+                background: 'var(--bg-card)',
+                borderRadius: '8px',
+                padding: '12px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+              }}
             >
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--text-primary)'
+              }}>
+                <span>{dept.name}</span>
+                <span style={{ 
+                  fontSize: 12, 
+                  color: isOverCapacity ? 'var(--color-danger)' : isNearCapacity ? 'var(--color-warning)' : 'var(--text-dim)'
+                }}>
+                  {pct != null ? `${pct}%` : 'Unlimited'}
+                </span>
+              </div>
+              
               {pct != null ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2, color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
                     <span>{hc.count} / {hc.max_headcount === 0 ? '\u221E' : hc.max_headcount}</span>
-                    <span style={{ fontWeight: 600 }}>{pct}%</span>
+                    <span style={{ fontWeight: 600 }}>{hc.count > hc.max_headcount ? 'OVER' : isNearCapacity ? 'NEAR' : 'OK'}</span>
                   </div>
-                  <div className="stat-bar" style={{ height: 6, marginBottom: 0 }}>
+                  <div className="stat-bar" style={{ height: 8, borderRadius: '4px', overflow: 'hidden' }}>
                     <motion.div
                       className="stat-bar-fill"
                       style={{
                         width: `${Math.min(pct, 100)}%`,
                         height: '100%',
-                        background: hc.count > hc.max_headcount ? 'var(--color-danger)' : pct >= 90 ? 'var(--color-warning)' : 'var(--brand-primary)',
+                        background: isOverCapacity ? 'var(--color-danger)' : isNearCapacity ? 'var(--color-warning)' : 'var(--brand-primary)',
+                        borderRadius: '4px',
+                        boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
                       }}
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(pct, 100)}%` }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
                     />
                   </div>
+                  {isOverCapacity && (
+                    <div style={{ 
+                      marginTop: 4, 
+                      fontSize: 10, 
+                      color: 'var(--color-danger)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 4 
+                    }}>
+                      <span>⚠</span>
+                      <span>Over capacity by {hc.count - hc.max_headcount}</span>
+                    </div>
+                  )}
                 </>
               ) : (
-                <span style={{ color: 'var(--text-dim)' }}>No limit set</span>
+                <div style={{ 
+                  fontSize: 11, 
+                  color: 'var(--text-dim)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 4 
+                }}>
+                  <span>—</span>
+                  <span>No headcount limit</span>
+                </div>
               )}
             </motion.div>
           );
@@ -383,44 +754,100 @@ function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, headcount
       transition={{ duration: 0.3, delay: grade.grade_level * 0.05 }}
       className="org-grade"
     >
-      <div className="org-grade-header" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
-        <div className="org-grade-title">
-          <span className="org-grade-level">Lv.{grade.grade_level}</span>
-          <span className="org-grade-name">{grade.grade_name}</span>
+      <div className="org-grade-header" style={{ 
+        background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 100%)', 
+        borderBottom: '1px solid var(--border-glass)', 
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)' 
+      }}>
+        <div className="org-grade-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="org-grade-level" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--brand-primary)' }}>Lv.{grade.grade_level}</span>
+            <span className="org-grade-name" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{grade.grade_name}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="org-grade-count" style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{grade.total} {grade.total === 1 ? 'member' : 'members'}</span>
+            <span className="org-grade-count" style={{ fontSize: '12px', color: 'var(--text-dim)' }}>•</span>
+            <span className="org-grade-count" style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{activeDepts.length} departments</span>
+          </div>
         </div>
-        <span className="org-grade-count">{grade.total} {grade.total === 1 ? 'member' : 'members'}</span>
       </div>
       {numCols > 0 && (
-        <div className="org-grade-body" style={{ display: 'grid', gridTemplateColumns: `repeat(${numCols}, 1fr)`, gap: 12, padding: '12px 16px' }}>
+        <div className="org-grade-body" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: `repeat(${numCols}, 1fr)`, 
+          gap: 16, 
+          padding: '16px', 
+          background: 'var(--bg-elevated)' 
+        }}>
           {activeDepts.map(dept => {
             const members = grade.deptGroups[dept.id];
+            const isExpanded = expandedDepts.has(dept.id);
             return (
               <motion.div
                 key={dept.id}
                 className={`org-dept-section${!members ? ' org-dept-empty' : ''}`}
-                style={{ borderLeftColor: 'var(--brand-primary)' }}
+                style={{ 
+                  borderLeft: `3px solid var(--brand-primary)`,
+                  background: 'var(--bg-card)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+                }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: dept.id * 0.02 }}
               >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      cursor: 'pointer',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: 500
+                    }}
+                    onClick={() => members && toggleDept(dept.id)}
+                  >
+                    {members && (
+                      <span style={{ color: 'var(--brand-primary)' }}>
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </span>
+                    )}
+                    <span>{dept.name}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                    {members ? `${members.length} members` : 'No members'}
+                  </span>
+                </div>
                 {members && (
-                  <>
-                    <div className="org-dept-label" style={{ color: 'var(--text-secondary)' }}>{dept.name}</div>
-                    <div className="org-dept-members">
-                      {members.map(m => (
-                        <OrgCard
-                          key={m.id}
-                          employee={m}
-                          isManager={managerEmails.has(m.email)}
-                          isSupervisor={supervisorIds.has(m.id)}
-                          hoveredEmployee={hoveredEmployee}
-                          setHoveredEmployee={setHoveredEmployee}
-                          selectedEmployee={selectedEmployee}
-                          setSelectedEmployee={setSelectedEmployee}
-                        />
-                      ))}
-                    </div>
-                  </>
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="org-dept-members" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {members.map(m => (
+                            <OrgCard
+                              key={m.id}
+                              employee={m}
+                              isManager={managerEmails.has(m.email)}
+                              isSupervisor={supervisorIds.has(m.id)}
+                              hoveredEmployee={hoveredEmployee}
+                              setHoveredEmployee={setHoveredEmployee}
+                              selectedEmployee={selectedEmployee}
+                              setSelectedEmployee={setSelectedEmployee}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 )}
               </motion.div>
             );
@@ -438,11 +865,25 @@ function OrgCard({ employee, isManager, isSupervisor, hoveredEmployee, setHovere
   return (
     <motion.div
       className={`glass-card org-emp-card${isManager ? ' org-emp-card-manager' : ''}`}
-      style={{ padding: '8px 12px', cursor: 'pointer', position: 'relative' }}
+      style={{ 
+        padding: '10px 14px', 
+        cursor: 'pointer', 
+        position: 'relative',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-glass)',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        transition: 'all 0.2s ease'
+      }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: employee.id * 0.01 }}
-      whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)' }}
+      whileHover={{ 
+        scale: 1.05, 
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
+        border: '1px solid var(--brand-primary)',
+        background: 'var(--bg-elevated)'
+      }}
       whileTap={{ scale: 0.98 }}
       onClick={() => setSelectedEmployee(employee.id)}
       onMouseEnter={() => setHoveredEmployee(employee.id)}
@@ -450,16 +891,58 @@ function OrgCard({ employee, isManager, isSupervisor, hoveredEmployee, setHovere
     >
       <div className="org-emp-avatar">
         {employee.avatar_path
-          ? <img src={`/${employee.avatar_path}`} alt="" />
-          : <span>{employee.name?.[0]?.toUpperCase()}</span>}
+          ? <img src={`/${employee.avatar_path}`} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+          : <div style={{ 
+              width: 32, 
+              height: 32, 
+              borderRadius: '50%', 
+              background: 'var(--brand-primary)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: 'white', 
+              fontSize: 14, 
+              fontWeight: 600 
+            }}>
+              {employee.name?.[0]?.toUpperCase()}
+            </div>}
       </div>
-      <div className="org-emp-body">
-        <div className="org-emp-name">{employee.name}</div>
-        <div className="org-emp-title">{employee.position_title || '—'}</div>
+      <div className="org-emp-body" style={{ marginLeft: 10, flex: 1 }}>
+        <div className="org-emp-name" style={{ 
+          fontSize: 14, 
+          fontWeight: 600, 
+          color: 'var(--text-primary)', 
+          marginBottom: 2 
+        }}>
+          {employee.name}
+        </div>
+        <div className="org-emp-title" style={{ 
+          fontSize: 12, 
+          color: 'var(--text-secondary)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 4 
+        }}>
+          <Building size={12} />
+          {employee.position_title || '—'}
+        </div>
       </div>
-      <div className="org-emp-tags">
-        {isManager && <span className="glass-badge glass-badge-success" title="Department Manager" style={{ fontSize: 10, padding: '2px 6px' }}>M</span>}
-        {isSupervisor && !isManager && <span className="glass-badge glass-badge-info" title="Supervisor" style={{ fontSize: 10, padding: '2px 6px' }}>S</span>}
+      <div className="org-emp-tags" style={{ display: 'flex', gap: 6 }}>
+        {isManager && (
+          <span className="glass-badge glass-badge-success" title="Department Manager" style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontWeight: 600 }}>M</span>
+          </span>
+        )}
+        {isSupervisor && !isManager && (
+          <span className="glass-badge glass-badge-info" title="Supervisor" style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontWeight: 600 }}>S</span>
+          </span>
+        )}
+        {employee.grade_level && (
+          <span className="glass-badge glass-badge-secondary" style={{ fontSize: 11, padding: '2px 8px', borderRadius: '4px' }}>
+            Lv.{employee.grade_level}
+          </span>
+        )}
       </div>
       <AnimatePresence>
         {isHovered && (
@@ -469,10 +952,35 @@ function OrgCard({ employee, isManager, isSupervisor, hoveredEmployee, setHovere
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            style={{ 
+              position: 'absolute', 
+              top: '100%', 
+              left: 0, 
+              right: 0, 
+              zIndex: 10,
+              marginTop: 8,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: '8px',
+              padding: 12,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+            }}
           >
-            <div className="tooltip-content">
-              <div className="tooltip-email">{employee.email}</div>
-              <div className="tooltip-dept">{employee.department_name}</div>
+            <div className="tooltip-content" style={{ fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <Mail size={14} />
+                <span style={{ color: 'var(--text-primary)' }}>{employee.email}</span>
+              </div>
+<div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Building size={14} />
+                  <span style={{ color: 'var(--text-secondary)' }}>{employee.department_name}</span>
+                </div>
+{employee.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <Phone size={14} />
+                      <span style={{ color: 'var(--text-secondary)' }}>{employee.phone}</span>
+                    </div>
+                  )}
             </div>
           </motion.div>
         )}
