@@ -388,7 +388,8 @@ body {
   color: var(--text-primary);
   background: rgba(255,255,255,0.04);
 }
-.glass-tab.active {
+.glass-tab.active,
+.glass-tab-active {
   background: var(--brand-primary);
   color: #fff;
 }
@@ -3190,7 +3191,7 @@ select.form-control { cursor: pointer; }
 
 /* Settings Form */
 .settings-form {
-  background: #fff;
+  background: transparent;
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -3201,7 +3202,7 @@ select.form-control { cursor: pointer; }
   margin-bottom: 16px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .settings-form label .form-control { margin-top: 6px; }
