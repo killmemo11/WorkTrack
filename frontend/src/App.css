@@ -1213,6 +1213,7 @@ body {
 
 .glass-calendar-table,
 .calendar-table-wrapper table {
+  display: table;
   width: 100%;
   border-collapse: separate;
   border-spacing: 4px;
@@ -1222,22 +1223,26 @@ body {
 
 .glass-calendar-table td,
 .calendar-table-wrapper table td {
+  display: table-cell;
   width: calc(100% / 7);
 }
 
 .glass-calendar-table th,
 .calendar-table-wrapper table th {
+  display: table-cell;
   width: calc(100% / 7);
 }
 
 .calendar-header {
-  padding: 10px 6px;
+  display: table-cell;
+  padding: 12px 8px;
   text-align: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
+  background: rgba(255,255,255,0.03);
 }
 
 .cal-day {

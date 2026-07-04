@@ -615,22 +615,11 @@ export default function Dashboard() {
                         {monthNames[m.month - 1]} {m.year}
                       </h4>
                       <div className="calendar-table-wrapper" style={{ overflowX: 'auto' }}>
-                        <table className="glass-calendar-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table className="glass-calendar-table">
                           <thead>
                             <tr>
                               {dayHeaders.map((h) => (
-                                <th key={h} className="calendar-header" style={{ 
-                                  background: 'rgba(255,255,255,0.03)', 
-                                  color: 'var(--text-dim)', 
-                                  fontSize: '0.75rem', 
-                                  fontWeight: 600, 
-                                  textTransform: 'uppercase', 
-                                  letterSpacing: '0.05em', 
-                                  padding: '12px 8px', 
-                                  textAlign: 'center'
-                                }}>
-                                  {h}
-                                </th>
+                                <th key={h} className="calendar-header">{h}</th>
                               ))}
                             </tr>
                           </thead>

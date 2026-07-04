@@ -162,19 +162,11 @@ export default function Calendar() {
         {!loading && data && monthDays && (
           <>
             <div className="calendar-table-wrapper" style={{ padding: '12px', overflowX: 'auto' }}>
-              <table className="glass-calendar-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 4 }}>
+              <table className="glass-calendar-table">
                 <thead>
                   <tr>
                     {dayHeaders.map((h) => (
-                      <th key={h} className="calendar-header" style={{
-                        textAlign: 'center',
-                        padding: '8px 4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: 'var(--text-dim)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em'
-                      }}>{h}</th>
+                      <th key={h} className="calendar-header">{h}</th>
                     ))}
                   </tr>
                 </thead>
