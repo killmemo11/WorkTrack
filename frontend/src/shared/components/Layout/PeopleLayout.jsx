@@ -49,7 +49,7 @@ export default function PeopleLayout() {
     <div className="sub-layout">
       <aside className="sub-sidebar">
         <div className="sub-brand">
-          <img src={logo || '/logo.png'} alt="" />
+          <img src={logo || '/logo.svg'} alt="" />
           <span>People</span>
         </div>
         <nav className="sub-nav">

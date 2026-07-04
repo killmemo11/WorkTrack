@@ -51,7 +51,7 @@ export default function Navbar() {
     <nav className="navbar" aria-label="Main navigation">
       <div className="nav-brand">
         <Link to="/dashboard">
-          <img src={logo || '/logo.png'} alt="WorkTrack" className="nav-logo" />
+          <img src={logo || '/logo.svg'} alt="WorkTrack" className="nav-logo" />
           <span className="nav-brand-text">WorkTrack</span>
         </Link>
       </div>

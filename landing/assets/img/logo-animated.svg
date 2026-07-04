@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="ga" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <style>
+      @keyframes float1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+      @keyframes pulse-glow { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+      @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .h-shape    { animation: float1 3s ease-in-out infinite; }
+      .w-shape    { animation: float1 3s ease-in-out infinite 0.3s; }
+      .people     { animation: pulse-glow 2s ease-in-out infinite; }
+      .clock-ring { animation: rotate 8s linear infinite; transform-origin: 85px 85px; }
+    </style>
+  </defs>
+
+  <g class="h-shape">
+    <rect x="18" y="25" width="10" height="50" rx="2" fill="url(#ga)"/>
+    <rect x="34" y="25" width="10" height="50" rx="2" fill="url(#ga)"/>
+    <rect x="23" y="45" width="16" height="10" rx="2" fill="url(#ga)"/>
+  </g>
+
+  <g class="w-shape">
+    <polygon points="50,25 60,75 66,45 72,75 82,25" fill="url(#ga)"/>
+  </g>
+
+  <g class="people">
+    <circle cx="30" cy="15" r="3" fill="rgba(255,255,255,0.7)"/>
+    <rect x="28" y="18" width="4" height="5" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="70" cy="15" r="3" fill="rgba(255,255,255,0.7)"/>
+    <rect x="68" y="18" width="4" height="5" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="50" cy="10" r="3" fill="rgba(255,255,255,0.7)"/>
+    <rect x="48" y="13" width="4" height="5" fill="rgba(255,255,255,0.7)"/>
+  </g>
+
+  <g class="clock-ring">
+    <circle cx="85" cy="85" r="8" fill="none" stroke="url(#ga)" stroke-width="1.5"/>
+  </g>
+  <line x1="85" y1="85" x2="85" y2="80" stroke="url(#ga)" stroke-width="1.5"/>
+  <line x1="85" y1="85" x2="88" y2="87" stroke="url(#ga)" stroke-width="1.5"/>
+</svg>

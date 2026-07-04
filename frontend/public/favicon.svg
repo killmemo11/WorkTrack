@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="6" fill="#09090b"/>
+  <!-- H monogram (left) -->
+  <rect x="5" y="8" width="4" height="16" rx="1.2" fill="url(#gf)"/>
+  <rect x="12" y="8" width="4" height="16" rx="1.2" fill="url(#gf)"/>
+  <rect x="7" y="14" width="7" height="4" rx="1" fill="url(#gf)"/>
+  <!-- W monogram (right) -->
+  <polygon points="19,8 22,24 24,14 26,24 29,8" fill="url(#gf)"/>
+</svg>

@@ -37,6 +37,24 @@ async function getFromAddress() {
   return settings.smtp_from || settings.smtp_user || 'WorkTrack <noreply@wfh.local>';
 }
 
+function mailLayout(contentHtml) {
+  const year = new Date().getFullYear();
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
+      <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 16px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+        <span style="color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">WorkTrack</span>
+      </div>
+      <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 10px 10px;">
+        ${contentHtml}
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+        <p style="color: #9ca3af; font-size: 0.75rem; text-align: center; margin: 0;">
+          &copy; ${year} WorkTrack &mdash; HR Management Platform
+        </p>
+      </div>
+    </div>
+  `;
+}
+
 async function sendSignInEmail(employee, record) {
   const transporter = await getTransporter();
   if (!transporter) return;
@@ -48,7 +66,7 @@ async function sendSignInEmail(employee, record) {
     from,
     to: employee.email,
     subject: `WorkTrack Sign-In: ${employee.name}`,
-    html: `
+    html: mailLayout(`
       <div style="font-family: Arial; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #22c55e;">Sign-In Confirmed</h2>
         <p><strong>${employee.name}</strong></p>
@@ -58,7 +76,7 @@ async function sendSignInEmail(employee, record) {
           <tr><td style="padding: 8px; color: #666;">Sign-In Time</td><td style="padding: 8px;"><strong>${hours}</strong></td></tr>
         </table>
       </div>
-    `,
+    `),
   });
 }
 
@@ -76,7 +94,7 @@ async function sendSignOutEmail(employee, record) {
     from,
     to: employee.email,
     subject: `WorkTrack Sign-Out: ${employee.name} (${totalHours}h)`,
-    html: `
+    html: mailLayout(`
       <div style="font-family: Arial; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #ef4444;">Sign-Out Confirmed</h2>
         <p><strong>${employee.name}</strong></p>
@@ -89,7 +107,7 @@ async function sendSignOutEmail(employee, record) {
         </table>
         ${record.notes ? `<p style="color: #666; margin-top: 12px;">Notes: ${record.notes}</p>` : ''}
       </div>
-    `,
+    `),
   });
 }
 
@@ -103,7 +121,7 @@ async function sendVerificationEmail(employee, code) {
     from,
     to: employee.email,
     subject: `Verify your WorkTrack account`,
-    html: `
+    html: mailLayout(`
       <div style="font-family: Arial; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #4f46e5;">Email Verification</h2>
         <p>Welcome <strong>${employee.name}</strong>,</p>
@@ -113,7 +131,7 @@ async function sendVerificationEmail(employee, code) {
         </div>
         <p style="color: #666;">This code expires in 10 minutes.</p>
       </div>
-    `,
+    `),
   });
 }
 
@@ -127,7 +145,7 @@ async function sendPasswordResetEmail(employee, code) {
     from,
     to: employee.email,
     subject: 'Reset your WorkTrack password',
-    html: `
+    html: mailLayout(`
       <div style="font-family: Arial; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #f59e0b;">Password Reset</h2>
         <p>Hello <strong>${employee.name}</strong>,</p>
@@ -138,7 +156,7 @@ async function sendPasswordResetEmail(employee, code) {
         <p style="color: #666;">This code expires in 10 minutes.</p>
         <p style="color: #666;">If you did not request this, please ignore this email.</p>
       </div>
-    `,
+    `),
   });
 }
 
@@ -149,7 +167,7 @@ async function sendLeaveConfirmationEmail(employee, leave) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: `WorkTrack - Leave Submitted (${leave.type})`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#4f46e5;">Leave Request Submitted</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
@@ -161,7 +179,7 @@ async function sendLeaveConfirmationEmail(employee, leave) {
           <tr><td style="padding:6px;color:#666;">Days</td><td style="padding:6px;"><strong>${leave.days_count}</strong></td></tr>
         </table>
         <p style="color:#666;font-size:0.85rem;">You will be notified once a decision is made.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -173,7 +191,7 @@ async function sendManagerLeaveNotificationEmail(manager, employee, leave) {
   await transporter.sendMail({
     from, to: manager.email,
     subject: `WorkTrack - Leave Request: ${employee.name} (${leave.type})`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#f59e0b;">Leave Request Requires Your Approval</h2>
         <p><strong>${employee.name}</strong> has submitted a ${leave.type} leave request.</p>
@@ -191,7 +209,7 @@ async function sendManagerLeaveNotificationEmail(manager, employee, leave) {
           </a>
         </p>
         <p style="color:#666;font-size:0.85rem;">Log in to review and make a decision.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -202,7 +220,7 @@ async function sendLeaveApprovedEmail(employee, leave) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: `WorkTrack - Leave Approved (${leave.type})`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#22c55e;">Leave Approved</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
@@ -213,7 +231,7 @@ async function sendLeaveApprovedEmail(employee, leave) {
           <tr><td style="padding:6px;color:#666;">Days</td><td style="padding:6px;"><strong>${leave.days_count}</strong></td></tr>
         </table>
         <p style="color:#666;font-size:0.85rem;">Enjoy your time off!</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -224,7 +242,7 @@ async function sendLeaveRejectedEmail(employee, leave, reason) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: `WorkTrack - Leave Rejected (${leave.type})`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#ef4444;">Leave Request Rejected</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
@@ -236,7 +254,7 @@ async function sendLeaveRejectedEmail(employee, leave, reason) {
         </table>
         ${reason ? `<p style="color:#666;font-size:0.85rem;">Reason: ${reason}</p>` : ''}
         <p style="color:#666;font-size:0.85rem;">Please contact your manager or HR if you have questions.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -255,7 +273,7 @@ async function sendMissingSignOutReminderEmail(employee, records) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: 'WorkTrack - Missing Sign-Out Detected',
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#f59e0b;">Missing Sign-Out Detected</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
@@ -267,7 +285,7 @@ async function sendMissingSignOutReminderEmail(employee, records) {
           </a>
         </p>
         <p style="color:#666;font-size:0.85rem;">If you already submitted a request, please wait for approval.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -278,7 +296,7 @@ async function sendSignOutRequestPendingEmail(approver, employee, request) {
   await transporter.sendMail({
     from, to: approver.email,
     subject: `WorkTrack - Sign-Out Request: ${employee.name}`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#f59e0b;">Manual Sign-Out Request Requires Approval</h2>
         <p><strong>${employee.name}</strong> has submitted a manual sign-out request.</p>
@@ -294,7 +312,7 @@ async function sendSignOutRequestPendingEmail(approver, employee, request) {
             Review Request
           </a>
         </p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -305,13 +323,13 @@ async function sendSignOutRequestApprovedEmail(employee, request) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: 'WorkTrack - Sign-Out Request Approved',
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#22c55e;">Sign-Out Request Approved</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
         <p>Your manual sign-out request for <strong>${request.date}</strong> at <strong>${request.signOutTime}</strong> has been approved.</p>
         <p style="color:#666;font-size:0.85rem;">Your attendance record has been updated.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -322,14 +340,14 @@ async function sendSignOutRequestRejectedEmail(employee, request, reason) {
   await transporter.sendMail({
     from, to: employee.email,
     subject: 'WorkTrack - Sign-Out Request Rejected',
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#ef4444;">Sign-Out Request Rejected</h2>
         <p>Hi <strong>${employee.name}</strong>,</p>
         <p>Your manual sign-out request for <strong>${request.date}</strong> has been rejected.</p>
         ${reason ? `<p style="color:#666;">Reason: ${reason}</p>` : ''}
         <p style="color:#666;font-size:0.85rem;">Please contact your manager or HR if you have questions.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -340,14 +358,14 @@ async function sendResignationNotification(approverEmail, employee, request) {
   await transporter.sendMail({
     from, to: approverEmail,
     subject: `WorkTrack - Resignation Request from ${employee.name}`,
-    html: `
+    html: mailLayout(`
       <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
         <h2 style="color:#f59e0b;">Resignation Request</h2>
         <p><strong>${employee.name}</strong> (${employee.email}) has submitted a resignation request.</p>
         <p><strong>Resignation Date:</strong> ${request.resignation_date}</p>
         ${request.reason ? `<p><strong>Reason:</strong> ${request.reason}</p>` : ''}
         <p style="color:#666;font-size:0.85rem;">Please review and respond in the system.</p>
-      </div>`,
+      </div>`),
   });
 }
 
@@ -389,7 +407,7 @@ async function sendInterviewInvitation(candidateEmail, candidateName, interview)
   if (interview.interviewer) detailsHtml += `<p><strong>Interviewer:</strong> ${interview.interviewer}</p>`;
   if (interview.notes) detailsHtml += `<p><strong>Notes:</strong> ${interview.notes}</p>`;
 
-  await sendEmail(candidateEmail, `Interview Invitation — ${interview.job_title || 'Job Interview'}`, `
+  await sendEmail(candidateEmail, `Interview Invitation — ${interview.job_title || 'Job Interview'}`, mailLayout(`
     <div style="font-family:Arial;max-width:520px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:10px;">
       <h2 style="color:#1e293b;margin-bottom:8px;">Interview Invitation</h2>
       <p>Dear <strong>${candidateName}</strong>,</p>
@@ -407,7 +425,7 @@ async function sendInterviewInvitation(candidateEmail, candidateName, interview)
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0" />
       <p style="color:#9ca3af;font-size:0.8rem;">An invitation has been attached to your calendar. WorkTrack</p>
     </div>
-  `, [{ filename: 'interview.ics', content: icsContent, contentType: 'text/calendar' }]);
+  `), [{ filename: 'interview.ics', content: icsContent, contentType: 'text/calendar' }]);
 }
 
-module.exports = { sendSignInEmail, sendSignOutEmail, sendVerificationEmail, sendPasswordResetEmail, sendLeaveConfirmationEmail, sendManagerLeaveNotificationEmail, sendLeaveApprovedEmail, sendLeaveRejectedEmail, sendMissingSignOutReminderEmail, sendSignOutRequestPendingEmail, sendSignOutRequestApprovedEmail, sendSignOutRequestRejectedEmail, sendResignationNotification, sendEmail, sendInterviewInvitation };
+module.exports = { mailLayout, sendSignInEmail, sendSignOutEmail, sendVerificationEmail, sendPasswordResetEmail, sendLeaveConfirmationEmail, sendManagerLeaveNotificationEmail, sendLeaveApprovedEmail, sendLeaveRejectedEmail, sendMissingSignOutReminderEmail, sendSignOutRequestPendingEmail, sendSignOutRequestApprovedEmail, sendSignOutRequestRejectedEmail, sendResignationNotification, sendEmail, sendInterviewInvitation };

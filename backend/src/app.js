@@ -246,14 +246,15 @@ app.post('/api/contact', async (req, res) => {
     const [settings] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' LIMIT 1");
     const adminEmail = settings.length > 0 ? settings[0].value : null;
     if (adminEmail) {
-      await sendEmail(adminEmail, `New Contact: ${name}`, `
+      const { mailLayout } = require('./shared/services/email.service');
+      await sendEmail(adminEmail, `New Contact: ${name}`, mailLayout(`
         <h2>New Contact Form Submission</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Company:</strong> ${company || '—'}</p>
         <p><strong>Message:</strong></p>
         <p>${message}</p>
-      `).catch(() => {});
+      `)).catch(() => {});
     }
     res.status(201).json({ message: 'Message received. We\'ll get back to you within 24 hours.' });
   } catch (err) {

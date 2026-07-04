@@ -36,7 +36,7 @@ export default function HRLayout({ children }) {
     <div className="admin-layout">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <Link to="/hr"><img src={logo || '/logo.png'} alt="" className="admin-logo" />HR Panel</Link>
+          <Link to="/hr"><img src={logo || '/logo.svg'} alt="" className="admin-logo" />HR Panel</Link>
         </div>
         <nav className="admin-nav">
           {servicePeople && (

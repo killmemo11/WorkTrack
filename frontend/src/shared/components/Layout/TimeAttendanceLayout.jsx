@@ -42,7 +42,7 @@ export default function TimeAttendanceLayout() {
     <div className="sub-layout">
       <aside className="sub-sidebar">
         <div className="sub-brand">
-          <img src={logo || '/logo.png'} alt="" />
+          <img src={logo || '/logo.svg'} alt="" />
           <span>Time & Attendance</span>
         </div>
         <nav className="sub-nav">

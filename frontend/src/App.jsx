@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import './shared/styles/design-tokens.css';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AdminAuthProvider } from './shared/context/AdminAuthContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
@@ -77,6 +77,11 @@ function PeopleProfileRedirect() {
   const Dashboard = lazy(() => import('./modules/attendance/pages/Dashboard'));
 
 export default function App() {
+  useEffect(() => {
+    const splash = document.getElementById('splash');
+    if (splash) splash.classList.add('hide');
+  }, []);
+
   return (
     <AdminAuthProvider>
       <Suspense fallback={

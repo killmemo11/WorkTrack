@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g7-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  
+  <rect x="18" y="25" width="10" height="50" rx="2" fill="url(#g7-dark)"/>
+  <rect x="34" y="25" width="10" height="50" rx="2" fill="url(#g7-dark)"/>
+  <rect x="23" y="45" width="16" height="10" rx="2" fill="url(#g7-dark)"/>
+  
+  <polygon points="50,25 60,75 66,45 72,75 82,25" fill="url(#g7-dark)"/>
+  
+  <circle cx="30" cy="15" r="3" fill="rgba(255,255,255,0.8)"/>
+  <rect x="28" y="18" width="4" height="5" fill="rgba(255,255,255,0.8)"/>
+  
+  <circle cx="70" cy="15" r="3" fill="rgba(255,255,255,0.8)"/>
+  <rect x="68" y="18" width="4" height="5" fill="rgba(255,255,255,0.8)"/>
+  
+  <circle cx="50" cy="10" r="3" fill="rgba(255,255,255,0.8)"/>
+  <rect x="48" y="13" width="4" height="5" fill="rgba(255,255,255,0.8)"/>
+  
+  <circle cx="85" cy="85" r="8" fill="none" stroke="url(#g7-dark)" stroke-width="1.5"/>
+  <line x1="85" y1="85" x2="85" y2="80" stroke="url(#g7-dark)" stroke-width="1.5"/>
+  <line x1="85" y1="85" x2="88" y2="87" stroke="url(#g7-dark)" stroke-width="1.5"/>
+</svg>

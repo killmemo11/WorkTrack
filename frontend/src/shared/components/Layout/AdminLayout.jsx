@@ -31,7 +31,7 @@ export default function AdminLayout() {
     <div className="admin-layout">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <Link to="/admin"><img src={logo || '/logo.png'} alt="" className="admin-logo" />WorkTrack</Link>
+          <Link to="/admin"><img src={logo || '/logo.svg'} alt="" className="admin-logo" />WorkTrack</Link>
         </div>
         <nav className="admin-nav">
           <Link to="/admin/settings" className={isActive('/admin/settings')}>
