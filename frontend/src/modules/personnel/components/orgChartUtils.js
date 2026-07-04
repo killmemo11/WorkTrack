@@ -1,4 +1,20 @@
-export function buildOrgTree(employees, search) {
+function getDeptManagerMap(employees, departments) {
+  const emailToEmp = new Map();
+  employees.forEach(e => {
+    if (e.email) emailToEmp.set(e.email.toLowerCase(), e.id);
+  });
+
+  const deptMgr = new Map();
+  departments.forEach(d => {
+    if (d.manager_email) {
+      const mgrId = emailToEmp.get(d.manager_email.toLowerCase());
+      if (mgrId != null) deptMgr.set(d.id, mgrId);
+    }
+  });
+  return deptMgr;
+}
+
+export function buildOrgTree(employees, departments = [], search) {
   const q = search?.toLowerCase().trim() || '';
   const empMap = new Map();
   const roots = [];
@@ -16,6 +32,37 @@ export function buildOrgTree(employees, search) {
       roots.push(node);
     }
   });
+
+  const assignedCount = employees.length - roots.length;
+  const useDepartmentFallback = assignedCount < employees.length * 0.5;
+
+  if (useDepartmentFallback && departments.length > 0) {
+    const deptMgr = getDeptManagerMap(employees, departments);
+
+    const toRemove = new Set();
+    for (let i = roots.length - 1; i >= 0; i--) {
+      const node = roots[i];
+      if (node.children.length > 0) continue;
+
+      const mgrId = deptMgr.get(node.department_id);
+      if (mgrId != null && mgrId !== node.id) {
+        const mgrNode = empMap.get(mgrId);
+        if (mgrNode) {
+          mgrNode.children.push(node);
+          toRemove.add(node.id);
+        }
+      }
+    }
+
+    if (toRemove.size > 0) {
+      const newRoots = [];
+      for (const r of roots) {
+        if (!toRemove.has(r.id)) newRoots.push(r);
+      }
+      roots.length = 0;
+      roots.push(...newRoots);
+    }
+  }
 
   if (!q) return roots;
 

@@ -58,7 +58,7 @@ export default function OrganizationChart() {
 
   const orgTree = useMemo(() => {
     if (!data) return [];
-    return buildOrgTree(data.employees, search);
+    return buildOrgTree(data.employees, data.departments, search);
   }, [data, search]);
 
   const treePositions = useMemo(() => {
