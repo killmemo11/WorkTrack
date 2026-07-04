@@ -1215,9 +1215,19 @@ body {
 .calendar-table-wrapper table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 3px;
+  border-spacing: 4px;
   table-layout: fixed;
   min-width: auto;
+}
+
+.glass-calendar-table td,
+.calendar-table-wrapper table td {
+  width: calc(100% / 7);
+}
+
+.glass-calendar-table th,
+.calendar-table-wrapper table th {
+  width: calc(100% / 7);
 }
 
 .calendar-header {
@@ -1233,7 +1243,7 @@ body {
 .cal-day {
   text-align: center;
   vertical-align: middle;
-  height: 62px;
+  height: 76px;
   width: 14.28%;
   font-size: 0.85rem;
   cursor: default;
@@ -1255,17 +1265,16 @@ body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 3px;
-  padding: 2px;
+  gap: 4px;
+  padding: 6px 2px;
 }
 
 .cal-day-number {
   display: block;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--text-primary);
   line-height: 1.4;
-  margin-bottom: 1px;
 }
 
 .cal-off { background: rgba(255,255,255,0.04); }
@@ -1303,12 +1312,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 700;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .cal-label-office { background: #22c55e; }
@@ -1318,7 +1328,7 @@ body {
   background: rgba(239,68,68,0.2);
   color: #fca5a5;
   border: 1px solid rgba(239,68,68,0.4);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 800;
 }
 .cal-label-holiday { background: #f59e0b; }
