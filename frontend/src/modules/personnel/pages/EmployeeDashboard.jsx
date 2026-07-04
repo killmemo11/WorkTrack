@@ -45,6 +45,9 @@ export default function EmployeeDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const todayDow = new Date().getDay();
+  const isWeekend = todayDow === 5 || todayDow === 6;
+  const isHoliday = isWeekend;
 
   useEffect(() => {
     fetchDashboardData();
@@ -117,12 +120,12 @@ export default function EmployeeDashboard() {
       <div className="dashboard-greeting fade-in-up">
         <div className="greeting-avatar">{empData.name?.charAt(0) || 'U'}</div>
         <div className="greeting-text">
-          <h1>Welcome back, {empData.name?.split(' ')[0] || 'User'}</h1>
-          <p>{empData.position || empData.department || 'Employee'} &middot; {formatDate(new Date())}</p>
+          <h1>{isHoliday ? '🎉 Happy holiday, ' + (empData.name?.split(' ')[0] || 'User') + '! 🎉' : 'Welcome back, ' + (empData.name?.split(' ')[0] || 'User')}</h1>
+          <p>{isHoliday ? 'Enjoy your well-deserved break! 🎊' : (empData.position || empData.department || 'Employee') + ' \u00B7 ' + formatDate(new Date())}</p>
         </div>
         <div className="greeting-badge">
-          <span className={`status-dot ${today.status}`}></span>
-          {statusInfo.label}
+          <span className={`status-dot ${isHoliday ? 'holiday' : today.status}`}></span>
+          {isHoliday ? '🎉 Holiday' : statusInfo.label}
         </div>
       </div>
 
@@ -147,8 +150,8 @@ export default function EmployeeDashboard() {
             <div className="stat-card gradient-purple card-hover fade-in-up delay-1">
               <div className="stat-card-bg"></div>
               <div className="stat-card-content">
-                <div className="stat-label">Today's Status</div>
-                <div className="stat-value">{statusInfo.label}</div>
+                <div className="stat-label">{isHoliday ? '🎉 Enjoy your holiday! 🎉' : "Today's Status"}</div>
+                <div className="stat-value">{isHoliday ? 'Holiday! 🎉' : statusInfo.label}</div>
                 {today.attendance && (
                   <div className="stat-details">
                     <span>

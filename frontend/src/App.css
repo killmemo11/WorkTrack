@@ -4527,6 +4527,7 @@ select.form-control { cursor: pointer; }
 .status-dot.signed_out { background: var(--brand-primary); box-shadow: 0 0 8px rgba(99,102,241,0.5); }
 .status-dot.not_signed_in { background: var(--warning); box-shadow: 0 0 8px rgba(245,158,11,0.5); }
 .status-dot.on_leave { background: var(--brand-secondary); box-shadow: 0 0 8px rgba(139,92,246,0.5); }
+.status-dot.holiday { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.6); }
 
 /* Tabs */
 .dashboard-tabs {
