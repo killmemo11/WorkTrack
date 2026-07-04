@@ -212,6 +212,9 @@ export default function OrgChartTree({
 
   const visibleNodes = useMemo(() => {
     const visible = new Set();
+    const childIds = new Set();
+    posArray.forEach(p => p.node.children?.forEach(c => childIds.add(c.id)));
+
     const walk = (node) => {
       if (collapsed.has(node.id)) {
         visible.add(node.id);
@@ -220,7 +223,10 @@ export default function OrgChartTree({
       visible.add(node.id);
       node.children?.forEach(child => walk(child));
     };
-    posArray.forEach(p => walk(p.node));
+
+    posArray.forEach(p => {
+      if (!childIds.has(p.node.id)) walk(p.node);
+    });
     return visible;
   }, [posArray, collapsed]);
 
