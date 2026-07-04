@@ -53,20 +53,20 @@ function ElapsedTimer({ signInTime }) {
 function LoadingSkeleton() {
   return (
     <div className="dashboard">
-      <div className="glass-skeleton" style={{ height: 140 }} />
+      <div className="glass-skeleton" style={{ height: 140, borderRadius: '12px' }} />
       <div className="dashboard-top-grid">
-        <div className="glass-skeleton" style={{ height: 280 }} />
-        <div className="glass-skeleton" style={{ height: 280 }} />
+        <div className="glass-skeleton" style={{ height: 280, borderRadius: '12px' }} />
+        <div className="glass-skeleton" style={{ height: 280, borderRadius: '12px' }} />
       </div>
       <div className="dashboard-stats-row">
-        {[1, 2, 3, 4, 5].map(i => <div key={i} className="glass-skeleton" style={{ height: 120 }} />)}
+        {[1, 2, 3, 4, 5].map(i => <div key={i} className="glass-skeleton" style={{ height: 120, borderRadius: '12px' }} />)}
       </div>
       <div className="dashboard-charts-row">
-        <div className="glass-skeleton" style={{ height: 240 }} />
-        <div className="glass-skeleton" style={{ height: 240 }} />
+        <div className="glass-skeleton" style={{ height: 240, borderRadius: '12px' }} />
+        <div className="glass-skeleton" style={{ height: 240, borderRadius: '12px' }} />
       </div>
       <div className="dashboard-calendar">
-        <div className="glass-skeleton" style={{ height: 320 }} />
+        <div className="glass-skeleton" style={{ height: 320, borderRadius: '12px' }} />
       </div>
     </div>
   );
@@ -509,24 +509,55 @@ export default function Dashboard() {
                 <p className="chart-subtitle">Office vs WFH attendance over the past 6 months</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={barData} barGap={8}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
-                    padding: '8px'
-                  }}
-                  labelStyle={{ color: '#e2e8f0' }}
-                />
-                <Bar dataKey="office" name="Office" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="wfh" name="WFH" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="chart-container" style={{ height: '260px', position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData} barGap={12}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12, fill: '#94a3b8' }} 
+                    axisLine={false} 
+                    tickLine={false}
+                    tickMargin={10}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12, fill: '#94a3b8' }} 
+                    axisLine={false} 
+                    tickLine={false}
+                    tickMargin={5}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1e293b', 
+                      border: '1px solid #334155',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    labelStyle={{ color: '#e2e8f0', fontWeight: 500 }}
+                    itemStyle={{ color: '#e2e8f0' }}
+                    formatter={(value, name) => {
+                      const color = name === 'office' ? '#22c55e' : '#3b82f6';
+                      return [`${value} days`, name];
+                    }}
+                  />
+                  <Bar 
+                    dataKey="office" 
+                    name="Office" 
+                    fill="#22c55e" 
+                    radius={[8, 8, 0, 0]} 
+                    animationDuration={500}
+                  />
+                  <Bar 
+                    dataKey="wfh" 
+                    name="WFH" 
+                    fill="#3b82f6" 
+                    radius={[8, 8, 0, 0]} 
+                    animationDuration={500}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
@@ -537,47 +568,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass-grid">
+        <div className="quick-actions-grid">
           {quickActions.map((a) => (
-            <div key={a.label} className="glass-card card-hover fade-in-up quick-action-card" style={{ 
-              borderLeftColor: a.color,
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => navigate(a.path)}>
+            <div 
+              key={a.label} 
+              className="quick-action-item glass-card card-hover fade-in-up" 
+              style={{ 
+                borderLeft: `4px solid ${a.color}`,
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => navigate(a.path)}
+            >
               <div className="quick-action-icon">
                 <div className="quick-action-icon-bg" style={{ backgroundColor: a.color + '20' }}>
                   <span className="iconify" data-icon={`lucide:${a.icon}`} style={{ fontSize: 24, color: a.color }} />
                 </div>
               </div>
-              <div className="quick-action-text">
-                <span className="quick-action-label">{a.label}</span>
-                <span className="quick-action-meta">{a.meta}</span>
+              <div className="quick-action-content">
+                <div className="quick-action-title">{a.label}</div>
+                <div className="quick-action-description">{a.meta}</div>
               </div>
             </div>
           ))}
         </div>
 
         {calendarData && (
-          <div className="glass-card fade-in-up" style={{ marginTop: '24px' }}>
-            <div className="glass-card-header">
-              <h3>Attendance Calendar</h3>
-              <span className="glass-badge glass-badge-default">
+          <div className="glass-card fade-in-up" style={{ marginTop: '24px', borderRadius: '12px', overflow: 'hidden' }}>
+            <div className="glass-card-header" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Attendance Calendar</h3>
+              <span className="glass-badge glass-badge-default" style={{ fontSize: '0.85rem' }}>
                 Period: {calendarData.date_from} → {calendarData.date_to}
               </span>
             </div>
-            <div className="calendar-container">
-              <div className="calendar-months">
+            <div className="calendar-container" style={{ padding: '0' }}>
+              <div className="calendar-months" style={{ padding: '0' }}>
                 {calendarData.months.map((m) => {
                   const grid = buildCalendarGrid(m.days);
                   return (
                     <div key={`${m.year}-${m.month}`} className="calendar-month">
-                      <h4 className="calendar-month-title">{monthNames[m.month - 1]} {m.year}</h4>
-                      <div className="calendar-table-wrapper">
-                        <table className="glass-calendar-table">
+                      <h4 className="calendar-month-title" style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 600, 
+                        padding: '16px 20px',
+                        color: 'var(--text-primary)'
+                      }}>
+                        {monthNames[m.month - 1]} {m.year}
+                      </h4>
+                      <div className="calendar-table-wrapper" style={{ overflowX: 'auto' }}>
+                        <table className="glass-calendar-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr>
                               {dayHeaders.map((h) => (
-                                <th key={h} className="calendar-header">{h}</th>
+                                <th key={h} className="calendar-header" style={{ 
+                                  background: 'rgba(255,255,255,0.03)', 
+                                  color: 'var(--text-dim)', 
+                                  fontSize: '0.75rem', 
+                                  fontWeight: 600, 
+                                  textTransform: 'uppercase', 
+                                  letterSpacing: '0.05em', 
+                                  padding: '12px 8px', 
+                                  textAlign: 'center'
+                                }}>
+                                  {h}
+                                </th>
                               ))}
                             </tr>
                           </thead>
@@ -585,7 +638,7 @@ export default function Dashboard() {
                             {grid.map((week, wi) => (
                               <tr key={wi}>
                                 {week.map((day, di) => {
-                                  if (!day) return <td key={di} className="cal-empty"></td>;
+                                  if (!day) return <td key={di} className="cal-empty" style={{ padding: 0 }}></td>;
                                   return (
                                     <td 
                                       key={di} 
@@ -601,13 +654,13 @@ export default function Dashboard() {
                                           </span>
                                         )}
                                         {day.type === 'office' && (
-                                          <span className={`cal-label ${isMissingSignOut(day) ? 'cal-label-missing' : 'cal-label-office'}`}>
-                                            {isMissingSignOut(day) ? '!' : 'O'}
+                                          <span className={`cal-label ${day.signed_out ? 'cal-label-office' : 'cal-label-missing'}`}>
+                                            {day.signed_out ? 'O' : '!'}
                                           </span>
                                         )}
                                         {day.type === 'wfh' && (
-                                          <span className={`cal-label ${isMissingSignOut(day) ? 'cal-label-missing' : 'cal-label-wfh'}`}>
-                                            {isMissingSignOut(day) ? '!' : 'W'}
+                                          <span className={`cal-label ${day.signed_out ? 'cal-label-wfh' : 'cal-label-missing'}`}>
+                                            {day.signed_out ? 'W' : '!'}
                                           </span>
                                         )}
                                         {day.leaves?.map((lt, i) => (
@@ -640,7 +693,14 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              <div className="calendar-legend">
+              <div className="calendar-legend" style={{ 
+                padding: '16px 20px', 
+                borderTop: '1px solid var(--border-subtle)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 20,
+                justifyContent: 'center'
+              }}>
                 <div className="legend-row">
                   <div className="legend-item">
                     <span className="legend-dot" style={{background:'#22c55e'}}></span>
@@ -669,7 +729,7 @@ export default function Dashboard() {
                     <span>Missing Out</span>
                   </div>
                   <div className="legend-item">
-                    <span className="legend-dot" style={{background:'#4f46e5'}}></span>
+                    <span className="legend-dot" style={{background:'#8b5cf6'}}></span>
                     <span>Annual</span>
                   </div>
                   <div className="legend-item">
