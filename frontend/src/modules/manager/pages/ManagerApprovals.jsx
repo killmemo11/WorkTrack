@@ -150,37 +150,41 @@ export default function ManagerApprovals() {
 
   const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header">
         <div>
-          <h1>Pending Approvals</h1>
-          <p className="subtitle">Review and manage requests from your team</p>
+          <h1><span className="iconify" data-icon="lucide:clipboard-check" style={{ marginRight: 10, verticalAlign: 'middle' }} />Pending Approvals</h1>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Review and manage requests from your team</p>
         </div>
       </div>
 
-      {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-      <div className="tabs" style={{ marginBottom: 16 }}>
-        <button className={`tab ${tab === 'leaves' ? 'tab-active' : ''}`} onClick={() => setTab('leaves')}>
-          Leave Requests {leaves.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{leaves.length}</span>}
+      <div className="glass-tabs">
+        <button className={`glass-tab ${tab === 'leaves' ? 'glass-tab-active' : ''}`} onClick={() => setTab('leaves')}>
+          <span className="iconify" data-icon="lucide:calendar-clock" style={{ marginRight: 6 }} />
+          Leave Requests {leaves.length > 0 && <span className="glass-badge glass-badge-warning">{leaves.length}</span>}
         </button>
-        <button className={`tab ${tab === 'signouts' ? 'tab-active' : ''}`} onClick={() => setTab('signouts')}>
-          Sign-Out Requests {signouts.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{signouts.length}</span>}
+        <button className={`glass-tab ${tab === 'signouts' ? 'glass-tab-active' : ''}`} onClick={() => setTab('signouts')}>
+          <span className="iconify" data-icon="lucide:log-out" style={{ marginRight: 6 }} />
+          Sign-Out Requests {signouts.length > 0 && <span className="glass-badge glass-badge-warning">{signouts.length}</span>}
         </button>
-        <button className={`tab ${tab === 'resignations' ? 'tab-active' : ''}`} onClick={() => setTab('resignations')}>
-          Resignations {resignations.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{resignations.length}</span>}
+        <button className={`glass-tab ${tab === 'resignations' ? 'glass-tab-active' : ''}`} onClick={() => setTab('resignations')}>
+          <span className="iconify" data-icon="lucide:user-x" style={{ marginRight: 6 }} />
+          Resignations {resignations.length > 0 && <span className="glass-badge glass-badge-warning">{resignations.length}</span>}
         </button>
-        <button className={`tab ${tab === 'headcount' ? 'tab-active' : ''}`} onClick={() => setTab('headcount')}>
-          Headcount {headcountReqs.length > 0 && <span className="badge badge-warning" style={{ marginLeft: 6 }}>{headcountReqs.length}</span>}
+        <button className={`glass-tab ${tab === 'headcount' ? 'glass-tab-active' : ''}`} onClick={() => setTab('headcount')}>
+          <span className="iconify" data-icon="lucide:users-round" style={{ marginRight: 6 }} />
+          Headcount {headcountReqs.length > 0 && <span className="glass-badge glass-badge-warning">{headcountReqs.length}</span>}
         </button>
       </div>
 
       {tab === 'leaves' && (
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Employee</th>
@@ -194,24 +198,28 @@ export default function ManagerApprovals() {
           </thead>
           <tbody>
             {leaves.length === 0 && (
-              <tr><td colSpan={7} className="empty-state">No pending leave requests from your team.</td></tr>
+              <tr><td colSpan={7} className="glass-empty">No pending leave requests from your team.</td></tr>
             )}
             {leaves.map((item) => (
               <tr key={item.id}>
                 <td><strong>{item.employee_name}</strong></td>
-                <td><span className="badge badge-employee">{typeLabels[item.type] || item.type}</span></td>
+                <td><span className="glass-badge glass-badge-default">{typeLabels[item.type] || item.type}</span></td>
                 <td>{formatDate(item.start_date)}</td>
                 <td>{formatDate(item.end_date)}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   <strong>{item.days_count}</strong> day(s){item.reason ? ` – ${item.reason}` : ''}
                 </td>
-                <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
+                <td style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                   {formatDate(item.created_at)}
                 </td>
                 <td>
-                  <div className="action-btns">
-                    <button className="btn btn-sm btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('leave'); }}>Approve</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('leave'); }}>Reject</button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('leave'); }}>
+                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                    </button>
+                    <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('leave'); }}>
+                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -222,8 +230,8 @@ export default function ManagerApprovals() {
       )}
 
       {tab === 'signouts' && (
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Employee</th>
@@ -236,23 +244,27 @@ export default function ManagerApprovals() {
           </thead>
           <tbody>
             {signouts.length === 0 && (
-              <tr><td colSpan={6} className="empty-state">No pending sign-out requests from your team.</td></tr>
+              <tr><td colSpan={6} className="glass-empty">No pending sign-out requests from your team.</td></tr>
             )}
             {signouts.map((item) => (
               <tr key={item.id}>
                 <td><strong>{item.employee_name}</strong></td>
-                <td className="cell-mono">{formatTime(item.sign_in_time)}</td>
-                <td className="cell-mono">{formatTime(item.sign_out_time)}</td>
+                <td>{formatTime(item.sign_in_time)}</td>
+                <td>{formatTime(item.sign_out_time)}</td>
                 <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.notes || <span style={{ color: '#999' }}>—</span>}
+                  {item.notes || <span style={{ color: 'var(--text-faint)' }}>—</span>}
                 </td>
-                <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
+                <td style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                   {formatDate(item.date || item.created_at)}
                 </td>
                 <td>
-                  <div className="action-btns">
-                    <button className="btn btn-sm btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('signout'); }}>Approve</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('signout'); }}>Reject</button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('signout'); }}>
+                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                    </button>
+                    <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('signout'); }}>
+                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -263,8 +275,8 @@ export default function ManagerApprovals() {
       )}
 
       {tab === 'resignations' && (
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Employee</th>
@@ -276,22 +288,26 @@ export default function ManagerApprovals() {
           </thead>
           <tbody>
             {resignations.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">No pending resignation requests.</td></tr>
+              <tr><td colSpan={5} className="glass-empty">No pending resignation requests.</td></tr>
             )}
             {resignations.map((r) => (
               <tr key={r.id}>
                 <td><strong>{r.employee_name}</strong></td>
                 <td>{formatDate(r.resignation_date)}</td>
                 <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.reason || <span style={{ color: '#999' }}>—</span>}
+                  {r.reason || <span style={{ color: 'var(--text-faint)' }}>—</span>}
                 </td>
-                <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
+                <td style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                   {formatDate(r.created_at)}
                 </td>
                 <td>
-                  <div className="action-btns">
-                    <button className="btn btn-sm btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('resignation'); }}>Approve</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('resignation'); }}>Reject</button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('resignation'); }}>
+                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                    </button>
+                    <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('resignation'); }}>
+                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -302,8 +318,8 @@ export default function ManagerApprovals() {
       )}
 
       {tab === 'headcount' && (
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Requester</th>
@@ -318,27 +334,31 @@ export default function ManagerApprovals() {
           </thead>
           <tbody>
             {headcountReqs.length === 0 && (
-              <tr><td colSpan={8} className="empty-state">No pending headcount requests from your team.</td></tr>
+              <tr><td colSpan={8} className="glass-empty">No pending headcount requests from your team.</td></tr>
             )}
             {headcountReqs.map((r) => (
               <tr key={r.id}>
                 <td><strong>{r.requester_name}</strong></td>
                 <td>{r.department_name}</td>
                 <td>{r.title_name}</td>
-                <td className="cell-mono">{r.quantity}</td>
-                <td><span className="badge badge-secondary">{r.job_type}</span></td>
+                <td>{r.quantity}</td>
+                <td><span className="glass-badge glass-badge-info">{r.job_type}</span></td>
                 <td>
-                  <span style={{ color: r.priority === 'urgent' ? '#ef4444' : '#6b7280', fontWeight: 600, fontSize: 13 }}>
+                  <span className={`glass-badge ${r.priority === 'urgent' ? 'glass-badge-danger' : 'glass-badge-default'}`}>
                     {r.priority === 'urgent' ? 'Urgent' : 'Normal'}
                   </span>
                 </td>
-                <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
+                <td style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                   {formatDate(r.created_at)}
                 </td>
                 <td>
-                  <div className="action-btns">
-                    <button className="btn btn-sm btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('headcount'); }}>Approve</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('headcount'); }}>Reject</button>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('headcount'); }}>
+                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                    </button>
+                    <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('headcount'); }}>
+                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -353,7 +373,7 @@ export default function ManagerApprovals() {
           title="Approve Leave"
           message={`Approve ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${formatDate(actionTarget.start_date)} → ${formatDate(actionTarget.end_date)}, ${actionTarget.days_count} day(s))?`}
           confirmText="Approve"
-          confirmClass="btn btn-primary"
+          confirmClass="glass-btn glass-btn-primary"
           onConfirm={() => handleApproveLeave(actionTarget.id)}
           onCancel={() => setActionTarget(null)}
         />
@@ -364,7 +384,7 @@ export default function ManagerApprovals() {
           title="Approve Sign-Out Request"
           message={`Approve ${actionTarget.employee_name}'s sign-out request for ${formatDate(actionTarget.date)} at ${formatTime(actionTarget.sign_out_time)}?`}
           confirmText="Approve"
-          confirmClass="btn btn-primary"
+          confirmClass="glass-btn glass-btn-primary"
           onConfirm={() => handleApproveSignout(actionTarget.id)}
           onCancel={() => setActionTarget(null)}
         />
@@ -375,7 +395,7 @@ export default function ManagerApprovals() {
           title="Approve Resignation"
           message={`Approve ${actionTarget.employee_name}'s resignation effective ${formatDate(actionTarget.resignation_date)}?`}
           confirmText="Approve"
-          confirmClass="btn btn-primary"
+          confirmClass="glass-btn glass-btn-primary"
           onConfirm={() => handleApproveResignation(actionTarget.id)}
           onCancel={() => setActionTarget(null)}
         />
@@ -386,27 +406,32 @@ export default function ManagerApprovals() {
           title="Approve Headcount Request"
           message={`Approve ${actionTarget.requester_name}'s request for ${actionTarget.title_name} (${actionTarget.quantity} position(s))? This will route to C-Level for further approval.`}
           confirmText="Approve"
-          confirmClass="btn btn-primary"
+          confirmClass="glass-btn glass-btn-primary"
           onConfirm={() => handleApproveHeadcount(actionTarget.id)}
           onCancel={() => setActionTarget(null)}
         />
       )}
 
       {actionTarget && actionType === 'reject' && (
-        <div className="modal-overlay" onClick={() => setActionTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <h2>{actionKind === 'leave' ? 'Reject Leave' : actionKind === 'signout' ? 'Reject Sign-Out Request' : actionKind === 'resignation' ? 'Reject Resignation' : 'Reject Headcount Request'}</h2>
-            <p>Reject {actionTarget.employee_name || actionTarget.requester_name}'s request?</p>
-            <label style={{ display: 'block', marginTop: 12 }}>
-              Reason <span style={{ color: 'red' }}>*</span>
-              <textarea className="form-control" value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)} rows={3}
-                style={{ width: '100%', marginTop: 4 }} placeholder="Enter reason (required)..." />
-            </label>
-            {!rejectionReason.trim() && <small style={{ color: 'red' }}>You must provide a reason to reject.</small>}
-            <div className="modal-actions" style={{ marginTop: 16 }}>
-              <button className="btn btn-outline" onClick={() => setActionTarget(null)}>Cancel</button>
-              <button className="btn btn-danger" disabled={!rejectionReason.trim()} onClick={() => {
+        <div className="glass-modal-overlay" onClick={() => setActionTarget(null)}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="glass-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="glass-modal-title">{actionKind === 'leave' ? 'Reject Leave' : actionKind === 'signout' ? 'Reject Sign-Out Request' : actionKind === 'resignation' ? 'Reject Resignation' : 'Reject Headcount Request'}</h2>
+              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><span className="iconify" data-icon="lucide:x" /></button>
+            </div>
+            <div className="glass-card-body">
+              <p>Reject {actionTarget.employee_name || actionTarget.requester_name}'s request?</p>
+              <label style={{ display: 'block', marginTop: 12 }}>
+                Reason <span style={{ color: 'var(--color-danger)' }}>*</span>
+                <textarea className="glass-textarea" value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)} rows={3}
+                  placeholder="Enter reason (required)..." />
+              </label>
+              {!rejectionReason.trim() && <small style={{ color: 'var(--color-danger)' }}>You must provide a reason to reject.</small>}
+            </div>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setActionTarget(null)}>Cancel</button>
+              <button className="glass-btn glass-btn-danger" disabled={!rejectionReason.trim()} onClick={() => {
                 if (actionKind === 'leave') handleRejectLeave(actionTarget.id);
                 else if (actionKind === 'signout') handleRejectSignout(actionTarget.id);
                 else if (actionKind === 'resignation') handleRejectResignation(actionTarget.id);

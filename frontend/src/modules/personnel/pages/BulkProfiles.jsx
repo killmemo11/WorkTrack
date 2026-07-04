@@ -48,35 +48,52 @@ export default function BulkProfiles() {
 
   return (
     <>
-      <div className="page-header"><h2>Bulk Profile Management</h2></div>
-      {message && <div className={`alert ${message.type === 'error' ? 'alert-error' : 'alert-success'}`}>{message.text}</div>}
+      <div className="glass-page-header">
+        <h2><span className="iconify" data-icon="lucide:users-round" style={{ marginRight: 8 }} />Bulk Profile Management</h2>
+      </div>
+
+      {message && (
+        <div className={`glass-alert ${message.type === 'error' ? 'glass-alert-danger' : 'glass-alert-success'}`}>
+          <span className="iconify" data-icon={message.type === 'error' ? 'lucide:x-circle' : 'lucide:check-circle'} style={{ marginRight: 8 }} />
+          {message.text}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-        <div className="card">
-          <div className="card-header"><h3>Export Template</h3></div>
-          <div className="card-body">
-            <p className="text-muted">Download an Excel file with all employees and their profile fields.</p>
-            <p className="text-muted" style={{ marginTop: 8 }}>Fill in the data and upload it back using the Import section.</p>
-            <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleExport}>Download Excel Template</button>
+        <div className="glass-card card-hover fade-in-up">
+          <div className="glass-card-header">
+            <h3><span className="iconify" data-icon="lucide:download" style={{ marginRight: 8 }} />Export Template</h3>
+          </div>
+          <div className="glass-card-body">
+            <p style={{ color: 'var(--text-dim)' }}>Download an Excel file with all employees and their profile fields.</p>
+            <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>Fill in the data and upload it back using the Import section.</p>
+            <button className="glass-btn glass-btn-primary" style={{ marginTop: 16 }} onClick={handleExport}>
+              <span className="iconify" data-icon="lucide:download" style={{ marginRight: 6 }} /> Download Excel Template
+            </button>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header"><h3>Import Profiles</h3></div>
-          <div className="card-body">
-            <p className="text-muted">Upload the filled Excel file to update employee profiles in bulk.</p>
-            <label className="btn btn-primary" style={{ marginTop: 16, display: 'inline-flex', cursor: 'pointer' }}>
-              {uploading ? 'Uploading...' : 'Upload Excel File'}
+        <div className="glass-card card-hover fade-in-up">
+          <div className="glass-card-header">
+            <h3><span className="iconify" data-icon="lucide:upload-cloud" style={{ marginRight: 8 }} />Import Profiles</h3>
+          </div>
+          <div className="glass-card-body">
+            <p style={{ color: 'var(--text-dim)' }}>Upload the filled Excel file to update employee profiles in bulk.</p>
+            <label className="glass-btn glass-btn-primary" style={{ marginTop: 16, display: 'inline-flex', cursor: 'pointer', alignItems: 'center', gap: 6 }}>
+              <span className="iconify" data-icon="lucide:upload" />
+              {uploading ? <>Uploading... <span className="spinner-sm" /></> : 'Upload Excel File'}
               <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleImport} disabled={uploading} />
             </label>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>Instructions</h3></div>
-        <div className="card-body">
-          <ol style={{ paddingLeft: 20, lineHeight: 2, color: '#555' }}>
+      <div className="glass-card card-hover fade-in-up">
+        <div className="glass-card-header">
+          <h3><span className="iconify" data-icon="lucide:book-open" style={{ marginRight: 8 }} />Instructions</h3>
+        </div>
+        <div className="glass-card-body">
+          <ol style={{ paddingLeft: 20, lineHeight: 2, color: 'var(--text-secondary)' }}>
             <li>Click <strong>Download Excel Template</strong> to get a file with all registered employees.</li>
             <li>Open the file in Excel or Google Sheets.</li>
             <li><strong>Profiles sheet:</strong> Fill in the profile fields for each employee (all fields are optional).</li>

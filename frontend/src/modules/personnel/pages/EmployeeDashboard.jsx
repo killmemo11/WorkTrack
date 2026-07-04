@@ -69,20 +69,21 @@ export default function EmployeeDashboard() {
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading your dashboard...</p>
+      <div className="glass-loading">
+        <div className="spinner" />
+        <span>Loading...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="dashboard-error">
-        <div className="error-icon">⚠</div>
+      <div className="glass-alert glass-alert-danger" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 32, textAlign: 'center' }}>
+        <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: 32 }}></span>
         <h3>Error Loading Dashboard</h3>
-        <p>{error}</p>
-        <button onClick={() => fetchDashboardData()} className="retry-button">
+        <p style={{ color: 'var(--text-dim)' }}>{error}</p>
+        <button onClick={() => fetchDashboardData()} className="glass-btn glass-btn-primary">
+          <span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 6 }}></span>
           Try Again
         </button>
       </div>
@@ -91,8 +92,8 @@ export default function EmployeeDashboard() {
 
   if (!dashboardData) {
     return (
-      <div className="dashboard-empty">
-        <div className="empty-icon">📊</div>
+      <div className="glass-empty">
+        <span className="iconify" data-icon="lucide:bar-chart-3" style={{ fontSize: 48, opacity: 0.4 }}></span>
         <h3>No Data Available</h3>
         <p>Your dashboard data is still loading. Please check back later.</p>
       </div>
@@ -248,12 +249,12 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="section-card card-hover fade-in-up delay-3">
-            <div className="section-card-header">
+          <div className="section-card glass-card card-hover fade-in-up delay-3">
+            <div className="section-card-header glass-card-header">
               <h2>Personal Goals</h2>
             </div>
-            <div className="goals-grid">
-              <div className="goal-card">
+            <div className="goals-grid glass-card-body">
+              <div className="goal-card glass-detail-row">
                 <span className="iconify goal-icon" data-icon="lucide:target" style={{ fontSize: 28, color: '#818cf8' }}></span>
                 <div className="goal-body">
                   <div className="goal-header-row">
@@ -266,7 +267,7 @@ export default function EmployeeDashboard() {
                   <p className="goal-desc">Focus on improving attendance and completing tasks on time</p>
                 </div>
               </div>
-              <div className="goal-card">
+              <div className="goal-card glass-detail-row">
                 <span className="iconify goal-icon" data-icon="lucide:book-open" style={{ fontSize: 28, color: '#f97316' }}></span>
                 <div className="goal-body">
                   <div className="goal-header-row">
@@ -279,7 +280,7 @@ export default function EmployeeDashboard() {
                   <p className="goal-desc">Complete 3 training courses this quarter</p>
                 </div>
               </div>
-              <div className="goal-card">
+              <div className="goal-card glass-detail-row">
                 <span className="iconify goal-icon" data-icon="lucide:users" style={{ fontSize: 28, color: '#22c55e' }}></span>
                 <div className="goal-body">
                   <div className="goal-header-row">
@@ -298,33 +299,39 @@ export default function EmployeeDashboard() {
       )}
 
       {activeTab === 'tasks' && (
-        <div className="section-card fade-in-up delay-2">
-          <div className="section-card-header">
+        <div className="section-card glass-card fade-in-up delay-2">
+          <div className="section-card-header glass-card-header">
             <h2>Upcoming Tasks</h2>
-            <button className="btn-outline-sm" onClick={() => navigate('/personnel/my-tasks')}>View All</button>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate('/personnel/my-tasks')}>
+              <span className="iconify" data-icon="lucide:arrow-right" style={{ marginRight: 4, fontSize: 12 }}></span>
+              View All
+            </button>
           </div>
           {upcomingTasks.length > 0 ? (
-            <div className="tasks-grid">
+            <div className="tasks-grid glass-card-body">
               {upcomingTasks.map((task, idx) => (
-                <div key={task.id} className="task-card card-hover" style={{ '--task-accent': COLORS[idx % COLORS.length] }}>
+                <div key={task.id} className="task-card glass-card card-hover fade-in-up" style={{ '--task-accent': COLORS[idx % COLORS.length] }}>
                   <div className="task-card-accent" style={{ background: COLORS[idx % COLORS.length] }}></div>
                   <div className="task-card-content">
                     <div className="task-card-header">
                       <h4>{task.title}</h4>
-                      <span className={`task-priority-badge ${task.priority}`}>{task.priority}</span>
+                      <span className={`glass-badge ${task.priority === 'high' ? 'glass-badge-danger' : task.priority === 'medium' ? 'glass-badge-warning' : 'glass-badge-default'}`}>{task.priority}</span>
                     </div>
                     <p className="task-card-desc">{task.description}</p>
                     <div className="task-card-footer">
-                      <span className="task-due"><span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 4, fontSize: 11 }}></span>Due {formatDate(task.due_date)}</span>
-                      <span className="task-status-badge">{task.status}</span>
+                      <span className="task-due" style={{ color: 'var(--text-dim)' }}>
+                        <span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 4, fontSize: 11 }}></span>
+                        Due {formatDate(task.due_date)}
+                      </span>
+                      <span className={`glass-badge ${task.status === 'completed' ? 'glass-badge-success' : task.status === 'in_progress' ? 'glass-badge-info' : 'glass-badge-default'}`}>{task.status}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              <span className="iconify empty-icon" data-icon="lucide:check-circle" style={{ fontSize: 40, color: '#22c55e', opacity: 0.5 }}></span>
+            <div className="glass-empty glass-card-body">
+              <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 40, opacity: 0.4 }}></span>
               <p>No upcoming tasks. Great job!</p>
             </div>
           )}
@@ -332,26 +339,29 @@ export default function EmployeeDashboard() {
       )}
 
       {activeTab === 'activity' && (
-        <div className="section-card fade-in-up delay-2">
-          <div className="section-card-header">
+        <div className="section-card glass-card fade-in-up delay-2">
+          <div className="section-card-header glass-card-header">
             <h2>Recent Activity</h2>
           </div>
           {recentNotifications.length > 0 ? (
-            <div className="activity-timeline">
+            <div className="activity-timeline glass-card-body">
               {recentNotifications.map((notification, idx) => (
-                <div key={notification.id} className="timeline-item">
+                <div key={notification.id} className="timeline-item glass-detail-row">
                   <div className="timeline-dot" style={{ background: COLORS[idx % COLORS.length] }}></div>
                   <div className="timeline-content">
                     <h4>{notification.title}</h4>
                     <p>{notification.message}</p>
-                    <span className="timeline-time"><span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4, fontSize: 11 }}></span>{formatDate(notification.created_at)}</span>
+                    <span className="timeline-time" style={{ color: 'var(--text-dim)' }}>
+                      <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4, fontSize: 11 }}></span>
+                      {formatDate(notification.created_at)}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              <span className="iconify empty-icon" data-icon="lucide:bell" style={{ fontSize: 40, opacity: 0.3 }}></span>
+            <div className="glass-empty glass-card-body">
+              <span className="iconify" data-icon="lucide:bell" style={{ fontSize: 40, opacity: 0.3 }}></span>
               <p>No recent notifications.</p>
             </div>
           )}

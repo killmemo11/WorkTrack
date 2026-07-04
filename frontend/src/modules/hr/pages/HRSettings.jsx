@@ -283,646 +283,715 @@ export default function HRSettings() {
   return (
     <HRLayout>
       <div className="page">
-        <h1>HR Settings</h1>
-        <p className="subtitle">Configure departments, holidays, and leave types</p>
+        <div className="glass-page-header">
+          <div>
+            <h1>HR Settings</h1>
+            <p className="subtitle">Configure departments, holidays, and leave types</p>
+          </div>
+        </div>
 
-        {message && <div className={`alert ${message.toLowerCase().includes('failed') ? 'alert-error' : 'alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
+        {message && <div className={`glass-alert ${message.toLowerCase().includes('failed') ? 'glass-alert-danger' : 'glass-alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
 
-        <div className="settings-tabs">
-          <button className={`settings-tab ${activeTab === 'company' ? 'active' : ''}`} onClick={() => setActiveTab('company')}>Company</button>
-          <button className={`settings-tab ${activeTab === 'departments' ? 'active' : ''}`} onClick={() => setActiveTab('departments')}>Departments</button>
-          <button className={`settings-tab ${activeTab === 'holidays' ? 'active' : ''}`} onClick={() => setActiveTab('holidays')}>Holidays & Work Week</button>
-          <button className={`settings-tab ${activeTab === 'leave-types' ? 'active' : ''}`} onClick={() => setActiveTab('leave-types')}>Leave Types</button>
-          <button className={`settings-tab ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>Grades</button>
-          <button className={`settings-tab ${activeTab === 'master-lists' ? 'active' : ''}`} onClick={() => setActiveTab('master-lists')}>Master Lists</button>
+        <div className="glass-tabs" style={{ marginBottom: 24 }}>
+          {[
+            { key: 'company', label: 'Company', icon: 'lucide:building-2' },
+            { key: 'departments', label: 'Departments', icon: 'lucide:git-branch' },
+            { key: 'holidays', label: 'Holidays & Work Week', icon: 'lucide:calendar-days' },
+            { key: 'leave-types', label: 'Leave Types', icon: 'lucide:calendar-check' },
+            { key: 'grades', label: 'Grades', icon: 'lucide:layers' },
+            { key: 'master-lists', label: 'Master Lists', icon: 'lucide:list' },
+          ].map(tab => (
+            <button key={tab.key} className={`glass-tab ${activeTab === tab.key ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab(tab.key)}>
+              <span className="iconify" data-icon={tab.icon} style={{ marginRight: 6, fontSize: 14 }} />{tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="settings-form">
           {activeTab === 'company' && (
             <>
-              <div className="settings-section-title">Company Information</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                This information is used when generating contracts and official documents.
-              </p>
-              <div className="settings-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <label>
-                  Company Name
-                  <input className="form-control" style={{width:'100%'}} value={company.company_name}
-                    onChange={e => setCompany({...company, company_name: e.target.value})} placeholder="Company name" />
-                </label>
-                <label>
-                  Phone
-                  <input className="form-control" style={{width:'100%'}} value={company.company_phone}
-                    onChange={e => setCompany({...company, company_phone: e.target.value})} placeholder="+20 2 1234 5678" />
-                </label>
-                <label>
-                  Fax
-                  <input className="form-control" style={{width:'100%'}} value={company.company_fax}
-                    onChange={e => setCompany({...company, company_fax: e.target.value})} placeholder="+20 2 1234 5679" />
-                </label>
-                <label>
-                  Commercial Register
-                  <input className="form-control" style={{width:'100%'}} value={company.company_commercial_register}
-                    onChange={e => setCompany({...company, company_commercial_register: e.target.value})} placeholder="رقم السجل التجاري" />
-                </label>
-                <label>
-                  Tax Card
-                  <input className="form-control" style={{width:'100%'}} value={company.company_tax_card}
-                    onChange={e => setCompany({...company, company_tax_card: e.target.value})} placeholder="رقم البطاقة الضريبية" />
-                </label>
-                <label>
-                  Company Representative
-                  <input className="form-control" style={{width:'100%'}} value={company.company_representative}
-                    onChange={e => setCompany({...company, company_representative: e.target.value})} placeholder="اسم الممثل القانوني" />
-                </label>
-                <label>
-                  Representative Title
-                  <input className="form-control" style={{width:'100%'}} value={company.company_representative_title}
-                    onChange={e => setCompany({...company, company_representative_title: e.target.value})} placeholder="رئيس مجلس الإدارة / المدير العام" />
-                </label>
-              </div>
-              <label style={{gridColumn: '1 / -1'}}>
-                Company Address
-                <textarea className="form-control" rows={3} style={{width:'100%', resize:'vertical'}} value={company.company_address}
-                  onChange={e => setCompany({...company, company_address: e.target.value})} placeholder="عنوان الشركة" />
-              </label>
-              <div className="settings-actions">
-                <button className="btn btn-primary" disabled={companySaving} onClick={async () => {
-                  setCompanySaving(true);
-                  try {
-                    await hrApi.put('/settings/company', company);
-                    setMessage('Company settings saved');
-                  } catch { setMessage('Failed to save company settings'); }
-                  setCompanySaving(false);
-                  setTimeout(() => setMessage(''), 3000);
-                }}>{companySaving ? 'Saving...' : 'Save Company Info'}</button>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 8 }} />Company Information</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    This information is used when generating contracts and official documents.
+                  </p>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Company Name</label>
+                      <input className="glass-input" value={company.company_name}
+                        onChange={e => setCompany({...company, company_name: e.target.value})} placeholder="Company name" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Phone</label>
+                      <input className="glass-input" value={company.company_phone}
+                        onChange={e => setCompany({...company, company_phone: e.target.value})} placeholder="+20 2 1234 5678" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Fax</label>
+                      <input className="glass-input" value={company.company_fax}
+                        onChange={e => setCompany({...company, company_fax: e.target.value})} placeholder="+20 2 1234 5679" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Commercial Register</label>
+                      <input className="glass-input" value={company.company_commercial_register}
+                        onChange={e => setCompany({...company, company_commercial_register: e.target.value})} placeholder="رقم السجل التجاري" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Tax Card</label>
+                      <input className="glass-input" value={company.company_tax_card}
+                        onChange={e => setCompany({...company, company_tax_card: e.target.value})} placeholder="رقم البطاقة الضريبية" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Company Representative</label>
+                      <input className="glass-input" value={company.company_representative}
+                        onChange={e => setCompany({...company, company_representative: e.target.value})} placeholder="اسم الممثل القانوني" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Representative Title</label>
+                      <input className="glass-input" value={company.company_representative_title}
+                        onChange={e => setCompany({...company, company_representative_title: e.target.value})} placeholder="رئيس مجلس الإدارة / المدير العام" />
+                    </div>
+                  </div>
+                  <div className="glass-form-group" style={{ marginTop: 16 }}>
+                    <label className="glass-label">Company Address</label>
+                    <textarea className="glass-textarea" rows={3} value={company.company_address}
+                      onChange={e => setCompany({...company, company_address: e.target.value})} placeholder="عنوان الشركة" />
+                  </div>
+                  <div style={{ marginTop: 16 }}>
+                    <button className="glass-btn glass-btn-primary" disabled={companySaving} onClick={async () => {
+                      setCompanySaving(true);
+                      try {
+                        await hrApi.put('/settings/company', company);
+                        setMessage('Company settings saved');
+                      } catch { setMessage('Failed to save company settings'); }
+                      setCompanySaving(false);
+                      setTimeout(() => setMessage(''), 3000);
+                    }}>{companySaving ? 'Saving...' : 'Save Company Info'}</button>
+                  </div>
+                </div>
               </div>
             </>
           )}
 
           {activeTab === 'departments' && (
             <>
-              <div className="settings-section-title">Company CEO</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                The CEO oversees all departments and can approve any manager's leave requests across the entire company.
-              </p>
-              <div style={{ maxWidth: 400, marginBottom: 24 }}>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>CEO Email</span>
-                  <input type="email" className="form-control" value={ceoEmail}
-                    onChange={(e) => setCeoEmail(e.target.value)}
-                    placeholder="ceo@company.com" style={{ width: '100%' }} />
-                </label>
-                <button className="btn btn-primary" onClick={async () => {
-                  try {
-                    await hrApi.put('/settings/work-week', { ceo_email: ceoEmail });
-                    setMessage('CEO email saved');
-                  } catch { setMessage('Failed to save CEO email'); }
-                  setTimeout(() => setMessage(''), 3000);
-                }} style={{ marginTop: 8 }}>Save CEO</button>
-              </div>
-
-              <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
-              <div className="settings-section-title">Manage Departments</div>
-
-              <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button className="btn btn-sm btn-primary" onClick={async () => {
-                  try {
-                    const res = await hrApi.get('/departments/template', { responseType: 'blob' });
-                    const url = window.URL.createObjectURL(new Blob([res.data]));
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'departments_template.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    window.URL.revokeObjectURL(url);
-                  } catch { setMessage('Failed to download template'); setTimeout(() => setMessage(''), 3000); }
-                }}>Download Template</button>
-                <button className="btn btn-sm btn-primary" style={{ position: 'relative', overflow: 'hidden' }}
-                  onClick={() => document.getElementById('excel-import-input').click()}>
-                  Import from Excel
-                  <input id="excel-import-input" type="file" accept=".xlsx,.xls" style={{ position: 'absolute', left: '-9999px' }}
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      const formData = new FormData();
-                      formData.append('file', file);
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:crown" style={{ marginRight: 8 }} />Company CEO</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    The CEO oversees all departments and can approve any manager&apos;s leave requests across the entire company.
+                  </p>
+                  <div style={{ maxWidth: 400, marginBottom: 24 }}>
+                    <div className="glass-form-group">
+                      <label className="glass-label">CEO Email</label>
+                      <input type="email" className="glass-input" value={ceoEmail}
+                        onChange={(e) => setCeoEmail(e.target.value)} placeholder="ceo@company.com" />
+                    </div>
+                    <button className="glass-btn glass-btn-primary" onClick={async () => {
                       try {
-                        const token = localStorage.getItem('hrToken');
-                        const res = await fetch('/api/hr/departments/import', {
-                          method: 'POST',
-                          headers: token ? { Authorization: `Bearer ${token}` } : {},
-                          body: formData,
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw { response: { data } };
-                        let msg = data.message;
-                        if (data.errors && data.errors.length > 0) {
-                          msg += '\n' + data.errors.join('\n');
-                        }
-                        setMessage(msg);
-                        fetchDepartments();
-                      } catch (err) {
-                        setMessage(err.response?.data?.error || 'Import failed');
-                      }
-                      e.target.value = '';
-                      setTimeout(() => setMessage(''), 15000);
-                    }} />
-                </button>
-              </div>
+                        await hrApi.put('/settings/work-week', { ceo_email: ceoEmail });
+                        setMessage('CEO email saved');
+                      } catch { setMessage('Failed to save CEO email'); }
+                      setTimeout(() => setMessage(''), 3000);
+                    }} style={{ marginTop: 8 }}>Save CEO</button>
+                  </div>
 
-              <div className="table-wrapper" style={{ marginBottom: 24 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{width: 60}}>ID</th>
-                      <th>Name</th>
-                      <th>Parent Dept</th>
-                      <th>Max HC</th>
-                      <th>Manager Email</th>
-                      <th>C-Level Email</th>
-                      <th style={{width: 160}}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {departments.length === 0 && (
-                      <tr><td colSpan={7} className="empty-state">No departments yet. Add one below.</td></tr>
-                    )}
-                    {departments.map((dept) => (
-                      <tr key={dept.id}>
-                        {editingDept?.id === dept.id ? (
-                          <>
-                            <td className="cell-mono">{dept.id}</td>
-                            <td>
-                              <input type="text" className="form-control" style={{width:'100%'}}
-                                value={editingDept.name}
-                                onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })} />
-                            </td>
-                            <td>
-                              <select className="form-control" style={{width:'100%'}}
-                                value={editingDept.parent_department_id || ''}
-                                onChange={(e) => setEditingDept({ ...editingDept, parent_department_id: e.target.value })}>
-                                <option value="">— None —</option>
-                                {departments.filter(d => d.id !== dept.id).map(d => (
-                                  <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                              </select>
-                            </td>
-                            <td>
-                              <input type="email" className="form-control" style={{width:'100%'}}
-                                value={editingDept.manager_email}
-                                onChange={(e) => setEditingDept({ ...editingDept, manager_email: e.target.value })} />
-                            </td>
-                            <td>
-                              <input type="email" className="form-control" style={{width:'100%'}}
-                                value={editingDept.c_level_email || ''}
-                                onChange={(e) => setEditingDept({ ...editingDept, c_level_email: e.target.value })} />
-                            </td>
-                            <td>
-                              <div className="dept-table-actions">
-                                <button className="btn btn-sm btn-primary" onClick={handleEditDept}>Save</button>
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept(null)}>Cancel</button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="cell-mono">{dept.id}</td>
-                            <td><strong>{dept.name}</strong></td>
-                            <td style={{fontSize:'0.85rem',color:'#666'}}>
-                              {(() => {
-                                const parent = departments.find(d => d.id === dept.parent_department_id);
-                                return parent ? parent.name : <span style={{color:'#999'}}>—</span>;
-                              })()}
-                            </td>
-                            <td className="cell-mono">
-                              {dept.max_headcount > 0 ? `${dept.max_headcount} (auto)` : <span style={{color:'#999'}}>&infin;</span>}
-                            </td>
-                            <td>{dept.manager_email || <span style={{color:'#999'}}>—</span>}</td>
-                            <td>{dept.c_level_email || <span style={{color:'#999'}}>—</span>}</td>
-                            <td>
-                              <div className="dept-table-actions">
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '', parent_department_id: dept.parent_department_id || '' })}>Edit</button>
-                                <button className="btn btn-sm btn-danger" onClick={() => setDeleteConfirm(dept)}>Delete</button>
-                              </div>
-                            </td>
-                          </>
+                  <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border-glass)' }} />
+
+                  <div className="glass-page-header" style={{ padding: 0, marginBottom: 16 }}>
+                    <h3 style={{ margin: 0 }}><span className="iconify" data-icon="lucide:git-branch" style={{ marginRight: 8 }} />Manage Departments</h3>
+                  </div>
+
+                  <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={async () => {
+                      try {
+                        const res = await hrApi.get('/departments/template', { responseType: 'blob' });
+                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'departments_template.xlsx';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                      } catch { setMessage('Failed to download template'); setTimeout(() => setMessage(''), 3000); }
+                    }}><span className="iconify" data-icon="lucide:download" style={{ marginRight: 6 }} />Download Template</button>
+                    <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ position: 'relative', overflow: 'hidden' }}
+                      onClick={() => document.getElementById('excel-import-input').click()}>
+                      <span className="iconify" data-icon="lucide:upload" style={{ marginRight: 6 }} />Import from Excel
+                      <input id="excel-import-input" type="file" accept=".xlsx,.xls" style={{ position: 'absolute', left: '-9999px' }}
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const token = localStorage.getItem('hrToken');
+                            const res = await fetch('/api/hr/departments/import', {
+                              method: 'POST',
+                              headers: token ? { Authorization: `Bearer ${token}` } : {},
+                              body: formData,
+                            });
+                            const data = await res.json();
+                            if (!res.ok) throw { response: { data } };
+                            let msg = data.message;
+                            if (data.errors && data.errors.length > 0) {
+                              msg += '\n' + data.errors.join('\n');
+                            }
+                            setMessage(msg);
+                            fetchDepartments();
+                          } catch (err) {
+                            setMessage(err.response?.data?.error || 'Import failed');
+                          }
+                          e.target.value = '';
+                          setTimeout(() => setMessage(''), 15000);
+                        }} />
+                    </button>
+                  </div>
+
+                  <div className="glass-table-wrapper" style={{ marginBottom: 24 }}>
+                    <table className="glass-table">
+                      <thead>
+                        <tr>
+                          <th style={{width: 60}}>ID</th>
+                          <th>Name</th>
+                          <th>Parent Dept</th>
+                          <th>Max HC</th>
+                          <th>Manager Email</th>
+                          <th>C-Level Email</th>
+                          <th style={{width: 160}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {departments.length === 0 && (
+                          <tr><td colSpan={7}><div className="glass-empty" style={{ padding: 20 }}>No departments yet. Add one below.</div></td></tr>
                         )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {departments.map((dept) => (
+                          <tr key={dept.id}>
+                            {editingDept?.id === dept.id ? (
+                              <>
+                                <td className="cell-mono">{dept.id}</td>
+                                <td>
+                                  <input type="text" className="glass-input" style={{width:'100%'}}
+                                    value={editingDept.name}
+                                    onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })} />
+                                </td>
+                                <td>
+                                  <select className="glass-select" style={{width:'100%'}}
+                                    value={editingDept.parent_department_id || ''}
+                                    onChange={(e) => setEditingDept({ ...editingDept, parent_department_id: e.target.value })}>
+                                    <option value="">— None —</option>
+                                    {departments.filter(d => d.id !== dept.id).map(d => (
+                                      <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td>
+                                  <input type="email" className="glass-input" style={{width:'100%'}}
+                                    value={editingDept.manager_email}
+                                    onChange={(e) => setEditingDept({ ...editingDept, manager_email: e.target.value })} />
+                                </td>
+                                <td>
+                                  <input type="email" className="glass-input" style={{width:'100%'}}
+                                    value={editingDept.c_level_email || ''}
+                                    onChange={(e) => setEditingDept({ ...editingDept, c_level_email: e.target.value })} />
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleEditDept}>Save</button>
+                                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingDept(null)}>Cancel</button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="cell-mono">{dept.id}</td>
+                                <td><strong>{dept.name}</strong></td>
+                                <td style={{fontSize:'0.85rem', color:'var(--text-dim)'}}>
+                                  {(() => {
+                                    const parent = departments.find(d => d.id === dept.parent_department_id);
+                                    return parent ? parent.name : <span style={{color:'var(--text-dim)'}}>—</span>;
+                                  })()}
+                                </td>
+                                <td className="cell-mono">
+                                  {dept.max_headcount > 0 ? `${dept.max_headcount} (auto)` : <span style={{color:'var(--text-dim)'}}>∞</span>}
+                                </td>
+                                <td>{dept.manager_email || <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                                <td>{dept.c_level_email || <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingDept({ ...dept, c_level_email: dept.c_level_email || '', parent_department_id: dept.parent_department_id || '' })}>Edit</button>
+                                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setDeleteConfirm(dept)}>Delete</button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Department</div>
-              <div className="dept-add-form">
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Department Name</span>
-                  <input type="text" className="form-control" style={{width:'100%'}}
-                    value={deptForm.name}
-                    onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
-                    placeholder="e.g. Marketing" />
-                </label>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Parent Department</span>
-                  <select className="form-control" style={{width:'100%'}}
-                    value={deptForm.parent_department_id}
-                    onChange={(e) => setDeptForm({ ...deptForm, parent_department_id: e.target.value })}>
-                    <option value="">— None (top-level) —</option>
-                    {departments.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Manager Email</span>
-                  <input type="email" className="form-control" style={{width:'100%'}}
-                    value={deptForm.manager_email}
-                    onChange={(e) => setDeptForm({ ...deptForm, manager_email: e.target.value })}
-                    placeholder="manager@company.com" />
-                </label>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>C-Level Email</span>
-                  <input type="email" className="form-control" style={{width:'100%'}}
-                    value={deptForm.c_level_email}
-                    onChange={(e) => setDeptForm({ ...deptForm, c_level_email: e.target.value })}
-                    placeholder="ceo@company.com" />
-                </label>
-                <button className="btn btn-primary" onClick={handleAddDept} disabled={!deptForm.name.trim()} style={{marginBottom:4}}>
-                  Add Department
-                </button>
+                  <div className="glass-page-header" style={{ padding: 0, marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Department</h3>
+                  </div>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Department Name</label>
+                      <input type="text" className="glass-input"
+                        value={deptForm.name}
+                        onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
+                        placeholder="e.g. Marketing" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Parent Department</label>
+                      <select className="glass-select"
+                        value={deptForm.parent_department_id}
+                        onChange={(e) => setDeptForm({ ...deptForm, parent_department_id: e.target.value })}>
+                        <option value="">— None (top-level) —</option>
+                        {departments.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Manager Email</label>
+                      <input type="email" className="glass-input"
+                        value={deptForm.manager_email}
+                        onChange={(e) => setDeptForm({ ...deptForm, manager_email: e.target.value })}
+                        placeholder="manager@company.com" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">C-Level Email</label>
+                      <input type="email" className="glass-input"
+                        value={deptForm.c_level_email}
+                        onChange={(e) => setDeptForm({ ...deptForm, c_level_email: e.target.value })}
+                        placeholder="ceo@company.com" />
+                    </div>
+                  </div>
+                  <button className="glass-btn glass-btn-primary" onClick={handleAddDept} disabled={!deptForm.name.trim()} style={{marginTop: 8}}>
+                    Add Department
+                  </button>
+                </div>
               </div>
             </>
           )}
 
           {activeTab === 'holidays' && (
             <>
-              <div className="settings-section-title">Work Week</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                Set which days are work days. Any work day without an attendance record will be counted as absence.
-              </p>
-              <div className="settings-grid">
-                <label>
-                  Work Week Start Day
-                  <select className="form-control" value={settings.work_week_start}
-                    onChange={(e) => setSettings({ ...settings, work_week_start: e.target.value })} style={{width:'100%'}}>
-                    {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Work Week End Day
-                  <select className="form-control" value={settings.work_week_end}
-                    onChange={(e) => setSettings({ ...settings, work_week_end: e.target.value })} style={{width:'100%'}}>
-                    {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </label>
-              </div>
-              <div className="settings-actions">
-                <button className="btn btn-primary" onClick={handleSaveWorkWeek} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Settings'}
-                </button>
-              </div>
-
-              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
-              <div className="settings-section-title">Attendance Period</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                The attendance month runs from day {settings.period_start_day} of the previous month to day {settings.period_end_day} of the current month.
-              </p>
-              <div className="settings-grid">
-                <label>
-                  Period Start Day (of previous month)
-                  <input type="number" className="form-control" value={settings.period_start_day}
-                    onChange={(e) => setSettings({ ...settings, period_start_day: e.target.value })}
-                    min={1} max={28} style={{width:'100%'}} />
-                </label>
-                <label>
-                  Period End Day (of current month)
-                  <input type="number" className="form-control" value={settings.period_end_day}
-                    onChange={(e) => setSettings({ ...settings, period_end_day: e.target.value })}
-                    min={1} max={28} style={{width:'100%'}} />
-                </label>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:calendar-clock" style={{ marginRight: 8 }} />Work Week</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    Set which days are work days. Any work day without an attendance record will be counted as absence.
+                  </p>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Work Week Start Day</label>
+                      <select className="glass-select" value={settings.work_week_start}
+                        onChange={(e) => setSettings({ ...settings, work_week_start: e.target.value })}>
+                        {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Work Week End Day</label>
+                      <select className="glass-select" value={settings.work_week_end}
+                        onChange={(e) => setSettings({ ...settings, work_week_end: e.target.value })}>
+                        {weekDays.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <button className="glass-btn glass-btn-primary" onClick={handleSaveWorkWeek} disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Settings'}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
-              <div className="settings-section-title">Official Holidays</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                These dates will be excluded from absence calculations.
-              </p>
-
-              <div className="table-wrapper" style={{ marginBottom: 24 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{width: 60}}>ID</th>
-                      <th>Date</th>
-                      <th>Name</th>
-                      <th style={{width: 100}}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {holidays.length === 0 && (
-                      <tr><td colSpan={4} className="empty-state">No holidays added yet.</td></tr>
-                    )}
-                    {holidays.map((h) => (
-                      <tr key={h.id}>
-                        <td className="cell-mono">{h.id}</td>
-                        <td>{formatDate(h.date)}</td>
-                        <td>{h.name || <span style={{color:'#999'}}>—</span>}</td>
-                        <td>
-                          <button className="btn btn-sm btn-danger" onClick={() => setHolidayDeleteConfirm(h)}>Delete</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:timer" style={{ marginRight: 8 }} />Attendance Period</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    The attendance month runs from day {settings.period_start_day} of the previous month to day {settings.period_end_day} of the current month.
+                  </p>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Period Start Day (of previous month)</label>
+                      <input type="number" className="glass-input" value={settings.period_start_day}
+                        onChange={(e) => setSettings({ ...settings, period_start_day: e.target.value })}
+                        min={1} max={28} />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Period End Day (of current month)</label>
+                      <input type="number" className="glass-input" value={settings.period_end_day}
+                        onChange={(e) => setSettings({ ...settings, period_end_day: e.target.value })}
+                        min={1} max={28} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Holiday</div>
-              <div className="dept-add-form">
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Date</span>
-                  <input type="date" className="form-control" style={{width:'100%'}}
-                    value={holidayForm.date}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} />
-                </label>
-                <label>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Holiday Name</span>
-                  <input type="text" className="form-control" style={{width:'100%'}}
-                    value={holidayForm.name}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
-                    placeholder="e.g. Eid al-Fitr" />
-                </label>
-                <button className="btn btn-primary" onClick={handleAddHoliday} disabled={!holidayForm.date} style={{marginBottom:4}}>
-                  Add Holiday
-                </button>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:party-popper" style={{ marginRight: 8 }} />Official Holidays</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    These dates will be excluded from absence calculations.
+                  </p>
+
+                  <div className="glass-table-wrapper" style={{ marginBottom: 24 }}>
+                    <table className="glass-table">
+                      <thead>
+                        <tr>
+                          <th style={{width: 60}}>ID</th>
+                          <th>Date</th>
+                          <th>Name</th>
+                          <th style={{width: 100}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {holidays.length === 0 && (
+                          <tr><td colSpan={4}><div className="glass-empty" style={{ padding: 20 }}>No holidays added yet.</div></td></tr>
+                        )}
+                        {holidays.map((h) => (
+                          <tr key={h.id}>
+                            <td className="cell-mono">{h.id}</td>
+                            <td>{formatDate(h.date)}</td>
+                            <td>{h.name || <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                            <td>
+                              <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setHolidayDeleteConfirm(h)}>Delete</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="glass-page-header" style={{ padding: 0, marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Holiday</h3>
+                  </div>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Date</label>
+                      <input type="date" className="glass-input"
+                        value={holidayForm.date}
+                        onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Holiday Name</label>
+                      <input type="text" className="glass-input"
+                        value={holidayForm.name}
+                        onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
+                        placeholder="e.g. Eid al-Fitr" />
+                    </div>
+                  </div>
+                  <button className="glass-btn glass-btn-primary" onClick={handleAddHoliday} disabled={!holidayForm.date} style={{marginTop: 8}}>
+                    Add Holiday
+                  </button>
+                </div>
               </div>
             </>
           )}
 
           {activeTab === 'leave-types' && (
             <>
-              <div className="settings-section-title">Manage Leave Types</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                Configure leave type names and default balances. New employees receive the default balance for types that have one.
-              </p>
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Label</th>
-                      <th>Default Balance</th>
-                      <th>Active</th>
-                      <th style={{width: 120}}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveTypes.length === 0 && (
-                      <tr><td colSpan={5} className="empty-state">No leave types found.</td></tr>
-                    )}
-                    {leaveTypes.map((lt) => (
-                      editingLt?.id === lt.id ? (
-                        <tr key={lt.id}>
-                          <td className="cell-mono">{lt.name}</td>
-                          <td>
-                            <input type="text" className="form-control" style={{width:'100%'}}
-                              value={editingLt.label}
-                              onChange={(e) => setEditingLt({ ...editingLt, label: e.target.value })} />
-                          </td>
-                          <td>
-                            <input type="number" className="form-control" style={{width:100}}
-                              value={editingLt.default_balance ?? ''}
-                              onChange={(e) => setEditingLt({ ...editingLt, default_balance: e.target.value !== '' ? parseFloat(e.target.value) : null })}
-                              step="0.5" min="0" placeholder="No balance" />
-                          </td>
-                          <td>
-                            <input type="checkbox" checked={!!editingLt.is_active}
-                              onChange={(e) => setEditingLt({ ...editingLt, is_active: e.target.checked ? 1 : 0 })} />
-                          </td>
-                          <td>
-                            <div className="action-btns">
-                              <button className="btn btn-sm btn-primary" onClick={() => handleSaveLeaveType(editingLt)}>Save</button>
-                              <button className="btn btn-sm btn-outline" onClick={() => setEditingLt(null)}>Cancel</button>
-                            </div>
-                          </td>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:calendar-check" style={{ marginRight: 8 }} />Manage Leave Types</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    Configure leave type names and default balances. New employees receive the default balance for types that have one.
+                  </p>
+                  <div className="glass-table-wrapper">
+                    <table className="glass-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Label</th>
+                          <th>Default Balance</th>
+                          <th>Active</th>
+                          <th style={{width: 120}}>Actions</th>
                         </tr>
-                      ) : (
-                        <tr key={lt.id}>
-                          <td className="cell-mono">{lt.name}</td>
-                          <td><strong>{lt.label}</strong></td>
-                          <td>{lt.default_balance !== null ? `${lt.default_balance} days` : <span style={{color:'#999'}}>—</span>}</td>
-                          <td>
-                            <span className={`badge ${lt.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                              {lt.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td>
-                            <button className="btn btn-sm btn-outline" onClick={() => setEditingLt({ ...lt })}>Edit</button>
-                          </td>
-                        </tr>
-                      )
-                    ))}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {leaveTypes.length === 0 && (
+                          <tr><td colSpan={5}><div className="glass-empty" style={{ padding: 20 }}>No leave types found.</div></td></tr>
+                        )}
+                        {leaveTypes.map((lt) => (
+                          editingLt?.id === lt.id ? (
+                            <tr key={lt.id}>
+                              <td className="cell-mono">{lt.name}</td>
+                              <td>
+                                <input type="text" className="glass-input" style={{width:'100%'}}
+                                  value={editingLt.label}
+                                  onChange={(e) => setEditingLt({ ...editingLt, label: e.target.value })} />
+                              </td>
+                              <td>
+                                <input type="number" className="glass-input" style={{width:100}}
+                                  value={editingLt.default_balance ?? ''}
+                                  onChange={(e) => setEditingLt({ ...editingLt, default_balance: e.target.value !== '' ? parseFloat(e.target.value) : null })}
+                                  step="0.5" min="0" placeholder="No balance" />
+                              </td>
+                              <td>
+                                <input type="checkbox" checked={!!editingLt.is_active}
+                                  onChange={(e) => setEditingLt({ ...editingLt, is_active: e.target.checked ? 1 : 0 })} />
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => handleSaveLeaveType(editingLt)}>Save</button>
+                                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingLt(null)}>Cancel</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            <tr key={lt.id}>
+                              <td className="cell-mono">{lt.name}</td>
+                              <td><strong>{lt.label}</strong></td>
+                              <td>{lt.default_balance !== null ? `${lt.default_balance} days` : <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                              <td>
+                                <span className={`glass-badge ${lt.is_active ? 'glass-badge-success' : 'glass-badge-secondary'}`}>
+                                  {lt.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td>
+                                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingLt({ ...lt })}>Edit</button>
+                              </td>
+                            </tr>
+                          )
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid var(--border-glass)' }} />
+
+                  <div className="glass-page-header" style={{ padding: 0, marginBottom: 12 }}>
+                    <h3 style={{ margin: 0 }}>Reset All Balances</h3>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 12 }}>
+                    Reset all employees&apos; leave balances to the default values configured above.
+                    {lastReset && <span> Last reset: <strong>{new Date(lastReset).toLocaleDateString()}</strong></span>}
+                  </p>
+                  <button className="glass-btn glass-btn-danger" onClick={() => setResetConfirm(true)}>
+                    Reset All Balances to Defaults
+                  </button>
+                </div>
               </div>
-
-              <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
-              <div className="settings-section-title">Reset All Balances</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 12 }}>
-                Reset all employees' leave balances to the default values configured above.
-                {lastReset && <span> Last reset: <strong>{new Date(lastReset).toLocaleDateString()}</strong></span>}
-              </p>
-              <button className="btn btn-danger" onClick={() => setResetConfirm(true)}>
-                Reset All Balances to Defaults
-              </button>
             </>
           )}
 
           {activeTab === 'grades' && (
             <>
-              <div className="settings-section-title">Manage Grades (Job Levels)</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                Define job grades/levels and their salary ranges. Grades are used to standardize positions and compensation across the organization.
-              </p>
+              <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:layers" style={{ marginRight: 8 }} />Manage Grades (Job Levels)</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    Define job grades/levels and their salary ranges. Grades are used to standardize positions and compensation across the organization.
+                  </p>
 
-              <div className="table-wrapper" style={{ marginBottom: 24 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{width: 60}}>Level</th>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Min Salary</th>
-                      <th>Max Salary</th>
-                      <th style={{width: 140}}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grades.length === 0 && (
-                      <tr><td colSpan={6} className="empty-state">No grades defined yet. Add one below.</td></tr>
-                    )}
-                    {grades.map((g) => (
-                      <tr key={g.id}>
-                        {editingGrade?.id === g.id ? (
-                          <>
-                            <td>
-                              <input type="number" className="form-control" style={{width:60}}
-                                value={editingGrade.grade_level}
-                                onChange={(e) => setEditingGrade({ ...editingGrade, grade_level: e.target.value })} />
-                            </td>
-                            <td>
-                              <input type="text" className="form-control" style={{width:'100%'}}
-                                value={editingGrade.name}
-                                onChange={(e) => setEditingGrade({ ...editingGrade, name: e.target.value })} />
-                            </td>
-                            <td>
-                              <input type="text" className="form-control" style={{width:'100%'}}
-                                value={editingGrade.description || ''}
-                                onChange={(e) => setEditingGrade({ ...editingGrade, description: e.target.value })} />
-                            </td>
-                            <td>
-                              <input type="number" className="form-control" style={{width:120}}
-                                value={editingGrade.min_salary || ''}
-                                onChange={(e) => setEditingGrade({ ...editingGrade, min_salary: e.target.value })} />
-                            </td>
-                            <td>
-                              <input type="number" className="form-control" style={{width:120}}
-                                value={editingGrade.max_salary || ''}
-                                onChange={(e) => setEditingGrade({ ...editingGrade, max_salary: e.target.value })} />
-                            </td>
-                            <td>
-                              <div className="action-btns">
-                                <button className="btn btn-sm btn-primary" onClick={handleEditGrade}>Save</button>
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingGrade(null)}>Cancel</button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="cell-mono"><strong>Lv.{g.grade_level}</strong></td>
-                            <td><strong>{g.name}</strong></td>
-                            <td>{g.description || <span style={{color:'#999'}}>—</span>}</td>
-                            <td>{g.min_salary ? `${Number(g.min_salary).toLocaleString()}` : <span style={{color:'#999'}}>—</span>}</td>
-                            <td>{g.max_salary ? `${Number(g.max_salary).toLocaleString()}` : <span style={{color:'#999'}}>—</span>}</td>
-                            <td>
-                              <div className="action-btns">
-                                <button className="btn btn-sm btn-outline" onClick={() => setEditingGrade({ ...g, grade_level: String(g.grade_level) })}>Edit</button>
-                                <button className="btn btn-sm btn-danger" onClick={() => setGradeDeleteConfirm(g)}>Delete</button>
-                              </div>
-                            </td>
-                          </>
+                  <div className="glass-table-wrapper" style={{ marginBottom: 24 }}>
+                    <table className="glass-table">
+                      <thead>
+                        <tr>
+                          <th style={{width: 60}}>Level</th>
+                          <th>Name</th>
+                          <th>Description</th>
+                          <th>Min Salary</th>
+                          <th>Max Salary</th>
+                          <th style={{width: 140}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {grades.length === 0 && (
+                          <tr><td colSpan={6}><div className="glass-empty" style={{ padding: 20 }}>No grades defined yet. Add one below.</div></td></tr>
                         )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {grades.map((g) => (
+                          <tr key={g.id}>
+                            {editingGrade?.id === g.id ? (
+                              <>
+                                <td>
+                                  <input type="number" className="glass-input" style={{width:60}}
+                                    value={editingGrade.grade_level}
+                                    onChange={(e) => setEditingGrade({ ...editingGrade, grade_level: e.target.value })} />
+                                </td>
+                                <td>
+                                  <input type="text" className="glass-input" style={{width:'100%'}}
+                                    value={editingGrade.name}
+                                    onChange={(e) => setEditingGrade({ ...editingGrade, name: e.target.value })} />
+                                </td>
+                                <td>
+                                  <input type="text" className="glass-input" style={{width:'100%'}}
+                                    value={editingGrade.description || ''}
+                                    onChange={(e) => setEditingGrade({ ...editingGrade, description: e.target.value })} />
+                                </td>
+                                <td>
+                                  <input type="number" className="glass-input" style={{width:120}}
+                                    value={editingGrade.min_salary || ''}
+                                    onChange={(e) => setEditingGrade({ ...editingGrade, min_salary: e.target.value })} />
+                                </td>
+                                <td>
+                                  <input type="number" className="glass-input" style={{width:120}}
+                                    value={editingGrade.max_salary || ''}
+                                    onChange={(e) => setEditingGrade({ ...editingGrade, max_salary: e.target.value })} />
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleEditGrade}>Save</button>
+                                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingGrade(null)}>Cancel</button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="cell-mono"><strong>Lv.{g.grade_level}</strong></td>
+                                <td><strong>{g.name}</strong></td>
+                                <td>{g.description || <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                                <td>{g.min_salary ? `${Number(g.min_salary).toLocaleString()}` : <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                                <td>{g.max_salary ? `${Number(g.max_salary).toLocaleString()}` : <span style={{color:'var(--text-dim)'}}>—</span>}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setEditingGrade({ ...g, grade_level: String(g.grade_level) })}>Edit</button>
+                                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setGradeDeleteConfirm(g)}>Delete</button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-              <div className="settings-section-title" style={{ fontSize: '1rem', borderBottom: 'none', marginBottom: 12 }}>Add New Grade</div>
-              <div className="dept-add-form" style={{ flexWrap: 'wrap' }}>
-                <label style={{minWidth:80}}>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Level *</span>
-                  <input type="number" className="form-control" style={{width:'100%'}}
-                    value={gradeForm.grade_level}
-                    onChange={(e) => setGradeForm({ ...gradeForm, grade_level: e.target.value })}
-                    placeholder="1" min={1} />
-                </label>
-                <label style={{minWidth:150}}>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Name *</span>
-                  <input type="text" className="form-control" style={{width:'100%'}}
-                    value={gradeForm.name}
-                    onChange={(e) => setGradeForm({ ...gradeForm, name: e.target.value })}
-                    placeholder="e.g. Junior" />
-                </label>
-                <label style={{minWidth:200}}>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Description</span>
-                  <input type="text" className="form-control" style={{width:'100%'}}
-                    value={gradeForm.description}
-                    onChange={(e) => setGradeForm({ ...gradeForm, description: e.target.value })}
-                    placeholder="e.g. Entry level" />
-                </label>
-                <label style={{minWidth:120}}>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Min Salary</span>
-                  <input type="number" className="form-control" style={{width:'100%'}}
-                    value={gradeForm.min_salary}
-                    onChange={(e) => setGradeForm({ ...gradeForm, min_salary: e.target.value })}
-                    placeholder="0" />
-                </label>
-                <label style={{minWidth:120}}>
-                  <span style={{display:'block',marginBottom:4,fontSize:'0.85rem',fontWeight:600,color:'#333'}}>Max Salary</span>
-                  <input type="number" className="form-control" style={{width:'100%'}}
-                    value={gradeForm.max_salary}
-                    onChange={(e) => setGradeForm({ ...gradeForm, max_salary: e.target.value })}
-                    placeholder="0" />
-                </label>
-                <button className="btn btn-primary" onClick={handleAddGrade}
-                  disabled={!gradeForm.grade_level || !gradeForm.name} style={{marginBottom:4}}>
-                  Add Grade
-                </button>
+                  <div className="glass-page-header" style={{ padding: 0, marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem' }}>Add New Grade</h3>
+                  </div>
+                  <div className="glass-detail-grid">
+                    <div className="glass-form-group">
+                      <label className="glass-label">Level *</label>
+                      <input type="number" className="glass-input"
+                        value={gradeForm.grade_level}
+                        onChange={(e) => setGradeForm({ ...gradeForm, grade_level: e.target.value })}
+                        placeholder="1" min={1} />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Name *</label>
+                      <input type="text" className="glass-input"
+                        value={gradeForm.name}
+                        onChange={(e) => setGradeForm({ ...gradeForm, name: e.target.value })}
+                        placeholder="e.g. Junior" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Description</label>
+                      <input type="text" className="glass-input"
+                        value={gradeForm.description}
+                        onChange={(e) => setGradeForm({ ...gradeForm, description: e.target.value })}
+                        placeholder="e.g. Entry level" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Min Salary</label>
+                      <input type="number" className="glass-input"
+                        value={gradeForm.min_salary}
+                        onChange={(e) => setGradeForm({ ...gradeForm, min_salary: e.target.value })}
+                        placeholder="0" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Max Salary</label>
+                      <input type="number" className="glass-input"
+                        value={gradeForm.max_salary}
+                        onChange={(e) => setGradeForm({ ...gradeForm, max_salary: e.target.value })}
+                        placeholder="0" />
+                    </div>
+                  </div>
+                  <button className="glass-btn glass-btn-primary" onClick={handleAddGrade}
+                    disabled={!gradeForm.grade_level || !gradeForm.name} style={{marginTop: 8}}>
+                    Add Grade
+                  </button>
+                </div>
               </div>
             </>
           )}
 
           {activeTab === 'master-lists' && (
             <>
-              <div className="settings-section-title">Master Lists</div>
-              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 16 }}>
-                Add and manage skills and certifications used across recruitment requirements.
-              </p>
-              {message && <div className={`alert ${message.toLowerCase().includes('failed') ? 'alert-error' : 'alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
-              <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-                <button className={`btn btn-sm ${mlActiveSubtab === 'skills' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setMlActiveSubtab('skills')}>Skills</button>
-                <button className={`btn btn-sm ${mlActiveSubtab === 'certs' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setMlActiveSubtab('certs')}>Certifications</button>
-              </div>
-              <div className="card">
-                <div className="card-body">
+              <div className="glass-card card-hover fade-in-up">
+                <div className="glass-card-header">
+                  <h3><span className="iconify" data-icon="lucide:list" style={{ marginRight: 8 }} />Master Lists</h3>
+                </div>
+                <div className="glass-card-body">
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+                    Add and manage skills and certifications used across recruitment requirements.
+                  </p>
+                  {message && <div className={`glass-alert ${message.toLowerCase().includes('failed') ? 'glass-alert-danger' : 'glass-alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
+                  <div className="glass-tabs" style={{ marginBottom: 16 }}>
+                    <button className={`glass-tab ${mlActiveSubtab === 'skills' ? 'glass-tab-active' : ''}`} onClick={() => setMlActiveSubtab('skills')}>
+                      <span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 4 }} /> Skills
+                    </button>
+                    <button className={`glass-tab ${mlActiveSubtab === 'certs' ? 'glass-tab-active' : ''}`} onClick={() => setMlActiveSubtab('certs')}>
+                      <span className="iconify" data-icon="lucide:award" style={{ marginRight: 4 }} /> Certifications
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                    <input className="form-control" value={mlNewName}
+                    <input className="glass-input" value={mlNewName}
                       onChange={e => setMlNewName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleMlAdd(); }}
                       placeholder={`Add new ${mlActiveSubtab === 'skills' ? 'skill' : 'certification'}...`}
                       style={{ maxWidth: 400 }} />
-                    <button className="btn btn-primary" onClick={handleMlAdd} disabled={!mlNewName.trim()}>+ Add</button>
+                    <button className="glass-btn glass-btn-primary" onClick={handleMlAdd} disabled={!mlNewName.trim()}>
+                      <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> Add
+                    </button>
                   </div>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 60 }}>#</th>
-                        <th>Name</th>
-                        <th style={{ width: 200 }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(mlActiveSubtab === 'skills' ? mlSkills : mlCerts).length === 0 ? (
-                        <tr><td colSpan={3} className="text-center">No {mlActiveSubtab === 'skills' ? 'skills' : 'certifications'} yet. Add one above.</td></tr>
-                      ) : (mlActiveSubtab === 'skills' ? mlSkills : mlCerts).map(item => (
-                        <tr key={item.id}>
-                          <td>{item.id}</td>
-                          <td>
-                            {mlEditing?.id === item.id ? (
-                              <div style={{ display: 'flex', gap: 4 }}>
-                                <input className="form-control form-control-sm" value={mlEditName}
-                                  onChange={e => setMlEditName(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') handleMlUpdate(); if (e.key === 'Escape') setMlEditing(null); }}
-                                  style={{ maxWidth: 300 }} />
-                                <button className="btn btn-sm btn-primary" onClick={handleMlUpdate}>Save</button>
-                                <button className="btn btn-sm btn-outline" onClick={() => setMlEditing(null)}>Cancel</button>
-                              </div>
-                            ) : item.name}
-                          </td>
-                          <td>
-                            <button className="btn btn-sm btn-outline" onClick={() => { setMlEditing(item); setMlEditName(item.name); }}>Edit</button>
-                            <button className="btn btn-sm btn-outline-danger" onClick={() => setMlConfirm(item)} style={{ marginLeft: 4 }}>Delete</button>
-                          </td>
+                  <div className="glass-table-wrapper">
+                    <table className="glass-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 60 }}>#</th>
+                          <th>Name</th>
+                          <th style={{ width: 200 }}>Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {(mlActiveSubtab === 'skills' ? mlSkills : mlCerts).length === 0 ? (
+                          <tr><td colSpan={3}><div className="glass-empty" style={{ padding: 20 }}>No {mlActiveSubtab === 'skills' ? 'skills' : 'certifications'} yet. Add one above.</div></td></tr>
+                        ) : (mlActiveSubtab === 'skills' ? mlSkills : mlCerts).map(item => (
+                          <tr key={item.id}>
+                            <td>{item.id}</td>
+                            <td>
+                              {mlEditing?.id === item.id ? (
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  <input className="glass-input" value={mlEditName}
+                                    onChange={e => setMlEditName(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleMlUpdate(); if (e.key === 'Escape') setMlEditing(null); }}
+                                    style={{ maxWidth: 300 }} />
+                                  <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleMlUpdate}>Save</button>
+                                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setMlEditing(null)}>Cancel</button>
+                                </div>
+                              ) : item.name}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => { setMlEditing(item); setMlEditName(item.name); }}>Edit</button>
+                                <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setMlConfirm(item)}>Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
               {mlConfirm && (

@@ -185,22 +185,30 @@ export default function Candidates() {
   };
 
   const stageBadge = (stage) => {
-    const colors = { applied: 'secondary', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
-    return <span className={`badge badge-${colors[stage] || 'secondary'}`}>{stage}</span>;
+    const colors = { applied: 'neutral', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
+    return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{stage}</span>;
   };
 
-  const stageColors = { applied: '#e2e8f0', phone: '#bfdbfe', first: '#a5f3fc', second: '#fde68a', third: '#fed7aa', offer: '#bbf7d0', hired: '#86efac', rejected: '#fecaca' };
+  const stageColors = { applied: 'rgba(255,255,255,0.06)', phone: 'rgba(59,130,246,0.12)', first: 'rgba(99,102,241,0.12)', second: 'rgba(245,158,11,0.12)', third: 'rgba(239,68,68,0.12)', offer: 'rgba(34,197,94,0.12)', hired: 'rgba(34,197,94,0.18)', rejected: 'rgba(239,68,68,0.12)' };
   const displayStages = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
-  if (loading && !boardView) return <div className="loading">Loading candidates...</div>;
+  if (loading && !boardView) return (
+    <div className="glass-loading">
+      <div className="spinner"></div>
+      <span>Loading candidates...</span>
+    </div>
+  );
 
   return (
-    <div className="admin-page">
-      <div className="admin-page-header">
-        <h2>Candidates Pipeline</h2>
+    <div className="page fade-in-up">
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="iconify" data-icon="lucide:users" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          Candidates Pipeline
+        </h1>
         <div style={{ display: 'flex', gap: 8 }}>
           {!boardView && (
-            <button className="btn btn-outline" onClick={async () => {
+            <button className="glass-btn glass-btn-ghost" onClick={async () => {
               const token = localStorage.getItem('hrToken');
               const params = new URLSearchParams({ stage: stageFilter !== 'all' ? stageFilter : '', q: search.trim() });
               const res = await fetch(`/api/hr/recruitment/candidates/export?${params}`, {
@@ -211,28 +219,39 @@ export default function Candidates() {
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a'); a.href = url; a.download = 'candidates.csv'; a.click();
               window.URL.revokeObjectURL(url);
-            }}>📥 Export CSV</button>
+            }}>
+              <span className="iconify" data-icon="lucide:download"></span> Export CSV
+            </button>
           )}
-          <button className={`btn btn-sm ${boardView ? 'btn-primary' : 'btn-outline'}`} onClick={() => setBoardView(v => !v)}>
-            {boardView ? '📋 Table View' : '📋 Board View'}
+          <button className={`glass-btn glass-btn-sm ${boardView ? 'glass-btn-primary' : 'glass-btn-ghost'}`} onClick={() => setBoardView(v => !v)}>
+            <span className="iconify" data-icon={boardView ? 'lucide:table' : 'lucide:layout-grid'}></span>
+            {boardView ? ' Table View' : ' Board View'}
           </button>
-          <button className="btn btn-primary" onClick={openCreate}>+ Add Candidate</button>
+          <button className="glass-btn glass-btn-primary" onClick={openCreate}>
+            <span className="iconify" data-icon="lucide:user-plus"></span> Add Candidate
+          </button>
         </div>
       </div>
 
-      {message && <div className="alert alert-info">{message}</div>}
+      {message && (
+        <div className="glass-alert glass-alert-info">
+          <span className="iconify" data-icon="lucide:info"></span> {message}
+        </div>
+      )}
 
       {!boardView && (
-      <div className="filters-row" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-        <div className="btn-group" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          <button className={`btn btn-sm ${stageFilter === 'all' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setStageFilter('all')}>All</button>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="glass-tabs">
+          <button className={`glass-tab ${stageFilter === 'all' ? 'active' : ''}`} onClick={() => setStageFilter('all')}>All</button>
           {STAGES.map(s => (
-            <button key={s} className={`btn btn-sm ${stageFilter === s ? 'btn-primary' : 'btn-outline'}`} onClick={() => setStageFilter(s)}>{s}</button>
+            <button key={s} className={`glass-tab ${stageFilter === s ? 'active' : ''}`} onClick={() => setStageFilter(s)}>{s}</button>
           ))}
         </div>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-          <input className="form-control" placeholder="Search name, email, position..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: 260 }} />
-          <button type="submit" className="btn btn-outline">Search</button>
+          <input className="glass-input" placeholder="Search name, email, position..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: 260 }} />
+          <button type="submit" className="glass-btn glass-btn-ghost">
+            <span className="iconify" data-icon="lucide:search"></span> Search
+          </button>
         </form>
       </div>
       )}
@@ -240,7 +259,10 @@ export default function Candidates() {
       {boardView && (
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, minHeight: '60vh' }}>
           {boardLoading ? (
-            <div style={{ padding: 40, color: '#9ca3af' }}>Loading board...</div>
+            <div className="glass-loading" style={{ minHeight: 200 }}>
+              <div className="spinner"></div>
+              <span>Loading board...</span>
+            </div>
           ) : (
             displayStages.map(stage => {
               const items = boardCandidates.filter(c => c.stage === stage);
@@ -249,28 +271,28 @@ export default function Candidates() {
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => handleDrop(stage)}>
                   <div style={{
-                    padding: '10px 14px', marginBottom: 8, borderRadius: 8, fontWeight: 600, fontSize: '0.85rem',
-                    background: stageColors[stage] || '#e5e7eb', color: '#1e293b', display: 'flex', justifyContent: 'space-between'
+                    padding: '10px 14px', marginBottom: 8, borderRadius: 'var(--radius-sm)', fontWeight: 600, fontSize: '0.85rem',
+                    background: stageColors[stage], color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between'
                   }}>
-                    <span>{stage}</span>
-                    <span style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 10, padding: '0 8px' }}>{items.length}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="iconify" data-icon="lucide:folder" style={{ opacity: 0.5 }}></span>
+                      {stage}
+                    </span>
+                    <span style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 10, padding: '0 8px', fontSize: '0.75rem' }}>{items.length}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {items.map(c => (
                       <div key={c.id} draggable onDragStart={() => handleDragStart(c)}
-                        style={{
-                          background: '#fff', borderRadius: 8, padding: '10px 12px', cursor: 'grab',
-                          border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          transition: 'box-shadow .15s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'}>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>{c.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: 2 }}>{c.job_title}</div>
-                        {c.email && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>{c.email}</div>}
+                        className="glass-panel card-hover"
+                        style={{ borderRadius: 'var(--radius-sm)', padding: '10px 12px', cursor: 'grab' }}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.12)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{c.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 2 }}>{c.job_title}</div>
+                        {c.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: 2 }}>{c.email}</div>}
                         <div style={{ marginTop: 6, fontSize: '0.75rem' }}>
-                          <span style={{ color: '#4f46e5', cursor: 'pointer' }}
-                            onClick={() => navigate(`/hr/candidates/${c.id}`)}>View →</span>
+                          <span style={{ color: 'var(--brand-primary)', cursor: 'pointer' }}
+                            onClick={() => navigate(`/hr/candidates/${c.id}`)}>View <span className="iconify" data-icon="lucide:arrow-right" style={{ fontSize: '0.65rem' }}></span></span>
                         </div>
                       </div>
                     ))}
@@ -283,8 +305,8 @@ export default function Candidates() {
       )}
 
       {!boardView && (
-      <div className="table-container">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up delay-1">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -299,31 +321,43 @@ export default function Candidates() {
           </thead>
           <tbody>
             {candidates.length === 0 ? (
-              <tr><td colSpan={8} className="text-center">No candidates found</td></tr>
+              <tr><td colSpan={8}>
+                <div className="glass-empty">
+                  <span className="iconify" data-icon="lucide:users"></span>
+                  <h3>No candidates found</h3>
+                </div>
+              </td></tr>
             ) : candidates.map(c => (
               <tr key={c.id}>
-                <td><a href="#" onClick={e => { e.preventDefault(); navigate(`/hr/candidates/${c.id}`); }} className="link">{c.name}</a></td>
+                <td>
+                  <a href="#" onClick={e => { e.preventDefault(); navigate(`/hr/candidates/${c.id}`); }} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>
+                    {c.name}
+                  </a>
+                </td>
                 <td>{c.email}</td>
                 <td>{c.job_title}</td>
                 <td>{stageBadge(c.stage)}</td>
                 <td>{c.screening_status ? (
-                  <span style={{
-                    fontSize: 12, padding: '2px 8px', borderRadius: 10, fontWeight: 600,
-                    background: c.screening_status === 'most_recommended' ? '#e8f5e9' : c.screening_status === 'recommended' ? '#e3f2fd' : '#fce4ec',
-                    color: c.screening_status === 'most_recommended' ? '#2e7d32' : c.screening_status === 'recommended' ? '#1565c0' : '#c62828',
-                  }}>
-                    {c.screening_status === 'most_recommended' ? '🔵 Most Rec.' : c.screening_status === 'recommended' ? '✅ Rec.' : '❌ Rej.'}
+                  <span className={`glass-badge ${c.screening_status === 'most_recommended' ? 'glass-badge-success' : c.screening_status === 'recommended' ? 'glass-badge-info' : 'glass-badge-danger'}`}>
+                    <span className="iconify" data-icon={c.screening_status === 'most_recommended' ? 'lucide:star' : c.screening_status === 'recommended' ? 'lucide:thumbs-up' : 'lucide:x'} style={{ marginRight: 2, fontSize: '0.65rem' }}></span>
+                    {c.screening_status === 'most_recommended' ? 'Most Rec.' : c.screening_status === 'recommended' ? 'Rec.' : 'Rej.'}
                   </span>
-                ) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}</td>
+                ) : <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>—</span>}</td>
                 <td>{c.source}</td>
-                <td>{c.score_comm || 0}/{c.score_tech || 0}/{c.score_fit || 0}</td>
+                <td><span className="glass-badge glass-badge-neutral">{c.score_comm || 0}/{c.score_tech || 0}/{c.score_fit || 0}</span></td>
                 <td>
-                  <select className="form-control form-control-sm" style={{ width: 130, display: 'inline-block' }} value="" onChange={e => { if (e.target.value) setMoveTarget({ id: c.id, stage: e.target.value }); }}>
-                    <option value="">Move to...</option>
-                    {STAGES.filter(s => s !== c.stage).map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button className="btn btn-sm btn-success" onClick={() => openHire(c)} style={{marginLeft:4}}>Hire</button>
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirm(c)} style={{marginLeft:4}}>Delete</button>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    <select className="glass-select glass-select" style={{ width: 120, display: 'inline-block', padding: '4px 10px', fontSize: '0.75rem' }} value="" onChange={e => { if (e.target.value) setMoveTarget({ id: c.id, stage: e.target.value }); }}>
+                      <option value="">Move to...</option>
+                      {STAGES.filter(s => s !== c.stage).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <button className="glass-btn glass-btn-xs glass-btn-success" onClick={() => openHire(c)} style={{marginLeft:4}}>
+                      <span className="iconify" data-icon="lucide:user-plus"></span> Hire
+                    </button>
+                    <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(c)} style={{marginLeft:4}}>
+                      <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -343,43 +377,49 @@ export default function Candidates() {
       )}
 
       {hireTarget && !hireResult && (
-        <div className="modal-overlay" onClick={() => setHireTarget(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <h3>Hire: {hireTarget.name}</h3>
-            <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: 16 }}>
+        <div className="glass-modal-overlay" onClick={() => setHireTarget(null)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--success)' }}></span>
+                Hire: {hireTarget.name}
+              </h3>
+              <button className="glass-modal-close" onClick={() => setHireTarget(null)}><span className="iconify" data-icon="lucide:x"/></button>
+            </div>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 16 }}>
               Create employee record from this candidate.
             </p>
-            <div className="form-group">
-              <label>Department</label>
-              <select className="form-control" value={hireForm.department_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Department</label>
+              <select className="glass-select" value={hireForm.department_id}
                 onChange={e => setHireForm({ ...hireForm, department_id: e.target.value, title_id: '' })}>
                 <option value="">— Select —</option>
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label>Title</label>
-              <select className="form-control" value={hireForm.title_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Title</label>
+              <select className="glass-select" value={hireForm.title_id}
                 onChange={e => setHireForm({ ...hireForm, title_id: e.target.value })}>
                 <option value="">— Select —</option>
                 {deptTitles.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label>Employee ID (optional — leave blank to auto-generate)</label>
-              <input className="form-control" type="number" value={hireForm.employee_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Employee ID (optional — leave blank to auto-generate)</label>
+              <input className="glass-input" type="number" value={hireForm.employee_id}
                 onChange={e => setHireForm({ ...hireForm, employee_id: e.target.value })}
                 placeholder="Auto" />
             </div>
-            <div className="form-group">
-              <label>Start Date</label>
-              <input className="form-control" type="date" value={hireForm.start_date}
+            <div className="glass-form-group">
+              <label className="glass-label">Start Date</label>
+              <input className="glass-input" type="date" value={hireForm.start_date}
                 onChange={e => setHireForm({ ...hireForm, start_date: e.target.value })} />
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setHireTarget(null)}>Cancel</button>
-              <button className="btn btn-success" onClick={handleHire} disabled={hiring}>
-                {hiring ? 'Hiring...' : 'Confirm Hire'}
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setHireTarget(null)}>Cancel</button>
+              <button className="glass-btn glass-btn-success" onClick={handleHire} disabled={hiring}>
+                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><span className="iconify" data-icon="lucide:check"></span> Confirm Hire</>}
               </button>
             </div>
           </div>
@@ -387,44 +427,54 @@ export default function Candidates() {
       )}
 
       {hireResult && (
-        <div className="modal-overlay" onClick={() => { setHireResult(null); setHireTarget(null); }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <h3 style={{ color: '#2e7d32' }}>Hired Successfully</h3>
-            <div style={{ background: '#e8f5e9', padding: 16, borderRadius: 8, margin: '12px 0' }}>
-              <p><strong>Employee #:</strong> {hireResult.employee_id}</p>
-              <p><strong>Temporary Password:</strong> <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: '1rem' }}>{hireResult.temp_password}</code></p>
+        <div className="glass-modal-overlay" onClick={() => { setHireResult(null); setHireTarget(null); }}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)' }}>
+                <span className="iconify" data-icon="lucide:party-popper"></span> Hired Successfully
+              </h3>
+              <button className="glass-modal-close" onClick={() => { setHireResult(null); setHireTarget(null); }}><span className="iconify" data-icon="lucide:x"/></button>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#666' }}>Share these credentials with the new employee. They can change their password after first login.</p>
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={() => { setHireResult(null); setHireTarget(null); }}>Done</button>
+            <div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}>
+              <p style={{ marginBottom: 8 }}><strong>Employee #:</strong> {hireResult.employee_id}</p>
+              <p><strong>Temporary Password:</strong> <code style={{ background: 'rgba(24,24,27,0.6)', padding: '2px 8px', borderRadius: 4, fontSize: '1rem', color: 'var(--success)' }}>{hireResult.temp_password}</code></p>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Share these credentials with the new employee. They can change their password after first login.</p>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-primary" onClick={() => { setHireResult(null); setHireTarget(null); }}>Done</button>
             </div>
           </div>
         </div>
       )}
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Add Candidate</h3>
-            <div className="form-group">
-              <label>Name *</label>
-              <input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--brand-primary)' }}></span> Add Candidate
+              </h3>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
             </div>
-            <div className="form-group">
-              <label>Email *</label>
-              <input className="form-control" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+            <div className="glass-form-group">
+              <label className="glass-label">Name *</label>
+              <input className="glass-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
             </div>
-            <div className="form-group">
-              <label>Phone</label>
-              <input className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <div className="glass-form-group">
+              <label className="glass-label">Email *</label>
+              <input className="glass-input" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
             </div>
-            <div className="form-group">
-              <label>Position</label>
-              <input className="form-control" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+            <div className="glass-form-group">
+              <label className="glass-label">Phone</label>
+              <input className="glass-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
             </div>
-            <div className="form-group">
-              <label>Source</label>
-              <select className="form-control" value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
+            <div className="glass-form-group">
+              <label className="glass-label">Position</label>
+              <input className="glass-input" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+            </div>
+            <div className="glass-form-group">
+              <label className="glass-label">Source</label>
+              <select className="glass-select" value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
                 <option>Manual</option>
                 <option>Portal</option>
                 <option>LinkedIn</option>
@@ -432,42 +482,44 @@ export default function Candidates() {
                 <option>Agency</option>
               </select>
             </div>
-            <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, margin: '12px 0' }}>
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: '#1a1a2e' }}>Qualifications</div>
-              <div className="form-group">
-                <label>Education Level</label>
-                <select className="form-control" value={form.education_level} onChange={e => setForm({ ...form, education_level: e.target.value })} style={{ width: '100%' }}>
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, margin: '12px 0' }}>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: 'var(--text-primary)' }}>Qualifications</div>
+              <div className="glass-form-group">
+                <label className="glass-label">Education Level</label>
+                <select className="glass-select" value={form.education_level} onChange={e => setForm({ ...form, education_level: e.target.value })} style={{ width: '100%' }}>
                   {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Years of Experience</label>
-                <select className="form-control" value={form.experience_years} onChange={e => setForm({ ...form, experience_years: e.target.value })} style={{ width: '100%' }}>
+              <div className="glass-form-group">
+                <label className="glass-label">Years of Experience</label>
+                <select className="glass-select" value={form.experience_years} onChange={e => setForm({ ...form, experience_years: e.target.value })} style={{ width: '100%' }}>
                   {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Skills</label>
+              <div className="glass-form-group">
+                <label className="glass-label">Skills</label>
                 <MasterSelect type="skills" value={form.skills || []} onChange={v => setForm({ ...form, skills: v })} placeholder="Search and select skills..." />
               </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Certifications</label>
+              <div className="glass-form-group" style={{ margin: 0 }}>
+                <label className="glass-label">Certifications</label>
                 <MasterSelect type="certs" value={form.certifications || []} onChange={v => setForm({ ...form, certifications: v })} placeholder="Search and select certifications..." />
               </div>
             </div>
-            <div className="form-group">
-              <label>
+            <div className="glass-form-group">
+              <label className="glass-checkbox">
                 <input type="checkbox" checked={form.technical} onChange={e => setForm({ ...form, technical: e.target.checked })} />
                 {' '}Technical
               </label>
             </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea className="form-control" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            <div className="glass-form-group">
+              <label className="glass-label">Notes</label>
+              <textarea className="glass-textarea" rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={handleCreate}>Create</button>
-              <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-primary" onClick={handleCreate}>
+                <span className="iconify" data-icon="lucide:plus"></span> Create
+              </button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
             </div>
           </div>
         </div>

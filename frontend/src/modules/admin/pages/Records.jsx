@@ -97,53 +97,77 @@ export default function AdminRecords() {
 
   return (
     <>
-      <div className="page">
-        <div className="page-header">
+      <div className="page fade-in-up">
+        <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
           <div>
-            <h1>Attendance Records</h1>
-            <p className="subtitle">View and manage all attendance records</p>
+            <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="iconify" data-icon="lucide:clipboard-list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+              Attendance Records
+            </h1>
+            <p className="subtitle" style={{ color: 'var(--text-dim)' }}>View and manage all attendance records</p>
           </div>
-          <button className="btn btn-outline" onClick={handleExport}>Export Excel</button>
+          <button className="glass-btn glass-btn-ghost" onClick={handleExport}>
+            <span className="iconify" data-icon="lucide:download"></span> Export Excel
+          </button>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && (
+          <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>
+            <span className="iconify" data-icon={message.includes('Failed') ? 'lucide:alert-circle' : 'lucide:check-circle'}></span>
+            {message}
+          </div>
+        )}
 
-        <div className="filter-bar">
-          <div className="filter-group">
-            <label>Employee</label>
-            <select className="form-control" value={filters.employee_id} onChange={(e) => setFilters({ ...filters, employee_id: e.target.value })}>
-              <option value="">All Employees</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>{emp.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>From Date</label>
-            <input type="date" className="form-control" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} />
-          </div>
-          <div className="filter-group">
-            <label>To Date</label>
-            <input type="date" className="form-control" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} />
-          </div>
-          <div className="filter-actions">
-            <button className="btn btn-primary" onClick={() => fetchRecords(1)}>Filter</button>
-            <button className="btn btn-outline" onClick={() => { setFilters({ date_from: '', date_to: '', employee_id: '' }); fetchRecords(1); }}>Clear</button>
+        <div className="glass-card" style={{ marginBottom: 24, padding: 20 }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="glass-form-group" style={{ marginBottom: 0, minWidth: 180 }}>
+              <label className="glass-label">Employee</label>
+              <select className="glass-select" value={filters.employee_id} onChange={(e) => setFilters({ ...filters, employee_id: e.target.value })}>
+                <option value="">All Employees</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="glass-form-group" style={{ marginBottom: 0, minWidth: 160 }}>
+              <label className="glass-label">From Date</label>
+              <input type="date" className="glass-input" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} />
+            </div>
+            <div className="glass-form-group" style={{ marginBottom: 0, minWidth: 160 }}>
+              <label className="glass-label">To Date</label>
+              <input type="date" className="glass-input" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="glass-btn glass-btn-primary" onClick={() => fetchRecords(1)}>
+                <span className="iconify" data-icon="lucide:filter"></span> Filter
+              </button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => { setFilters({ date_from: '', date_to: '', employee_id: '' }); fetchRecords(1); }}>
+                <span className="iconify" data-icon="lucide:x"></span> Clear
+              </button>
+            </div>
           </div>
         </div>
 
-        {loading && <div className="loading" />}
+        {loading && (
+          <div className="glass-loading">
+            <div className="spinner"></div>
+            <span>Loading...</span>
+          </div>
+        )}
         {!loading && <>
-        <div className="summary-bar">
-          <span className="summary-item">Total Records: <strong>{data.total}</strong></span>
-          <span className="summary-item">Showing Page: <strong>{data.page} / {data.totalPages}</strong></span>
+        <div className="glass-card" style={{ padding: '14px 20px', marginBottom: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Total Records: <strong style={{ color: 'var(--text-primary)' }}>{data.total}</strong></span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Showing Page: <strong style={{ color: 'var(--text-primary)' }}>{data.page} / {data.totalPages}</strong></span>
         </div>
 
-        <div className="table-wrapper">
+        <div className="glass-table-wrapper">
           {data.records.length === 0 ? (
-            <p className="empty-state">No records found</p>
+            <div className="glass-empty">
+              <span className="iconify" data-icon="lucide:inbox"></span>
+              <h3>No records found</h3>
+            </div>
           ) : (
-          <table className="table">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -162,21 +186,25 @@ export default function AdminRecords() {
               {data.records.map((r) => (
                 <tr key={r.id}>
                   <td className="cell-mono">{formatDate(r.date)}</td>
-                  <td><span className={`badge ${r.type === 'office' ? 'badge-office' : 'badge-wfh'}`}>{(r.type || 'wfh').toUpperCase()}</span></td>
+                  <td>
+                    <span className={`glass-badge ${r.type === 'office' ? 'glass-badge-success' : 'glass-badge-info'}`}>
+                      {(r.type || 'wfh').toUpperCase()}
+                    </span>
+                  </td>
                   <td><strong>{r.employee_name}</strong></td>
                   <td className="cell-mono">{r.emp_number || '—'}</td>
                   <td>{formatTime(r.sign_in_time)}</td>
                   <td>{formatTime(r.sign_out_time)}</td>
                   <td className="cell-mono">{calcDuration(r)}</td>
                   <td className="notes-cell">{r.notes || '—'}</td>
-                  <td>{r.is_manual_sign_out ? <span className="badge badge-warning">Yes</span> : '—'}</td>
+                  <td>{r.is_manual_sign_out ? <span className="glass-badge glass-badge-warning">Yes</span> : '—'}</td>
                   <td>
-                    <div className="action-btns" style={{ gap: 4 }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => { setEditSignOut(r); setEditForm({ sign_out_time: r.sign_out_time ? new Date(r.sign_out_time).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16), notes: r.notes || '' }); }} title="Edit sign-out time">
-                        Edit Sign-Out
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => { setEditSignOut(r); setEditForm({ sign_out_time: r.sign_out_time ? new Date(r.sign_out_time).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16), notes: r.notes || '' }); }} title="Edit sign-out time">
+                        <span className="iconify" data-icon="lucide:pencil"></span> Edit Sign-Out
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => setConfirm(r)} title="Delete record">
-                        Delete
+                      <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(r)} title="Delete record">
+                        <span className="iconify" data-icon="lucide:trash-2"></span> Delete
                       </button>
                     </div>
                   </td>
@@ -200,33 +228,40 @@ export default function AdminRecords() {
       )}
 
       {editSignOut && (
-        <div className="modal-overlay" onClick={() => setEditSignOut(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit Sign-Out Time</h2>
-            <p style={{ marginBottom: 12, color: '#666' }}>
+        <div className="glass-modal-overlay" onClick={() => setEditSignOut(null)}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="iconify" data-icon="lucide:pencil"></span> Edit Sign-Out Time
+              </h3>
+              <button className="glass-modal-close" onClick={() => setEditSignOut(null)}><span className="iconify" data-icon="lucide:x"/></button>
+            </div>
+            <p style={{ marginBottom: 16, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
               {editSignOut.employee_name} — {editSignOut.date}
             </p>
-            <label>
-              Sign Out Time:
+            <div className="glass-form-group">
+              <label className="glass-label">Sign Out Time</label>
               <input
                 type="datetime-local"
                 value={editForm.sign_out_time}
                 onChange={(e) => setEditForm({ ...editForm, sign_out_time: e.target.value })}
-                className="form-control"
+                className="glass-input"
               />
-            </label>
-            <label>
-              Notes:
+            </div>
+            <div className="glass-form-group">
+              <label className="glass-label">Notes</label>
               <textarea
                 value={editForm.notes}
                 onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                className="form-control"
+                className="glass-textarea"
                 rows={3}
               />
-            </label>
-            <div className="modal-actions" style={{ marginTop: 16 }}>
-              <button className="btn btn-outline" onClick={() => setEditSignOut(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleEditSignOut}>Save</button>
+            </div>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setEditSignOut(null)}>Cancel</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleEditSignOut}>
+                <span className="iconify" data-icon="lucide:check"></span> Save
+              </button>
             </div>
           </div>
         </div>

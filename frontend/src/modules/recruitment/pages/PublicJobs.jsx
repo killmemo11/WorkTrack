@@ -17,39 +17,64 @@ export default function PublicJobs() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="loading">Loading jobs...</div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner"></div>
+      <span>Loading jobs...</span>
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 900, margin: '40px auto', padding: '0 20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <h1 style={{ fontSize: '2rem', color: '#1a1a2e' }}>Join Our Team</h1>
-        <p style={{ color: '#666', marginTop: 8 }}>Explore current openings and apply online</p>
+      <div style={{ textAlign: 'center', marginBottom: 40 }} className="fade-in-up">
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%',
+          background: 'var(--brand-gradient)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(99,102,241,0.3)',
+        }}>
+          <span className="iconify" data-icon="lucide:briefcase" style={{ fontSize: '1.6rem', color: '#fff' }}></span>
+        </div>
+        <h1 style={{ fontSize: '2rem', background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Join Our Team</h1>
+        <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>Explore current openings and apply online</p>
       </div>
 
       {jobs.length === 0 ? (
-        <div className="card"><div className="card-body" style={{ textAlign: 'center', padding: 40 }}>
-          <h3>No open positions right now</h3>
-          <p style={{ color: '#666' }}>Check back later for new opportunities.</p>
+        <div className="glass-card fade-in-up"><div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
+          <span className="iconify" data-icon="lucide:inbox" style={{ fontSize: '2rem', color: 'var(--text-faint)' }}></span>
+          <h3 style={{ marginTop: 12, color: 'var(--text-dim)' }}>No open positions right now</h3>
+          <p style={{ color: 'var(--text-faint)', marginTop: 8 }}>Check back later for new opportunities.</p>
         </div></div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {jobs.map(job => (
-            <div key={job.id} className="card">
-              <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          {jobs.map((job, idx) => (
+            <div key={job.id} className={`glass-panel card-hover fade-in-up`} style={{ animationDelay: `${idx * 0.08}s`, borderRadius: 'var(--radius-lg)', padding: 24, border: '1px solid var(--border-glass)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <h3 style={{ margin: 0 }}>{job.title}</h3>
-                  <p style={{ margin: '4px 0', color: '#666' }}>
-                    {job.department} &middot; {job.type}
-                    {job.technical ? <span className="badge badge-primary" style={{ marginLeft: 8 }}>Technical</span> : null}
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="iconify" data-icon="lucide:briefcase" style={{ color: 'var(--brand-primary)' }}></span>
+                    {job.title}
+                  </h3>
+                  <p style={{ margin: '4px 0', color: 'var(--text-dim)', fontSize: '0.9rem' }}>
+                    <span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 4, fontSize: '0.75rem' }}></span>{job.department}
+                    {' \u00b7 '}
+                    <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4, fontSize: '0.75rem' }}></span>{job.type}
+                    {job.technical ? <span className="glass-badge glass-badge-info" style={{ marginLeft: 8 }}><span className="iconify" data-icon="lucide:code" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>Technical</span> : null}
                   </p>
-                  {job.description ? <p style={{ margin: '8px 0 0', color: '#444', fontSize: '0.9rem' }}>{job.description}</p> : null}
+                  {job.description ? <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{job.description}</p> : null}
                 </div>
-                <button className="btn btn-primary" onClick={() => navigate(`/careers/apply?job=${job.id}`)}>Apply Now</button>
+                <button className="glass-btn glass-btn-primary" onClick={() => navigate(`/careers/apply?job=${job.id}`)}>
+                  <span className="iconify" data-icon="lucide:send"></span> Apply Now
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <footer style={{ textAlign: 'center', marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--border-glass)', color: 'var(--text-faint)', fontSize: '0.8rem' }}>
+        <p><span className="iconify" data-icon="lucide:building" style={{ marginRight: 4 }}></span> WorkTrack &mdash; Careers Portal</p>
+      </footer>
     </div>
   );
 }

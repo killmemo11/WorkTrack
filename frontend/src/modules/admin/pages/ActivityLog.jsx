@@ -78,6 +78,31 @@ const ACTION_LABELS = {
   scorecard_added: 'Scorecard Added',
 };
 
+const actionIcons = {
+  created: 'lucide:plus',
+  updated: 'lucide:pencil',
+  deleted: 'lucide:trash-2',
+  approved: 'lucide:check-circle',
+  rejected: 'lucide:x-circle',
+  login: 'lucide:log-in',
+  logout: 'lucide:log-out',
+  submitted: 'lucide:send',
+  exported: 'lucide:download',
+  assigned: 'lucide:user-plus',
+  returned: 'lucide:undo-2',
+  uploaded: 'lucide:upload',
+  signed: 'lucide:pen-tool',
+  generated: 'lucide:file-text',
+  started: 'lucide:play',
+  completed: 'lucide:check',
+  adjusted: 'lucide:sliders',
+  cancelled: 'lucide:x-circle',
+  moved: 'lucide:arrow-right-left',
+  verified: 'lucide:shield-check',
+  damaged: 'lucide:alert-triangle',
+  disposed: 'lucide:trash',
+};
+
 export default function ActivityLog() {
   const [data, setData] = useState({ entries: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -86,12 +111,18 @@ export default function ActivityLog() {
   const api = adminApi;
 
   const getActionLabel = (action) => ACTION_LABELS[action] || action.replace(/_/g, ' ');
-  const getActionClass = (action) => {
-    if (!action) return 'badge badge-employee';
-    if (action.includes('deleted') || action.includes('rejected')) return 'badge badge-warning';
-    if (action.includes('created') || action.includes('approved') || action.includes('assigned')) return 'badge badge-active';
-    if (action.includes('updated') || action.includes('submitted')) return 'badge badge-employee';
-    return 'badge badge';
+  const getActionBadge = (action) => {
+    if (!action) return 'glass-badge glass-badge-neutral';
+    if (action.includes('deleted') || action.includes('rejected')) return 'glass-badge glass-badge-danger';
+    if (action.includes('created') || action.includes('approved') || action.includes('assigned') || action.includes('verified') || action.includes('hired')) return 'glass-badge glass-badge-success';
+    if (action.includes('updated') || action.includes('submitted') || action.includes('uploaded') || action.includes('signed') || action.includes('generated') || action.includes('started') || action.includes('completed') || action.includes('adjusted') || action.includes('saved') || action.includes('moved') || action.includes('renewed')) return 'glass-badge glass-badge-info';
+    return 'glass-badge glass-badge-neutral';
+  };
+  const getActionIcon = (action) => {
+    for (const [key, icon] of Object.entries(actionIcons)) {
+      if (action.includes(key)) return icon;
+    }
+    return 'lucide:activity';
   };
   const getActorLabel = (entry) => {
     if (entry.actor_type === 'Admin') return `Admin: ${entry.actor_name}`;
@@ -119,14 +150,17 @@ export default function ActivityLog() {
   useEffect(() => { fetchLog(); }, [filter]);
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div className="page fade-in-up">
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
         <div>
-          <h1>Activity Log</h1>
-          <p className="subtitle">Audit-ready trail of user actions, with actor and affected employee.</p>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="iconify" data-icon="lucide:scroll-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+            Activity Log
+          </h1>
+          <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Audit-ready trail of user actions, with actor and affected employee.</p>
         </div>
-        <div className="filter-actions">
-          <select className="form-control" value={filter} onChange={(e) => { setFilter(e.target.value); }}>
+        <div className="filter-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select className="glass-select" value={filter} onChange={(e) => { setFilter(e.target.value); }} style={{ width: 220 }}>
             <option value="">All Actions</option>
             <option value="hr_login">HR Login</option>
             <option value="record_deleted">Record Deleted</option>
@@ -157,30 +191,39 @@ export default function ActivityLog() {
             <option value="asset_assigned">Asset Assigned</option>
             <option value="asset_returned">Asset Returned</option>
           </select>
-          <button className="btn btn-sm btn-primary" onClick={() => fetchLog(1)}>Filter</button>
-          <button className="btn btn-sm btn-outline" onClick={() => { setFilter(''); fetchLog(1); }}>Clear</button>
+          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => fetchLog(1)}>
+            <span className="iconify" data-icon="lucide:filter"></span> Filter
+          </button>
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setFilter(''); fetchLog(1); }}>
+            <span className="iconify" data-icon="lucide:x"></span> Clear
+          </button>
         </div>
       </div>
 
-      {loading && <div className="loading" />}
+      {loading && (
+        <div className="glass-loading">
+          <div className="spinner"></div>
+          <span>Loading...</span>
+        </div>
+      )}
       {!loading && <>
-      <div className="stats-grid activity-summary-grid">
-        <div className="stat-card">
-          <div className="stat-number">{data.total}</div>
-          <div className="stat-label">Total activity entries</div>
+      <div className="glass-grid glass-grid-3" style={{ marginBottom: 24 }}>
+        <div className="glass-stat-card fade-in-up delay-1">
+          <div className="glass-stat-number">{data.total}</div>
+          <div className="glass-stat-label">Total activity entries</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{data.page}</div>
-          <div className="stat-label">Current page of {data.totalPages}</div>
+        <div className="glass-stat-card fade-in-up delay-2">
+          <div className="glass-stat-number">{data.page}</div>
+          <div className="glass-stat-label">Current page of {data.totalPages}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-number">{filter || 'All actions'}</div>
-          <div className="stat-label">Filter</div>
+        <div className="glass-stat-card fade-in-up delay-3">
+          <div className="glass-stat-number" style={{ fontSize: '1.2rem' }}>{filter || 'All actions'}</div>
+          <div className="glass-stat-label">Filter</div>
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up delay-4">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Date</th>
@@ -192,7 +235,12 @@ export default function ActivityLog() {
           </thead>
           <tbody>
             {data.entries.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">No activity entries yet.</td></tr>
+              <tr><td colSpan={5}>
+                <div className="glass-empty">
+                  <span className="iconify" data-icon="lucide:scroll-text"></span>
+                  <h3>No activity entries yet.</h3>
+                </div>
+              </td></tr>
             )}
             {data.entries.map((e) => (
               <tr key={e.id}>
@@ -201,13 +249,18 @@ export default function ActivityLog() {
                 </td>
                 <td>
                   <div><strong>{getActorLabel(e)}</strong></div>
-                  <div className="cell-mono" style={{ fontSize: '0.78rem', color: '#555' }}>{e.actor_type}</div>
+                  <div className="cell-mono" style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{e.actor_type}</div>
                 </td>
                 <td>
                   <div>{getTargetLabel(e)}</div>
-                  <div className="cell-mono" style={{ fontSize: '0.78rem', color: '#555' }}>{e.target_type}</div>
+                  <div className="cell-mono" style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{e.target_type}</div>
                 </td>
-                <td><span className={getActionClass(e.action)}>{getActionLabel(e.action)}</span></td>
+                <td>
+                  <span className={getActionBadge(e.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span className="iconify" data-icon={getActionIcon(e.action)} style={{ fontSize: '0.7rem' }}></span>
+                    {getActionLabel(e.action)}
+                  </span>
+                </td>
                 <td className="wrap-cell" style={{ maxWidth: 420 }}>{e.description || '—'}</td>
               </tr>
             ))}

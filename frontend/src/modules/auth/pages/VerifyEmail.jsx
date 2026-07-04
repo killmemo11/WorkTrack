@@ -74,14 +74,30 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-icon">✉️</div>
-        <h1>Verify Email</h1>
-        <p>Enter the 6-digit code sent to <strong>{email}</strong></p>
-        {error && <div className="alert alert-error">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="code-inputs">
+    <div className="auth-page">
+      <div className="auth-bg">
+        <div className="auth-bg-orb orb-1" />
+        <div className="auth-bg-orb orb-2" />
+        <div className="auth-bg-orb orb-3" />
+        <div className="auth-bg-grid" />
+      </div>
+
+      <div className="auth-container fade-in-up">
+        <div className="auth-brand">
+          <span className="iconify" data-icon="lucide:shield-check" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
+          <h1>Verify Email</h1>
+          <p>Enter the 6-digit code sent to <strong>{email}</strong></p>
+        </div>
+
+        {error && (
+          <div className="glass-alert glass-alert-danger">
+            <span className="iconify" data-icon="lucide:alert-triangle" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
             {code.map((digit, i) => (
               <input
                 key={i}
@@ -91,23 +107,24 @@ export default function VerifyEmail() {
                 value={digit}
                 onChange={(e) => handleCodeChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className="code-digit"
+                className="glass-code-input"
                 autoFocus={i === 0}
               />
             ))}
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 20 }} disabled={loading}>
-            {loading ? 'Verifying...' : 'Verify & Sign In'}
+
+          <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg" disabled={loading} style={{ width: '100%' }}>
+            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Verifying...</> : <>Verify & Sign In <span className="iconify" data-icon="lucide:arrow-right" style={{ marginLeft: 8 }} /></>}
           </button>
         </form>
-        <p className="auth-switch" style={{ marginTop: 16 }}>
-          Didn't get the code?{' '}
-          <button onClick={handleResend} className="link-button" disabled={resent}>
-            {resent ? 'Code sent!' : 'Resend code'}
+
+        <p className="auth-footer" style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+          Didn&apos;t get the code?{' '}
+          <button onClick={handleResend} className="glass-btn glass-btn-ghost glass-btn-sm" disabled={resent}>
+            {resent ? <><span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} /> Code sent!</> : <><span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 4 }} /> Resend code</>}
           </button>
         </p>
       </div>
     </div>
   );
 }
-

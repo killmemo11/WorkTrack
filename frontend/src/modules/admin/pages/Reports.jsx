@@ -69,68 +69,68 @@ export default function AdminReports() {
 
   return (
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Monthly Report</h1>
-            <p className="subtitle">Per-employee attendance summary</p>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Per-employee attendance summary</p>
           </div>
           <div className="filter-actions" style={{alignItems:'center'}}>
-            <button className="btn btn-sm btn-outline" onClick={prevMonth}>&larr; Prev</button>
-            <strong style={{ minWidth: 180, textAlign: 'center', fontSize:'1.05rem' }}>{MONTHS[month - 1]} {year}</strong>
-            <button className="btn btn-sm btn-outline" onClick={nextMonth}>Next &rarr;</button>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={prevMonth}><span className="iconify" data-icon="lucide:chevron-left"/> Prev</button>
+            <strong style={{ minWidth: 180, textAlign: 'center', fontSize:'1.05rem', color: 'var(--text-primary)' }}>{MONTHS[month - 1]} {year}</strong>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={nextMonth}>Next <span className="iconify" data-icon="lucide:chevron-right"/></button>
           </div>
         </div>
 
-        {loading && <div className="loading" />}
-        {error && <div className="alert alert-error">{error}</div>}
+        {loading && <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>}
+        {error && <div className="glass-alert glass-alert-danger">{error}</div>}
         {!loading && data && (
           <>
-            <div className="stats-grid" style={{ marginBottom: 20 }}>
-              <div className="stat-card">
-                <div className="stat-number" style={{color:'#4f46e5'}}>{data.summary.total_employees}</div>
-                <div className="stat-label">Total Employees</div>
+            <div className="glass-grid" style={{ marginBottom: 20 }}>
+              <div className="glass-card card-hover fade-in-up" style={{ padding: '20px 24px', textAlign: 'center' }}>
+                <div className="stat-number" style={{color:'var(--brand-primary)', fontSize:'1.75rem', fontWeight:700}}>{data.summary.total_employees}</div>
+                <div className="stat-label" style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Total Employees</div>
               </div>
-              <div className="stat-card">
-                <div className="stat-number" style={{ color: '#22c55e' }}>{data.summary.active_employees}</div>
-                <div className="stat-label">Active This Month</div>
+              <div className="glass-card card-hover fade-in-up" style={{ padding: '20px 24px', textAlign: 'center' }}>
+                <div className="stat-number" style={{ color: 'var(--success)', fontSize:'1.75rem', fontWeight:700 }}>{data.summary.active_employees}</div>
+                <div className="stat-label" style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Active This Month</div>
               </div>
-              <div className="stat-card">
-                <div className="stat-number" style={{ color: '#4f46e5' }}>{data.summary.total_hours}</div>
-                <div className="stat-label">Total Hours</div>
+              <div className="glass-card card-hover fade-in-up" style={{ padding: '20px 24px', textAlign: 'center' }}>
+                <div className="stat-number" style={{color:'var(--brand-primary)', fontSize:'1.75rem', fontWeight:700 }}>{data.summary.total_hours}</div>
+                <div className="stat-label" style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Total Hours</div>
               </div>
-              <div className="stat-card">
-                <div className="stat-number" style={{ color: '#f59e0b' }}>{data.summary.total_days}</div>
-                <div className="stat-label">Total Attendance Days</div>
+              <div className="glass-card card-hover fade-in-up" style={{ padding: '20px 24px', textAlign: 'center' }}>
+                <div className="stat-number" style={{ color: 'var(--warning)', fontSize:'1.75rem', fontWeight:700 }}>{data.summary.total_days}</div>
+                <div className="stat-label" style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Total Attendance Days</div>
               </div>
             </div>
 
-              <div className="summary-bar">
-                <span className="summary-item">Employees with records: <strong>{data.summary.active_employees}</strong></span>
-                <span className="summary-item">Attendance rate: <strong>
+              <div className="glass-summary-bar">
+                <span style={{ color: 'var(--text-dim)' }}>Employees with records: <strong>{data.summary.active_employees}</strong></span>
+                <span style={{ color: 'var(--text-dim)' }}>Attendance rate: <strong>
                   {data.summary.total_employees > 0
                     ? Math.round((data.summary.active_employees / data.summary.total_employees) * 100)
                     : 0}%
                 </strong></span>
-                <span className="summary-item" style={{borderLeft:'1px solid #ddd',paddingLeft:20,marginLeft:4}}>Total Absences: <strong>{data.report.reduce((s, r) => s + (r.absence_days || 0), 0)}</strong></span>
+                <span style={{ color: 'var(--text-dim)', borderLeft:'1px solid var(--border-glass)',paddingLeft:20,marginLeft:4 }}>Total Absences: <strong>{data.report.reduce((s, r) => s + (r.absence_days || 0), 0)}</strong></span>
               </div>
 
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', padding: '16px 0', borderBottom: '1px solid #eee', marginBottom: 16, flexWrap: 'wrap' }}>
-                <div className="filter-group">
-                  <label>From</label>
-                  <input type="date" className="form-control" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', padding: '16px 0', borderBottom: '1px solid var(--border-glass)', marginBottom: 16, flexWrap: 'wrap' }}>
+                <div className="glass-form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>From</label>
+                  <input type="date" className="glass-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
                 </div>
-                <div className="filter-group">
-                  <label>To</label>
-                  <input type="date" className="form-control" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                <div className="glass-form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>To</label>
+                  <input type="date" className="glass-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
                 </div>
-                <button className="btn btn-outline" onClick={exportAttendance}>Excel: Attendance</button>
-                <button className="btn btn-outline" onClick={exportKayan}>Excel: Kayan</button>
-                <button className="btn btn-outline" onClick={exportLeaves}>Excel: Leaves</button>
-                <button className="btn btn-primary" onClick={exportSummary}>Excel: Summary</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportAttendance}><span className="iconify" data-icon="lucide:download"/> Excel: Attendance</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportKayan}><span className="iconify" data-icon="lucide:download"/> Excel: Kayan</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportLeaves}><span className="iconify" data-icon="lucide:download"/> Excel: Leaves</button>
+                <button className="glass-btn glass-btn-primary" onClick={exportSummary}><span className="iconify" data-icon="lucide:download"/> Excel: Summary</button>
               </div>
 
-            <div className="table-wrapper">
-              <table className="table">
+            <div className="glass-table-wrapper">
+              <table className="glass-table">
                 <thead>
                   <tr>
                     <th style={{width:40}}>#</th>
@@ -147,7 +147,7 @@ export default function AdminReports() {
                 </thead>
                 <tbody>
                     {data.report.length === 0 ? (
-                      <tr><td colSpan={10} className="empty-state">No employees found</td></tr>
+                      <tr><td colSpan={10}><div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No employees found</h3><p>No data available for this period.</p></div></td></tr>
                     ) : (
                       data.report.map((emp, i) => (
                         <tr key={emp.id} className={emp.days_worked === 0 ? 'row-inactive' : ''}>
@@ -155,12 +155,12 @@ export default function AdminReports() {
                           <td><strong>{emp.name}</strong></td>
                           <td className="cell-mono">{emp.employee_id || '—'}</td>
                           <td><strong>{emp.days_worked}</strong></td>
-                          <td>{emp.absence_days > 0 ? <span className="badge badge-inactive">{emp.absence_days}</span> : '—'}</td>
-                          <td><span className="badge badge-wfh">{emp.wfh_days || 0}</span></td>
-                          <td><span className="badge badge-office">{emp.office_days || 0}</span></td>
+                          <td>{emp.absence_days > 0 ? <span className="glass-badge glass-badge-default">{emp.absence_days}</span> : '—'}</td>
+                          <td><span className="glass-badge glass-badge-info">{emp.wfh_days || 0}</span></td>
+                          <td><span className="glass-badge glass-badge-primary">{emp.office_days || 0}</span></td>
                           <td className="cell-mono">{emp.total_hours}h</td>
                           <td className="cell-mono">{emp.avg_hours_per_day}h</td>
-                          <td>{emp.missing_sign_outs > 0 ? <span className="badge badge-warning">{emp.missing_sign_outs}</span> : '—'}</td>
+                          <td>{emp.missing_sign_outs > 0 ? <span className="glass-badge glass-badge-warning">{emp.missing_sign_outs}</span> : '—'}</td>
                         </tr>
                       ))
                     )}
@@ -173,4 +173,3 @@ export default function AdminReports() {
    
   );
 }
-

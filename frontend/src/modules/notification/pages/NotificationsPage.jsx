@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
 import Pagination from '../../../shared/components/Pagination';
 
-const typeIcons = { success: '✅', warning: '⚠️', error: '❌', info: 'ℹ️' };
+const typeIconMap = { success: 'lucide:check-circle-2', warning: 'lucide:alert-triangle', error: 'lucide:x-circle', info: 'lucide:info' };
 
 export default function NotificationsPage() {
   const [data, setData] = useState({ notifications: [], total: 0, page: 1, totalPages: 1 });
@@ -82,51 +82,48 @@ export default function NotificationsPage() {
   const unreadCount = data.notifications.filter((n) => !n.is_read).length;
 
   if (loading && data.notifications.length === 0) {
-    return <div className="loading">Loading...</div>;
+    return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
   }
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header">
         <div>
           <h1>Notifications</h1>
           <p className="subtitle">{data.total} total {unreadCount > 0 ? `(${unreadCount} unread)` : ''}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {selected.size > 0 && (
-            <button className="btn btn-sm btn-outline" onClick={handleBulkRead}>
+            <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={handleBulkRead}>
               Mark {selected.size} as read
             </button>
           )}
           {unreadCount > 0 && (
-            <button className="btn btn-sm btn-primary" onClick={handleMarkAllRead}>
-              Mark all read
+            <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleMarkAllRead}>
+              <span className="iconify" data-icon="lucide:check-check" style={{ marginRight: 6 }} /> Mark all read
             </button>
           )}
         </div>
       </div>
 
-      <div className="filter-bar" style={{ marginBottom: 16 }}>
-        <div className="filter-group">
-          <select className="form-control" value={filter} onChange={(e) => setFilter(e.target.value)} style={{ width: 'auto' }}>
-            <option value="">All</option>
-            <option value="unread">Unread</option>
-            <option value="read">Read</option>
-          </select>
-        </div>
-        <div className="summary-item">
-          {selected.size > 0 ? `${selected.size} selected` : ''}
-        </div>
+      <div className="glass-tabs" style={{ marginBottom: 16 }}>
+        {['', 'unread', 'read'].map(f => (
+          <button key={f || 'all'} className={`glass-tab ${(filter === f && !(f === '' && filter === 'unread')) || (f === '' && !filter) ? 'glass-tab-active' : ''}`}
+            onClick={() => setFilter(f)}>
+            {f || 'All'}{f === 'unread' ? ` (${unreadCount})` : ''}
+          </button>
+        ))}
       </div>
 
-      <div className="table-wrapper">
+      <div className="glass-table-wrapper">
         {data.notifications.length === 0 ? (
-          <div className="empty-state" style={{ padding: 60, textAlign: 'center', color: '#999' }}>
-            {filter ? 'No notifications match this filter.' : 'No notifications yet.'}
+          <div className="glass-empty">
+            <span className="iconify" data-icon="lucide:bell-off" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+            <h3>{filter ? 'No notifications match this filter.' : 'No notifications yet.'}</h3>
           </div>
         ) : (
           <>
-            <table className="table" style={{ minWidth: 0 }}>
+            <table className="glass-table" style={{ minWidth: 0 }}>
               <thead>
                 <tr>
                   <th style={{ width: 40 }}>
@@ -148,18 +145,18 @@ export default function NotificationsPage() {
                         onChange={() => toggleSelect(n.id)} />
                     </td>
                     <td onClick={() => handleClick(n)}>
-                      <span style={{ fontSize: '1.2rem' }}>{typeIcons[n.type] || 'ℹ️'}</span>
+                      <span className="iconify" data-icon={typeIconMap[n.type] || 'lucide:info'} style={{ fontSize: '1.2rem', color: n.type === 'success' ? 'var(--color-success)' : n.type === 'warning' ? 'var(--color-warning)' : n.type === 'error' ? 'var(--color-danger)' : 'var(--brand-primary)' }} />
                     </td>
                     <td onClick={() => handleClick(n)}>
                       <div style={{ fontWeight: !n.is_read ? 600 : 400, marginBottom: 2 }}>{n.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>{n.message}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>{n.message}</div>
                     </td>
                     <td onClick={() => handleClick(n)} className="cell-mono" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       {new Date(n.created_at).toLocaleDateString()} {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       {!n.is_read && (
-                        <button className="btn btn-xs btn-ghost" onClick={() => handleMarkAsRead(n.id)}>
+                        <button className="glass-btn glass-btn-ghost glass-btn-xs" onClick={() => handleMarkAsRead(n.id)}>
                           Mark read
                         </button>
                       )}
@@ -168,7 +165,7 @@ export default function NotificationsPage() {
                 ))}
               </tbody>
             </table>
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #eee' }}>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-glass)' }}>
               <Pagination page={data.page} totalPages={data.totalPages} onPageChange={fetchNotifications} />
             </div>
           </>

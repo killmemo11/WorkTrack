@@ -117,15 +117,22 @@ export default function PublicApply() {
   if (success) {
     return (
       <div style={{ maxWidth: 600, margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
-        <div className="card"><div className="card-body" style={{ padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>&#10003;</div>
-          <h2>Application Submitted!</h2>
-          <p style={{ color: '#666', marginTop: 8 }}>
-            Thank you for applying to <strong>{jobTitle}</strong>.
+        <div className="glass-card fade-in-up"><div className="glass-card-body" style={{ padding: 40 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+          }}>
+            <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: '2rem', color: 'var(--success)' }}></span>
+          </div>
+          <h2 style={{ color: 'var(--text-primary)' }}>Application Submitted!</h2>
+          <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>
+            Thank you for applying to <strong style={{ color: 'var(--brand-primary)' }}>{jobTitle}</strong>.
           </p>
-          <p>Your reference number is <strong>{success.ref}</strong></p>
-          {success.email_sent && <p style={{ color: '#666', fontSize: '0.9rem' }}>A confirmation email has been sent to {form.email}.</p>}
-          <button className="btn btn-outline" style={{ marginTop: 16 }} onClick={() => navigate('/careers')}>Back to Jobs</button>
+          <p>Your reference number is <strong className="glass-badge glass-badge-success">{success.ref}</strong></p>
+          {success.email_sent && <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}><span className="iconify" data-icon="lucide:mail" style={{ marginRight: 4 }}></span>A confirmation email has been sent to {form.email}.</p>}
+          <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/careers')}>
+            <span className="iconify" data-icon="lucide:arrow-left"></span> Back to Jobs
+          </button>
         </div></div>
       </div>
     );
@@ -133,19 +140,36 @@ export default function PublicApply() {
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', padding: '0 20px' }}>
-      <h1 style={{ textAlign: 'center', color: '#1a1a2e' }}>Apply for a Position</h1>
+      <div style={{ textAlign: 'center', marginBottom: 24 }} className="fade-in-up">
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'var(--brand-gradient)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 12px', boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
+        }}>
+          <span className="iconify" data-icon="lucide:send" style={{ fontSize: '1.4rem', color: '#fff' }}></span>
+        </div>
+        <h1 style={{ textAlign: 'center', color: 'var(--text-primary)' }}>Apply for a Position</h1>
+      </div>
 
-      <div className="card" style={{ marginTop: 24 }}>
-        <div className="card-body" style={{ padding: 32 }}>
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
+      <div className="glass-card fade-in-up delay-1" style={{ marginTop: 24 }}>
+        <div className="glass-card-body" style={{ padding: 32 }}>
+          {error && (
+            <div className="glass-alert glass-alert-danger" role="alert">
+              <span className="iconify" data-icon="lucide:alert-circle"></span> {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Position *</label>
+            <div className="glass-form-group">
+              <label className="glass-label">Position *</label>
               {jobsLoading ? (
-                <div className="form-control" style={{ color: '#999' }}>Loading positions...</div>
+                <div className="glass-input" style={{ color: 'var(--text-faint)' }}>
+                  <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, display: 'inline-block', verticalAlign: 'middle', marginRight: 8 }}></div>
+                  Loading positions...
+                </div>
               ) : (
-                <select className="form-control" value={selectedJobId} onChange={handleJobChange} required style={{ width: '100%' }}>
+                <select className="glass-select" value={selectedJobId} onChange={handleJobChange} required>
                   <option value="">— Select a position —</option>
                   {jobs.map(j => (
                     <option key={j.id} value={j.id}>{j.title} — {j.department}</option>
@@ -154,78 +178,82 @@ export default function PublicApply() {
               )}
             </div>
 
-            <div className="form-group">
-              <label>Full Name *</label>
-              <input name="name" className="form-control" value={form.name} onChange={handleChange} required style={{ width: '100%' }} />
+            <div className="glass-form-group">
+              <label className="glass-label">Full Name *</label>
+              <input name="name" className="glass-input" value={form.name} onChange={handleChange} required />
             </div>
 
-            <div className="form-group">
-              <label>Email *</label>
-              <input name="email" type="email" className="form-control" value={form.email} onChange={handleChange} required style={{ width: '100%' }} />
+            <div className="glass-form-group">
+              <label className="glass-label">Email *</label>
+              <input name="email" type="email" className="glass-input" value={form.email} onChange={handleChange} required />
             </div>
 
-            <div className="form-group">
-              <label>Phone</label>
-              <input name="phone" type="tel" className="form-control" value={form.phone} onChange={handleChange} style={{ width: '100%' }} />
+            <div className="glass-form-group">
+              <label className="glass-label">Phone</label>
+              <input name="phone" type="tel" className="glass-input" value={form.phone} onChange={handleChange} />
             </div>
 
-            {/* ── Qualification Fields ── */}
+            {/* Job Minimum Requirements */}
             {selectedJobId && jobMinReqs && (
-              <div style={{ padding: '12px 14px', background: '#fff8e1', borderRadius: 8, marginBottom: 16, fontSize: 13, border: '1px solid #ffe082' }}>
-                <div style={{ fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>🎯</span> This position requires:
+              <div className="glass-card" style={{ padding: '12px 14px', marginBottom: 16, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)', fontSize: 13 }}>
+                  <span className="iconify" data-icon="lucide:target"></span> This position requires:
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {jobMinReqs.min_education_level && <span style={{ background: '#fff', padding: '2px 8px', borderRadius: 6, border: '1px solid #ffe082' }}>🎓 {EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
-                  {jobMinReqs.min_experience_years != null && <span style={{ background: '#fff', padding: '2px 8px', borderRadius: 6, border: '1px solid #ffe082' }}>📅 {jobMinReqs.min_experience_years}+ years</span>}
-                  {(jobMinReqs.required_skills || []).map(s => <span key={s} style={{ background: '#e3f2fd', padding: '2px 8px', borderRadius: 6 }}>⚙️ {s}</span>)}
-                  {(jobMinReqs.required_certs || []).map(c => <span key={c} style={{ background: '#fce4ec', padding: '2px 8px', borderRadius: 6 }}>📜 {c}</span>)}
+                  {jobMinReqs.min_education_level && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:graduation-cap" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>{EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
+                  {jobMinReqs.min_experience_years != null && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>{jobMinReqs.min_experience_years}+ years</span>}
+                  {(jobMinReqs.required_skills || []).map(s => <span key={s} className="glass-badge glass-badge-info">{s}</span>)}
+                  {(jobMinReqs.required_certs || []).map(c => <span key={c} className="glass-badge glass-badge-danger">{c}</span>)}
                 </div>
               </div>
             )}
 
-            <div style={{ background: '#f8f9fc', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: '#1a1a2e' }}>Qualifications</div>
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="iconify" data-icon="lucide:award"></span> Qualifications
+              </div>
 
-              <div className="form-group">
-                <label>Education Level</label>
-                <select className="form-control" value={educationLevel} onChange={e => setEducationLevel(e.target.value)} style={{ width: '100%' }}>
+              <div className="glass-form-group">
+                <label className="glass-label">Education Level</label>
+                <select className="glass-select" value={educationLevel} onChange={e => setEducationLevel(e.target.value)}>
                   {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Years of Experience</label>
-                <select className="form-control" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} style={{ width: '100%' }}>
+              <div className="glass-form-group">
+                <label className="glass-label">Years of Experience</label>
+                <select className="glass-select" value={experienceYears} onChange={e => setExperienceYears(e.target.value)}>
                   {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Skills</label>
+              <div className="glass-form-group">
+                <label className="glass-label">Skills</label>
                 <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." />
               </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Certifications</label>
+              <div className="glass-form-group" style={{ margin: 0 }}>
+                <label className="glass-label">Certifications</label>
                 <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." />
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Cover Note</label>
-              <textarea name="cover" className="form-control" rows={4} value={form.cover} onChange={handleChange} style={{ width: '100%', resize: 'vertical' }} />
+            <div className="glass-form-group">
+              <label className="glass-label">Cover Note</label>
+              <textarea name="cover" className="glass-textarea" rows={4} value={form.cover} onChange={handleChange} />
             </div>
 
-            <button type="submit" className="btn btn-primary" disabled={loading || jobsLoading} style={{ width: '100%', marginTop: 8 }}>
-              {loading ? 'Submitting...' : 'Submit Application'}
+            <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" disabled={loading || jobsLoading} style={{ marginTop: 8 }}>
+              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div> Submitting...</> : <><span className="iconify" data-icon="lucide:send"></span> Submit Application</>}
             </button>
           </form>
         </div>
       </div>
 
       <p style={{ textAlign: 'center', marginTop: 16 }}>
-        <a href="/careers" style={{ color: '#4a6cf7' }}>&larr; Back to all jobs</a>
+        <a href="/careers" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>
+          <span className="iconify" data-icon="lucide:arrow-left" style={{ marginRight: 4 }}></span> Back to all jobs
+        </a>
       </p>
     </div>
   );

@@ -6,27 +6,8 @@ import api from '../../../shared/api';
 import hrApi from '../../../shared/api/hrApi';
 import { useAuth } from '../../../shared/context/AuthContext';
 
-function HiringIcon({ name, size = 18 }) {
-  const commonProps = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
-
-  switch (name) {
-    case 'request':
-      return <svg {...commonProps}><path d="M7 3h10" /><path d="M7 7h10" /><path d="M7 11h6" /><rect x="4" y="3" width="16" height="18" rx="2" /></svg>;
-    case 'check':
-      return <svg {...commonProps}><path d="m5 12 4 4 10-10" /></svg>;
-    case 'pending':
-      return <svg {...commonProps}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
-    case 'alert':
-      return <svg {...commonProps}><path d="M12 3 2 20h20L12 3Z" /><path d="M12 9v5" /><path d="M12 16h.01" /></svg>;
-    case 'plus':
-      return <svg {...commonProps}><path d="M12 5v14" /><path d="M5 12h14" /></svg>;
-    default:
-      return <svg {...commonProps}><circle cx="12" cy="12" r="9" /></svg>;
-  }
-}
-
-const priorityColors = { normal: '#6b7280', urgent: '#ef4444' };
-const statusColors = { pending: '#f59e0b', approved: '#22c55e', rejected: '#ef4444' };
+const PRIORITY_BADGE = { normal: 'glass-badge-default', urgent: 'glass-badge-danger' };
+const STATUS_BADGE_MAP = { pending: 'glass-badge-warning', approved: 'glass-badge-success', rejected: 'glass-badge-danger' };
 
 export default function TeamRequests() {
   const [requests, setRequests] = useState([]);
@@ -113,65 +94,72 @@ export default function TeamRequests() {
 
   return (
     <>
-      <div className="page hiring-request-page">
-        <div className="hiring-hero-card">
+      <div className="page">
+        <div className="glass-page-header">
           <div>
-            <p className="manager-eyebrow">Team Planning</p>
-            <h1>Hiring Request</h1>
-            <p className="subtitle">Submit and track headcount needs for your team with a clean and professional workflow.</p>
+            <h1><span className="iconify" data-icon="lucide:users-round" style={{ marginRight: 10, verticalAlign: 'middle' }} />Hiring Requests</h1>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Submit and track headcount needs for your team</p>
           </div>
-          <button className="btn btn-primary hiring-create-btn" onClick={openRequestModal}>
-            <HiringIcon name="plus" size={16} />
+          <button className="glass-btn glass-btn-primary" onClick={openRequestModal}>
+            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} />
             New Hiring Request
           </button>
         </div>
 
         {!loading && !error && (
-          <div className="dashboard-stats-row hiring-stats-row">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
             {[
-              { label: 'Total Requests', value: summary.total, color: '#6366f1', icon: 'request' },
-              { label: 'Pending', value: summary.pending, color: '#f59e0b', icon: 'pending' },
-              { label: 'Approved', value: summary.approved, color: '#22c55e', icon: 'check' },
-              { label: 'Rejected', value: summary.rejected, color: '#ef4444', icon: 'alert' },
-            ].map((s) => (
-              <div key={s.label} className="mini-stat-card hiring-stat-card" style={{ borderTop: `3px solid ${s.color}` }}>
-                <div className="mini-stat-icon" style={{ color: s.color, background: `${s.color}12` }}>
-                  <HiringIcon name={s.icon} size={16} />
+              { label: 'Total Requests', value: summary.total, badge: 'glass-badge-info', icon: 'lucide:file-text' },
+              { label: 'Pending', value: summary.pending, badge: 'glass-badge-warning', icon: 'lucide:clock' },
+              { label: 'Approved', value: summary.approved, badge: 'glass-badge-success', icon: 'lucide:check-circle' },
+              { label: 'Rejected', value: summary.rejected, badge: 'glass-badge-danger', icon: 'lucide:x-circle' },
+            ].map((s, i) => (
+              <div key={s.label} className="glass-card card-hover fade-in-up" style={{ textAlign: 'center', animationDelay: `${i * 60}ms` }}>
+                <div className="glass-card-body" style={{ padding: 16 }}>
+                  <span className="iconify" data-icon={s.icon} style={{ fontSize: '1.5rem', color: 'var(--text-dim)', marginBottom: 8 }} />
+                  <div style={{ fontSize: '2rem', fontWeight: 700 }}>{s.value}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>{s.label}</div>
                 </div>
-                <div className="mini-stat-number" style={{ color: s.color }}>{s.value}</div>
-                <div className="mini-stat-label">{s.label}</div>
               </div>
             ))}
           </div>
         )}
 
         {loading ? (
-          <div className="loading" />
+          <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>
         ) : error ? (
-          <div className="empty-state-card">
-            <div className="empty-state-icon"><HiringIcon name="alert" size={34} /></div>
-            <h3>Something went wrong</h3>
-            <p>{error}</p>
-            <button className="btn btn-outline" onClick={() => { setLoading(true); fetchRequests(); }}>Try Again</button>
+          <div className="glass-card fade-in-up">
+            <div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
+              <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: '2.5rem', color: 'var(--color-danger)', marginBottom: 12 }} />
+              <h3 style={{ color: 'var(--text-primary)' }}>Something went wrong</h3>
+              <p style={{ color: 'var(--text-dim)', margin: '8px 0 16px' }}>{error}</p>
+              <button className="glass-btn glass-btn-ghost" onClick={() => { setLoading(true); fetchRequests(); }}>
+                <span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 6 }} />Try Again
+              </button>
+            </div>
           </div>
         ) : requests.length === 0 ? (
-          <div className="empty-state-card">
-            <div className="empty-state-icon"><HiringIcon name="request" size={34} /></div>
-            <h3>No hiring requests yet</h3>
-            <p>Start by submitting your first request to expand your team.</p>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>Create Your First Request</button>
+          <div className="glass-card fade-in-up">
+            <div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
+              <span className="iconify" data-icon="lucide:file-plus-2" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', marginBottom: 12 }} />
+              <h3 style={{ color: 'var(--text-primary)' }}>No hiring requests yet</h3>
+              <p style={{ color: 'var(--text-dim)', margin: '8px 0 16px' }}>Start by submitting your first request to expand your team.</p>
+              <button className="glass-btn glass-btn-primary" onClick={() => setShowModal(true)}>
+                <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} />Create Your First Request
+              </button>
+            </div>
           </div>
         ) : (
           <>
-            <div className="filter-row">
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
               {['all', 'pending', 'approved', 'rejected'].map((s) => (
-                <button key={s} className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline'}`} onClick={() => setFilter(s)}>
-                  {s}
+                <button key={s} className={`glass-btn glass-btn-sm ${filter === s ? 'glass-btn-primary' : 'glass-btn-ghost'}`} onClick={() => setFilter(s)}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
-            <div className="table-wrapper hiring-table-wrapper">
-              <table className="table">
+            <div className="glass-table-wrapper fade-in-up">
+              <table className="glass-table">
                 <thead>
                   <tr>
                     <th>Department</th>
@@ -186,30 +174,29 @@ export default function TeamRequests() {
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={showNote ? 8 : 7} className="empty-state">No {filter} requests.</td></tr>
+                    <tr><td colSpan={showNote ? 8 : 7} className="glass-empty">No {filter} requests.</td></tr>
                   ) : filtered.map((r) => (
                     <tr key={r.id}>
                       <td><strong>{r.department_name}</strong></td>
                       <td>{r.title_name}</td>
-                      <td className="cell-mono">{r.quantity}</td>
-                      <td><span className="badge badge-secondary">{r.job_type}</span></td>
+                      <td>{r.quantity}</td>
+                      <td><span className="glass-badge glass-badge-info">{r.job_type}</span></td>
                       <td>
-                        <span className="priority-pill" style={{ color: priorityColors[r.priority] || '#6b7280' }}>
-                          <span className="priority-dot" style={{ background: priorityColors[r.priority] || '#6b7280' }} />
+                        <span className={`glass-badge ${PRIORITY_BADGE[r.priority]}`}>
                           {r.priority === 'urgent' ? 'Urgent' : 'Normal'}
                         </span>
                       </td>
                       <td>
-                        <span className="status-pill" style={{ background: `${statusColors[r.status]}15`, color: statusColors[r.status], border: `1px solid ${statusColors[r.status]}30` }}>
-                          {r.status === 'approved' ? '✓' : r.status === 'rejected' ? '✗' : '○'}
+                        <span className={`glass-badge ${STATUS_BADGE_MAP[r.status] || 'glass-badge-default'}`}>
+                          {r.status === 'approved' ? <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} /> : r.status === 'rejected' ? <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} /> : <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4 }} />}
                           {r.status}
                         </span>
                       </td>
-                      <td className="cell-mono">
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
                         {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
                       {showNote && (
-                        <td className="note-cell">{r.rejection_reason || '—'}</td>
+                        <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.rejection_reason || '—'}</td>
                       )}
                     </tr>
                   ))}
@@ -221,80 +208,88 @@ export default function TeamRequests() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal hiring-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="glass-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="glass-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2>New Hiring Request</h2>
-                <p>Submit a request to hire new team members</p>
+                <h2 className="glass-modal-title"><span className="iconify" data-icon="lucide:user-plus" style={{ marginRight: 8 }} />New Hiring Request</h2>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Submit a request to hire new team members</p>
               </div>
+              <button className="glass-modal-close" onClick={() => setShowModal(false)}><span className="iconify" data-icon="lucide:x" /></button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                {/* Headcount Utilization */}
+              <div className="glass-card-body">
                 {!headcountLoading && headcountMap[`dept:${departmentId}`] && (
-                  <div className="hc-util-card">
-                    <div className="hc-util-label">Department Headcount</div>
-                    <div className="hc-util-bar">
-                      <div className="hc-util-fill" style={{
-                        width: `${headcountMap[`dept:${departmentId}`].max_headcount > 0
-                          ? Math.min(100, Math.round((headcountMap[`dept:${departmentId}`].count / headcountMap[`dept:${departmentId}`].max_headcount) * 100))
-                          : 0}%`,
-                        background: (headcountMap[`dept:${departmentId}`].vacant != null && headcountMap[`dept:${departmentId}`].vacant <= 0) ? '#ef4444' : '#22c55e',
-                      }} />
-                    </div>
-                    <div className="hc-util-text">
-                      <span>{headcountMap[`dept:${departmentId}`].count} filled</span>
-                      <span>/</span>
-                      <span>{headcountMap[`dept:${departmentId}`].max_headcount > 0 ? headcountMap[`dept:${departmentId}`].max_headcount : '\u221E'} max</span>
-                      {headcountMap[`dept:${departmentId}`].vacant != null && (
-                        <span className={headcountMap[`dept:${departmentId}`].vacant <= 0 ? 'hc-util-warning' : 'hc-util-ok'}>
-                          &middot; {headcountMap[`dept:${departmentId}`].vacant} vacant
-                        </span>
-                      )}
+                  <div className="glass-card" style={{ marginBottom: 12, background: 'var(--glass-bg-subtle)' }}>
+                    <div className="glass-card-body" style={{ padding: 12 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>Department Headcount</div>
+                      <div style={{ height: 6, borderRadius: 3, background: 'var(--border-glass)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          borderRadius: 3,
+                          width: `${headcountMap[`dept:${departmentId}`].max_headcount > 0
+                            ? Math.min(100, Math.round((headcountMap[`dept:${departmentId}`].count / headcountMap[`dept:${departmentId}`].max_headcount) * 100))
+                            : 0}%`,
+                          background: (headcountMap[`dept:${departmentId}`].vacant != null && headcountMap[`dept:${departmentId}`].vacant <= 0) ? 'var(--color-danger)' : 'var(--color-success)',
+                        }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                        <span>{headcountMap[`dept:${departmentId}`].count} filled</span>
+                        <span>/</span>
+                        <span>{headcountMap[`dept:${departmentId}`].max_headcount > 0 ? headcountMap[`dept:${departmentId}`].max_headcount : '\u221E'} max</span>
+                        {headcountMap[`dept:${departmentId}`].vacant != null && (
+                          <span style={{ color: headcountMap[`dept:${departmentId}`].vacant <= 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                            &middot; {headcountMap[`dept:${departmentId}`].vacant} vacant
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
                 {form.title_id && headcountMap[`title:${form.title_id}`] && (
-                  <div className="hc-util-card" style={{ marginTop: 8 }}>
-                    <div className="hc-util-label">Title Headcount</div>
-                    <div className="hc-util-bar">
-                      <div className="hc-util-fill" style={{
-                        width: `${headcountMap[`title:${form.title_id}`].max_headcount > 0
-                          ? Math.min(100, Math.round((headcountMap[`title:${form.title_id}`].count / headcountMap[`title:${form.title_id}`].max_headcount) * 100))
-                          : 0}%`,
-                        background: (headcountMap[`title:${form.title_id}`].vacant != null && headcountMap[`title:${form.title_id}`].vacant <= 0) ? '#ef4444' : '#22c55e',
-                      }} />
-                    </div>
-                    <div className="hc-util-text">
-                      <span>{headcountMap[`title:${form.title_id}`].count} filled</span>
-                      <span>/</span>
-                      <span>{headcountMap[`title:${form.title_id}`].max_headcount > 0 ? headcountMap[`title:${form.title_id}`].max_headcount : '\u221E'} max</span>
-                      {headcountMap[`title:${form.title_id}`].vacant != null && (
-                        <span className={headcountMap[`title:${form.title_id}`].vacant <= 0 ? 'hc-util-warning' : 'hc-util-ok'}>
-                          &middot; {headcountMap[`title:${form.title_id}`].vacant} vacant
-                        </span>
-                      )}
+                  <div className="glass-card" style={{ marginBottom: 12, background: 'var(--glass-bg-subtle)' }}>
+                    <div className="glass-card-body" style={{ padding: 12 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>Title Headcount</div>
+                      <div style={{ height: 6, borderRadius: 3, background: 'var(--border-glass)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          borderRadius: 3,
+                          width: `${headcountMap[`title:${form.title_id}`].max_headcount > 0
+                            ? Math.min(100, Math.round((headcountMap[`title:${form.title_id}`].count / headcountMap[`title:${form.title_id}`].max_headcount) * 100))
+                            : 0}%`,
+                          background: (headcountMap[`title:${form.title_id}`].vacant != null && headcountMap[`title:${form.title_id}`].vacant <= 0) ? 'var(--color-danger)' : 'var(--color-success)',
+                        }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                        <span>{headcountMap[`title:${form.title_id}`].count} filled</span>
+                        <span>/</span>
+                        <span>{headcountMap[`title:${form.title_id}`].max_headcount > 0 ? headcountMap[`title:${form.title_id}`].max_headcount : '\u221E'} max</span>
+                        {headcountMap[`title:${form.title_id}`].vacant != null && (
+                          <span style={{ color: headcountMap[`title:${form.title_id}`].vacant <= 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                            &middot; {headcountMap[`title:${form.title_id}`].vacant} vacant
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
-                <div className="form-group" style={{ marginTop: form.title_id ? 12 : 0 }}>
+                <div className="glass-form-group" style={{ marginTop: form.title_id ? 12 : 0 }}>
                   <label>Title *</label>
-                  <select className="form-control" value={form.title_id}
+                  <select className="glass-select" value={form.title_id}
                     onChange={(e) => setForm({ ...form, title_id: e.target.value })} required disabled={!departmentId}>
                     <option value="">{titlesLoading ? 'Loading titles...' : (titles.length ? 'Select Title' : 'No titles available')}</option>
                     {titles.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
                   </select>
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="glass-form-group">
                     <label>Quantity</label>
-                    <input type="number" className="form-control" min={1} value={form.quantity}
+                    <input type="number" className="glass-input" min={1} value={form.quantity}
                       onChange={(e) => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })} />
                   </div>
-                  <div className="form-group">
+                  <div className="glass-form-group">
                     <label>Job Type</label>
-                    <select className="form-control" value={form.job_type}
+                    <select className="glass-select" value={form.job_type}
                       onChange={(e) => setForm({ ...form, job_type: e.target.value })}>
                       <option>Full-Time</option>
                       <option>Part-Time</option>
@@ -303,28 +298,31 @@ export default function TeamRequests() {
                     </select>
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Priority</label>
-                  <div className="priority-selector">
+                  <div style={{ display: 'flex', gap: 8 }}>
                     {['normal', 'urgent'].map((p) => (
-                      <label key={p} onClick={() => setForm({ ...form, priority: p })} className={`priority-option ${form.priority === p ? 'active' : ''}`}>
-                        <span className="priority-dot" style={{ background: p === 'urgent' ? '#ef4444' : '#6b7280' }} />
-                        {p === 'urgent' ? 'Urgent' : 'Normal'}
-                      </label>
+                      <button key={p} type="button" onClick={() => setForm({ ...form, priority: p })}
+                        className={`glass-btn glass-btn-sm ${form.priority === p ? 'glass-btn-primary' : 'glass-btn-ghost'}`}
+                        style={{ flex: 1 }}>
+                        <span className={`glass-badge ${PRIORITY_BADGE[p]}`} style={{ marginRight: 6 }}>
+                          {p === 'urgent' ? 'Urgent' : 'Normal'}
+                        </span>
+                      </button>
                     ))}
                   </div>
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Reason</label>
-                  <textarea className="form-control" rows={3} value={form.reason}
+                  <textarea className="glass-textarea" rows={3} value={form.reason}
                     onChange={(e) => setForm({ ...form, reason: e.target.value })}
                     placeholder="Why is this position needed? What skills and experience are required?" />
                 </div>
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? <span className="spinner-sm" /> : 'Submit Request'}
+              <div className="glass-modal-footer">
+                <button type="button" className="glass-btn glass-btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="glass-btn glass-btn-primary" disabled={submitting}>
+                  {submitting ? <span className="spinner" /> : <><span className="iconify" data-icon="lucide:send" style={{ marginRight: 6 }} />Submit Request</>}
                 </button>
               </div>
             </form>

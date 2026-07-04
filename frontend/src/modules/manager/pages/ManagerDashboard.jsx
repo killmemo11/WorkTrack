@@ -36,20 +36,24 @@ export default function ManagerDashboard() {
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading team dashboard...</p>
+      <div className="glass-loading">
+        <div className="spinner" />
+        <span>Loading team dashboard...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="dashboard-error">
-        <div className="error-icon">⚠️</div>
-        <h3>Error Loading Dashboard</h3>
-        <p>{error}</p>
-        <button onClick={() => fetchDashboardData()} className="retry-button">
+      <div className="glass-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '1rem' }}>
+        <div className="glass-alert glass-alert-danger">
+          <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: '1.5rem' }}></span>
+          <div>
+            <h3>Error Loading Dashboard</h3>
+            <p>{error}</p>
+          </div>
+        </div>
+        <button onClick={() => fetchDashboardData()} className="glass-btn glass-btn-primary">
           Try Again
         </button>
       </div>
@@ -58,8 +62,8 @@ export default function ManagerDashboard() {
 
   if (!dashboardData) {
     return (
-      <div className="dashboard-empty">
-        <div className="empty-icon">📊</div>
+      <div className="glass-empty">
+        <span className="iconify" data-icon="lucide:building-2" style={{ fontSize: '3rem', opacity: 0.5 }}></span>
         <h3>No Data Available</h3>
         <p>Your dashboard data is still loading. Please check back later.</p>
       </div>
@@ -69,8 +73,8 @@ export default function ManagerDashboard() {
   const { team, summary } = dashboardData;
   if (!summary) {
     return (
-      <div className="dashboard-empty">
-        <div className="empty-icon">📊</div>
+      <div className="glass-empty">
+        <span className="iconify" data-icon="lucide:users" style={{ fontSize: '3rem', opacity: 0.5 }}></span>
         <h3>No Team Data Available</h3>
         <p>You are not assigned to a department. Please contact your administrator.</p>
       </div>
@@ -80,53 +84,71 @@ export default function ManagerDashboard() {
   const task_completion = summary.task_completion || {};
   const engagement_metrics = summary.engagement_metrics || {};
 
+  const attendanceRate = summary.total_members > 0
+    ? Math.round((summary.signed_in / summary.total_members) * 100)
+    : 0;
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'signed_in': return 'success';
+      case 'on_leave': return 'warning';
+      case 'absent': return 'danger';
+      default: return 'default';
+    }
+  };
+
   return (
-    <div className="manager-dashboard">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-content">
+    <div>
+      {/* Header - Greeting Pattern */}
+      <div className="dashboard-greeting fade-in-up">
+        <div className="greeting-avatar">{employee?.name?.charAt(0) || 'M'}</div>
+        <div className="greeting-text">
           <h1>Team Dashboard</h1>
-          <p>Manage and monitor your team's performance</p>
+          <p>{summary.department_name || 'Manager View'} &middot; Manage your team's performance</p>
+        </div>
+        <div className="greeting-badge">
+          <span className={`status-dot ${summary.signed_in > 0 ? 'signed_in' : 'not_signed_in'}`}></span>
+          {summary.signed_in > 0 ? `${summary.signed_in} Present` : 'Team Overview'}
         </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="summary-stats">
-        <div className="stat-card">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
+      <div className="stats-grid">
+        <div className="stat-card gradient-purple fade-in-up delay-1 card-hover">
+          <span className="iconify stat-card-icon" data-icon="lucide:users"></span>
+          <div className="stat-card-content">
             <h3>Total Team Members</h3>
             <p className="stat-value">{summary.total_members}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">✅</div>
-          <div className="stat-content">
+        <div className="stat-card gradient-green fade-in-up delay-2 card-hover">
+          <span className="iconify stat-card-icon" data-icon="lucide:check-circle"></span>
+          <div className="stat-card-content">
             <h3>Present Today</h3>
             <p className="stat-value">{summary.signed_in}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">🕐</div>
-          <div className="stat-content">
+        <div className="stat-card gradient-blue fade-in-up delay-3 card-hover">
+          <span className="iconify stat-card-icon" data-icon="lucide:clock"></span>
+          <div className="stat-card-content">
             <h3>On Leave Today</h3>
             <p className="stat-value">{summary.on_leave}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">❌</div>
-          <div className="stat-content">
+        <div className="stat-card gradient-pink fade-in-up delay-4 card-hover">
+          <span className="iconify stat-card-icon" data-icon="lucide:x-circle"></span>
+          <div className="stat-card-content">
             <h3>Absent Today</h3>
             <p className="stat-value">{summary.absent}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">🏠</div>
-          <div className="stat-content">
+        <div className="stat-card gradient-amber fade-in-up delay-5 card-hover">
+          <span className="iconify stat-card-icon" data-icon="lucide:building"></span>
+          <div className="stat-card-content">
             <h3>Department</h3>
             <p className="stat-value">{summary.department_name}</p>
           </div>
@@ -136,43 +158,43 @@ export default function ManagerDashboard() {
       {/* Performance Metrics */}
       <div className="section">
         <h2>Team Performance</h2>
-        <div className="metrics-grid">
-          <div className="metric-card">
+        <div className="stats-grid">
+          <div className="stat-card gradient-blue fade-in-up delay-1 card-hover">
             <h3>Average Days Worked</h3>
-            <p className="metric-value">{performance_metrics.avg_days_worked.toFixed(1)}</p>
-            <p className="metric-subtext">This period</p>
+            <p className="stat-value">{performance_metrics.avg_days_worked.toFixed(1)}</p>
+            <p className="stat-details">This period</p>
           </div>
 
-          <div className="metric-card">
+          <div className="stat-card gradient-blue fade-in-up delay-2 card-hover">
             <h3>Average Missing Sign-outs</h3>
-            <p className="metric-value">{performance_metrics.avg_missing_sign_outs.toFixed(1)}</p>
-            <p className="metric-subtext">This period</p>
+            <p className="stat-value">{performance_metrics.avg_missing_sign_outs.toFixed(1)}</p>
+            <p className="stat-details">This period</p>
           </div>
 
-          <div className="metric-card">
+          <div className="stat-card gradient-blue fade-in-up delay-3 card-hover">
             <h3>Office Days</h3>
-            <p className="metric-value">{performance_metrics.avg_office_days.toFixed(1)}</p>
-            <p className="metric-subtext">This period</p>
+            <p className="stat-value">{performance_metrics.avg_office_days.toFixed(1)}</p>
+            <p className="stat-details">This period</p>
           </div>
 
-          <div className="metric-card">
+          <div className="stat-card gradient-blue fade-in-up delay-4 card-hover">
             <h3>WFH Days</h3>
-            <p className="metric-value">{performance_metrics.avg_wfh_days.toFixed(1)}</p>
-            <p className="metric-subtext">This period</p>
+            <p className="stat-value">{performance_metrics.avg_wfh_days.toFixed(1)}</p>
+            <p className="stat-details">This period</p>
           </div>
 
-          <div className="metric-card">
+          <div className="stat-card gradient-blue fade-in-up delay-5 card-hover">
             <h3>Task Completion Rate</h3>
-            <p className="metric-value">{task_completion.completion_rate}%</p>
-            <p className="metric-subtext">
+            <p className="stat-value">{task_completion.completion_rate}%</p>
+            <p className="stat-details">
               {task_completion.completed} of {task_completion.total} tasks completed
             </p>
           </div>
 
-          <div className="metric-card">
+          <div className="stat-card gradient-blue fade-in-up delay-5 card-hover">
             <h3>Team Active Rate</h3>
-            <p className="metric-value">{engagement_metrics.active_rate}%</p>
-            <p className="metric-subtext">
+            <p className="stat-value">{engagement_metrics.active_rate}%</p>
+            <p className="stat-details">
               {engagement_metrics.active_employees} of {engagement_metrics.total_employees} active
             </p>
           </div>
@@ -182,64 +204,71 @@ export default function ManagerDashboard() {
       {/* Team Members */}
       <div className="section">
         <h2>Team Members</h2>
-        <div className="team-members">
+        <div className="glass-grid">
           {team.map((member) => (
-            <div key={member.id} className="team-member-card">
-              <div className="member-header">
-                <div className="member-info">
-                  <h3>{member.name}</h3>
-                  <p className="member-role">{member.role}</p>
+            <div key={member.id} className="glass-card card-hover fade-in-up">
+              <div className="glass-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div className="greeting-avatar" style={{ width: '40px', height: '40px', fontSize: '1rem' }}>
+                    {member.name?.charAt(0) || '?'}
+                  </div>
+                  <div className="member-info">
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.125rem' }}>{member.name}</h3>
+                    <p className="muted-text" style={{ fontSize: '0.8rem', opacity: 0.7 }}>{member.role}</p>
+                  </div>
                 </div>
                 <div className="member-status">
-                  <span className={`status-badge ${member.today_status}`}>
+                  <span className={`glass-badge ${getStatusBadgeClass(member.today_status)}`}>
                     {member.today_status}
                   </span>
                 </div>
               </div>
 
-              <div className="member-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Today:</span>
-                  <span className="stat-value">{member.today_status}</span>
+              <div className="glass-detail-grid">
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Today:</span>
+                  <span className="glass-detail-value">{member.today_status}</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Sign In:</span>
-                  <span className="stat-value">{member.today_sign_in || 'N/A'}</span>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Sign In:</span>
+                  <span className="glass-detail-value">{member.today_sign_in || 'N/A'}</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Sign Out:</span>
-                  <span className="stat-value">{member.today_sign_out || 'Pending'}</span>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Sign Out:</span>
+                  <span className="glass-detail-value">{member.today_sign_out || 'Pending'}</span>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Pending Leaves:</span>
-                  <span className="stat-value">{member.pending_leave_count}</span>
-                </div>
-              </div>
-
-              <div className="member-period-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Days Worked:</span>
-                  <span className="stat-value">{member.period_days_worked}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Office Days:</span>
-                  <span className="stat-value">{member.period_office_days}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">WFH Days:</span>
-                  <span className="stat-value">{member.period_wfh_days}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Missing Sign-outs:</span>
-                  <span className="stat-value">{member.period_missing_sign_outs}</span>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Pending Leaves:</span>
+                  <span className="glass-detail-value">{member.pending_leave_count}</span>
                 </div>
               </div>
 
-              <div className="member-actions">
-                <button className="action-button" onClick={() => navigate(`/personnel/${member.id}`)}>
+              <div className="glass-detail-grid" style={{ marginTop: '0.75rem' }}>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Days Worked:</span>
+                  <span className="glass-detail-value">{member.period_days_worked}</span>
+                </div>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Office Days:</span>
+                  <span className="glass-detail-value">{member.period_office_days}</span>
+                </div>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">WFH Days:</span>
+                  <span className="glass-detail-value">{member.period_wfh_days}</span>
+                </div>
+                <div className="glass-detail-row">
+                  <span className="glass-detail-label">Missing Sign-outs:</span>
+                  <span className="glass-detail-value">{member.period_missing_sign_outs}</span>
+                </div>
+              </div>
+
+              <div className="glass-modal-footer" style={{ marginTop: '1rem', borderTop: 'none' }}>
+                <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => navigate(`/personnel/${member.id}`)}>
+                  <span className="iconify" data-icon="lucide:user"></span>
                   View Profile
                 </button>
-                <button className="action-button" onClick={() => navigate(`/manager/leave-requests/${member.id}`)}>
+                <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/manager/leave-requests/${member.id}`)}>
+                  <span className="iconify" data-icon="lucide:calendar"></span>
                   Leave Requests
                 </button>
               </div>
@@ -251,36 +280,36 @@ export default function ManagerDashboard() {
       {/* Team Health */}
       <div className="section">
         <h2>Team Health Overview</h2>
-        <div className="health-indicators">
-          <div className="indicator-card">
+        <div className="glass-grid">
+          <div className="glass-card card-hover fade-in-up">
             <h3>Attendance Health</h3>
             <div className="indicator-content">
-              <div className="indicator-bar">
-                <div className="indicator-fill" style={{ width: '85%' }}></div>
+              <div className="stat-bar">
+                <div className="stat-bar-fill" style={{ width: attendanceRate + '%' }}></div>
               </div>
-              <p className="indicator-text">85% attendance rate - Good performance</p>
+              <p className="stat-details">{attendanceRate}% attendance rate - {attendanceRate >= 80 ? 'Good performance' : 'Needs attention'}</p>
             </div>
           </div>
 
-          <div className="indicator-card">
+          <div className="glass-card card-hover fade-in-up">
             <h3>Task Completion</h3>
             <div className="indicator-content">
-              <div className="indicator-bar">
-                <div className="indicator-fill" style={{ width: task_completion.completion_rate + '%' }}></div>
+              <div className="stat-bar">
+                <div className="stat-bar-fill" style={{ width: task_completion.completion_rate + '%' }}></div>
               </div>
-              <p className="indicator-text">
+              <p className="stat-details">
                 {task_completion.completion_rate}% completion rate
               </p>
             </div>
           </div>
 
-          <div className="indicator-card">
+          <div className="glass-card card-hover fade-in-up">
             <h3>Team Engagement</h3>
             <div className="indicator-content">
-              <div className="indicator-bar">
-                <div className="indicator-fill" style={{ width: engagement_metrics.active_rate + '%' }}></div>
+              <div className="stat-bar">
+                <div className="stat-bar-fill" style={{ width: engagement_metrics.active_rate + '%' }}></div>
               </div>
-              <p className="indicator-text">
+              <p className="stat-details">
                 {engagement_metrics.active_rate}% active rate
               </p>
             </div>

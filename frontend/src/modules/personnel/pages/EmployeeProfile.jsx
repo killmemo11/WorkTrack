@@ -19,17 +19,17 @@ import ProfileSalary from '../components/ProfileSalary';
 import ProfileChecklists from '../components/ProfileChecklists';
 
 const TABS = [
-  { key: 'basic', label: 'Basic Info' },
-  { key: 'employment', label: 'Employment' },
-  { key: 'salary', label: 'Salary' },
-  { key: 'education', label: 'Education' },
-  { key: 'work-history', label: 'Work History' },
-  { key: 'certifications', label: 'Certifications' },
-  { key: 'medical-family', label: 'Medical Family' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'contracts', label: 'Contracts' },
-  { key: 'checklists', label: 'Checklists' },
-  { key: 'timeline', label: 'Timeline' },
+  { key: 'basic', label: 'Basic Info', icon: 'lucide:user' },
+  { key: 'employment', label: 'Employment', icon: 'lucide:briefcase' },
+  { key: 'salary', label: 'Salary', icon: 'lucide:banknote' },
+  { key: 'education', label: 'Education', icon: 'lucide:graduation-cap' },
+  { key: 'work-history', label: 'Work History', icon: 'lucide:clock' },
+  { key: 'certifications', label: 'Certifications', icon: 'lucide:award' },
+  { key: 'medical-family', label: 'Medical Family', icon: 'lucide:heart-pulse' },
+  { key: 'documents', label: 'Documents', icon: 'lucide:file-text' },
+  { key: 'contracts', label: 'Contracts', icon: 'lucide:scroll-text' },
+  { key: 'checklists', label: 'Checklists', icon: 'lucide:check-square' },
+  { key: 'timeline', label: 'Timeline', icon: 'lucide:git-branch' },
 ];
 
 export default function EmployeeProfile() {
@@ -67,37 +67,44 @@ export default function EmployeeProfile() {
       await hrApi.post(`/employees/${id}/avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       await loadProfile();
     } catch {
-      // ignore
     } finally {
       setUploading(false);
     }
   }
 
-  if (loading) return <div className="loading">Loading profile...</div>;
+  if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading profile...</span></div>;
   if (!profile) return null;
 
   return (
     <>
-      <div className="page-header">
+      <div className="glass-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {profile.profile?.avatar_path
-              ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }} />
-              : <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#999', border: '2px solid #ddd' }}>{profile.name?.[0]?.toUpperCase()}</div>}
+              ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-glass)' }} />
+              : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-dim)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
             <input type="file" accept="image/*" id="avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
-            <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #ccc', fontSize: 12, lineHeight: 1 }} title="Upload avatar">{uploading ? '...' : '✎'}</label>
+            <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', backdropFilter: 'blur(8px)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1 }} title="Upload avatar">
+              <span className="iconify" data-icon={uploading ? 'lucide:loader-2' : 'lucide:camera'} style={{ fontSize: 11 }} />
+            </label>
           </div>
           <div>
-            <button className="btn btn-sm btn-outline" onClick={() => navigate('/hr/employees')}>&larr; Back to Employees</button>
-            <button className="btn btn-sm btn-primary" style={{ marginLeft: 8 }} onClick={() => setShowIdCard(true)}>ID Card</button>
-            <h2 style={{ marginTop: 4 }}>{profile.name} <span className="text-muted">(#{profile.employee_id})</span></h2>
+            <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => navigate('/hr/employees')}>
+              <span className="iconify" data-icon="lucide:arrow-left" style={{ marginRight: 4 }} /> Back to Employees
+            </button>
+            <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ marginLeft: 8 }} onClick={() => setShowIdCard(true)}>
+              <span className="iconify" data-icon="lucide:id-card" style={{ marginRight: 4 }} /> ID Card
+            </button>
+            <h2 style={{ marginTop: 4 }}>{profile.name} <span style={{ color: 'var(--text-dim)' }}>#{profile.employee_id}</span></h2>
           </div>
         </div>
       </div>
 
-      <div className="tabs">
+      <div className="glass-tabs">
         {TABS.map(t => (
-          <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>
+          <button key={t.key} className={`glass-tab ${activeTab === t.key ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab(t.key)}>
+            <span className="iconify" data-icon={t.icon} style={{ marginRight: 4, fontSize: 13 }} />{t.label}
+          </button>
         ))}
       </div>
 

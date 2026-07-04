@@ -54,41 +54,43 @@ export default function AdminDocuments() {
   };
 
   const statusBadge = (s) => {
-    const colors = { pending: 'tag-amber', verified: 'tag-green', rejected: 'tag-red' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const map = { pending: 'warning', verified: 'success', rejected: 'danger' };
+    return <span className={`glass-badge glass-badge-${map[s] || 'default'}`}>{s}</span>;
   };
 
-  if (loading && data.documents.length === 0) return <div className="loading">Loading...</div>;
+  if (loading && data.documents.length === 0) return <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>;
 
   return (
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Document Management</h1>
-            <p className="subtitle">Uploaded employee documents — verify or reject</p>
+            <p className="subtitle" style={{color:'var(--text-dim)'}}>Uploaded employee documents — verify or reject</p>
           </div>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-        <div className="filters" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <select className="form-control" style={{ width: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-          </select>
+        <div className="filter-bar">
+          <div className="glass-form-group" style={{marginBottom:0}}>
+            <select className="glass-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Verified</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
         </div>
 
-        <div className="table-wrapper">
+        <div className="glass-table-wrapper fade-in-up">
           {data.documents.length === 0 ? (
-            <p className="empty-state">No documents found.</p>
+            <div className="glass-empty"><span className="iconify" data-icon="lucide:folder-open"/><p>No documents found.</p></div>
           ) : (
-            <table className="table">
+            <table className="glass-table">
               <thead>
                 <tr>
-                  <th>Employee</th>
-                  <th>Document</th>
+                  <th><span className="iconify" data-icon="lucide:user" style={{verticalAlign:'middle', marginRight:4}}/> Employee</th>
+                  <th><span className="iconify" data-icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}}/> Document</th>
                   <th>Type</th>
                   <th>Uploaded By</th>
                   <th>Status</th>
@@ -100,19 +102,19 @@ export default function AdminDocuments() {
                 {data.documents.map(doc => (
                   <tr key={doc.id}>
                     <td><a href={`/hr/employees/${doc.employee_id}/profile`} className="link">{doc.employee_name}</a></td>
-                    <td><strong>{doc.doc_name}</strong></td>
-                    <td><span className="tag tag-blue">{doc.doc_type}</span></td>
+                    <td><strong><span className="iconify" data-icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}}/>{doc.doc_name}</strong></td>
+                    <td><span className="glass-badge glass-badge-info">{doc.doc_type}</span></td>
                     <td>{doc.uploaded_by_name || '—'}</td>
                     <td>{statusBadge(doc.status)}</td>
                     <td>{new Date(doc.created_at).toLocaleDateString()}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {doc.status === 'pending' && <>
-                          <button className="btn btn-sm btn-primary" onClick={() => handleVerify(doc.id)}>Verify</button>
-                          <button className="btn btn-sm btn-outline" onClick={() => handleReject(doc.id)}>Reject</button>
+                          <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => handleVerify(doc.id)}><span className="iconify" data-icon="lucide:check-circle"/> Verify</button>
+                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleReject(doc.id)}><span className="iconify" data-icon="lucide:x-circle"/> Reject</button>
                         </>}
                         {doc.status === 'rejected' && doc.rejection_reason && (
-                          <span style={{ fontSize: 12, color: '#991b1b' }} title={doc.rejection_reason}>Reason</span>
+                          <span className="glass-badge glass-badge-danger" title={doc.rejection_reason}><span className="iconify" data-icon="lucide:alert-circle"/> Reason</span>
                         )}
                       </div>
                     </td>

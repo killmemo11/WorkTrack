@@ -8,10 +8,10 @@ import ConfirmModal from '../../../shared/components/ConfirmModal';
 import ResignationModal from '../../../shared/components/ResignationModal';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
-const statusColors = { pending: '#f59e0b', approved: '#22c55e', rejected: '#ef4444', cancelled: '#6b7280' };
+const statusBadgeMap = { pending: 'warning', approved: 'success', rejected: 'danger', cancelled: 'default' };
 
 const formatDate = (d) => {
-  if (!d) return '—';
+  if (!d) return '\u2014';
   const dt = new Date(d);
   return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
 };
@@ -134,110 +134,123 @@ export default function Requests() {
 
   if (loading) return (
     <div className="page">
-      <div className="page-header"><h1>Requests</h1></div>
-      <div className="tabs" style={{ marginBottom: 16 }}>
-        <div className="skeleton-tab" />
-        <div className="skeleton-tab" />
+      <div className="glass-page-header"><h1>Requests</h1></div>
+      <div className="glass-tabs" style={{ marginBottom: 16 }}>
+        <div className="glass-skeleton" style={{ height: 36, width: 140, borderRadius: 8, flexShrink: 0 }} />
+        <div className="glass-skeleton" style={{ height: 36, width: 140, borderRadius: 8, flexShrink: 0 }} />
       </div>
-      <div className="dashboard-stats-row" style={{ marginBottom: 20 }}>
-        {[1, 2, 3].map(i => <div key={i} className="skeleton-card" />)}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+        {[1, 2, 3].map(i => <div key={i} className="glass-skeleton" style={{ height: 110, flex: 1, borderRadius: 12 }} />)}
       </div>
-      <div className="table-wrapper">
-        <div className="skeleton-table" />
-      </div>
+      <div className="glass-skeleton" style={{ height: 300, borderRadius: 12 }} />
     </div>
   );
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header">
         <h1>Requests</h1>
-        <button className="btn btn-outline" onClick={() => setShowResignation(true)} style={{ borderColor: '#ef4444', color: '#ef4444' }}>Resign</button>
+        <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setShowResignation(true)}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          Resign
+        </button>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 16 }}>
-        <button className={`tab ${tab === 'missing-signout' ? 'tab-active' : ''}`} onClick={() => setTab('missing-signout')}>
+      <div className="glass-tabs" style={{ marginBottom: 16 }}>
+        <button className={`glass-tab ${tab === 'missing-signout' ? 'glass-tab-active' : ''}`} onClick={() => setTab('missing-signout')}>
           Missing Sign Out
         </button>
-        <button className={`tab ${tab === 'leaves' ? 'tab-active' : ''}`} onClick={() => setTab('leaves')}>
+        <button className={`glass-tab ${tab === 'leaves' ? 'glass-tab-active' : ''}`} onClick={() => setTab('leaves')}>
           Leave Requests
         </button>
       </div>
 
       {tab === 'missing-signout' && (
         <>
-          <p className="subtitle">Days you forgot to sign out. Submit a request with your exit time for approval.</p>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: 16 }}>Days you forgot to sign out. Submit a request with your exit time for approval.</p>
 
-          {message && <div className="alert alert-success">{message}</div>}
+          {message && <div className="glass-alert glass-alert-success">{message}</div>}
 
           {records.length === 0 ? (
-            <p className="empty-state">No missing sign outs. Great job!</p>
+            <div className="glass-empty">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <h3>No missing sign outs. Great job!</h3>
+            </div>
           ) : (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Sign In</th>
-                    <th>Duration So Far</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((r) => {
-                    const diff = ((Date.now() - new Date(r.sign_in_time)) / (1000 * 60 * 60)).toFixed(1);
-                    const status = getRequestStatus(r.id);
-                    const rejectionReason = getRejectionReason(r.id);
-                    return (
-                      <tr key={r.id}>
-                        <td>{r.date}</td>
-                        <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
-                        <td>{diff}h</td>
-                        <td>
-                          {status === 'pending' && <span className="badge badge-warning">Pending Approval</span>}
-                          {status === 'approved' && <span className="badge badge-success">Approved</span>}
-                          {status === 'rejected' && (
-                            <span className="badge badge-error" title={rejectionReason || ''}>Rejected</span>
-                          )}
-                          {!status && <span className="badge badge-employee">Not Requested</span>}
-                        </td>
-                        <td>
-                          {!status && (
-                            <button className="btn btn-primary btn-sm" onClick={() => setForm({ recordId: r.id, signOutTime: new Date().toISOString().slice(0, 16), notes: '' })}>
-                              Request Sign Out
-                            </button>
-                          )}
-                          {status === 'rejected' && (
-                            <button className="btn btn-primary btn-sm" onClick={() => setForm({ recordId: r.id, signOutTime: new Date().toISOString().slice(0, 16), notes: '' })}>
-                              Resubmit Request
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="glass-card">
+              <div className="glass-table-wrapper">
+                <table className="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Sign In</th>
+                      <th>Duration So Far</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r) => {
+                      const diff = ((Date.now() - new Date(r.sign_in_time)) / (1000 * 60 * 60)).toFixed(1);
+                      const status = getRequestStatus(r.id);
+                      const rejectionReason = getRejectionReason(r.id);
+                      return (
+                        <tr key={r.id}>
+                          <td>{r.date}</td>
+                          <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
+                          <td>{diff}h</td>
+                          <td>
+                            {status === 'pending' && <span className="glass-badge glass-badge-warning">Pending Approval</span>}
+                            {status === 'approved' && <span className="glass-badge glass-badge-success">Approved</span>}
+                            {status === 'rejected' && (
+                              <span className="glass-badge glass-badge-danger" title={rejectionReason || ''}>Rejected</span>
+                            )}
+                            {!status && <span className="glass-badge glass-badge-default">Not Requested</span>}
+                          </td>
+                          <td>
+                            {!status && (
+                              <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setForm({ recordId: r.id, signOutTime: new Date().toISOString().slice(0, 16), notes: '' })}>
+                                Request Sign Out
+                              </button>
+                            )}
+                            {status === 'rejected' && (
+                              <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setForm({ recordId: r.id, signOutTime: new Date().toISOString().slice(0, 16), notes: '' })}>
+                                Resubmit Request
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {form.recordId && (
-            <div className="modal-overlay" onClick={() => { setForm({ recordId: null, signOutTime: '', notes: '' }); setError(''); setMessage(''); }}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <h2>Submit Sign-Out Request</h2>
-                {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
-                <label>
-                  Sign Out Time:
-                  <input type="datetime-local" value={form.signOutTime} onChange={(e) => setForm({ ...form, signOutTime: e.target.value })} className="form-control" />
-                </label>
-                <label>
-                  Notes:
-                  <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="form-control" rows={3} />
-                </label>
-                <div className="modal-actions">
-                  <button className="btn btn-outline" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>Cancel</button>
-                  <button className="btn btn-primary" onClick={handleRequest}>Submit Request</button>
+            <div className="glass-modal-overlay" onClick={() => { setForm({ recordId: null, signOutTime: '', notes: '' }); setError(''); setMessage(''); }}>
+              <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="glass-modal-header">
+                  <h2>Submit Sign-Out Request</h2>
+                  <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+                <div className="glass-card-body">
+                  {error && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 12 }}>{error}</div>}
+                  <div className="glass-form-group">
+                    <label className="glass-label">Sign Out Time</label>
+                    <input type="datetime-local" value={form.signOutTime} onChange={(e) => setForm({ ...form, signOutTime: e.target.value })} className="glass-input" />
+                  </div>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Notes</label>
+                    <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="glass-textarea" rows={3} />
+                  </div>
+                </div>
+                <div className="glass-modal-footer">
+                  <button className="glass-btn glass-btn-ghost" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>Cancel</button>
+                  <button className="glass-btn glass-btn-primary" onClick={handleRequest}>Submit Request</button>
                 </div>
               </div>
             </div>
@@ -247,35 +260,31 @@ export default function Requests() {
 
       {tab === 'leaves' && (
         <>
-          <div className="page-header" style={{ border: 'none', padding: 0, marginBottom: 16 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button className="glass-btn glass-btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
           </div>
 
-          <div className="dashboard-stats-row" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 20 }}>
             {['annual', 'sick', 'casual'].map((type) => {
-              const colors = { annual: '#4f46e5', sick: '#ef4444', casual: '#f59e0b' };
+              const gradients = { annual: 'linear-gradient(135deg, #8b5cf6, #6366f1)', sick: 'linear-gradient(135deg, #ef4444, #dc2626)', casual: 'linear-gradient(135deg, #f59e0b, #d97706)' };
               const balance = getBalance(type);
               const total = getBalanceTotal(type);
               const pending = getPendingDays(type);
               const used = total != null ? Math.max(0, total - balance) : null;
               const pct = total != null && total > 0 ? Math.min(100, Math.round(((total - balance) / total) * 100)) : 0;
               return (
-                <div key={type} className="mini-stat-card" style={{ borderTop: `4px solid ${colors[type]}`, padding: '14px 14px', position: 'relative' }}>
-                  <div className="mini-stat-number" style={{ color: colors[type], fontSize: '1.4rem' }}>{balance}</div>
-                  <div className="mini-stat-label" style={{ fontSize: '0.7rem' }}>
-                    {total != null ? `${typeLabels[type]} — ${used} of ${total} used` : `${typeLabels[type]} Days Left`}
+                <div key={type} className="stat-card" style={{ background: gradients[type], borderRadius: 12, padding: '16px', position: 'relative', color: '#fff' }}>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{balance}</div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.85, marginTop: 2 }}>
+                    {total != null ? `${typeLabels[type]} \u2014 ${used} of ${total} used` : `${typeLabels[type]} Days Left`}
                   </div>
                   {total != null && (
-                    <div className="balance-progress" style={{ marginTop: 8 }}>
-                      <div className="balance-progress-bar">
-                        <div className="balance-progress-fill" style={{ width: `${pct}%`, background: colors[type] }} />
-                      </div>
+                    <div style={{ marginTop: 10, background: 'rgba(255,255,255,0.2)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, background: 'rgba(255,255,255,0.7)', height: '100%', borderRadius: 4, transition: 'width 0.3s' }} />
                     </div>
                   )}
                   {pending > 0 && (
-                    <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.9, marginTop: 6, fontWeight: 600 }}>
                       +{pending} day{pending > 1 ? 's' : ''} pending
                     </div>
                   )}
@@ -285,10 +294,10 @@ export default function Requests() {
           </div>
 
           {(leaveData.leaves.length > 0 || statusFilter || typeFilter) && (
-            <div className="filter-bar">
-              <div className="filter-group">
-                <label>Status</label>
-                <select className="form-control" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '12px 0', marginBottom: 8 }}>
+              <div className="glass-form-group" style={{ marginBottom: 0, flex: 1, minWidth: 150 }}>
+                <label className="glass-label" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Status</label>
+                <select className="glass-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                   <option value="">All</option>
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -296,86 +305,85 @@ export default function Requests() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              <div className="filter-group">
-                <label>Type</label>
-                <select className="form-control" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              <div className="glass-form-group" style={{ marginBottom: 0, flex: 1, minWidth: 150 }}>
+                <label className="glass-label" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Type</label>
+                <select className="glass-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
                   <option value="">All</option>
                   {Object.entries(typeLabels).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
                   ))}
                 </select>
               </div>
-              <div className="filter-group" style={{ flex: 1 }}>
-                <label>Search</label>
-                <input className="form-control" type="text" placeholder="Reason, type, status…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <div className="glass-form-group" style={{ marginBottom: 0, flex: 2, minWidth: 200 }}>
+                <label className="glass-label" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Search</label>
+                <input className="glass-input" type="text" placeholder="Reason, type, status\u2026" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
               </div>
               {(statusFilter || typeFilter || searchQuery) && (
-                <button className="btn btn-sm btn-ghost" onClick={() => { setStatusFilter(''); setTypeFilter(''); setSearchQuery(''); }} style={{ marginBottom: 0 }}>Clear</button>
+                <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setStatusFilter(''); setTypeFilter(''); setSearchQuery(''); }}>Clear</button>
               )}
             </div>
           )}
 
-          <div className="summary-bar">
+          <div className="glass-summary-bar">
             <span className="summary-item">Total: <strong>{leaveCounts.total}</strong></span>
-            <span className="summary-item" style={{ color: '#f59e0b' }}>Pending: <strong>{leaveCounts.pending}</strong></span>
-            <span className="summary-item" style={{ color: '#22c55e' }}>Approved: <strong>{leaveCounts.approved}</strong></span>
-            <span className="summary-item" style={{ color: '#ef4444' }}>Rejected: <strong>{leaveCounts.rejected}</strong></span>
-            <span className="summary-item" style={{ color: '#6b7280' }}>Cancelled: <strong>{leaveCounts.cancelled}</strong></span>
+            <span className="summary-item" style={{ color: 'var(--badge-warning)' }}>Pending: <strong>{leaveCounts.pending}</strong></span>
+            <span className="summary-item" style={{ color: 'var(--badge-success)' }}>Approved: <strong>{leaveCounts.approved}</strong></span>
+            <span className="summary-item" style={{ color: 'var(--badge-danger)' }}>Rejected: <strong>{leaveCounts.rejected}</strong></span>
+            <span className="summary-item" style={{ color: 'var(--text-dim)' }}>Cancelled: <strong>{leaveCounts.cancelled}</strong></span>
           </div>
 
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>From → To</th>
-                  <th>Days</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeaves.length === 0 && leaveData.leaves.length > 0 && (
-                  <tr><td colSpan={7} className="empty-state">No matching requests.</td></tr>
-                )}
-                {filteredLeaves.length === 0 && leaveData.leaves.length === 0 && (
-                  <tr><td colSpan={7} style={{ padding: 0, border: 0 }}>
-                    <div className="leave-empty-state">
-                      <div className="leave-empty-state-title">No leave requests yet</div>
-                      <div className="leave-empty-state-desc">Submit your first leave request to get started</div>
-                      <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
-                    </div>
-                  </td></tr>
-                )}
-                {filteredLeaves.map((l) => (
-                  <tr key={l.id}>
-                    <td><span className="badge badge-employee">{typeLabels[l.type] || l.type}</span></td>
-                    <td>{formatDate(l.start_date)} → {formatDate(l.end_date)}</td>
-                    <td className="cell-mono">{l.days_count}</td>
-                    <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {l.reason || <span style={{ color: '#999' }}>—</span>}
-                    </td>
-                    <td>
-                      <span className="badge" style={{
-                        background: statusColors[l.status] + '20',
-                        color: statusColors[l.status],
-                        border: `1px solid ${statusColors[l.status]}40`,
-                      }}>
-                        {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="cell-mono" style={{ fontSize: '0.8rem' }}>{formatDate(l.created_at)}</td>
-                    <td>
-                      {l.status === 'pending' && (
-                        <button className="btn btn-sm btn-danger" onClick={() => setConfirmId(l.id)}>Cancel</button>
-                      )}
-                    </td>
+          <div className="glass-card">
+            <div className="glass-table-wrapper">
+              <table className="glass-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>From \u2192 To</th>
+                    <th>Days</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredLeaves.length === 0 && leaveData.leaves.length > 0 && (
+                    <tr><td colSpan={7}><div className="glass-empty" style={{ padding: '32px 16px' }}><p style={{ margin: 0, color: 'var(--text-dim)' }}>No matching requests.</p></div></td></tr>
+                  )}
+                  {filteredLeaves.length === 0 && leaveData.leaves.length === 0 && (
+                    <tr><td colSpan={7} style={{ padding: 0, border: 0 }}>
+                      <div className="glass-empty">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                        <h3>No leave requests yet</h3>
+                        <p style={{ color: 'var(--text-dim)' }}>Submit your first leave request to get started</p>
+                        <button className="glass-btn glass-btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
+                      </div>
+                    </td></tr>
+                  )}
+                  {filteredLeaves.map((l) => (
+                    <tr key={l.id}>
+                      <td><span className="glass-badge glass-badge-default">{typeLabels[l.type] || l.type}</span></td>
+                      <td>{formatDate(l.start_date)} \u2192 {formatDate(l.end_date)}</td>
+                      <td style={{ fontFamily: 'var(--font-mono, monospace)' }}>{l.days_count}</td>
+                      <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {l.reason || <span style={{ color: 'var(--text-dim)' }}>\u2014</span>}
+                      </td>
+                      <td>
+                        <span className={`glass-badge glass-badge-${statusBadgeMap[l.status] || 'default'}`}>
+                          {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.8rem' }}>{formatDate(l.created_at)}</td>
+                      <td>
+                        {l.status === 'pending' && (
+                          <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setConfirmId(l.id)}>Cancel</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {showForm && (

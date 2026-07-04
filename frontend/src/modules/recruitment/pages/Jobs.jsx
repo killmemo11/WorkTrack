@@ -14,10 +14,10 @@ const INIT_FORM = {
 };
 
 const SECTIONS = [
-  { key: 'key_responsibilities', label: 'Key Responsibilities', icon: '📋', placeholder: 'List the main responsibilities and day-to-day tasks for this role...' },
-  { key: 'qualifications', label: 'Qualifications And Skills', icon: '🎓', placeholder: 'Required education, certifications, years of experience...' },
-  { key: 'technical_skills', label: 'Technical Skills & Knowledge', icon: '⚙️', placeholder: 'Specific tools, technologies, software, or methodologies required...' },
-  { key: 'core_competencies', label: 'Core Competencies', icon: '🌟', placeholder: 'Soft skills, behavioral traits, and core values expected...' },
+  { key: 'key_responsibilities', label: 'Key Responsibilities', icon: 'lucide:list-checks', placeholder: 'List the main responsibilities and day-to-day tasks for this role...' },
+  { key: 'qualifications', label: 'Qualifications And Skills', icon: 'lucide:graduation-cap', placeholder: 'Required education, certifications, years of experience...' },
+  { key: 'technical_skills', label: 'Technical Skills & Knowledge', icon: 'lucide:settings', placeholder: 'Specific tools, technologies, software, or methodologies required...' },
+  { key: 'core_competencies', label: 'Core Competencies', icon: 'lucide:sparkles', placeholder: 'Soft skills, behavioral traits, and core values expected...' },
 ];
 
 export default function Jobs() {
@@ -139,19 +139,42 @@ export default function Jobs() {
 
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
-  if (loading) return <div className="loading">Loading jobs...</div>;
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active': return 'glass-badge glass-badge-success';
+      case 'closed': return 'glass-badge glass-badge-danger';
+      case 'paused': return 'glass-badge glass-badge-warning';
+      default: return 'glass-badge glass-badge-neutral';
+    }
+  };
+
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner"></div>
+      <span>Loading jobs...</span>
+    </div>
+  );
 
   return (
-    <div className="admin-page">
-      <div className="admin-page-header">
-        <h2>Job Posts</h2>
-        <button className="btn btn-primary" onClick={openCreate}>+ New Job</button>
+    <div className="page fade-in-up">
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="iconify" data-icon="lucide:briefcase" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          Job Posts
+        </h1>
+        <button className="glass-btn glass-btn-primary" onClick={openCreate}>
+          <span className="iconify" data-icon="lucide:plus"></span> New Job
+        </button>
       </div>
 
-      {message && <div className="alert alert-info">{message}</div>}
+      {message && (
+        <div className="glass-alert glass-alert-info">
+          <span className="iconify" data-icon="lucide:info"></span> {message}
+        </div>
+      )}
 
-      <div className="table-container">
-        <table className="table">
+      <div className="glass-table-wrapper fade-in-up delay-1">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Title</th>
@@ -165,26 +188,39 @@ export default function Jobs() {
           </thead>
           <tbody>
             {jobs.length === 0 ? (
-              <tr><td colSpan={7} className="text-center">No jobs found</td></tr>
+              <tr><td colSpan={7}>
+                <div className="glass-empty">
+                  <span className="iconify" data-icon="lucide:briefcase"></span>
+                  <h3>No jobs found</h3>
+                </div>
+              </td></tr>
             ) : jobs.map(job => (
               <tr key={job.id}>
-                <td>{job.title}</td>
+                <td><strong>{job.title}</strong></td>
                 <td>{job.department}</td>
                 <td>{job.type}</td>
-                <td><span className={`badge badge-${job.status === 'active' ? 'success' : 'secondary'}`}>{job.status}</span></td>
-                <td>{job.applicants || 0}</td>
+                <td><span className={getStatusBadge(job.status)}>{job.status}</span></td>
+                <td>
+                  <span className="glass-badge glass-badge-info" style={{ fontSize: '0.8rem' }}>
+                    {job.applicants || 0} applicant{job.applicants !== 1 ? 's' : ''}
+                  </span>
+                </td>
                 <td>
                   {job.hc_request_id ? (
-                    <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 500 }}>
-                      Headcount Request
-                    </span>
+                    <span className="glass-badge glass-badge-info">Headcount Request</span>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>
+                    <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>—</span>
                   )}
                 </td>
                 <td>
-                  <button className="btn btn-sm btn-outline" onClick={() => openEdit(job)}>Edit</button>
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirm(job)}>Delete</button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => openEdit(job)}>
+                      <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                    </button>
+                    <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(job)}>
+                      <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -195,62 +231,66 @@ export default function Jobs() {
       {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onPage={fetchJobs} />}
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 720, maxHeight: '95vh', overflowY: 'auto', padding: 0 }}>
+        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 720, maxHeight: '95vh', overflowY: 'auto', padding: 0 }}>
 
-            {/* ─── Header ─── */}
+            {/* Header */}
             <div style={{ padding: '24px 28px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 22 }}>{editing ? '✏️' : '➕'}</span>
+                <span className="iconify" data-icon={editing ? 'lucide:pencil' : 'lucide:plus'} style={{ color: 'var(--brand-primary)' }}></span>
                 {editing ? 'Edit Job' : 'Post a New Job'}
               </h3>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
             </div>
 
-            {/* ─── Step Indicator ─── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '20px 28px', margin: '16px 28px 0', background: '#f4f6fb', borderRadius: 10 }}>
+            {/* Step Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '20px 28px', margin: '16px 28px 0', background: 'rgba(24,24,27,0.5)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)' }}>
               {[
-                { n: 1, label: 'Position', icon: '🎯' },
-                { n: 2, label: 'Summary', icon: '📝' },
-                { n: 3, label: 'Details', icon: '📋' },
+                { n: 1, label: 'Position', icon: 'lucide:crosshair' },
+                { n: 2, label: 'Summary', icon: 'lucide:file-text' },
+                { n: 3, label: 'Details', icon: 'lucide:list-checks' },
               ].map((s, i) => (
                 <Fragment key={s.n}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: '50%',
-                      background: step >= s.n ? '#1a1a2e' : '#e0e4ec',
-                      color: step >= s.n ? '#fff' : '#8892a8',
+                      background: step >= s.n ? 'var(--brand-primary)' : 'rgba(255,255,255,0.08)',
+                      color: step >= s.n ? '#fff' : 'var(--text-faint)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: 13,
                       transition: 'all .2s',
                     }}>
-                      {step > s.n ? '✓' : s.icon}
+                      {step > s.n ? (
+                        <span className="iconify" data-icon="lucide:check"></span>
+                      ) : (
+                        <span className="iconify" data-icon={s.icon}></span>
+                      )}
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: step >= s.n ? '#1a1a2e' : '#8892a8' }}>Step {s.n}</div>
-                      <div style={{ fontSize: 11, color: '#8892a8' }}>{s.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: step >= s.n ? 'var(--text-primary)' : 'var(--text-faint)' }}>Step {s.n}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{s.label}</div>
                     </div>
                   </div>
-                  {i < 2 && <div style={{ flex: 1, height: 2, background: step > s.n ? '#1a1a2e' : '#e0e4ec', margin: '0 8px', borderRadius: 1 }} />}
-                  </Fragment>
+                  {i < 2 && <div style={{ flex: 1, height: 2, background: step > s.n ? 'var(--brand-primary)' : 'rgba(255,255,255,0.08)', margin: '0 8px', borderRadius: 1 }} />}
+                </Fragment>
               ))}
             </div>
 
-            {/* ─── Step 1: Position ─── */}
+            {/* Step 1: Position */}
             {step === 1 && (
               <div style={{ padding: '20px 28px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontWeight: 600, fontSize: 13 }}>Department</label>
-                    <select className="form-control" value={form.department_id}
+                  <div className="glass-form-group" style={{ margin: 0 }}>
+                    <label className="glass-label">Department</label>
+                    <select className="glass-select" value={form.department_id}
                       onChange={e => { setForm({ ...form, department_id: e.target.value, title_id: '', title: '', department: '', technical: false }); }}>
                       <option value="">— Choose —</option>
                       {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontWeight: 600, fontSize: 13 }}>Job Title</label>
-                    <select className="form-control" value={form.title_id}
+                  <div className="glass-form-group" style={{ margin: 0 }}>
+                    <label className="glass-label">Job Title</label>
+                    <select className="glass-select" value={form.title_id}
                       onChange={e => handleTitleSelect(e.target.value)} disabled={!form.department_id}>
                       <option value="">— Select —</option>
                       {filteredTitles.map(t => (
@@ -263,10 +303,10 @@ export default function Jobs() {
                 </div>
 
                 {form.title && (
-                  <div style={{ display: 'flex', gap: 16, padding: '12px 16px', background: '#f4f6fb', borderRadius: 8, marginBottom: 20, fontSize: 13 }}>
+                  <div className="glass-form-preview" style={{ marginBottom: 20, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <div><strong>Title:</strong> {form.title}</div>
                     <div><strong>Department:</strong> {form.department}</div>
-                    <div><strong>Technical:</strong> {form.technical ? '✓ Yes' : '—'}</div>
+                    <div><strong>Technical:</strong> {form.technical ? <span className="iconify" data-icon="lucide:check" style={{ color: 'var(--success)' }}></span> : '—'}</div>
                   </div>
                 )}
 
@@ -278,41 +318,41 @@ export default function Jobs() {
                   const certs = Array.isArray(t.required_certs) ? t.required_certs : [];
                   const prefSkills = Array.isArray(t.preferred_skills) ? t.preferred_skills : [];
                   return (
-                    <div style={{ padding: '14px 16px', background: '#fff8e1', borderRadius: 8, marginBottom: 20, fontSize: 13, border: '1px solid #ffe082' }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>🎯</span> Auto-Screening Minimum Requirements
-                        <span style={{ fontSize: 11, fontWeight: 400, color: '#8892a8' }}>(candidates below these will be auto-rejected)</span>
+                    <div className="glass-card" style={{ marginBottom: 20, padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)' }}>
+                        <span className="iconify" data-icon="lucide:target"></span> Auto-Screening Minimum Requirements
+                        <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-faint)' }}>(candidates below these will be auto-rejected)</span>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                        {t.min_education_level && <span style={{ background: '#fff', padding: '3px 10px', borderRadius: 6, border: '1px solid #ffe082' }}>🎓 {eduLabel[t.min_education_level] || t.min_education_level}</span>}
-                        {t.min_experience_years != null && <span style={{ background: '#fff', padding: '3px 10px', borderRadius: 6, border: '1px solid #ffe082' }}>📅 {t.min_experience_years}+ years</span>}
-                        {skills.map(s => <span key={s} style={{ background: '#e3f2fd', padding: '3px 10px', borderRadius: 6, border: '1px solid #90caf9', color: '#1565c0' }}>⚙️ {s}</span>)}
-                        {certs.map(c => <span key={c} style={{ background: '#fce4ec', padding: '3px 10px', borderRadius: 6, border: '1px solid #f48fb1', color: '#c62828' }}>📜 {c}</span>)}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {t.min_education_level && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:graduation-cap" style={{ marginRight: 2 }}></span>{eduLabel[t.min_education_level] || t.min_education_level}</span>}
+                        {t.min_experience_years != null && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 2 }}></span>{t.min_experience_years}+ years</span>}
+                        {skills.map(s => <span key={s} className="glass-badge glass-badge-info"><span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 2 }}></span>{s}</span>)}
+                        {certs.map(c => <span key={c} className="glass-badge glass-badge-danger"><span className="iconify" data-icon="lucide:award" style={{ marginRight: 2 }}></span>{c}</span>)}
                       </div>
                       {prefSkills.length > 0 && (
-                        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span style={{ fontSize: 11, color: '#8892a8' }}>Preferred:</span>
-                          {prefSkills.map(s => <span key={s} style={{ background: '#e8f5e9', padding: '2px 8px', borderRadius: 6, fontSize: 12, color: '#2e7d32' }}>⭐ {s}</span>)}
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Preferred:</span>
+                          {prefSkills.map(s => <span key={s} className="glass-badge glass-badge-success">{s}</span>)}
                         </div>
                       )}
                     </div>
                   );
                 })()}
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontWeight: 600, fontSize: 13 }}>Employment Type</label>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Employment Type</label>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                     {['Full-Time', 'Part-Time', 'Contract', 'Internship'].map(t => (
                       <label key={t} style={{
                         display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-                        padding: '8px 16px', borderRadius: 8, border: '1.5px solid',
-                        borderColor: form.type === t ? '#1a1a2e' : '#e0e4ec',
-                        background: form.type === t ? '#f0f1f5' : '#fff',
+                        padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid',
+                        borderColor: form.type === t ? 'var(--brand-primary)' : 'var(--border-glass)',
+                        background: form.type === t ? 'rgba(99,102,241,0.1)' : 'transparent',
                         fontSize: 13, fontWeight: 500, transition: 'all .15s',
                       }}>
                         <input type="radio" name="type" value={t} checked={form.type === t}
                           onChange={e => setForm({ ...form, type: e.target.value })}
-                          style={{ margin: 0, accentColor: '#1a1a2e' }} />
+                          style={{ margin: 0, accentColor: 'var(--brand-primary)' }} />
                         {t}
                       </label>
                     ))}
@@ -321,51 +361,51 @@ export default function Jobs() {
               </div>
             )}
 
-            {/* ─── Step 2: Summary ─── */}
+            {/* Step 2: Summary */}
             {step === 2 && (
               <div style={{ padding: '20px 28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <span style={{ fontSize: 22 }}>📝</span>
+                  <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 16 }}>Job Summary</div>
-                    <div style={{ fontSize: 12, color: '#8892a8' }}>Write a brief overview of the role</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Write a brief overview of the role</div>
                   </div>
                 </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <textarea className="form-control" rows={6}
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <textarea className="glass-textarea" rows={6}
                     value={form.description}
                     onChange={e => setForm({ ...form, description: e.target.value })}
                     placeholder="Write a compelling summary of the role, its impact, and why someone should apply..."
-                    style={{ width: '100%', resize: 'vertical', fontSize: 14, lineHeight: 1.7 }} />
+                    style={{ resize: 'vertical', fontSize: 14, lineHeight: 1.7 }} />
                 </div>
               </div>
             )}
 
-            {/* ─── Step 3: Detailed Sections ─── */}
+            {/* Step 3: Detailed Sections */}
             {step === 3 && (
               <div style={{ padding: '20px 28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                  <span style={{ fontSize: 22 }}>📋</span>
+                  <span className="iconify" data-icon="lucide:list-checks" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 16 }}>Job Details</div>
-                    <div style={{ fontSize: 12, color: '#8892a8' }}>Fill in the detailed sections for the job posting</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Fill in the detailed sections for the job posting</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {SECTIONS.map(sec => (
-                    <div key={sec.key} className="card" style={{ margin: 0, background: '#fafbfc' }}>
-                      <div style={{ padding: '14px 18px', borderBottom: '1px solid #eef0f5', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{sec.icon}</span>
+                    <div key={sec.key} className="glass-card" style={{ margin: 0, background: 'rgba(24,24,27,0.4)' }}>
+                      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="iconify" data-icon={sec.icon} style={{ fontSize: 16, color: 'var(--brand-primary)' }}></span>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{sec.label}</span>
                       </div>
                       <div style={{ padding: '14px 18px' }}>
-                        <textarea className="form-control" rows={4}
+                        <textarea className="glass-textarea" rows={4}
                           value={form[sec.key]}
                           onChange={e => setForm({ ...form, [sec.key]: e.target.value })}
                           placeholder={sec.placeholder}
-                          style={{ width: '100%', resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
+                          style={{ resize: 'vertical', fontSize: 13, lineHeight: 1.6 }} />
                       </div>
                     </div>
                   ))}
@@ -373,24 +413,26 @@ export default function Jobs() {
               </div>
             )}
 
-            {/* ─── Footer ─── */}
-            <div style={{
+            {/* Footer */}
+            <div className="glass-modal-footer" style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '16px 28px', borderTop: '1px solid #eef0f5',
-              background: '#fafbfc', borderRadius: '0 0 12px 12px',
+              padding: '16px 28px', borderTop: '1px solid var(--border-glass)',
+              background: 'rgba(24,24,27,0.4)', borderRadius: '0 0 var(--radius-xl) var(--radius-xl)',
             }}>
-              <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
               <div style={{ flex: 1 }} />
-              {step > 1 && <button className="btn btn-outline" onClick={prevStep}>← Back</button>}
+              {step > 1 && <button className="glass-btn glass-btn-ghost" onClick={prevStep}><span className="iconify" data-icon="lucide:chevron-left"></span> Back</button>}
               {step < 3 ? (
-                <button className="btn btn-primary" onClick={nextStep}
+                <button className="glass-btn glass-btn-primary" onClick={nextStep}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Continue →
+                  Continue <span className="iconify" data-icon="lucide:chevron-right"></span>
                 </button>
               ) : (
-                <button className="btn btn-primary" onClick={handleSave} disabled={saving}
+                <button className="glass-btn glass-btn-primary" onClick={handleSave} disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {saving ? '⏳ Saving...' : editing ? '✏️ Update Job' : '🚀 Publish Job'}
+                  {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Saving...</> : (
+                    <>{editing ? <><span className="iconify" data-icon="lucide:pencil"></span> Update Job</> : <><span className="iconify" data-icon="lucide:rocket"></span> Publish Job</>}</>
+                  )}
                 </button>
               )}
             </div>

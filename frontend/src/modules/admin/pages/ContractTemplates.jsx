@@ -43,7 +43,7 @@ export default function ContractTemplates() {
 <p><strong>الطرف الأول:</strong> {{company_name}} – الكائن مقرها {{company_address}} ويمثلها فى هذا العقد السيد الأستاذ/ {{company_representative}}.</p>
 <p><strong>الطرف الثانى:</strong> الأستاذ/ {{name}} – بطاقة رقم قومي ({{national_id}}) صادرة في {{national_id_place}} والمقيم فى {{address}}.</p>
 <h3>تم الاتفاق على ما يلى:-</h3>
-<p><strong>أولاً:</strong> يعمل الطرف الثانى لدى الطرف الأول فى وظيفة {{position}} بإدارة {{department}}، وقد حددت مدة هذا العقد بسنة ميلادية تبدأ إعتبارا من {{start_date}} وتنتهى فى {{end_date}} دون الحاجة إلى تنبيه أو إنذار ولا تجدد تلقائياً ما لم يتفق الطرفان على التجديد كتابياً قبل إنتهاء مدة هذا العقد بشهر على الأقل.</p>
+<p><strong>أولاً:</strong> يعمل الطرف الثانى لدى الطرف الأولى فى وظيفة {{position}} بإدارة {{department}}، وقد حددت مدة هذا العقد بسنة ميلادية تبدأ إعتبارا من {{start_date}} وتنتهى فى {{end_date}} دون الحاجة إلى تنبيه أو إنذار ولا تجدد تلقائياً ما لم يتفق الطرفان على التجديد كتابياً قبل إنتهاء مدة هذا العقد بشهر على الأقل.</p>
 <p><strong>ثانياً:</strong> يعتبر الطرف الثاني معينا تحت الاختبار لمدة ثلاثة أشهر وفى خلال هذه الفترة أو عند انتهائها يكون للطرف الأول الحق في إنهاء أو فسخ هذا العقد فى أي وقت خلال مدته ودون دفع أي مبالغ بصفة تعويض أو مكافأة بعد إخطار الطرف الثانى بذلك قبل التاريخ المحدد للإنهاء أو الفسخ بشهر على الاقل.</p>
 <p><strong>ثالثاً:</strong> يعمل الطرف الثانى لدى الطرف الأول بمحل العمل الذى يحدده الطرف الأول وذلك بأجر شهرى شامل قدره {{salary}} جنيه مصري (فقط {{salary_text}} جنيه مصري لاغير) قبل الاستقطاعات.</p>
 <p><strong>رابعاً:</strong> يوافق الطرف الثانى صراحة على إجمالى المرتب أعلاه ويلتزم بالقيام بعمله المكلف به وواجباته على أكمل وجه ويلتزم بتنفيذ القواعد والنظم الواردة بلوائح الشركة وما توجبه أحكام قانون العمل رقم (14) لسنة 2025.</p>
@@ -115,25 +115,25 @@ export default function ContractTemplates() {
     setPreviewContent(t.content_html);
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>;
 
   return (
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Contract Templates</h1>
-            <p className="subtitle">Manage employment contract templates with auto-fill placeholders</p>
+            <p className="subtitle" style={{color:'var(--text-dim)'}}>Manage employment contract templates with auto-fill placeholders</p>
           </div>
-          <button className="btn btn-primary" onClick={openCreate}>+ New Template</button>
+          <button className="glass-btn glass-btn-primary" onClick={openCreate}><span className="iconify" data-icon="lucide:file-plus"/> New Template</button>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-        <div className="table-wrapper">
+        <div className="glass-table-wrapper fade-in-up">
           {templates.length === 0 ? (
-            <p className="empty-state">No templates yet.</p>
+            <div className="glass-empty"><span className="iconify" data-icon="lucide:file-text"/><p>No templates yet.</p></div>
           ) : (
-            <table className="table">
+            <table className="glass-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -146,13 +146,13 @@ export default function ContractTemplates() {
                 {templates.map(t => (
                   <tr key={t.id}>
                     <td><strong>{t.name}</strong></td>
-                    <td><span className="tag tag-blue">{t.type}</span></td>
-                    <td>{t.is_active ? <span className="tag tag-green">Active</span> : <span className="tag tag-red">Inactive</span>}</td>
+                    <td><span className="glass-badge glass-badge-info">{t.type}</span></td>
+                    <td>{t.is_active ? <span className="glass-badge glass-badge-success">Active</span> : <span className="glass-badge glass-badge-default">Inactive</span>}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn btn-sm btn-outline" onClick={() => openEdit(t)}>Edit</button>
-                        <button className="btn btn-sm btn-outline" onClick={() => openPreview(t)}>Preview</button>
-                        <button className="btn btn-sm btn-outline" onClick={() => setConfirm({ action: () => handleDelete(t.id), label: `Delete "${t.name}"?` })}>Delete</button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(t)}><span className="iconify" data-icon="lucide:pencil"/></button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openPreview(t)}><span className="iconify" data-icon="lucide:eye"/></button>
+                        <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDelete(t.id), label: `Delete "${t.name}"?` })}><span className="iconify" data-icon="lucide:trash-2"/></button>
                       </div>
                     </td>
                   </tr>
@@ -163,17 +163,18 @@ export default function ContractTemplates() {
         </div>
 
         {showForm && (
-          <div className="modal-overlay" onClick={() => setShowForm(false)}>
-            <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+            <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>{editId ? 'Edit Template' : 'New Template'}</h3>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
                   <label>Name *</label>
-                  <input className="form-control" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                  <input className="glass-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Type</label>
-                  <select className="form-control" value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
+                  <select className="glass-select" value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
                     <option value="permanent">Permanent</option>
                     <option value="annual">Annual</option>
                     <option value="probation">Probation</option>
@@ -181,32 +182,33 @@ export default function ContractTemplates() {
                   </select>
                 </div>
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Content (HTML with placeholders)</label>
-                <p style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 4 }}>
                   Placeholders: {'{{name}}'}, {'{{position}}'}, {'{{department}}'}, {'{{salary}}'}, {'{{start_date}}'}, {'{{end_date}}'}, {'{{hire_date}}'}, {'{{employee_id}}'}, {'{{email}}'}, {'{{phone}}'}, {'{{nationality}}'}, {'{{national_id}}'}, {'{{address}}'}, {'{{bank_name}}'}, {'{{bank_account}}'}, {'{{company_name}}'}, {'{{company_address}}'}, {'{{company_representative}}'}, {'{{salary_text}}'}, {'{{contract_type}}'}, {'{{day}}'}, {'{{month}}'}, {'{{year}}'}
                 </p>
                 <RichTextEditor value={form.content_html} onChange={v => setForm({...form, content_html: v})} placeholder="Write your contract template here..." />
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Custom Placeholders (one per line: key: value)</label>
-                <textarea className="form-control" rows="3" value={form.placeholders} onChange={e => setForm({...form, placeholders: e.target.value})} placeholder="company_name: Your Company&#10;manager_name: Ahmed" />
+                <textarea className="glass-textarea" rows="3" value={form.placeholders} onChange={e => setForm({...form, placeholders: e.target.value})} placeholder="company_name: Your Company&#10;manager_name: Ahmed" />
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSave}>{editId ? 'Update' : 'Create'}</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleSave}>{editId ? 'Update' : 'Create'}</button>
               </div>
             </div>
           </div>
         )}
 
         {previewContent && (
-          <div className="modal-overlay" onClick={() => setPreviewContent(null)}>
-            <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-modal-overlay" onClick={() => setPreviewContent(null)}>
+            <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <button className="glass-modal-close" onClick={() => setPreviewContent(null)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>Preview: {previewName}</h3>
-              <div style={{ border: '1px solid #e2e8f0', padding: 24, borderRadius: 8, background: '#fff' }} dangerouslySetInnerHTML={{ __html: previewContent }} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setPreviewContent(null)}>Close</button>
+              <div className="glass-card" style={{ padding: 24 }} dangerouslySetInnerHTML={{ __html: previewContent }} />
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setPreviewContent(null)}>Close</button>
               </div>
             </div>
           </div>

@@ -7,7 +7,7 @@ import HRLayout from '../../../shared/components/Layout/HRLayout';
 import Pagination from '../../../shared/components/Pagination';
 
 const actionLabels = { deduct: 'Deducted', restore: 'Restored', reset: 'Reset' };
-const actionColors = { deduct: 'badge-warning', restore: 'badge-active', reset: 'badge' };
+const actionBadgeMap = { deduct: 'warning', restore: 'success', reset: 'default' };
 
 export default function AuditLog() {
   const [data, setData] = useState({ entries: [], total: 0, page: 1, totalPages: 1 });
@@ -27,22 +27,22 @@ export default function AuditLog() {
   return (
     <HRLayout>
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Balance Audit Log</h1>
-            <p className="subtitle">Track all leave balance changes</p>
+            <p className="subtitle" style={{color:'var(--text-dim)'}}>Track all leave balance changes</p>
           </div>
         </div>
 
-        {loading && <div className="loading" />}
+        {loading && <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>}
         {!loading && <>
-        <div className="summary-bar">
-          <span className="summary-item">Total Entries: <strong>{data.total}</strong></span>
-          <span className="summary-item">Page: <strong>{data.page} / {data.totalPages}</strong></span>
+        <div className="glass-summary-bar">
+          <span>Total Entries: <strong>{data.total}</strong></span>
+          <span>Page: <strong>{data.page} / {data.totalPages}</strong></span>
         </div>
 
-        <div className="table-wrapper">
-          <table className="table">
+        <div className="glass-table-wrapper fade-in-up">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -57,17 +57,17 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {data.entries.length === 0 && (
-                <tr><td colSpan={8} className="empty-state">No audit entries yet.</td></tr>
+                <tr><td colSpan={8}><div className="glass-empty"><span className="iconify" data-icon="lucide:scroll-text"/><p>No audit entries yet.</p></div></td></tr>
               )}
               {data.entries.map((e) => (
                 <tr key={e.id}>
                   <td className="cell-mono">{new Date(e.created_at).toLocaleDateString()}</td>
                   <td><strong>{e.employee_name}</strong> <span className="cell-mono">#{e.emp_number}</span></td>
-                  <td><span className="badge badge-employee">{e.leave_type}</span></td>
-                  <td><span className={`badge ${actionColors[e.action] || 'badge'}`}>{actionLabels[e.action] || e.action}</span></td>
+                  <td><span className="glass-badge glass-badge-primary">{e.leave_type}</span></td>
+                  <td><span className={`glass-badge glass-badge-${actionBadgeMap[e.action] || 'default'}`}>{actionLabels[e.action] || e.action}</span></td>
                   <td className="cell-mono">{e.old_balance}</td>
                   <td className="cell-mono">{e.new_balance}</td>
-                  <td className="cell-mono" style={{ color: e.change_amount < 0 ? '#ef4444' : '#22c55e' }}>
+                  <td className="cell-mono" style={{ color: e.change_amount < 0 ? 'var(--danger)' : 'var(--success)' }}>
                     {e.change_amount > 0 ? '+' : ''}{e.change_amount}
                   </td>
                   <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
@@ -85,4 +85,3 @@ export default function AuditLog() {
     </HRLayout>
   );
 }
-

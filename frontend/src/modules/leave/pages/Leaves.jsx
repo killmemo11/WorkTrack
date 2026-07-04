@@ -9,7 +9,8 @@ import ConfirmModal from '../../../shared/components/ConfirmModal';
 import ResignationModal from '../../../shared/components/ResignationModal';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
-const statusColors = { pending: '#f59e0b', approved: '#22c55e', rejected: '#ef4444', cancelled: '#6b7280' };
+const statusBadgeClass = { pending: 'glass-badge-warning', approved: 'glass-badge-success', rejected: 'glass-badge-danger', cancelled: 'glass-badge-secondary' };
+const balanceGradient = { annual: 'gradient-purple', sick: 'gradient-red', casual: 'gradient-green', personal: 'gradient-blue', unpaid: 'gradient-gray' };
 
 export default function Leaves() {
   const [data, setData] = useState({ leaves: [], balances: [] });
@@ -41,32 +42,37 @@ export default function Leaves() {
     return b ? b.balance : 0;
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header">
         <div>
           <h1>Leave Requests</h1>
           <p className="subtitle">Manage your time off</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Leave Request</button>
-          <button className="btn btn-outline" onClick={() => setShowResignation(true)} style={{ borderColor: '#ef4444', color: '#ef4444' }}>Resign</button>
+          <button className="glass-btn glass-btn-primary" onClick={() => setShowForm(true)}>
+            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> New Leave Request
+          </button>
+          <button className="glass-btn glass-btn-danger glass-btn-ghost" onClick={() => setShowResignation(true)}>
+            <span className="iconify" data-icon="lucide:log-out" style={{ marginRight: 6 }} /> Resign
+          </button>
         </div>
       </div>
 
-      <div className="dashboard-stats-row" style={{ marginBottom: 24 }}>
+      <div className="glass-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 24 }}>
         {['annual', 'sick', 'casual'].map((type) => (
-          <div key={type} className="mini-stat-card" style={{ borderLeft: `4px solid ${type === 'annual' ? '#4f46e5' : type === 'sick' ? '#ef4444' : '#f59e0b'}` }}>
-            <div className="mini-stat-number">{getBalance(type)}</div>
-            <div className="mini-stat-label">{typeLabels[type]} Days Left</div>
+          <div key={type} className={`glass-stat-card ${balanceGradient[type]} card-hover fade-in-up`}>
+            <div className="stat-icon"><span className="iconify" data-icon={type === 'annual' ? 'lucide:sun' : type === 'sick' ? 'lucide:thermometer-snowflake' : 'lucide:coffee'} /></div>
+            <div className="stat-number">{getBalance(type)}</div>
+            <div className="stat-label">{typeLabels[type]} Days Left</div>
           </div>
         ))}
       </div>
 
-      <div className="table-wrapper">
-        <table className="table">
+      <div className="glass-table-wrapper">
+        <table className="glass-table">
           <thead>
             <tr>
               <th>Type</th>
@@ -81,23 +87,19 @@ export default function Leaves() {
           </thead>
           <tbody>
             {data.leaves.length === 0 && (
-              <tr><td colSpan={8} className="empty-state">No leave requests yet.</td></tr>
+              <tr><td colSpan={8}><div className="glass-empty" style={{ padding: 40 }}>No leave requests yet.</div></td></tr>
             )}
             {data.leaves.map((l) => (
               <tr key={l.id}>
-                <td><span className="badge badge-employee">{typeLabels[l.type] || l.type}</span></td>
+                <td><span className="glass-badge glass-badge-info">{typeLabels[l.type] || l.type}</span></td>
                 <td>{formatDate(l.start_date)}</td>
                 <td>{formatDate(l.end_date)}</td>
                 <td className="cell-mono">{l.days_count}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {l.reason || <span style={{ color: '#999' }}>—</span>}
+                  {l.reason || <span style={{ color: 'var(--text-dim)' }}>—</span>}
                 </td>
                 <td>
-                  <span className="badge" style={{
-                    background: statusColors[l.status] + '20',
-                    color: statusColors[l.status],
-                    border: `1px solid ${statusColors[l.status]}40`,
-                  }}>
+                  <span className={`glass-badge ${statusBadgeClass[l.status] || 'glass-badge-secondary'}`}>
                     {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
                   </span>
                 </td>
@@ -106,7 +108,7 @@ export default function Leaves() {
                 </td>
                 <td>
                   {l.status === 'pending' && (
-                    <button className="btn btn-sm btn-danger" onClick={() => setConfirmId(l.id)}>Cancel</button>
+                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirmId(l.id)}>Cancel</button>
                   )}
                 </td>
               </tr>
@@ -142,4 +144,3 @@ export default function Leaves() {
     </div>
   );
 }
-

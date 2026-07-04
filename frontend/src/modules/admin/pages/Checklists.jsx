@@ -102,52 +102,52 @@ export default function AdminChecklists() {
   };
 
   const assigneeBadge = (a) => {
-    const colors = { it: 'tag-blue', hr: 'tag-green', admin: 'tag-amber', manager: 'tag-red' };
-    return <span className={`tag ${colors[a] || 'tag-gray'}`}>{a}</span>;
+    const map = { it: 'info', hr: 'success', admin: 'warning', manager: 'danger' };
+    return <span className={`glass-badge glass-badge-${map[a] || 'default'}`}>{a}</span>;
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>;
 
   return (
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Onboarding & Offboarding</h1>
-            <p className="subtitle">Manage checklists templates for employee onboarding and offboarding</p>
+            <p className="subtitle" style={{color:'var(--text-dim)'}}>Manage checklists templates for employee onboarding and offboarding</p>
           </div>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button className={`btn btn-sm ${tab === 'templates' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('templates')}>Templates</button>
-          <button className={`btn btn-sm ${tab === 'employees' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab('employees')}>Employee Progress</button>
+        <div className="glass-tabs">
+          <button className={`glass-tab ${tab === 'templates' ? 'glass-tab-active' : ''}`} onClick={() => setTab('templates')}><span className="iconify" data-icon="lucide:list-checks"/> Templates</button>
+          <button className={`glass-tab ${tab === 'employees' ? 'glass-tab-active' : ''}`} onClick={() => setTab('employees')}><span className="iconify" data-icon="lucide:users"/> Employee Progress</button>
         </div>
 
         {tab === 'templates' && (
           <>
-            <button className="btn btn-primary" style={{ marginBottom: 16 }} onClick={openCreateTemplate}>+ New Template</button>
+            <button className="glass-btn glass-btn-primary" style={{ marginBottom: 16 }} onClick={openCreateTemplate}><span className="iconify" data-icon="lucide:file-plus"/> New Template</button>
 
             {templates.length === 0 ? (
-              <p className="empty-state">No templates created yet.</p>
-            ) : templates.map(t => (
-              <div key={t.id} style={{ border: '1px solid #e2e8f0', borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
-                <div style={{ background: '#f8fafc', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0' }}>
+              <div className="glass-empty"><span className="iconify" data-icon="lucide:clipboard-list"/><p>No templates created yet.</p></div>
+            ) : templates.map((t, idx) => (
+              <div key={t.id} className="glass-card card-hover fade-in-up" style={{ marginBottom: 16, animationDelay: `${idx * 60}ms` }}>
+                <div className="glass-card-header">
                   <div>
-                    <strong>{t.name}</strong>
-                    <span className={`tag ${t.type === 'onboarding' ? 'tag-green' : 'tag-amber'}`} style={{ marginLeft: 8 }}>{t.type}</span>
+                    <h3>{t.name}</h3>
+                    <span className={`glass-badge glass-badge-${t.type === 'onboarding' ? 'success' : 'warning'}`} style={{ marginLeft: 8 }}>{t.type}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-sm btn-outline" onClick={() => { setEditTemplateId(t.id); setTemplateForm({ name: t.name, type: t.type }); setShowTemplateForm(true); }}>Edit</button>
-                    <button className="btn btn-sm btn-outline" onClick={() => openAddItem(t)}>+ Add Task</button>
-                    <button className="btn btn-sm btn-outline" onClick={() => setConfirm({ action: () => handleDeleteTemplate(t.id), label: `Delete "${t.name}"?` })}>Delete</button>
+                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => { setEditTemplateId(t.id); setTemplateForm({ name: t.name, type: t.type }); setShowTemplateForm(true); }}><span className="iconify" data-icon="lucide:pencil"/></button>
+                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openAddItem(t)}><span className="iconify" data-icon="lucide:plus"/> Add Task</button>
+                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDeleteTemplate(t.id), label: `Delete "${t.name}"?` })}><span className="iconify" data-icon="lucide:trash-2"/></button>
                   </div>
                 </div>
-                <div style={{ padding: '8px 20px' }}>
+                <div className="glass-card-body">
                   {(!t.items || t.items.length === 0) ? (
-                    <p style={{ color: '#999', fontSize: 13, padding: 8 }}>No tasks yet. Click "+ Add Task"</p>
+                    <p style={{ color: 'var(--text-dim)', fontSize: 13, padding: 8 }}>No tasks yet. Click "Add Task"</p>
                   ) : (
-                    <table className="table" style={{ margin: 0 }}>
+                    <table className="glass-table" style={{ margin: 0 }}>
                       <thead>
                         <tr>
                           <th style={{ width: 40 }}>#</th>
@@ -164,12 +164,12 @@ export default function AdminChecklists() {
                             <td>{item.order_index}</td>
                             <td>{item.task_name}</td>
                             <td>{assigneeBadge(item.assigned_to)}</td>
-                            <td>{item.is_required ? '✅' : '—'}</td>
+                            <td>{item.is_required ? <span className="iconify" data-icon="lucide:check-circle" style={{color:'var(--success)'}}/> : <span className="iconify" data-icon="lucide:minus" style={{color:'var(--text-dim)'}}/>}</td>
                             <td>{item.days_offset > 0 ? `+${item.days_offset}d` : '—'}</td>
                             <td>
                               <div style={{ display: 'flex', gap: 4 }}>
-                                <button className="btn btn-sm btn-outline" onClick={() => openEditItem(t, item)}>Edit</button>
-                                <button className="btn btn-sm btn-outline" onClick={() => handleDeleteItem(item.id)}>Del</button>
+                                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEditItem(t, item)}><span className="iconify" data-icon="lucide:pencil"/></button>
+                                <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleDeleteItem(item.id)}><span className="iconify" data-icon="lucide:trash-2"/></button>
                               </div>
                             </td>
                           </tr>
@@ -186,63 +186,65 @@ export default function AdminChecklists() {
         {tab === 'employees' && <EmployeeChecklistProgress />}
 
         {showTemplateForm && (
-          <div className="modal-overlay" onClick={() => setShowTemplateForm(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setShowTemplateForm(false)}>
+            <div className="glass-modal" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setShowTemplateForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>{editTemplateId ? 'Edit Template' : 'New Template'}</h3>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Name *</label>
-                <input className="form-control" value={templateForm.name} onChange={e => setTemplateForm({...templateForm, name: e.target.value})} />
+                <input className="glass-input" value={templateForm.name} onChange={e => setTemplateForm({...templateForm, name: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Type</label>
-                <select className="form-control" value={templateForm.type} onChange={e => setTemplateForm({...templateForm, type: e.target.value})}>
+                <select className="glass-select" value={templateForm.type} onChange={e => setTemplateForm({...templateForm, type: e.target.value})}>
                   <option value="onboarding">Onboarding</option>
                   <option value="offboarding">Offboarding</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setShowTemplateForm(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSaveTemplate}>{editTemplateId ? 'Update' : 'Create'}</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setShowTemplateForm(false)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleSaveTemplate}>{editTemplateId ? 'Update' : 'Create'}</button>
               </div>
             </div>
           </div>
         )}
 
         {showItemForm && (
-          <div className="modal-overlay" onClick={() => setShowItemForm(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setShowItemForm(false)}>
+            <div className="glass-modal" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setShowItemForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>{editItemId ? 'Edit Task' : 'Add Task'} — {selectedTemplate?.name}</h3>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Task Name *</label>
-                <input className="form-control" value={itemForm.task_name} onChange={e => setItemForm({...itemForm, task_name: e.target.value})} />
+                <input className="glass-input" value={itemForm.task_name} onChange={e => setItemForm({...itemForm, task_name: e.target.value})} />
               </div>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
                   <label>Assigned To</label>
-                  <select className="form-control" value={itemForm.assigned_to} onChange={e => setItemForm({...itemForm, assigned_to: e.target.value})}>
+                  <select className="glass-select" value={itemForm.assigned_to} onChange={e => setItemForm({...itemForm, assigned_to: e.target.value})}>
                     <option value="it">IT</option>
                     <option value="hr">HR</option>
                     <option value="admin">Admin</option>
                     <option value="manager">Manager</option>
                   </select>
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Order</label>
-                  <input type="number" className="form-control" value={itemForm.order_index} onChange={e => setItemForm({...itemForm, order_index: parseInt(e.target.value) || 0})} />
+                  <input type="number" className="glass-input" value={itemForm.order_index} onChange={e => setItemForm({...itemForm, order_index: parseInt(e.target.value) || 0})} />
                 </div>
               </div>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
-                  <label><input type="checkbox" checked={itemForm.is_required} onChange={e => setItemForm({...itemForm, is_required: e.target.checked})} /> Required</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
+                  <label style={{display:'flex', alignItems:'center', gap:8}}><input type="checkbox" checked={itemForm.is_required} onChange={e => setItemForm({...itemForm, is_required: e.target.checked})} /> Required</label>
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Days Offset</label>
-                  <input type="number" className="form-control" value={itemForm.days_offset} onChange={e => setItemForm({...itemForm, days_offset: parseInt(e.target.value) || 0})} />
+                  <input type="number" className="glass-input" value={itemForm.days_offset} onChange={e => setItemForm({...itemForm, days_offset: parseInt(e.target.value) || 0})} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setShowItemForm(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSaveItem}>{editItemId ? 'Update' : 'Add'}</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setShowItemForm(false)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleSaveItem}>{editItemId ? 'Update' : 'Add'}</button>
               </div>
             </div>
           </div>
@@ -306,23 +308,23 @@ function EmployeeChecklistProgress() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  if (loading) return <p className="loading" style={{ padding: 20 }}>Loading employees...</p>;
+  if (loading) return <div className="glass-loading" style={{ padding: 20 }}><div className="spinner"/><span>Loading employees...</span></div>;
 
   const statusBadge = (s) => {
-    const colors = { in_progress: 'tag-amber', completed: 'tag-green', cancelled: 'tag-red' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const map = { in_progress: 'warning', completed: 'success', cancelled: 'danger' };
+    return <span className={`glass-badge glass-badge-${map[s] || 'default'}`}>{s}</span>;
   };
 
   return (
     <div>
-      {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
       <div style={{ display: 'flex', gap: 16 }}>
         <div style={{ flex: 1 }}>
           <h3>Employees</h3>
-          <div style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+          <div className="glass-card" style={{ maxHeight: 400, overflowY: 'auto', padding: 0 }}>
             {employees.map(emp => (
               <div key={emp.id} onClick={() => loadChecklists(emp.id)}
-                style={{ padding: '8px 12px', cursor: 'pointer', background: selectedEmp === emp.id ? '#eef2ff' : 'transparent', borderBottom: '1px solid #f1f5f9' }}>
+                style={{ padding: '8px 12px', cursor: 'pointer', background: selectedEmp === emp.id ? 'var(--bg-glass-hover)' : 'transparent', borderBottom: '1px solid var(--border-glass)', transition: 'background 0.15s' }}>
                 {emp.name}
               </div>
             ))}
@@ -333,56 +335,60 @@ function EmployeeChecklistProgress() {
           <div style={{ flex: 2 }}>
             <h3>Checklists</h3>
             {empChecklists.length === 0 ? (
-              <div>
-                <p style={{ color: '#999', fontSize: 13 }}>No checklists started. Start one:</p>
+              <div className="glass-card" style={{ padding: 20 }}>
+                <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No checklists started. Start one:</p>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className="btn btn-sm btn-primary" onClick={() => startChecklist(selectedEmp, 1)}>Start Onboarding</button>
-                  <button className="btn btn-sm btn-outline" onClick={() => startChecklist(selectedEmp, 2)}>Start Offboarding</button>
+                  <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => startChecklist(selectedEmp, 1)}><span className="iconify" data-icon="lucide:play"/> Start Onboarding</button>
+                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => startChecklist(selectedEmp, 2)}><span className="iconify" data-icon="lucide:log-out"/> Start Offboarding</button>
                 </div>
               </div>
             ) : (
               <div>
                 {empChecklists.map(chk => (
                   <div key={chk.id} onClick={() => loadDetail(chk.id)}
-                    style={{ padding: '8px 12px', cursor: 'pointer', background: selectedChecklist === chk.id ? '#eef2ff' : 'transparent', border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                    <div><strong>{chk.template_name}</strong> <span className={`tag ${chk.type === 'onboarding' ? 'tag-green' : 'tag-amber'}`}>{chk.type}</span></div>
+                    className="glass-card card-hover" style={{ padding: '8px 12px', cursor: 'pointer', background: selectedChecklist === chk.id ? 'var(--bg-glass-hover)' : undefined, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div><strong>{chk.template_name}</strong> <span className={`glass-badge glass-badge-${chk.type === 'onboarding' ? 'success' : 'warning'}`}>{chk.type}</span></div>
                     <div>{statusBadge(chk.status)}</div>
                   </div>
                 ))}
-                <button className="btn btn-sm btn-outline" style={{ marginTop: 8 }} onClick={() => startChecklist(selectedEmp, prompt('Template ID (1=Onboarding, 2=Offboarding):') || 1)}>+ Start New</button>
+                <button className="glass-btn glass-btn-ghost glass-btn-sm" style={{ marginTop: 8 }} onClick={() => startChecklist(selectedEmp, prompt('Template ID (1=Onboarding, 2=Offboarding):') || 1)}><span className="iconify" data-icon="lucide:plus"/> Start New</button>
               </div>
             )}
 
             {checklistDetail && (
-              <div style={{ marginTop: 16 }}>
-                <h4>Tasks — {checklistDetail.checklist.template_name}</h4>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Task</th>
-                      <th>Assigned To</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {checklistDetail.tasks.map(t => (
-                      <tr key={t.id}>
-                        <td>{t.order_index}</td>
-                        <td>{t.task_name}</td>
-                        <td><span className={`tag ${t.assigned_to === 'it' ? 'tag-blue' : t.assigned_to === 'hr' ? 'tag-green' : t.assigned_to === 'admin' ? 'tag-amber' : 'tag-red'}`}>{t.assigned_to}</span></td>
-                        <td>{statusBadge(t.status)}</td>
-                        <td>
-                          {t.status !== 'completed' && (
-                            <button className="btn btn-sm btn-primary" onClick={() => completeTask(checklistDetail.checklist.id, t.id)}>Complete</button>
-                          )}
-                          {t.status === 'completed' && t.completed_by_name && <span style={{ fontSize: 12, color: '#666' }}>by {t.completed_by_name}</span>}
-                        </td>
+              <div className="glass-card fade-in-up" style={{ marginTop: 16 }}>
+                <div className="glass-card-header">
+                  <h4>Tasks — {checklistDetail.checklist.template_name}</h4>
+                </div>
+                <div className="glass-card-body">
+                  <table className="glass-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Task</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {checklistDetail.tasks.map(t => (
+                        <tr key={t.id}>
+                          <td>{t.order_index}</td>
+                          <td>{t.task_name}</td>
+                          <td><span className={`glass-badge glass-badge-${t.assigned_to === 'it' ? 'info' : t.assigned_to === 'hr' ? 'success' : t.assigned_to === 'admin' ? 'warning' : 'danger'}`}>{t.assigned_to}</span></td>
+                          <td>{statusBadge(t.status)}</td>
+                          <td>
+                            {t.status !== 'completed' && (
+                              <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => completeTask(checklistDetail.checklist.id, t.id)}><span className="iconify" data-icon="lucide:check"/> Complete</button>
+                            )}
+                            {t.status === 'completed' && t.completed_by_name && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>by {t.completed_by_name}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

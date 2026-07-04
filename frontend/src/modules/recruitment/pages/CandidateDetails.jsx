@@ -156,21 +156,50 @@ export default function CandidateDetails() {
 
   const deptTitles = titles.filter(t => !hireForm.department_id || t.department_id === parseInt(hireForm.department_id));
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!candidate) return <div className="admin-page"><p>Candidate not found</p></div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner"></div>
+      <span>Loading...</span>
+    </div>
+  );
+  if (!candidate) return (
+    <div className="page">
+      <div className="glass-empty">
+        <span className="iconify" data-icon="lucide:user-x"></span>
+        <h3>Candidate not found</h3>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="admin-page">
-      <div className="admin-page-header">
-        <button className="btn btn-outline" onClick={() => navigate('/hr/candidates')}>&larr; Back</button>
-        <h2 style={{ margin: '8px 0' }}>{candidate.name}</h2>
+    <div className="page fade-in-up">
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/hr/candidates')}>
+            <span className="iconify" data-icon="lucide:chevron-left"></span> Back
+          </button>
+          <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="iconify" data-icon="lucide:user-circle" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+            {candidate.name}
+          </h1>
+        </div>
       </div>
 
-      {message && <div className="alert alert-info">{message}</div>}
+      {message && (
+        <div className="glass-alert glass-alert-info">
+          <span className="iconify" data-icon="lucide:info"></span> {message}
+        </div>
+      )}
 
-      <div className="tabs" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+      <div className="glass-tabs" style={{ marginBottom: 20 }}>
         {['info', 'screening', 'history', 'scorecards', 'offers'].map(tab => (
-          <button key={tab} className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab(tab)}>
+          <button key={tab} className={`glass-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+            <span className="iconify" data-icon={
+              tab === 'info' ? 'lucide:user' :
+              tab === 'screening' ? 'lucide:scan-search' :
+              tab === 'history' ? 'lucide:clock' :
+              tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift'
+            } style={{ marginRight: 4 }}></span>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
@@ -178,67 +207,79 @@ export default function CandidateDetails() {
 
       {/* Info Tab */}
       {activeTab === 'info' && (
-        <div className="card">
-          <div className="card-body">
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div><strong>Email:</strong> {candidate.email}</div>
-              <div><strong>Phone:</strong> {candidate.phone || '—'}</div>
-              <div><strong>Position:</strong> {candidate.job_title || '—'}</div>
-              <div><strong>Stage:</strong> {candidate.stage}</div>
-              <div><strong>Source:</strong> {candidate.source || '—'}</div>
-              <div><strong>Scores:</strong> C:{candidate.score_comm || 0} T:{candidate.score_tech || 0} F:{candidate.score_fit || 0}</div>
-              {candidate.education_level && <div><strong>Education:</strong> {EDU_LABEL[candidate.education_level] || candidate.education_level}</div>}
-              {candidate.experience_years && <div><strong>Experience:</strong> {EXP_LABEL[candidate.experience_years] || candidate.experience_years}</div>}
-              {candidate.skills_display?.length > 0 && <div><strong>Skills:</strong> {candidate.skills_display.join(', ')}</div>}
-              {candidate.certs_display?.length > 0 && <div><strong>Certs:</strong> {candidate.certs_display.join(', ')}</div>}
-              <div>
-                <strong>CV:</strong>{' '}
-                {candidate.cv_filename ? (
-                  <span>
-                    <a href={candidate.cv_path} target="_blank" rel="noreferrer">{candidate.cv_filename}</a>
-                    {' | '}
-                    <label style={{ color: '#4f46e5', cursor: 'pointer', fontSize: '0.85rem' }}>
-                      Replace
-                      <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
-                        onChange={e => { fileRef.current = e.target; handleUploadCv(); }} />
-                    </label>
-                  </span>
-                ) : (
-                  <span>
-                    <label style={{ color: '#4f46e5', cursor: 'pointer', fontSize: '0.85rem' }}>
-                      {cvUploading ? 'Uploading...' : '+ Upload CV'}
-                      <input type="file" ref={fileRef} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
-                        onChange={handleUploadCv} />
-                    </label>
-                  </span>
-                )}
+              <div className="glass-detail-row"><span className="glass-detail-label">Email</span><span className="glass-detail-value">{candidate.email}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Phone</span><span className="glass-detail-value">{candidate.phone || '—'}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Position</span><span className="glass-detail-value">{candidate.job_title || '—'}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Stage</span><span className="glass-detail-value">{stageBadge(candidate.stage)}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Source</span><span className="glass-detail-value">{candidate.source || '—'}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Scores</span><span className="glass-detail-value">C:{candidate.score_comm || 0} T:{candidate.score_tech || 0} F:{candidate.score_fit || 0}</span></div>
+              {candidate.education_level && <div className="glass-detail-row"><span className="glass-detail-label">Education</span><span className="glass-detail-value">{EDU_LABEL[candidate.education_level] || candidate.education_level}</span></div>}
+              {candidate.experience_years && <div className="glass-detail-row"><span className="glass-detail-label">Experience</span><span className="glass-detail-value">{EXP_LABEL[candidate.experience_years] || candidate.experience_years}</span></div>}
+              {candidate.skills_display?.length > 0 && <div className="glass-detail-row"><span className="glass-detail-label">Skills</span><span className="glass-detail-value">{candidate.skills_display.join(', ')}</span></div>}
+              {candidate.certs_display?.length > 0 && <div className="glass-detail-row"><span className="glass-detail-label">Certs</span><span className="glass-detail-value">{candidate.certs_display.join(', ')}</span></div>}
+              <div className="glass-detail-row">
+                <span className="glass-detail-label">CV</span>
+                <span className="glass-detail-value">
+                  {candidate.cv_filename ? (
+                    <span>
+                      <a href={candidate.cv_path} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)' }}>{candidate.cv_filename}</a>
+                      {' | '}
+                      <label style={{ color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        Replace
+                        <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
+                          onChange={e => { fileRef.current = e.target; handleUploadCv(); }} />
+                      </label>
+                    </span>
+                  ) : (
+                    <span>
+                      <label style={{ color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        {cvUploading ? 'Uploading...' : <><span className="iconify" data-icon="lucide:upload" style={{ marginRight: 4 }}></span> Upload CV</>}
+                        <input type="file" ref={fileRef} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
+                          onChange={handleUploadCv} />
+                      </label>
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
 
             {editing ? (
-              <div style={{ marginTop: 16 }}>
-                <div className="form-group"><label>Name</label><input className="form-control" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
-                <div className="form-group"><label>Email</label><input className="form-control" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
-                <div className="form-group"><label>Phone</label><input className="form-control" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
-                <div className="form-group"><label>Position</label><input className="form-control" value={editForm.job_title} onChange={e => setEditForm({ ...editForm, job_title: e.target.value })} /></div>
-                <div className="form-group"><label>Notes</label><textarea className="form-control" rows={3} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
-                <button className="btn btn-primary" onClick={handleUpdate}>Save</button>
-                <button className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
+                <div className="glass-form-group"><label className="glass-label">Name</label><input className="glass-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
+                <div className="glass-form-group"><label className="glass-label">Email</label><input className="glass-input" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
+                <div className="glass-form-group"><label className="glass-label">Phone</label><input className="glass-input" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+                <div className="glass-form-group"><label className="glass-label">Position</label><input className="glass-input" value={editForm.job_title} onChange={e => setEditForm({ ...editForm, job_title: e.target.value })} /></div>
+                <div className="glass-form-group"><label className="glass-label">Notes</label><textarea className="glass-textarea" rows={3} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button className="glass-btn glass-btn-primary" onClick={handleUpdate}><span className="iconify" data-icon="lucide:check"></span> Save</button>
+                  <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+                </div>
               </div>
             ) : (
-              <button className="btn btn-outline" style={{ marginTop: 16 }} onClick={() => setEditing(true)}>Edit</button>
+              <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => setEditing(true)}>
+                <span className="iconify" data-icon="lucide:pencil"></span> Edit
+              </button>
             )}
 
-            <hr />
-            <h4>Move Stage</h4>
+            <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
+            <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="iconify" data-icon="lucide:arrow-right-left" style={{ color: 'var(--brand-primary)' }}></span> Move Stage
+            </h4>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select className="form-control" style={{ width: 150 }} value={moveStage} onChange={e => setMoveStage(e.target.value)}>
+              <select className="glass-select" style={{ width: 160 }} value={moveStage} onChange={e => setMoveStage(e.target.value)}>
                 <option value="">Select stage...</option>
                 {STAGES.filter(s => s !== candidate.stage).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <input className="form-control" style={{ width: 200 }} placeholder="Note (optional)" value={moveNote} onChange={e => setMoveNote(e.target.value)} />
-              <button className="btn btn-primary" onClick={handleMove} disabled={!moveStage}>Move</button>
-              <button className="btn btn-success" onClick={openHireModal} style={{ marginLeft: 8 }}>Hire</button>
+              <input className="glass-input" style={{ width: 200 }} placeholder="Note (optional)" value={moveNote} onChange={e => setMoveNote(e.target.value)} />
+              <button className="glass-btn glass-btn-primary" onClick={handleMove} disabled={!moveStage}>
+                <span className="iconify" data-icon="lucide:arrow-right"></span> Move
+              </button>
+              <button className="glass-btn glass-btn-success" onClick={openHireModal} style={{ marginLeft: 8 }}>
+                <span className="iconify" data-icon="lucide:user-plus"></span> Hire
+              </button>
             </div>
           </div>
         </div>
@@ -246,66 +287,68 @@ export default function CandidateDetails() {
 
        {/* Screening Tab */}
        {activeTab === 'screening' && (
-         <div className="card">
-           <div className="card-body">
+         <div className="glass-card fade-in-up">
+           <div className="glass-card-body">
              {!candidate.screening ? (
-               <p className="text-center" style={{ color: '#8892a8' }}>No auto-screening result available for this candidate.</p>
+               <div className="glass-empty">
+                 <span className="iconify" data-icon="lucide:scan-search"></span>
+                 <h3>No auto-screening result available for this candidate.</h3>
+               </div>
              ) : (
                <>
-                 <div className="dashboard-header" style={{ marginBottom: '24px', padding: '24px' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                     <span style={{ fontSize: '48px' }}>
-                       {candidate.screening.overall_status === 'most_recommended' ? '🔵' : candidate.screening.overall_status === 'recommended' ? '✅' : '❌'}
-                     </span>
-                     <div>
-                       <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
-                         {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
-                           : candidate.screening.overall_status === 'recommended' ? 'Recommended'
-                           : 'Rejected'}
-                       </div>
-                       <div style={{ fontSize: '14px', opacity: '0.8' }}>{formatDateTime(candidate.screening.created_at)}</div>
+                 <div style={{ marginBottom: '24px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                   <span style={{ fontSize: '48px' }}>
+                     {candidate.screening.overall_status === 'most_recommended' ? <span className="iconify" data-icon="lucide:star" style={{ color: 'var(--success)' }}></span> : candidate.screening.overall_status === 'recommended' ? <span className="iconify" data-icon="lucide:thumbs-up" style={{ color: '#3b82f6' }}></span> : <span className="iconify" data-icon="lucide:x" style={{ color: 'var(--error)' }}></span>}
+                   </span>
+                   <div>
+                     <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
+                       {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
+                         : candidate.screening.overall_status === 'recommended' ? 'Recommended'
+                         : 'Rejected'}
                      </div>
+                     <div style={{ fontSize: '14px', color: 'var(--text-dim)' }}>{formatDateTime(candidate.screening.created_at)}</div>
                    </div>
                  </div>
-                 
-                 <div style={{
-                   background: candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.1)'
-                     : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.1)'
-                     : 'rgba(239, 68, 68, 0.1)',
-                   border: candidate.screening.overall_status === 'most_recommended' ? '1px solid rgba(34, 197, 94, 0.3)'
-                     : candidate.screening.overall_status === 'recommended' ? '1px solid rgba(59, 130, 246, 0.3)'
-                     : '1px solid rgba(239, 68, 68, 0.3)',
-                   padding: '16px', borderRadius: '12px', marginBottom: '24px',
-                   color: candidate.screening.overall_status === 'most_recommended' ? '#16a34a'
-                     : candidate.screening.overall_status === 'recommended' ? '#2563eb'
-                     : '#dc2626',
-                 }}>
+
+                 <div className={`glass-card ${candidate.screening.overall_status === 'most_recommended' ? 'glass-border-success' : candidate.screening.overall_status === 'recommended' ? 'glass-border-info' : 'glass-border-danger'}`}
+                   style={{
+                     padding: '16px', borderRadius: 'var(--radius-lg)', marginBottom: '24px',
+                     background: candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.08)'
+                       : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.08)'
+                       : 'rgba(239, 68, 68, 0.08)',
+                     border: `1px solid ${candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.25)'
+                       : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.25)'
+                       : 'rgba(239, 68, 68, 0.25)'}`,
+                     color: candidate.screening.overall_status === 'most_recommended' ? 'var(--success)'
+                       : candidate.screening.overall_status === 'recommended' ? '#3b82f6'
+                       : 'var(--error)',
+                   }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                      <div>
                        <strong style={{ fontSize: '16px' }}>Screening Result</strong>
-                       <div style={{ fontSize: '14px', opacity: '0.8', marginTop: '4px' }}>
+                       <div style={{ fontSize: '14px', color: 'var(--text-dim)', marginTop: '4px' }}>
                          Requirements met: {candidate.screening.requirements_met} / {candidate.screening.requirements_total}
                        </div>
                      </div>
-                     <div style={{ fontSize: '14px', opacity: '0.8' }}>
+                     <div style={{ fontSize: '14px', color: 'var(--text-dim)' }}>
                        Auto-screened on {formatDate(candidate.screening.created_at)}
                      </div>
                    </div>
                  </div>
-                 
+
                  {candidate.screening.requirement_results && (
                    <div>
-                     <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#f4f4f5' }}>
+                     <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>
                        Requirement Breakdown
                      </h4>
-                     <div style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', overflow: 'hidden' }}>
-                       <table className="table" style={{ margin: 0 }}>
-                         <thead style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                     <div className="glass-table-wrapper">
+                       <table className="glass-table" style={{ margin: 0 }}>
+                         <thead>
                            <tr>
-                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Requirement</th>
-                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Expected</th>
-                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Provided</th>
-                             <th style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#a1a1aa' }}>Status</th>
+                             <th>Requirement</th>
+                             <th>Expected</th>
+                             <th>Provided</th>
+                             <th>Status</th>
                            </tr>
                          </thead>
                          <tbody>
@@ -318,22 +361,22 @@ export default function CandidateDetails() {
                                : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
                                : Array.isArray(r.provided) ? r.provided.join(', ') : r.provided;
                              return (
-                               <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                                 <td style={{ padding: '12px', fontSize: '14px', color: '#f4f4f5' }}>
+                               <tr key={i}>
+                                 <td style={{ color: 'var(--text-primary)' }}>
                                    {labelMap[r.requirement] || r.requirement}
                                  </td>
-                                 <td style={{ padding: '12px', fontSize: '14px', color: '#a1a1aa' }}>
+                                 <td style={{ color: 'var(--text-muted)' }}>
                                    {expectedStr || '—'}
                                  </td>
-                                 <td style={{ padding: '12px', fontSize: '14px', color: '#a1a1aa' }}>
+                                 <td style={{ color: 'var(--text-muted)' }}>
                                    {providedStr || '—'}
                                  </td>
-                                 <td style={{ padding: '12px', fontSize: '14px' }}>
-                                   {r.status === 'most_recommended' ? 
-                                     <span style={{ color: '#22c55e', fontWeight: '600' }}>🔵 Most Recommended</span>
-                                     : r.status === 'recommended' ? 
-                                     <span style={{ color: '#3b82f6', fontWeight: '600' }}>✅ Recommended</span>
-                                     : <span style={{ color: '#ef4444', fontWeight: '600' }}>❌ Rejected</span>}
+                                 <td>
+                                   {r.status === 'most_recommended' ?
+                                     <span className="glass-badge glass-badge-success"><span className="iconify" data-icon="lucide:star" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Most Recommended</span>
+                                     : r.status === 'recommended' ?
+                                     <span className="glass-badge glass-badge-info"><span className="iconify" data-icon="lucide:thumbs-up" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Recommended</span>
+                                     : <span className="glass-badge glass-badge-danger"><span className="iconify" data-icon="lucide:x" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Rejected</span>}
                                  </td>
                                </tr>
                              );
@@ -351,24 +394,29 @@ export default function CandidateDetails() {
 
       {/* History Tab */}
       {activeTab === 'history' && (
-        <div className="card">
-          <div className="card-body">
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-body">
             {(!candidate.history || candidate.history.length === 0) ? (
-              <p className="text-center">No history</p>
+              <div className="glass-empty">
+                <span className="iconify" data-icon="lucide:clock"></span>
+                <h3>No history</h3>
+              </div>
             ) : (
-              <table className="table">
-                <thead><tr><th>Date</th><th>Stage</th><th>Note</th><th>By</th></tr></thead>
-                <tbody>
-                  {candidate.history.map(h => (
-                    <tr key={h.id}>
-                      <td>{formatDateTime(h.created_at)}</td>
-                      <td>{h.stage}</td>
-                      <td>{h.note || '—'}</td>
-                      <td>{h.created_by || 'system'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="glass-table-wrapper">
+                <table className="glass-table">
+                  <thead><tr><th>Date</th><th>Stage</th><th>Note</th><th>By</th></tr></thead>
+                  <tbody>
+                    {candidate.history.map(h => (
+                      <tr key={h.id}>
+                        <td>{formatDateTime(h.created_at)}</td>
+                        <td><span className="glass-badge glass-badge-neutral">{h.stage}</span></td>
+                        <td>{h.note || '—'}</td>
+                        <td style={{ color: 'var(--text-dim)' }}>{h.created_by || 'system'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -376,40 +424,48 @@ export default function CandidateDetails() {
 
       {/* Scorecards Tab */}
       {activeTab === 'scorecards' && (
-        <div className="card">
-          <div className="card-body">
-            <h4>Add Scorecard</h4>
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-body">
+            <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="iconify" data-icon="lucide:clipboard-list" style={{ color: 'var(--brand-primary)' }}></span> Add Scorecard
+            </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div className="form-group"><label>Interview</label><input className="form-control" value={scoreForm.interview} onChange={e => setScoreForm({ ...scoreForm, interview: e.target.value })} /></div>
-              <div className="form-group"><label>Communication (0-10)</label><input className="form-control" type="number" min={0} max={10} value={scoreForm.comm} onChange={e => setScoreForm({ ...scoreForm, comm: +e.target.value })} /></div>
-              <div className="form-group"><label>Technical (0-10)</label><input className="form-control" type="number" min={0} max={10} value={scoreForm.technical} onChange={e => setScoreForm({ ...scoreForm, technical: +e.target.value })} /></div>
-              <div className="form-group"><label>Fit (0-10)</label><input className="form-control" type="number" min={0} max={10} value={scoreForm.fit} onChange={e => setScoreForm({ ...scoreForm, fit: +e.target.value })} /></div>
-              <div className="form-group"><label>Overall (0-10)</label><input className="form-control" type="number" min={0} max={10} value={scoreForm.overall} onChange={e => setScoreForm({ ...scoreForm, overall: +e.target.value })} /></div>
-              <div className="form-group"><label>Decision</label><select className="form-control" value={scoreForm.decision} onChange={e => setScoreForm({ ...scoreForm, decision: e.target.value })}><option>pending</option><option>pass</option><option>fail</option></select></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Interview</label><input className="glass-input" value={scoreForm.interview} onChange={e => setScoreForm({ ...scoreForm, interview: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Communication (0-10)</label><input className="glass-input" type="number" min={0} max={10} value={scoreForm.comm} onChange={e => setScoreForm({ ...scoreForm, comm: +e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Technical (0-10)</label><input className="glass-input" type="number" min={0} max={10} value={scoreForm.technical} onChange={e => setScoreForm({ ...scoreForm, technical: +e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Fit (0-10)</label><input className="glass-input" type="number" min={0} max={10} value={scoreForm.fit} onChange={e => setScoreForm({ ...scoreForm, fit: +e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Overall (0-10)</label><input className="glass-input" type="number" min={0} max={10} value={scoreForm.overall} onChange={e => setScoreForm({ ...scoreForm, overall: +e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Decision</label><select className="glass-select" value={scoreForm.decision} onChange={e => setScoreForm({ ...scoreForm, decision: e.target.value })}><option>pending</option><option>pass</option><option>fail</option></select></div>
             </div>
-            <div className="form-group"><label>Notes</label><textarea className="form-control" rows={2} value={scoreForm.notes} onChange={e => setScoreForm({ ...scoreForm, notes: e.target.value })} /></div>
-            <button className="btn btn-primary" onClick={handleAddScorecard}>Add Scorecard</button>
+            <div className="glass-form-group"><label className="glass-label">Notes</label><textarea className="glass-textarea" rows={2} value={scoreForm.notes} onChange={e => setScoreForm({ ...scoreForm, notes: e.target.value })} /></div>
+            <button className="glass-btn glass-btn-primary" onClick={handleAddScorecard}>
+              <span className="iconify" data-icon="lucide:plus"></span> Add Scorecard
+            </button>
 
             {candidate.scorecards && candidate.scorecards.length > 0 && (
               <>
-                <hr />
-                <h4>Previous Scorecards</h4>
-                <table className="table">
-                  <thead><tr><th>Interview</th><th>Interviewer</th><th>C</th><th>T</th><th>F</th><th>O</th><th>Decision</th></tr></thead>
-                  <tbody>
-                    {candidate.scorecards.map(sc => (
-                      <tr key={sc.id}>
-                        <td>{sc.interview}</td>
-                        <td>{sc.interviewer}</td>
-                        <td>{sc.comm}</td>
-                        <td>{sc.technical}</td>
-                        <td>{sc.fit}</td>
-                        <td>{sc.overall}</td>
-                        <td>{sc.decision}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
+                <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="iconify" data-icon="lucide:history" style={{ color: 'var(--text-dim)' }}></span> Previous Scorecards
+                </h4>
+                <div className="glass-table-wrapper">
+                  <table className="glass-table">
+                    <thead><tr><th>Interview</th><th>Interviewer</th><th>C</th><th>T</th><th>F</th><th>O</th><th>Decision</th></tr></thead>
+                    <tbody>
+                      {candidate.scorecards.map(sc => (
+                        <tr key={sc.id}>
+                          <td>{sc.interview}</td>
+                          <td>{sc.interviewer}</td>
+                          <td>{sc.comm}</td>
+                          <td>{sc.technical}</td>
+                          <td>{sc.fit}</td>
+                          <td>{sc.overall}</td>
+                          <td><span className={`glass-badge glass-badge-${sc.decision === 'pass' ? 'success' : sc.decision === 'fail' ? 'danger' : 'neutral'}`}>{sc.decision}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
           </div>
@@ -418,36 +474,44 @@ export default function CandidateDetails() {
 
       {/* Offers Tab */}
       {activeTab === 'offers' && (
-        <div className="card">
-          <div className="card-body">
-            <h4>Create Offer</h4>
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-body">
+            <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="iconify" data-icon="lucide:gift" style={{ color: 'var(--brand-primary)' }}></span> Create Offer
+            </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div className="form-group"><label>Position</label><input className="form-control" value={offerForm.position} onChange={e => setOfferForm({ ...offerForm, position: e.target.value })} /></div>
-              <div className="form-group"><label>Department</label><input className="form-control" value={offerForm.department} onChange={e => setOfferForm({ ...offerForm, department: e.target.value })} /></div>
-              <div className="form-group"><label>Salary</label><input className="form-control" value={offerForm.salary} onChange={e => setOfferForm({ ...offerForm, salary: e.target.value })} /></div>
-              <div className="form-group"><label>Start Date</label><input className="form-control" type="date" value={offerForm.start_date} onChange={e => setOfferForm({ ...offerForm, start_date: e.target.value })} /></div>
-              <div className="form-group"><label>Reports To</label><input className="form-control" value={offerForm.reports_to} onChange={e => setOfferForm({ ...offerForm, reports_to: e.target.value })} /></div>
-              <div className="form-group"><label>Benefits</label><input className="form-control" value={offerForm.benefits} onChange={e => setOfferForm({ ...offerForm, benefits: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Position</label><input className="glass-input" value={offerForm.position} onChange={e => setOfferForm({ ...offerForm, position: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Department</label><input className="glass-input" value={offerForm.department} onChange={e => setOfferForm({ ...offerForm, department: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Salary</label><input className="glass-input" value={offerForm.salary} onChange={e => setOfferForm({ ...offerForm, salary: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Start Date</label><input className="glass-input" type="date" value={offerForm.start_date} onChange={e => setOfferForm({ ...offerForm, start_date: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Reports To</label><input className="glass-input" value={offerForm.reports_to} onChange={e => setOfferForm({ ...offerForm, reports_to: e.target.value })} /></div>
+              <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Benefits</label><input className="glass-input" value={offerForm.benefits} onChange={e => setOfferForm({ ...offerForm, benefits: e.target.value })} /></div>
             </div>
-            <button className="btn btn-primary" onClick={handleCreateOffer}>Send Offer</button>
+            <button className="glass-btn glass-btn-primary" onClick={handleCreateOffer}>
+              <span className="iconify" data-icon="lucide:send"></span> Send Offer
+            </button>
 
             {candidate.offers && candidate.offers.length > 0 && (
               <>
-                <hr />
-                <h4>Sent Offers</h4>
-                <table className="table">
-                  <thead><tr><th>Position</th><th>Salary</th><th>Start Date</th><th>Status</th></tr></thead>
-                  <tbody>
-                    {candidate.offers.map(o => (
-                      <tr key={o.id}>
-                        <td>{o.position}</td>
-                        <td>{o.salary}</td>
-                        <td>{formatDate(o.start_date)}</td>
-                        <td>{o.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
+                <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="iconify" data-icon="lucide:history" style={{ color: 'var(--text-dim)' }}></span> Sent Offers
+                </h4>
+                <div className="glass-table-wrapper">
+                  <table className="glass-table">
+                    <thead><tr><th>Position</th><th>Salary</th><th>Start Date</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {candidate.offers.map(o => (
+                        <tr key={o.id}>
+                          <td>{o.position}</td>
+                          <td><span className="glass-badge glass-badge-success">{o.salary}</span></td>
+                          <td>{formatDate(o.start_date)}</td>
+                          <td><span className={`glass-badge glass-badge-${o.status === 'accepted' ? 'success' : o.status === 'declined' ? 'danger' : o.status === 'sent' ? 'warning' : 'neutral'}`}>{o.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
           </div>
@@ -455,43 +519,48 @@ export default function CandidateDetails() {
       )}
 
       {showHire && !hireResult && (
-        <div className="modal-overlay" onClick={() => setShowHire(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <h3>Hire: {candidate.name}</h3>
-            <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: 16 }}>
+        <div className="glass-modal-overlay" onClick={() => setShowHire(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--success)' }}></span> Hire: {candidate.name}
+              </h3>
+              <button className="glass-modal-close" onClick={() => setShowHire(false)}><span className="iconify" data-icon="lucide:x"/></button>
+            </div>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 16 }}>
               Create employee record from this candidate.
             </p>
-            <div className="form-group">
-              <label>Department</label>
-              <select className="form-control" value={hireForm.department_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Department</label>
+              <select className="glass-select" value={hireForm.department_id}
                 onChange={e => setHireForm({ ...hireForm, department_id: e.target.value, title_id: '' })}>
                 <option value="">— Select —</option>
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label>Title</label>
-              <select className="form-control" value={hireForm.title_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Title</label>
+              <select className="glass-select" value={hireForm.title_id}
                 onChange={e => setHireForm({ ...hireForm, title_id: e.target.value })}>
                 <option value="">— Select —</option>
                 {deptTitles.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label>Employee ID (optional — leave blank to auto-generate)</label>
-              <input className="form-control" type="number" value={hireForm.employee_id}
+            <div className="glass-form-group">
+              <label className="glass-label">Employee ID (optional — leave blank to auto-generate)</label>
+              <input className="glass-input" type="number" value={hireForm.employee_id}
                 onChange={e => setHireForm({ ...hireForm, employee_id: e.target.value })}
                 placeholder="Auto" />
             </div>
-            <div className="form-group">
-              <label>Start Date</label>
-              <input className="form-control" type="date" value={hireForm.start_date}
+            <div className="glass-form-group">
+              <label className="glass-label">Start Date</label>
+              <input className="glass-input" type="date" value={hireForm.start_date}
                 onChange={e => setHireForm({ ...hireForm, start_date: e.target.value })} />
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setShowHire(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={handleHire} disabled={hiring}>
-                {hiring ? 'Hiring...' : 'Confirm Hire'}
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setShowHire(false)}>Cancel</button>
+              <button className="glass-btn glass-btn-success" onClick={handleHire} disabled={hiring}>
+                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><span className="iconify" data-icon="lucide:check"></span> Confirm Hire</>}
               </button>
             </div>
           </div>
@@ -499,20 +568,30 @@ export default function CandidateDetails() {
       )}
 
       {hireResult && (
-        <div className="modal-overlay" onClick={() => { setHireResult(null); setShowHire(false); }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <h3 style={{ color: '#2e7d32' }}>Hired Successfully</h3>
-            <div style={{ background: '#e8f5e9', padding: 16, borderRadius: 8, margin: '12px 0' }}>
-              <p><strong>Employee #:</strong> {hireResult.employee_id}</p>
-              <p><strong>Temporary Password:</strong> <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: '1rem' }}>{hireResult.temp_password}</code></p>
+        <div className="glass-modal-overlay" onClick={() => { setHireResult(null); setShowHire(false); }}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)' }}>
+                <span className="iconify" data-icon="lucide:party-popper"></span> Hired Successfully
+              </h3>
+              <button className="glass-modal-close" onClick={() => { setHireResult(null); setShowHire(false); }}><span className="iconify" data-icon="lucide:x"/></button>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#666' }}>Share these credentials with the new employee. They can change their password after first login.</p>
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={() => { setHireResult(null); setShowHire(false); }}>Done</button>
+            <div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}>
+              <p style={{ marginBottom: 8 }}><strong>Employee #:</strong> {hireResult.employee_id}</p>
+              <p><strong>Temporary Password:</strong> <code style={{ background: 'rgba(24,24,27,0.6)', padding: '2px 8px', borderRadius: 4, fontSize: '1rem', color: 'var(--success)' }}>{hireResult.temp_password}</code></p>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Share these credentials with the new employee. They can change their password after first login.</p>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-primary" onClick={() => { setHireResult(null); setShowHire(false); }}>Done</button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+function stageBadge(stage) {
+  const colors = { applied: 'neutral', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
+  return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{stage}</span>;
 }

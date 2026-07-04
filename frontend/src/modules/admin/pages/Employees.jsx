@@ -95,7 +95,6 @@ export default function AdminEmployees() {
   };
 
   const openEdit = async (emp) => {
-    // Fetch full employee data with balances
     try {
       const res = await hrApi.get(`/employees/${emp.id}`);
       const full = res.data;
@@ -106,13 +105,11 @@ export default function AdminEmployees() {
         employment_status: full.employment_status || 'active', resignation_date: full.resignation_date || '',
         balances: {},
       };
-      // Build dynamic balances from response
       if (full.balances) {
         for (const key of Object.keys(full.balances)) {
           form.balances[key] = full.balances[key] || 0;
         }
       } else {
-        // Fallback: hardcoded
         form.balances = {
           annual: full.annual_balance || 0,
           sick: full.sick_balance || 0,
@@ -136,7 +133,6 @@ export default function AdminEmployees() {
     try {
       const res = await hrApi.put(`/employees/${editing.id}`, editForm);
       setData((prev) => ({ ...prev, employees: prev.employees.map((e) => (e.id === editing.id ? { ...e, ...res.data } : e)) }));
-      // Save leave balances (dynamic)
       await hrApi.put(`/employees/${editing.id}/balance`, { balances: editForm.balances });
       setMessage('Employee updated');
       setEditing(null);
@@ -149,41 +145,41 @@ export default function AdminEmployees() {
   return (
     <>
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Manage Employees</h1>
-            <p className="subtitle">{data.total} employee{data.total !== 1 ? 's' : ''}</p>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>{data.total} employee{data.total !== 1 ? 's' : ''}</p>
           </div>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-        <div className="filter-bar">
-          <div className="filter-group">
-            <label>Department</label>
-            <select className="form-control" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)', marginBottom: 16 }}>
+          <div className="glass-form-group" style={{ marginBottom: 0, flex: 1 }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>Department</label>
+            <select className="glass-select" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
               <option value="">All Departments</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
           </div>
-          <div className="filter-actions">
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             {deptFilter && (
-              <button className="btn btn-outline" onClick={() => setDeptFilter('')}>Clear</button>
+              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setDeptFilter('')}>Clear</button>
             )}
           </div>
         </div>
 
-        <div className="summary-bar">
-          <span className="summary-item">Total Employees: <strong>{data.total}</strong></span>
-          <span className="summary-item">Showing Page: <strong>{data.page} / {data.totalPages}</strong></span>
+        <div className="glass-summary-bar">
+          <span style={{ color: 'var(--text-dim)' }}>Total Employees: <strong>{data.total}</strong></span>
+          <span style={{ color: 'var(--text-dim)' }}>Showing Page: <strong>{data.page} / {data.totalPages}</strong></span>
         </div>
 
-        {loading && <div className="loading" />}
+        {loading && <div className="glass-loading"><div className="spinner"/><span>Loading...</span></div>}
         {!loading && (
-        <div className="table-wrapper">
-          <table className="table">
+        <div className="glass-table-wrapper">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>ID</th>
@@ -213,81 +209,82 @@ export default function AdminEmployees() {
                   <td className="cell-mono">{emp.username || '—'}</td>
                   <td className="cell-mono" style={{fontSize:'0.8rem'}}>{emp.email}</td>
                   <td className="cell-mono">{emp.employee_id || '—'}</td>
-                  <td>{emp.department_name || emp.department || <span style={{color:'#999'}}>—</span>}</td>
-                  <td>{emp.grade_name ? <span className="badge badge-info">Lv.{emp.grade_level} {emp.grade_name}</span> : <span style={{color:'#999'}}>—</span>}</td>
-                  <td>{emp.position_title || <span style={{color:'#999'}}>—</span>}</td>
+                  <td>{emp.department_name || emp.department || <span style={{color:'var(--text-faint)'}}>—</span>}</td>
+                  <td>{emp.grade_name ? <span className="glass-badge glass-badge-info">Lv.{emp.grade_level} {emp.grade_name}</span> : <span style={{color:'var(--text-faint)'}}>—</span>}</td>
+                  <td>{emp.position_title || <span style={{color:'var(--text-faint)'}}>—</span>}</td>
                   <td>
-                    <span className={`badge ${emp.role === 'admin' ? 'badge-admin' : emp.role === 'manager' ? 'badge-active' : emp.role === 'ceo' ? 'badge-info' : 'badge-employee'}`}>
+                    <span className={`glass-badge ${emp.role === 'admin' ? 'glass-badge-primary' : emp.role === 'manager' ? 'glass-badge-success' : emp.role === 'ceo' ? 'glass-badge-info' : 'glass-badge-default'}`}>
                       {emp.role === 'ceo' ? 'C-Level' : emp.role}
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${emp.is_verified ? 'badge-active' : 'badge-inactive'}`}>
+                    <span className={`glass-badge ${emp.is_verified ? 'glass-badge-success' : 'glass-badge-default'}`}>
                       {emp.is_verified ? 'Yes' : 'No'}
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${emp.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                    <span className={`glass-badge ${emp.is_active ? 'glass-badge-success' : 'glass-badge-default'}`}>
                       {emp.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    <button className="btn btn-xs btn-ghost" onClick={() => toggleActive(emp.id, emp.is_active)} style={{ marginLeft: 4 }} title="Toggle active">
-                      {emp.is_active ? '🔴' : '🟢'}
+                    <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => toggleActive(emp.id, emp.is_active)} style={{ marginLeft: 4 }} title="Toggle active">
+                      <span className="iconify" data-icon={emp.is_active ? 'lucide:circle-dot' : 'lucide:circle'} />
                     </button>
                   </td>
                   <td>
-                    <span className={`badge ${emp.employment_status === 'active' || !emp.employment_status ? 'badge-active' : 'badge-inactive'}`}>
+                    <span className={`glass-badge ${emp.employment_status === 'active' || !emp.employment_status ? 'glass-badge-success' : 'glass-badge-default'}`}>
                       {emp.employment_status === 'resigned' ? 'Resigned' : 'Active'}
                     </span>
                     {emp.employment_status === 'resigned' && emp.resignation_date && (
-                      <span className="cell-mono" style={{ fontSize: '0.75rem', display: 'block', color: '#999' }}>
+                      <span className="cell-mono" style={{ fontSize: '0.75rem', display: 'block', color: 'var(--text-faint)' }}>
                         since {new Date(emp.resignation_date).toLocaleDateString()}
                       </span>
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${emp.can_wfh ? 'badge-active' : 'badge-inactive'}`}>
+                    <span className={`glass-badge ${emp.can_wfh ? 'glass-badge-success' : 'glass-badge-default'}`}>
                       {emp.can_wfh ? 'Yes' : 'No'}
                     </span>
-                    <button className="btn btn-xs btn-ghost" onClick={() => toggleCanWfh(emp.id, emp.can_wfh)} style={{ marginLeft: 4 }} title="Toggle WFH">
-                      {emp.can_wfh ? '🔴' : '🟢'}
+                    <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => toggleCanWfh(emp.id, emp.can_wfh)} style={{ marginLeft: 4 }} title="Toggle WFH">
+                      <span className="iconify" data-icon={emp.can_wfh ? 'lucide:circle-dot' : 'lucide:circle'} />
                     </button>
                   </td>
                   <td className="cell-mono">{emp.created_at ? new Date(emp.created_at).toLocaleDateString() : '—'}</td>
                   <td>
                     <div className="action-btns">
-                      <button className="btn btn-sm btn-outline" onClick={() => navigate(`/hr/employees/${emp.id}/profile`)}>Profile</button>
-                      <button className="btn btn-sm btn-outline" onClick={() => openEdit(emp)}>Edit</button>
-                      <button className="btn btn-sm btn-outline" onClick={() => setIdCardEmployeeId(emp.id)}>ID Card</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/hr/employees/${emp.id}/profile`)}><span className="iconify" data-icon="lucide:user"/> Profile</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(emp)}><span className="iconify" data-icon="lucide:pencil"/> Edit</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setIdCardEmployeeId(emp.id)}><span className="iconify" data-icon="lucide:id-card"/> ID Card</button>
                       {emp.role !== 'admin' && (
-                        <button className="btn btn-sm btn-outline" onClick={() => updateRole(emp.id, 'admin')}>Promote to Admin</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'admin')}><span className="iconify" data-icon="lucide:shield-up"/> Promote</button>
                       )}
                       {emp.role === 'admin' && (
-                        <button className="btn btn-sm btn-outline" onClick={() => updateRole(emp.id, 'employee')}>Demote</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'employee')}><span className="iconify" data-icon="lucide:shield-down"/> Demote</button>
                       )}
-                      <button className="btn btn-sm btn-danger" onClick={() => setConfirm(emp)}>Delete</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setConfirm(emp)}><span className="iconify" data-icon="lucide:trash-2"/> Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {(data.employees || []).length === 0 && <p className="empty-state">No employees found</p>}
+          {(data.employees || []).length === 0 && <div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No employees found</h3><p>No employees match your current filters.</p></div>}
           <Pagination page={data.page} totalPages={data.totalPages} onPageChange={fetchEmployees} />
         </div>
         )}
       </div>
 
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth:520}}>
+        <div className="glass-modal-overlay" onClick={() => setEditing(null)}>
+          <div className="modal glass-modal" onClick={(e) => e.stopPropagation()} style={{maxWidth:520}}>
+            <button className="glass-modal-close" onClick={() => setEditing(null)}><span className="iconify" data-icon="lucide:x"/></button>
             <h2>Edit Employee</h2>
             <div className="modal-grid">
-              <label>Name<input type="text" className="form-control" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label>
-              <label>Email<input type="email" className="form-control" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></label>
-              <label>Username<input type="text" className="form-control" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} /></label>
-              <label>Employee ID<input type="number" className="form-control" value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></label>
+              <label>Name<input type="text" className="glass-input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label>
+              <label>Email<input type="email" className="glass-input" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></label>
+              <label>Username<input type="text" className="glass-input" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} /></label>
+              <label>Employee ID<input type="number" className="glass-input" value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></label>
               <label className="settings-full">Department
-                <select className="form-control" value={editForm.department_id} onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}>
+                <select className="glass-select" value={editForm.department_id} onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}>
                   <option value="">None</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
@@ -295,7 +292,7 @@ export default function AdminEmployees() {
                 </select>
               </label>
               <label className="settings-full">Grade
-                <select className="form-control" value={editForm.grade_id} onChange={(e) => setEditForm({ ...editForm, grade_id: e.target.value })}>
+                <select className="glass-select" value={editForm.grade_id} onChange={(e) => setEditForm({ ...editForm, grade_id: e.target.value })}>
                   <option value="">None</option>
                   {grades.map((g) => (
                     <option key={g.id} value={g.id}>Lv.{g.grade_level} — {g.name}</option>
@@ -303,7 +300,7 @@ export default function AdminEmployees() {
                 </select>
               </label>
               <label className="settings-full">Title
-                <select className="form-control" value={editForm.title_id} onChange={(e) => setEditForm({ ...editForm, title_id: e.target.value })}>
+                <select className="glass-select" value={editForm.title_id} onChange={(e) => setEditForm({ ...editForm, title_id: e.target.value })}>
                   <option value="">None</option>
                   {deptTitles
                     .filter((t) => !editForm.department_id || String(t.department_id) === String(editForm.department_id))
@@ -313,7 +310,7 @@ export default function AdminEmployees() {
                 </select>
               </label>
               <label className="settings-full">Role
-                <select className="form-control" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
+                <select className="glass-select" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
                   <option value="employee">Employee</option>
                   <option value="manager">Manager</option>
                   <option value="ceo">C-Level</option>
@@ -325,21 +322,21 @@ export default function AdminEmployees() {
                 <span>Can work from home (WFH)</span>
               </label>
               <label className="settings-full">Employment Status
-                <select className="form-control" value={editForm.employment_status} onChange={(e) => setEditForm({ ...editForm, employment_status: e.target.value })}>
+                <select className="glass-select" value={editForm.employment_status} onChange={(e) => setEditForm({ ...editForm, employment_status: e.target.value })}>
                   <option value="active">Active</option>
                   <option value="resigned">Resigned</option>
                 </select>
               </label>
               {editForm.employment_status === 'resigned' && (
                 <label className="settings-full">Resignation Date
-                  <input type="date" className="form-control" value={editForm.resignation_date} onChange={(e) => setEditForm({ ...editForm, resignation_date: e.target.value })} />
+                  <input type="date" className="glass-input" value={editForm.resignation_date} onChange={(e) => setEditForm({ ...editForm, resignation_date: e.target.value })} />
                 </label>
               )}
               <div className="settings-section-title" style={{ fontSize:'0.85rem', borderBottom:'none', margin: '8px 0', gridColumn: '1 / -1' }}>Leave Balances</div>
               {leaveTypes.filter((lt) => lt.default_balance !== null).length > 0
                 ? leaveTypes.filter((lt) => lt.default_balance !== null).map((lt) => (
                     <label key={lt.name}>{lt.label || lt.name} ({lt.name})
-                      <input type="number" className="form-control" value={editForm.balances?.[lt.name] ?? 0}
+                      <input type="number" className="glass-input" value={editForm.balances?.[lt.name] ?? 0}
                         onChange={(e) => setEditForm({
                           ...editForm,
                           balances: { ...editForm.balances, [lt.name]: e.target.value }
@@ -349,7 +346,7 @@ export default function AdminEmployees() {
                   ))
                 : ['annual', 'sick', 'casual'].map((t) => (
                     <label key={t}>{t.charAt(0).toUpperCase() + t.slice(1)} Days
-                      <input type="number" className="form-control" value={editForm.balances?.[t] ?? 0}
+                      <input type="number" className="glass-input" value={editForm.balances?.[t] ?? 0}
                         onChange={(e) => setEditForm({
                           ...editForm,
                           balances: { ...editForm.balances, [t]: e.target.value }
@@ -359,9 +356,9 @@ export default function AdminEmployees() {
                   ))
               }
             </div>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleEdit}>Save</button>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleEdit}><span className="iconify" data-icon="lucide:save"/> Save</button>
             </div>
           </div>
         </div>
@@ -381,4 +378,3 @@ export default function AdminEmployees() {
     </>
   );
 }
-

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -18,11 +18,10 @@ const leaveTypeLabels = { annual: 'A', sick: 'S', casual: 'C', personal: 'P', un
 const PIE_COLORS = { office: '#22c55e', wfh: '#3b82f6', absent: '#ef4444', holiday: '#f59e0b', leave: '#8b5cf6', off: '#d1d5db' };
 const BAR_COLORS = { office: '#22c55e', wfh: '#3b82f6' };
 
-function AnimatedNumber({ value }) {
+function AnimatedNumber({ value, duration = 600 }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let start = 0;
-    const duration = 600;
     const step = Math.ceil(value / (duration / 16));
     const timer = setInterval(() => {
       start += step;
@@ -30,7 +29,7 @@ function AnimatedNumber({ value }) {
       setDisplay(start);
     }, 16);
     return () => clearInterval(timer);
-  }, [value]);
+  }, [value, duration]);
   return <>{display}</>;
 }
 
@@ -41,10 +40,11 @@ function ElapsedTimer({ signInTime }) {
       const diff = Date.now() - new Date(signInTime).getTime();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      setElapsed(`${h}h ${m}m`);
+      const s = Math.floor((diff % 60000) / 1000);
+      setElapsed(`${h}h ${m}m ${s}s`);
     };
     update();
-    const timer = setInterval(update, 30000);
+    const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
   }, [signInTime]);
   return <span className="elapsed-timer">{elapsed}</span>;
@@ -53,134 +53,23 @@ function ElapsedTimer({ signInTime }) {
 function LoadingSkeleton() {
   return (
     <div className="dashboard">
-      <div className="skeleton-card" style={{ height: 110 }} />
+      <div className="glass-skeleton" style={{ height: 140 }} />
       <div className="dashboard-top-grid">
-        <div className="skeleton-card" style={{ height: 240 }} />
-        <div className="skeleton-card" style={{ height: 240 }} />
+        <div className="glass-skeleton" style={{ height: 280 }} />
+        <div className="glass-skeleton" style={{ height: 280 }} />
       </div>
       <div className="dashboard-stats-row">
-        {[1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton-card" style={{ height: 110 }} />)}
+        {[1, 2, 3, 4, 5].map(i => <div key={i} className="glass-skeleton" style={{ height: 120 }} />)}
       </div>
       <div className="dashboard-charts-row">
-        <div className="skeleton-card" style={{ height: 220 }} />
-        <div className="skeleton-card" style={{ height: 220 }} />
+        <div className="glass-skeleton" style={{ height: 240 }} />
+        <div className="glass-skeleton" style={{ height: 240 }} />
+      </div>
+      <div className="dashboard-calendar">
+        <div className="glass-skeleton" style={{ height: 320 }} />
       </div>
     </div>
   );
-}
-
-function DashboardIcon({ name, size = 20, className = '' }) {
-  const commonProps = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', className };
-
-  switch (name) {
-    case 'office':
-      return (
-        <svg {...commonProps}>
-          <path d="M3 21h18" />
-          <path d="M5 21V8l7-4 7 4v13" />
-          <path d="M9 21v-6h6v6" />
-        </svg>
-      );
-    case 'wfh':
-      return (
-        <svg {...commonProps}>
-          <path d="M3 11.5 12 4l9 7.5" />
-          <path d="M5 10.5V20h14v-9.5" />
-          <path d="M9 20v-5h6v5" />
-        </svg>
-      );
-    case 'absent':
-      return (
-        <svg {...commonProps}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="m8 8 8 8" />
-          <path d="m16 8-8 8" />
-        </svg>
-      );
-    case 'holiday':
-      return (
-        <svg {...commonProps}>
-          <path d="M5 4v16" />
-          <path d="M19 4v16" />
-          <path d="M5 8h14" />
-          <path d="M8 4v4" />
-          <path d="M16 4v4" />
-          <path d="M8 12h8" />
-        </svg>
-      );
-    case 'workday':
-      return (
-        <svg {...commonProps}>
-          <rect x="3" y="4" width="18" height="16" rx="2" />
-          <path d="M3 10h18" />
-          <path d="M8 2v4" />
-          <path d="M16 2v4" />
-        </svg>
-      );
-    case 'leave':
-      return (
-        <svg {...commonProps}>
-          <path d="M5 12c0-4 3-7 7-7 3.2 0 5.7 2.1 6.5 5" />
-          <path d="M4 15c1.2 2.2 3.1 3.5 5.5 3.5 2.5 0 4.2-1.2 5.5-3.2" />
-          <path d="M15 9h2" />
-          <path d="M17 11h2" />
-        </svg>
-      );
-    case 'calendar':
-      return (
-        <svg {...commonProps}>
-          <rect x="3" y="4" width="18" height="16" rx="2" />
-          <path d="M3 10h18" />
-          <path d="M8 2v4" />
-          <path d="M16 2v4" />
-        </svg>
-      );
-    case 'history':
-      return (
-        <svg {...commonProps}>
-          <path d="M8 6h10" />
-          <path d="M8 12h10" />
-          <path d="M8 18h6" />
-          <path d="M4 6h.01" />
-          <path d="M4 12h.01" />
-          <path d="M4 18h.01" />
-        </svg>
-      );
-    case 'profile':
-      return (
-        <svg {...commonProps}>
-          <circle cx="12" cy="8" r="4" />
-          <path d="M5 20a7 7 0 0 1 14 0" />
-        </svg>
-      );
-    case 'alert':
-      return (
-        <svg {...commonProps}>
-          <path d="M12 3 2 20h20L12 3Z" />
-          <path d="M12 9v5" />
-          <path d="M12 16h.01" />
-        </svg>
-      );
-    case 'check':
-      return (
-        <svg {...commonProps}>
-          <path d="m5 12 4 4 10-10" />
-        </svg>
-      );
-    case 'clock':
-      return (
-        <svg {...commonProps}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...commonProps}>
-          <circle cx="12" cy="12" r="9" />
-        </svg>
-      );
-  }
 }
 
 export default function Dashboard() {
@@ -196,6 +85,7 @@ export default function Dashboard() {
   const [calendarData, setCalendarData] = useState(null);
   const [services, setServices] = useState({ service_wfh: '1', service_office_attendance: '1', service_leaves: '1' });
   const [selectedDay, setSelectedDay] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -209,19 +99,21 @@ export default function Dashboard() {
 
   if (employee?.role === 'ceo') {
     return (
-      <div className="page" style={{ textAlign: 'center', paddingTop: 80 }}>
-        <div style={{ fontSize: '3rem', marginBottom: 16 }}>📊</div>
+      <div className="glass-empty" style={{ paddingTop: 80 }}>
+        <span className="iconify" data-icon="lucide:bar-chart-2" style={{ fontSize: 48, opacity: 0.3 }} />
         <h2>You have C-Level access</h2>
-        <p style={{ color: '#666', marginBottom: 24, fontSize: '1.1rem' }}>
-          Visit Company Overview to view organization-wide analytics.
-        </p>
-        <a href="/ceo" className="btn btn-primary btn-lg">Go to Company Overview</a>
+        <p>Visit Company Overview to view organization-wide analytics.</p>
+        <button className="glass-btn glass-btn-primary" onClick={() => navigate('/ceo')}>
+          <span className="iconify" data-icon="lucide:arrow-right" style={{ marginRight: 6 }} />
+          Go to Company Overview
+        </button>
       </div>
     );
   }
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
+      setLoading(true);
       const [statusRes, summaryRes, calRes, svcRes] = await Promise.all([
         api.get('/attendance/status'),
         api.get('/attendance/monthly-summary'),
@@ -237,62 +129,68 @@ export default function Dashboard() {
         service_leaves: svcRes.data.service_leaves ?? '1',
       });
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching data:', err);
+      setSignError('Failed to load attendance data. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentYear, currentMonth]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData, refreshKey]);
 
-  const signInWithLocation = (type) => {
+  const signInWithLocation = async (type) => {
     if (!navigator.geolocation) {
       setGpsError('Geolocation is not supported by your browser.');
       return;
     }
     setGpsLoading(true);
     setGpsError('');
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const body = {
-            type,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          await api.post('/attendance/sign-in', body);
-          await fetchData();
-          setSignError('');
-          setGpsError('');
-        } catch (err) {
-          const data = err.response?.data;
-          if (data?.distance) {
-            if (type === 'office') {
-              setGpsError(`You are ${data.distance}m away from the office (max ${data.maxRadius}m). Move closer or sign in as WFH.`);
-            } else {
-              setGpsError(`You are within the office area (${data.distance}m). Please use Office sign-in.`);
-            }
-          } else {
-            setSignError(data?.error || 'Failed to sign in');
-          }
-        } finally {
-          setGpsLoading(false);
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 30000, maximumAge: 60000 });
+      });
+      
+      const body = {
+        type,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      
+      await api.post('/attendance/sign-in', body);
+      await fetchData();
+      setSignError('');
+      setGpsError('');
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.distance) {
+        if (type === 'office') {
+          setGpsError(`You are ${data.distance}m away from the office (max ${data.maxRadius}m). Move closer or sign in as WFH.`);
+        } else {
+          setGpsError(`You are within the office area (${data.distance}m). Please use Office sign in.`);
         }
-      },
-      (err) => {
-        setGpsLoading(false);
-        const messages = {
-          1: 'Location permission denied. Allow location access in your browser settings.',
-          2: 'Location unavailable. Try again or use WFH sign in.',
-          3: 'Location request timed out. Make sure your browser has location access enabled (HTTPS required).',
-        };
-        setGpsError(messages[err.code] || 'Failed to get location.');
-      },
-      { timeout: 30000, maximumAge: 60000 }
-    );
+      } else {
+        setSignError(data?.error || 'Failed to sign in');
+      }
+    } finally {
+      setGpsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await api.post('/attendance/sign-out', { notes });
+      await fetchData();
+      setNotes('');
+      setSignError('');
+    } catch (err) {
+      setSignError(err.response?.data?.error || 'Failed to sign out');
+    }
   };
 
   function buildCalendarGrid(monthDays) {
+    if (!monthDays || monthDays.length === 0) return [];
     const firstDay = new Date(monthDays[0].date + 'T00:00:00').getDay();
     const grid = [];
     let dayIndex = 0;
@@ -373,11 +271,11 @@ export default function Dashboard() {
   const isMissingSignOut = (day) => day.signed_in && !day.signed_out && !day.is_future && day.date !== todayStr;
 
   const quickActions = [
-    ...(services.service_leaves !== '0' ? [{ label: 'Leave Requests', icon: '🏖️', path: '/leaves', color: '#4f46e5', meta: 'Submit or track' }] : []),
-    { label: 'Attendance Calendar', icon: '📅', path: '/calendar', color: '#22c55e', meta: 'Plan your week' },
-    { label: 'Attendance History', icon: '📋', path: '/history', color: '#3b82f6', meta: 'Review records' },
-    { label: 'Missing Sign-Out', icon: '⚠️', path: '/missing-signout', color: '#f59e0b', meta: 'Resolve quickly' },
-    { label: 'My Profile', icon: '👤', path: '/profile', color: '#8b5cf6', meta: 'Update details' },
+    ...(services.service_leaves !== '0' ? [{ label: 'Leave Requests', icon: 'umbrella', path: '/leaves', color: '#4f46e5', meta: 'Submit or track' }] : []),
+    { label: 'Attendance Calendar', icon: 'calendar', path: '/calendar', color: '#22c55e', meta: 'Plan your week' },
+    { label: 'Attendance History', icon: 'clock', path: '/history', color: '#3b82f6', meta: 'Review records' },
+    { label: 'Missing Sign-Out', icon: 'alert-triangle', path: '/missing-signout', color: '#f59e0b', meta: 'Resolve quickly' },
+    { label: 'My Profile', icon: 'user', path: '/profile', color: '#8b5cf6', meta: 'Update details' },
   ];
 
   const insights = useMemo(() => buildDashboardInsights({
@@ -395,7 +293,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="dashboard">
-        <div className="welcome-card card-glass card-animate">
+        <div className="welcome-card glass-card fade-in-up">
           <div className="welcome-card-content">
             <div>
               <div className="welcome-eyebrow">Today at a glance</div>
@@ -404,47 +302,49 @@ export default function Dashboard() {
               <p className="welcome-copy">Track attendance, keep requests moving, and stay focused on what matters today.</p>
             </div>
             <div className="welcome-actions">
-              <button className="btn btn-light" onClick={() => navigate('/calendar')}>View Calendar</button>
-              <button className="btn btn-primary" onClick={() => navigate('/requests')}>Open Requests</button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/calendar')}>View Calendar</button>
+              <button className="glass-btn glass-btn-primary" onClick={() => navigate('/requests')}>Open Requests</button>
             </div>
           </div>
         </div>
 
         <div className="dashboard-top-grid">
-          <div className="status-card card-surface card-animate">
+          <div className="glass-card fade-in-up delay-1">
             {!status?.signedIn ? (
               <div className="status-not-started">
                 <div className="status-icon-badge status-pending">
-                  <DashboardIcon name="clock" size={28} />
+                  <span className="iconify" data-icon="lucide:clock" style={{ fontSize: 28 }} />
                 </div>
                 <h2>Not Signed In</h2>
                 <p>Start your work day</p>
-                {signError && <div className="alert alert-error"><span>⚠️</span> {signError}</div>}
-                {gpsError && <div className="alert alert-error"><span>⚠️</span> {gpsError}</div>}
+                {signError && <div className="glass-alert glass-alert-danger"><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
+                {gpsError && <div className="glass-alert glass-alert-danger"><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {gpsError}</div>}
                 {hasSignInServices ? (
                   <div className="signin-buttons">
                     {services.service_wfh === '1' && canWfh && (
-                      <button onClick={() => signInWithLocation('wfh')} disabled={gpsLoading} className="btn btn-primary btn-lg">
-                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏠 Sign In (WFH)'}
+                      <button onClick={() => signInWithLocation('wfh')} disabled={gpsLoading} className="glass-btn glass-btn-primary glass-btn-lg">
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><span className="iconify" data-icon="lucide:home" style={{ marginRight: 6 }} /> Sign In (WFH)</>}
                       </button>
                     )}
                     {services.service_office_attendance === '1' && (
-                      <button onClick={() => signInWithLocation('office')} disabled={gpsLoading} className="btn btn-outline btn-lg">
-                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : '🏢 Sign In (Office)'}
+                      <button onClick={() => signInWithLocation('office')} disabled={gpsLoading} className="glass-btn glass-btn-ghost glass-btn-lg">
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 6 }} /> Sign In (Office)</>}
                       </button>
                     )}
                   </div>
                 ) : (
-                  <p className="no-service-msg">No attendance methods are currently enabled. Contact your administrator.</p>
+                  <div className="glass-empty" style={{ textAlign: 'center', padding: '12px 0' }}>
+                    <p>No attendance methods are currently enabled. Contact your administrator.</p>
+                  </div>
                 )}
               </div>
             ) : !status?.signedOut ? (
               <div className="status-active">
-                {signError && <div className="alert alert-error" style={{ marginBottom: 16 }}><span>⚠️</span> {signError}</div>}
+                {signError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
                 <div className="status-icon-badge status-active-badge">
-                  <DashboardIcon name="check" size={28} />
+                  <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 28 }} />
                 </div>
-                <h2>Signed In <span className="status-type-badge">
+                <h2>Signed In <span className="glass-badge glass-badge-success">
                   {(status.record.type || 'wfh').charAt(0).toUpperCase() + (status.record.type || 'wfh').slice(1)}
                 </span></h2>
                 <p className="signed-in-time">
@@ -453,6 +353,7 @@ export default function Dashboard() {
                 </p>
                 <div className="signout-form">
                   <textarea
+                    className="glass-textarea"
                     placeholder="Add notes for today (optional)..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -470,7 +371,7 @@ export default function Dashboard() {
                       } catch (err) {
                         setSignError(err.response?.data?.error || 'Failed to sign out');
                       }
-                    }} className="btn btn-danger btn-lg">
+                    }} className="glass-btn glass-btn-danger glass-btn-lg">
                       Sign Out
                     </button>
                   </div>
@@ -479,14 +380,14 @@ export default function Dashboard() {
             ) : (
               <div className="status-complete">
                 <div className="status-icon-badge status-complete-badge">
-                  <DashboardIcon name="check" size={28} />
+                  <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 28 }} />
                 </div>
                 <h2>Day Complete</h2>
                 {status.record.type && (
-                  <p style={{ fontSize: '0.9rem', color: '#666' }}>Type: {(status.record.type).charAt(0).toUpperCase() + status.record.type.slice(1)}</p>
+                  <p className="glass-detail-row">Type: {(status.record.type).charAt(0).toUpperCase() + status.record.type.slice(1)}</p>
                 )}
-                <p>Signed in: {new Date(status.record.sign_in_time).toLocaleTimeString()}</p>
-                <p>Signed out: {new Date(status.record.sign_out_time).toLocaleTimeString()}</p>
+                <p className="glass-detail-row">Signed in: {new Date(status.record.sign_in_time).toLocaleTimeString()}</p>
+                <p className="glass-detail-row">Signed out: {new Date(status.record.sign_out_time).toLocaleTimeString()}</p>
                 <p className="day-duration">
                   Duration: {Math.round((new Date(status.record.sign_out_time) - new Date(status.record.sign_in_time)) / 3600000)}h
                 </p>
@@ -494,13 +395,13 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="focus-card card-surface card-animate">
-            <div className="focus-card-header">
+          <div className="glass-card fade-in-up delay-1">
+            <div className="glass-card-header">
               <div>
                 <p className="focus-card-label">Your overview</p>
                 <h3>Built for a smooth day</h3>
               </div>
-              <div className="focus-chip">Live</div>
+              <span className="glass-badge glass-badge-success">Live</span>
             </div>
             <div className="focus-metrics">
               <div className="focus-metric">
@@ -517,75 +418,69 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="focus-actions">
-              <button className="btn btn-outline btn-full" onClick={() => navigate('/history')}>View History</button>
-              <button className="btn btn-primary btn-full" onClick={() => navigate('/calendar')}>Open Calendar</button>
+              <button className="glass-btn glass-btn-ghost" style={{ width: '100%' }} onClick={() => navigate('/history')}>View History</button>
+              <button className="glass-btn glass-btn-primary" style={{ width: '100%' }} onClick={() => navigate('/calendar')}>Open Calendar</button>
             </div>
           </div>
         </div>
 
-        <div className="dashboard-section-header">
+        <div className="section-header">
           <div>
             <h3>Key metrics</h3>
             <p>Stay on top of the important numbers from one place.</p>
           </div>
         </div>
 
-        <div className="insights-grid">
+        <div className="glass-grid">
           {insights.map((item) => (
-            <div key={item.title} className={`insight-card insight-${item.tone}`}>
-              <div className="insight-title">{item.title}</div>
-              <div className="insight-value">{item.value}</div>
+            <div key={item.title} className={`glass-stat-card insight-${item.tone}`}>
+              <div className="glass-stat-label">{item.title}</div>
+              <div className="glass-stat-number">{item.value}</div>
               <div className="insight-detail">{item.detail}</div>
             </div>
           ))}
         </div>
 
-        <div className="dashboard-stats-row">
+        <div className="stats-grid">
           {[
-            { key: 'office_days', label: 'Office Days', cls: 'stat-office', icon: '🏢', path: '/history', caption: 'On-site attendance' },
-            { key: 'wfh_days', label: 'WFH Days', cls: 'stat-wfh', icon: '🏠', path: '/history', caption: 'Remote days' },
-            { key: 'absence_days', label: 'Absence Days', cls: 'stat-absent', icon: '❌', path: '/history', caption: 'Days missed' },
-            { key: 'holidays_count', label: 'Public Holidays', cls: 'stat-holiday', icon: '🎉', path: null, caption: 'Holiday calendar' },
-            { key: 'total_work_days', label: 'Work Days', cls: 'stat-total', icon: '📅', path: null, caption: 'Scheduled days' },
+            { key: 'office_days', label: 'Office Days', cls: 'gradient-office', icon: 'building-2', path: '/history', caption: 'On-site attendance' },
+            { key: 'wfh_days', label: 'WFH Days', cls: 'gradient-wfh', icon: 'home', path: '/history', caption: 'Remote days' },
+            { key: 'absence_days', label: 'Absence Days', cls: 'gradient-absent', icon: 'x-circle', path: '/history', caption: 'Days missed' },
+            { key: 'holidays_count', label: 'Public Holidays', cls: 'gradient-holiday', icon: 'calendar-days', path: null, caption: 'Holiday calendar' },
+            { key: 'total_work_days', label: 'Work Days', cls: 'gradient-total', icon: 'calendar', path: null, caption: 'Scheduled days' },
           ].map((s) => (
-            <div key={s.key} className={`mini-stat-card card-surface card-animate ${s.cls} ${s.path ? 'clickable-stat' : ''}`}
-              onClick={() => s.path && navigate(s.path)} title={s.path ? `View ${s.label}` : ''}>
-              <div className="mini-stat-icon">
-                {s.key === 'office_days' && <DashboardIcon name="office" size={18} />}
-                {s.key === 'wfh_days' && <DashboardIcon name="wfh" size={18} />}
-                {s.key === 'absence_days' && <DashboardIcon name="absent" size={18} />}
-                {s.key === 'holidays_count' && <DashboardIcon name="holiday" size={18} />}
-                {s.key === 'total_work_days' && <DashboardIcon name="workday" size={18} />}
-              </div>
-              <div className="mini-stat-number">
+            <div key={s.key} className={`stat-card ${s.cls}`}
+              onClick={() => s.path && navigate(s.path)} title={s.path ? `View ${s.label}` : ''} style={{ cursor: s.path ? 'pointer' : 'default' }}>
+              <span className="iconify stat-card-icon" data-icon={`lucide:${s.icon}`} />
+              <div className="stat-value">
                 {summary ? <AnimatedNumber value={summary[s.key] || 0} /> : 0}
               </div>
-              <div className="mini-stat-label">{s.label}</div>
-              <div className="mini-stat-caption">{s.caption}</div>
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-details">{s.caption}</div>
             </div>
           ))}
         </div>
 
-        <div className="dashboard-charts-row">
-          <div className="chart-card card-surface card-animate">
+        <div className="charts-grid">
+          <div className="chart-card fade-in-up">
             <div className="chart-card-header">
               <div>
                 <h3 className="chart-title">Attendance Rate</h3>
                 <p className="chart-subtitle">Your consistency across the current month</p>
               </div>
-              <span className={`rate-badge ${attendanceRate >= 90 ? 'rate-good' : attendanceRate >= 75 ? 'rate-ok' : 'rate-bad'}`}>
+              <span className={`glass-badge ${attendanceRate >= 90 ? 'glass-badge-success' : attendanceRate >= 75 ? 'glass-badge-warning' : 'glass-badge-danger'}`}>
                 {attendanceRate}%
               </span>
             </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${attendanceRate}%`, background: attendanceRate >= 90 ? '#22c55e' : attendanceRate >= 75 ? '#f59e0b' : '#ef4444' }} />
+            <div className="stat-bar">
+              <div className="stat-bar-fill" style={{ width: `${attendanceRate}%`, background: attendanceRate >= 90 ? '#22c55e' : attendanceRate >= 75 ? '#f59e0b' : '#ef4444' }} />
             </div>
             <p className="progress-label">
               {summary?.total_work_days - summary?.absence_days || 0} present out of {summary?.total_work_days || 0} work days
             </p>
           </div>
 
-          <div className="chart-card card-surface card-animate">
+          <div className="chart-card fade-in-up">
             <div className="chart-card-header">
               <div>
                 <h3 className="chart-title">This Month</h3>
@@ -602,12 +497,12 @@ export default function Dashboard() {
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '0.75rem' }} />
                 </PieChart>
               </ResponsiveContainer>
-            ) : <p className="empty-chart">No data yet</p>}
+            ) : <div className="glass-empty" style={{ padding: '40px 0', textAlign: 'center' }}><p>No data yet</p></div>}
           </div>
         </div>
 
         {barData.length > 1 && (
-          <div className="chart-card chart-card-visual card-surface card-animate">
+          <div className="chart-card fade-in-up">
             <div className="chart-card-header">
               <div>
                 <h3 className="chart-title">Monthly Trend</h3>
@@ -616,9 +511,9 @@ export default function Dashboard() {
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={barData} barGap={4}>
-                <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                <CartesianGrid vertical={false} stroke="#334155" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <Tooltip />
                 <Bar dataKey="office" name="Office" fill={BAR_COLORS.office} radius={[6, 6, 0, 0]} />
                 <Bar dataKey="wfh" name="WFH" fill={BAR_COLORS.wfh} radius={[6, 6, 0, 0]} />
@@ -627,23 +522,19 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="dashboard-section-header">
+        <div className="section-header">
           <div>
             <h3>Quick actions</h3>
             <p>Jump into the most useful tasks in a single click.</p>
           </div>
         </div>
 
-        <div className="quick-actions-row">
+        <div className="glass-grid">
           {quickActions.map((a) => (
-            <div key={a.label} className="quick-action-card card-surface card-animate" style={{ borderLeftColor: a.color }}
+            <div key={a.label} className="glass-card card-hover fade-in-up quick-action-card" style={{ borderLeftColor: a.color }}
               onClick={() => navigate(a.path)}>
               <span className="quick-action-icon">
-                {a.label === 'Leave Requests' && <DashboardIcon name="leave" size={22} />}
-                {a.label === 'Attendance Calendar' && <DashboardIcon name="calendar" size={22} />}
-                {a.label === 'Attendance History' && <DashboardIcon name="history" size={22} />}
-                {a.label === 'Missing Sign-Out' && <DashboardIcon name="alert" size={22} />}
-                {a.label === 'My Profile' && <DashboardIcon name="profile" size={22} />}
+                <span className="iconify" data-icon={`lucide:${a.icon}`} style={{ fontSize: 22, color: 'var(--brand-primary)' }} />
               </span>
               <div className="quick-action-text">
                 <span className="quick-action-label">{a.label}</span>
@@ -654,10 +545,10 @@ export default function Dashboard() {
         </div>
 
         {calendarData && (
-          <div className="calendar-card card-surface card-animate">
-            <div className="calendar-header">
+          <div className="glass-card fade-in-up">
+            <div className="glass-card-header">
               <h3>Attendance Calendar</h3>
-              <span className="period-label">
+              <span className="glass-badge glass-badge-default">
                 Period: {calendarData.date_from} → {calendarData.date_to}
               </span>
             </div>
@@ -667,7 +558,7 @@ export default function Dashboard() {
                 return (
                   <div key={`${m.year}-${m.month}`} className="calendar-month">
                     <h4>{monthNames[m.month - 1]} {m.year}</h4>
-                    <table className="calendar-table">
+                    <table className="glass-calendar-table">
                       <thead>
                         <tr>
                           {dayHeaders.map((h) => <th key={h}>{h}</th>)}
@@ -708,8 +599,8 @@ export default function Dashboard() {
               <span><span className="legend-dot" style={{background:'#3b82f6'}}></span> WFH</span>
               <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Absent</span>
               <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Holiday</span>
-              <span><span className="legend-dot" style={{background:'#e5e7eb'}}></span> Off Day</span>
-              <span><span className="legend-dot" style={{background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span> Missing Out</span>
+              <span><span className="legend-dot" style={{background:'#475569'}}></span> Off Day</span>
+              <span><span className="legend-dot" style={{background: '#450a0a', border: '1px solid #ef4444', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span> Missing Out</span>
               <span><span className="legend-dot" style={{background:'#4f46e5'}}></span> Annual</span>
               <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Sick</span>
               <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Casual</span>
@@ -719,10 +610,10 @@ export default function Dashboard() {
       </div>
 
       {selectedDay && (
-        <div className="modal-overlay" onClick={() => setSelectedDay(null)}>
-          <div className="modal day-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="glass-modal-overlay" onClick={() => setSelectedDay(null)}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
             <h2>{monthNames[(selectedDay.month || parseInt(selectedDay.date?.split('-')[1])) - 1]} {selectedDay.day}, {selectedDay.year || selectedDay.date?.split('-')[0]}</h2>
-            <table className="day-detail-table">
+            <table className="glass-detail-table">
               <tbody>
                 {getDayDetails(selectedDay).map((detail, i) => (
                   <tr key={i}>
@@ -733,17 +624,17 @@ export default function Dashboard() {
               </tbody>
             </table>
             {isMissingSignOut(selectedDay) && (
-              <div style={{ textAlign: 'center', marginTop: 12, padding: '10px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca' }}>
-                <div style={{ fontSize: '0.82rem', color: '#dc2626', fontWeight: 600, marginBottom: 8 }}>
+              <div className="glass-alert glass-alert-warning">
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>
                   Missing Sign-Out on this day
                 </div>
-                <button className="btn btn-sm btn-danger" onClick={() => { setSelectedDay(null); navigate('/requests'); }}>
+                <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setSelectedDay(null); navigate('/requests'); }}>
                   Submit Sign-Out Request
                 </button>
               </div>
             )}
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setSelectedDay(null)}>Close</button>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setSelectedDay(null)}>Close</button>
             </div>
           </div>
         </div>

@@ -26,29 +26,39 @@ export default function MyAssets() {
   useEffect(() => { fetchAssets(); }, []);
 
   const statusBadge = (s) => {
-    const colors = { available: 'tag-green', assigned: 'tag-blue', damaged: 'tag-red', disposed: 'tag-gray' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const colors = { available: 'glass-badge-success', assigned: 'glass-badge-info', damaged: 'glass-badge-danger', disposed: 'glass-badge-default' };
+    return <span className={`glass-badge ${colors[s] || 'glass-badge-default'}`}>{s}</span>;
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1>My Assets</h1>
-          <p className="subtitle">Assets currently assigned to you</p>
+          <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Assets currently assigned to you</p>
         </div>
-        <button className="btn btn-sm btn-outline" onClick={() => setShowHistory(!showHistory)}>
+        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowHistory(!showHistory)}>
+          <span className="iconify" data-icon={showHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></span>
           {showHistory ? 'Hide History' : 'View History'}
         </button>
       </div>
 
       {assets.length === 0 ? (
-        <p className="empty-state">No assets assigned to you.</p>
+        <div className="glass-empty">
+          <span className="iconify" data-icon="lucide:package" style={{ fontSize: 48, opacity: 0.4 }}></span>
+          <h3>No assets assigned</h3>
+          <p>No assets are currently assigned to you.</p>
+        </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="table">
+        <div className="glass-table-wrapper">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>Asset</th>
@@ -64,7 +74,7 @@ export default function MyAssets() {
               {assets.map(a => (
                 <tr key={a.id}>
                   <td><strong>{a.name}</strong></td>
-                  <td><span className="tag tag-blue">{a.category}</span></td>
+                  <td><span className="glass-badge glass-badge-info">{a.category}</span></td>
                   <td>{a.serial_number || '—'}</td>
                   <td>{[a.brand, a.model].filter(Boolean).join(' / ') || '—'}</td>
                   <td>{statusBadge(a.status)}</td>
@@ -78,34 +88,44 @@ export default function MyAssets() {
       )}
 
       {showHistory && (
-        <div style={{ marginTop: 32 }}>
-          <h2>Asset History</h2>
-          {history.length === 0 ? (
-            <p className="empty-state">No history records.</p>
-          ) : (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Asset</th>
-                    <th>Action</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map(h => (
-                    <tr key={h.created_at + h.asset_name}>
-                      <td>{new Date(h.created_at).toLocaleDateString()}</td>
-                      <td>{h.asset_name}</td>
-                      <td><span className={`tag ${h.action === 'assigned' ? 'tag-blue' : h.action === 'returned' ? 'tag-green' : 'tag-gray'}`}>{h.action}</span></td>
-                      <td>{h.description}</td>
+        <div className="glass-card fade-in-up" style={{ marginTop: 32 }}>
+          <div className="glass-card-header">
+            <h3>
+              <span className="iconify" data-icon="lucide:history" style={{ marginRight: 8, fontSize: 18, color: 'var(--text-dim)' }}></span>
+              Asset History
+            </h3>
+          </div>
+          <div className="glass-card-body">
+            {history.length === 0 ? (
+              <div className="glass-empty">
+                <span className="iconify" data-icon="lucide:clock" style={{ fontSize: 32, opacity: 0.3 }}></span>
+                <p>No history records.</p>
+              </div>
+            ) : (
+              <div className="glass-table-wrapper">
+                <table className="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Asset</th>
+                      <th>Action</th>
+                      <th>Description</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {history.map(h => (
+                      <tr key={h.created_at + h.asset_name}>
+                        <td>{new Date(h.created_at).toLocaleDateString()}</td>
+                        <td>{h.asset_name}</td>
+                        <td><span className={`glass-badge ${h.action === 'assigned' ? 'glass-badge-info' : h.action === 'returned' ? 'glass-badge-success' : 'glass-badge-default'}`}>{h.action}</span></td>
+                        <td>{h.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

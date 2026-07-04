@@ -120,13 +120,13 @@ export default function MyProfile() {
   };
 
   const assetStatusBadge = (s) => {
-    const colors = { available: 'tag-green', assigned: 'tag-blue', damaged: 'tag-red', disposed: 'tag-gray' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const colors = { available: 'glass-badge-success', assigned: 'glass-badge-info', damaged: 'glass-badge-danger', disposed: 'glass-badge-default' };
+    return <span className={`glass-badge ${colors[s] || 'glass-badge-default'}`}>{s}</span>;
   };
 
   const contractStatusBadge = (s) => {
-    const colors = { draft: 'tag-amber', signed: 'tag-green', expired: 'tag-gray', renewed: 'tag-blue' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const colors = { draft: 'glass-badge-warning', signed: 'glass-badge-success', expired: 'glass-badge-default', renewed: 'glass-badge-info' };
+    return <span className={`glass-badge ${colors[s] || 'glass-badge-default'}`}>{s}</span>;
   };
 
   const formatDate = (d) => {
@@ -135,109 +135,141 @@ export default function MyProfile() {
     return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!profile) return <div className="error">Could not load profile.</div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
+  if (!profile) return (
+    <div className="glass-alert glass-alert-danger">
+      Could not load profile.
+    </div>
+  );
 
   return (
     <div className="page">
-      <div className="page-header">
+      <div className="glass-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             {profile.profile?.avatar_path
-              ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }} />
-              : <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#999', border: '2px solid #ddd' }}>{profile.name?.[0]?.toUpperCase()}</div>}
+              ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-glass)', boxShadow: '0 0 16px rgba(99,102,241,0.15)' }} />
+              : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-primary)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
             <input type="file" accept="image/*" id="my-avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
-            <label htmlFor="my-avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid #ccc', fontSize: 12, lineHeight: 1 }} title="Upload avatar">{uploadingAvatar ? '...' : '✎'}</label>
+            <label htmlFor="my-avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1, backdropFilter: 'blur(8px)' }} title="Upload avatar">
+              {uploadingAvatar ? <div className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : <span className="iconify" data-icon="lucide:camera" style={{ fontSize: 11 }}></span>}
+            </label>
           </div>
           <h2>My Profile</h2>
-          <button className="btn btn-sm btn-outline" onClick={() => setShowIdCard(true)}>My ID Card</button>
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowIdCard(true)}>
+            <span className="iconify" data-icon="lucide:id-card" style={{ marginRight: 4, fontSize: 13 }}></span>
+            My ID Card
+          </button>
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 16 }}>
-        <button className={`tab ${tab === 'profile' ? 'tab-active' : ''}`} onClick={() => setTab('profile')}>Profile</button>
-        <button className={`tab ${tab === 'assets' ? 'tab-active' : ''}`} onClick={() => setTab('assets')}>
-          Assets {assets.length > 0 && <span className="badge badge-info" style={{ marginLeft: 6 }}>{assets.length}</span>}
+      <div className="glass-tabs" style={{ marginBottom: 16 }}>
+        <button className={`glass-tab ${tab === 'profile' ? 'glass-tab-active' : ''}`} onClick={() => setTab('profile')}>Profile</button>
+        <button className={`glass-tab ${tab === 'assets' ? 'glass-tab-active' : ''}`} onClick={() => setTab('assets')}>
+          Assets {assets.length > 0 && <span className="glass-badge glass-badge-info" style={{ marginLeft: 6 }}>{assets.length}</span>}
         </button>
-        <button className={`tab ${tab === 'contracts' ? 'tab-active' : ''}`} onClick={() => setTab('contracts')}>
-          Contracts {contracts.length > 0 && <span className="badge badge-info" style={{ marginLeft: 6 }}>{contracts.length}</span>}
+        <button className={`glass-tab ${tab === 'contracts' ? 'glass-tab-active' : ''}`} onClick={() => setTab('contracts')}>
+          Contracts {contracts.length > 0 && <span className="glass-badge glass-badge-info" style={{ marginLeft: 6 }}>{contracts.length}</span>}
         </button>
       </div>
 
       {tab === 'profile' && (<>
-      <div className="card">
-        <div className="card-header"><h3>Basic Information</h3></div>
-        <div className="card-body">
-          <table className="table-details">
-            <tbody>
-              <tr><td>Name</td><td>{profile.name}</td></tr>
-              <tr><td>Employee ID</td><td>{profile.employee_id}</td></tr>
-              <tr><td>Email</td><td>{profile.email}</td></tr>
-              <tr><td>Phone</td><td>{profile.phone || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Department</td><td>{profile.department_name || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Position</td><td>{profile.position_title || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Grade</td><td>{profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : <span className="text-muted">—</span>}</td></tr>
-            </tbody>
-          </table>
+      <div className="glass-card fade-in-up">
+        <div className="glass-card-header"><h3>Basic Information</h3></div>
+        <div className="glass-card-body">
+          <div className="glass-detail-grid">
+            <div className="glass-detail-row"><span className="glass-detail-label">Name</span><span className="glass-detail-value">{profile.name}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Employee ID</span><span className="glass-detail-value">{profile.employee_id}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Email</span><span className="glass-detail-value">{profile.email}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Phone</span><span className="glass-detail-value">{profile.phone || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Department</span><span className="glass-detail-value">{profile.department_name || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Position</span><span className="glass-detail-value">{profile.position_title || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Grade</span><span className="glass-detail-value">{profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
+      <div className="glass-card fade-in-up">
+        <div className="glass-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3>Contact & Emergency Info</h3>
-          <button className="btn btn-sm btn-outline" onClick={toggleEdit}>{editing ? 'Cancel' : 'Edit'}</button>
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={toggleEdit}>
+            <span className="iconify" data-icon={editing ? 'lucide:x' : 'lucide:pencil'} style={{ marginRight: 4, fontSize: 13 }}></span>
+            {editing ? 'Cancel' : 'Edit'}
+          </button>
         </div>
-        <div className="card-body">
+        <div className="glass-card-body">
           {!editing ? (
-            <table className="table-details">
-              <tbody>
-                <tr><td>Address</td><td>{profile.profile?.address || <span className="text-muted">—</span>}</td></tr>
-                <tr><td>Emergency Contact</td><td>{profile.profile?.emergency_contact_name || <span className="text-muted">—</span>}</td></tr>
-                <tr><td>Emergency Phone</td><td>{profile.profile?.emergency_contact_phone || <span className="text-muted">—</span>}</td></tr>
-                <tr><td>Emergency Relation</td><td>{profile.profile?.emergency_contact_relation || <span className="text-muted">—</span>}</td></tr>
-              </tbody>
-            </table>
+            <div className="glass-detail-grid">
+              <div className="glass-detail-row"><span className="glass-detail-label">Address</span><span className="glass-detail-value">{profile.profile?.address || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Emergency Contact</span><span className="glass-detail-value">{profile.profile?.emergency_contact_name || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Emergency Phone</span><span className="glass-detail-value">{profile.profile?.emergency_contact_phone || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Emergency Relation</span><span className="glass-detail-value">{profile.profile?.emergency_contact_relation || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+            </div>
           ) : (
             <div>
-              <div className="form-row" style={{ marginBottom: 16 }}>
-                <label>Phone<input className="form-control" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></label>
-                <label>Address<textarea className="form-control" rows={3} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></label>
-                <label>Emergency Contact Name<input className="form-control" value={form.emergency_contact_name} onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })} /></label>
-                <label>Emergency Contact Phone<input className="form-control" value={form.emergency_contact_phone} onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })} /></label>
-                <label>Emergency Contact Relation<input className="form-control" value={form.emergency_contact_relation} onChange={e => setForm({ ...form, emergency_contact_relation: e.target.value })} /></label>
+              <div className="glass-grid" style={{ marginBottom: 16 }}>
+                <div className="glass-form-group">
+                  <label className="glass-label">Phone</label>
+                  <input className="glass-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div className="glass-form-group">
+                  <label className="glass-label">Address</label>
+                  <textarea className="glass-textarea" rows={3} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+                </div>
+                <div className="glass-form-group">
+                  <label className="glass-label">Emergency Contact Name</label>
+                  <input className="glass-input" value={form.emergency_contact_name} onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })} />
+                </div>
+                <div className="glass-form-group">
+                  <label className="glass-label">Emergency Contact Phone</label>
+                  <input className="glass-input" value={form.emergency_contact_phone} onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })} />
+                </div>
+                <div className="glass-form-group">
+                  <label className="glass-label">Emergency Contact Relation</label>
+                  <input className="glass-input" value={form.emergency_contact_relation} onChange={e => setForm({ ...form, emergency_contact_relation: e.target.value })} />
+                </div>
               </div>
-              <button className="btn btn-primary" onClick={handleSave}>Save</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleSave}>
+                <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4, fontSize: 14 }}></span>
+                Save
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>Medical Insurance</h3></div>
-        <div className="card-body">
-          <table className="table-details">
-            <tbody>
-              <tr><td>Card Number</td><td>{profile.profile?.medical_insurance_number || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Card Image</td><td>
-                {profile.profile?.insurance_card_image
-                  ? <img src={`/${profile.profile.insurance_card_image}`} alt="Insurance Card" style={{ maxWidth: 300, maxHeight: 200, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }} />
-                  : <span className="text-muted">No image uploaded</span>}
-              </td></tr>
-            </tbody>
-          </table>
+      <div className="glass-card fade-in-up">
+        <div className="glass-card-header"><h3>Medical Insurance</h3></div>
+        <div className="glass-card-body">
+          <div className="glass-detail-grid">
+            <div className="glass-detail-row"><span className="glass-detail-label">Card Number</span><span className="glass-detail-value">{profile.profile?.medical_insurance_number || <span style={{ color: 'var(--text-faint)' }}>—</span>}</span></div>
+            <div className="glass-detail-row"><span className="glass-detail-label">Card Image</span><span className="glass-detail-value">
+              {profile.profile?.insurance_card_image
+                ? <img src={`/${profile.profile.insurance_card_image}`} alt="Insurance Card" style={{ maxWidth: 300, maxHeight: 200, objectFit: 'contain', border: '1px solid var(--border-glass)', borderRadius: 8 }} />
+                : <span style={{ color: 'var(--text-faint)' }}>No image uploaded</span>}
+            </span></div>
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>Medical Family Members</h3></div>
-        <div className="card-body">
-          {(!profile.medicalFamily || profile.medicalFamily.length === 0) && <p className="text-muted">No family members added.</p>}
+      <div className="glass-card fade-in-up">
+        <div className="glass-card-header"><h3>Medical Family Members</h3></div>
+        <div className="glass-card-body">
+          {(!profile.medicalFamily || profile.medicalFamily.length === 0) && <p style={{ color: 'var(--text-dim)' }}>No family members added.</p>}
           {(profile.medicalFamily || []).map(m => (
-            <div key={m.id} className="list-item" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div key={m.id} className="glass-detail-row" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-dim)', fontSize: 14, fontWeight: 600 }}>
+                {m.name?.[0]?.toUpperCase()}
+              </div>
               <div style={{ flex: 1 }}>
-                <div><strong>{m.name}</strong> {m.relation && <span className="badge badge-info">{m.relation}</span>}</div>
-                <div className="text-muted">{m.medical_insurance_number || 'No card number'}</div>
-                {m.insurance_card_image && <img src={`/${m.insurance_card_image}`} alt="Card" style={{ maxWidth: 200, maxHeight: 100, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4, marginTop: 4 }} />}
+                <div><strong>{m.name}</strong> {m.relation && <span className="glass-badge glass-badge-info">{m.relation}</span>}</div>
+                <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{m.medical_insurance_number || 'No card number'}</div>
+                {m.insurance_card_image && <img src={`/${m.insurance_card_image}`} alt="Card" style={{ maxWidth: 200, maxHeight: 100, objectFit: 'contain', border: '1px solid var(--border-glass)', borderRadius: 8, marginTop: 8 }} />}
               </div>
             </div>
           ))}
@@ -246,34 +278,49 @@ export default function MyProfile() {
 
       <ProfileTimeline profile={profile} />
 
-      <div className="card" style={{ padding: 24 }}>
-        <h3>Change Password</h3>
-        {pwMessage && <div className="alert alert-success">{pwMessage}</div>}
-        {pwError && <div className="alert alert-error">{pwError}</div>}
+      <div className="glass-card fade-in-up" style={{ padding: 24 }}>
+        <h3 style={{ marginBottom: 16 }}>Change Password</h3>
+        {pwMessage && <div className="glass-alert glass-alert-success" style={{ marginBottom: 16 }}>{pwMessage}</div>}
+        {pwError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}>{pwError}</div>}
         <form onSubmit={handleChangePassword}>
-          <div className="form-row" style={{ marginBottom: 16 }}>
-            <label>Current Password<input type="password" className="form-control" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required style={{ width: '100%' }} /></label>
-            <label>New Password<input type="password" className="form-control" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} style={{ width: '100%' }} /></label>
+          <div className="glass-grid" style={{ marginBottom: 16 }}>
+            <div className="glass-form-group">
+              <label className="glass-label">Current Password</label>
+              <input type="password" className="glass-input" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
+            </div>
+            <div className="glass-form-group">
+              <label className="glass-label">New Password</label>
+              <input type="password" className="glass-input" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} />
+            </div>
           </div>
-          <button className="btn btn-primary" disabled={pwSaving}>{pwSaving ? 'Saving...' : 'Change Password'}</button>
+          <button className="glass-btn glass-btn-primary" disabled={pwSaving}>
+            {pwSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, marginRight: 6, display: 'inline-block', verticalAlign: 'middle' }} /><span>Saving...</span></> : <>
+              <span className="iconify" data-icon="lucide:key-round" style={{ marginRight: 4, fontSize: 14 }}></span>
+              Change Password
+            </>}
+          </button>
         </form>
       </div>
       </>)}
 
       {tab === 'assets' && (
-        <div className="card">
-          <div className="card-header">
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3>My Assets</h3>
-            <button className="btn btn-sm btn-outline" onClick={() => setShowAssetHistory(!showAssetHistory)}>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowAssetHistory(!showAssetHistory)}>
+              <span className="iconify" data-icon={showAssetHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></span>
               {showAssetHistory ? 'Hide History' : 'View History'}
             </button>
           </div>
-          <div className="card-body">
+          <div className="glass-card-body">
             {assets.length === 0 ? (
-              <p className="empty-state">No assets assigned to you.</p>
+              <div className="glass-empty">
+                <span className="iconify" data-icon="lucide:package" style={{ fontSize: 40, opacity: 0.4 }}></span>
+                <p>No assets assigned to you.</p>
+              </div>
             ) : (
-              <div className="table-wrapper">
-                <table className="table">
+              <div className="glass-table-wrapper">
+                <table className="glass-table">
                   <thead>
                     <tr>
                       <th>Asset</th>
@@ -289,7 +336,7 @@ export default function MyProfile() {
                     {assets.map(a => (
                       <tr key={a.id}>
                         <td><strong>{a.name}</strong></td>
-                        <td><span className="tag tag-blue">{a.category}</span></td>
+                        <td><span className="glass-badge glass-badge-info">{a.category}</span></td>
                         <td>{a.serial_number || '—'}</td>
                         <td>{[a.brand, a.model].filter(Boolean).join(' / ') || '—'}</td>
                         <td>{assetStatusBadge(a.status)}</td>
@@ -304,12 +351,15 @@ export default function MyProfile() {
 
             {showAssetHistory && (
               <div style={{ marginTop: 24 }}>
-                <h4>Asset History</h4>
+                <h4 style={{ marginBottom: 12 }}>Asset History</h4>
                 {assetHistory.length === 0 ? (
-                  <p className="empty-state">No history records.</p>
+                  <div className="glass-empty">
+                    <span className="iconify" data-icon="lucide:history" style={{ fontSize: 32, opacity: 0.3 }}></span>
+                    <p>No history records.</p>
+                  </div>
                 ) : (
-                  <div className="table-wrapper">
-                    <table className="table">
+                  <div className="glass-table-wrapper">
+                    <table className="glass-table">
                       <thead>
                         <tr>
                           <th>Date</th>
@@ -323,7 +373,7 @@ export default function MyProfile() {
                           <tr key={h.created_at + h.asset_name}>
                             <td>{formatDate(h.created_at)}</td>
                             <td>{h.asset_name}</td>
-                            <td><span className={`tag ${h.action === 'assigned' ? 'tag-blue' : h.action === 'returned' ? 'tag-green' : 'tag-gray'}`}>{h.action}</span></td>
+                            <td><span className={`glass-badge ${h.action === 'assigned' ? 'glass-badge-info' : h.action === 'returned' ? 'glass-badge-success' : 'glass-badge-default'}`}>{h.action}</span></td>
                             <td>{h.description}</td>
                           </tr>
                         ))}
@@ -338,14 +388,17 @@ export default function MyProfile() {
       )}
 
       {tab === 'contracts' && (
-        <div className="card">
-          <div className="card-header"><h3>My Contracts</h3></div>
-          <div className="card-body">
+        <div className="glass-card fade-in-up">
+          <div className="glass-card-header"><h3>My Contracts</h3></div>
+          <div className="glass-card-body">
             {contracts.length === 0 ? (
-              <p className="empty-state">No contracts available.</p>
+              <div className="glass-empty">
+                <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: 40, opacity: 0.4 }}></span>
+                <p>No contracts available.</p>
+              </div>
             ) : (
-              <div className="table-wrapper">
-                <table className="table">
+              <div className="glass-table-wrapper">
+                <table className="glass-table">
                   <thead>
                     <tr>
                       <th>Template</th>
@@ -364,22 +417,30 @@ export default function MyProfile() {
                         <td>{formatDate(c.end_date)}</td>
                         <td>{contractStatusBadge(c.status)}</td>
                         <td>
-                          {c.signed_by_employee ? '✅ Employee' : ''}
+                          {c.signed_by_employee ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                          {c.signed_by_employee ? 'Employee' : ''}
                           {c.signed_by_employee && c.signed_by_company ? ' & ' : ''}
-                          {c.signed_by_company ? '✅ Company' : ''}
+                          {c.signed_by_company ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                          {c.signed_by_company ? 'Company' : ''}
                           {!c.signed_by_employee && !c.signed_by_company ? '—' : ''}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn btn-sm btn-outline" onClick={() => openContractContent(c.id)}>View</button>
-                            <button className="btn btn-sm btn-primary" onClick={async () => {
+                            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openContractContent(c.id)}>
+                              <span className="iconify" data-icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></span>
+                              View
+                            </button>
+                            <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={async () => {
                               try {
                                 const res = await api.get(`/personnel/my-contracts/${c.id}/pdf`, { responseType: 'blob' });
                                 const url = window.URL.createObjectURL(new Blob([res.data]));
                                 const a = document.createElement('a'); a.href = url; a.download = `contract-${c.id}.pdf`;
                                 document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
                               } catch (e) { console.error('Failed to download PDF:', e); }
-                            }}>PDF</button>
+                            }}>
+                              <span className="iconify" data-icon="lucide:download" style={{ marginRight: 4, fontSize: 12 }}></span>
+                              PDF
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -395,13 +456,19 @@ export default function MyProfile() {
       {showIdCard && profile && <IDCardModal employeeId={profile.id} onClose={() => setShowIdCard(false)} />}
 
       {viewContractContent && (
-        <div className="modal-overlay" onClick={() => setViewContractContent(null)}>
-          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3>Contract</h3>
-            <div style={{ border: '1px solid #e2e8f0', padding: 24, borderRadius: 8, background: '#fff' }} dangerouslySetInnerHTML={{ __html: viewContractContent }} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="btn btn-outline" onClick={() => { const w = window.open(''); w.document.write(viewContractContent); w.print(); }}>Print</button>
-              <button className="btn btn-outline" onClick={() => setViewContractContent(null)}>Close</button>
+        <div className="glass-modal-overlay" onClick={() => setViewContractContent(null)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ marginBottom: 16 }}>Contract</h3>
+            <div className="glass-card" dangerouslySetInnerHTML={{ __html: viewContractContent }} />
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(viewContractContent); w.print(); }}>
+                <span className="iconify" data-icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></span>
+                Print
+              </button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => setViewContractContent(null)}>
+                <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4, fontSize: 14 }}></span>
+                Close
+              </button>
             </div>
           </div>
         </div>

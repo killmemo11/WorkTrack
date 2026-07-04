@@ -11,6 +11,7 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const inputs = useRef([]);
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -53,44 +54,87 @@ export default function ResetPassword() {
 
   if (done) {
     return (
-      <div className="login-page">
-        <div className="login-card">
-          <div className="login-icon">✅</div>
-          <h1>Password Reset!</h1>
-          <p>You can now login with your new password.</p>
-          <Link to="/login" className="btn btn-primary" style={{ marginTop: 20, display: 'inline-block' }}>Go to Login</Link>
+      <div className="auth-page">
+        <div className="auth-bg">
+          <div className="auth-bg-orb orb-1" />
+          <div className="auth-bg-orb orb-2" />
+          <div className="auth-bg-grid" />
+        </div>
+        <div className="auth-container fade-in-up" style={{ textAlign: 'center' }}>
+          <div style={{ marginBottom: 20 }}>
+            <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 56, color: 'var(--color-success)' }} />
+          </div>
+          <h1 style={{ marginBottom: 8 }}>Password Reset!</h1>
+          <p style={{ color: 'var(--text-dim)', marginBottom: 24 }}>You can now login with your new password.</p>
+          <Link to="/login" className="glass-btn glass-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <span className="iconify" data-icon="lucide:log-in" /> Go to Login
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-icon">🔑</div>
-        <h1>Reset Password</h1>
-        <p>Enter the 6-digit code and your new password</p>
-        {error && <div className="alert alert-error">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="code-inputs">
+    <div className="auth-page">
+      <div className="auth-bg">
+        <div className="auth-bg-orb orb-1" />
+        <div className="auth-bg-orb orb-2" />
+        <div className="auth-bg-orb orb-3" />
+        <div className="auth-bg-grid" />
+      </div>
+
+      <div className="auth-container fade-in-up">
+        <div className="auth-brand">
+          <span className="iconify" data-icon="lucide:key-round" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
+          <h1>Reset Password</h1>
+          <p>Enter the 6-digit code and your new password</p>
+        </div>
+
+        {error && (
+          <div className="glass-alert glass-alert-danger">
+            <span className="iconify" data-icon="lucide:alert-triangle" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
             {code.map((digit, i) => (
               <input key={i} ref={(el) => (inputs.current[i] = el)} type="text" maxLength={1}
                 value={digit} onChange={(e) => handleCodeChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)} className="code-digit" autoFocus={i === 0} />
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                className="glass-code-input"
+                autoFocus={i === 0} />
             ))}
           </div>
-          <input type="password" placeholder="New password (min 6 chars)" value={password}
-            onChange={(e) => setPassword(e.target.value)} className="form-control"
-            style={{ width: '100%', marginBottom: 12, marginTop: 16 }} required />
-          <input type="password" placeholder="Confirm new password" value={confirm}
-            onChange={(e) => setConfirm(e.target.value)} className="form-control"
-            style={{ width: '100%', marginBottom: 20 }} required />
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Resetting...' : 'Reset Password'}
+
+          <div className="glass-form-group">
+            <label className="glass-label"><span className="iconify" data-icon="lucide:lock" style={{ marginRight: 6, fontSize: 14 }} />New Password</label>
+            <div style={{ position: 'relative' }}>
+              <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="New password (min 6 chars)" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%' }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
+                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+              </button>
+            </div>
+          </div>
+
+          <div className="glass-form-group">
+            <label className="glass-label"><span className="iconify" data-icon="lucide:shield-check" style={{ marginRight: 6, fontSize: 14 }} />Confirm New Password</label>
+            <div style={{ position: 'relative' }}>
+              <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required style={{ width: '100%' }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
+                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg" disabled={loading} style={{ width: '100%' }}>
+            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Resetting...</> : <>Reset Password <span className="iconify" data-icon="lucide:key-round" style={{ marginLeft: 8 }} /></>}
           </button>
         </form>
-        <p className="auth-switch">
-          <Link to="/login">Back to login</Link>
+
+        <p className="auth-footer" style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+          Back to <Link to="/login" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>Login</Link>
         </p>
       </div>
     </div>

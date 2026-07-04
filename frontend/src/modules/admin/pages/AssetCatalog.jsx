@@ -174,44 +174,50 @@ export default function AssetCatalog() {
   };
 
   const statusBadge = (s) => {
-    const colors = { available: 'tag-green', assigned: 'tag-blue', damaged: 'tag-red', disposed: 'tag-gray' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const map = { available: 'success', assigned: 'info', damaged: 'danger', disposed: 'default' };
+    return <span className={`glass-badge glass-badge-${map[s] || 'default'}`}>{s}</span>;
   };
 
-  if (loading && data.assets.length === 0) return <HRLayout><div className="loading">Loading...</div></HRLayout>;
+  if (loading && data.assets.length === 0) return <HRLayout><div className="glass-loading"><div className="spinner"/><span>Loading...</span></div></HRLayout>;
 
   return (
     <HRLayout>
       <div className="page">
-        <div className="page-header">
+        <div className="glass-page-header">
           <div>
             <h1>Asset Catalog</h1>
-            <p className="subtitle">Track and manage company assets (laptops, phones, badges, etc.)</p>
+            <p className="subtitle" style={{color:'var(--text-dim)'}}>Track and manage company assets (laptops, phones, badges, etc.)</p>
           </div>
-          <button className="btn btn-primary" onClick={openCreate}>+ Add Asset</button>
+          <button className="glass-btn glass-btn-primary" onClick={openCreate}><span className="iconify" data-icon="lucide:package-plus"/> Add Asset</button>
         </div>
 
-        {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+        {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
-        <div className="filters" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <select className="form-control" style={{ width: 140 }} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-            <option value="">All Categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="form-control" style={{ width: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="">All Statuses</option>
-            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input className="form-control" style={{ width: 200 }} placeholder="Search name, serial, brand..." value={search}
-            onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchAssets(1)} />
-          {search && <button className="btn btn-sm btn-outline" onClick={() => { setSearch(''); fetchAssets(1); }}>Clear</button>}
+        <div className="filter-bar">
+          <div className="glass-form-group" style={{marginBottom:0}}>
+            <select className="glass-select" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+              <option value="">All Categories</option>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="glass-form-group" style={{marginBottom:0}}>
+            <select className="glass-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">All Statuses</option>
+              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="glass-form-group" style={{marginBottom:0}}>
+            <input className="glass-input" placeholder="Search name, serial, brand..." value={search}
+              onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchAssets(1)} />
+          </div>
+          {search && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => { setSearch(''); fetchAssets(1); }}>Clear</button>}
         </div>
 
-        <div className="table-wrapper">
+        <div className="glass-table-wrapper fade-in-up">
           {data.assets.length === 0 ? (
-            <p className="empty-state">No assets found. Click "+ Add Asset" to get started.</p>
+            <div className="glass-empty"><span className="iconify" data-icon="lucide:package-open"/><p>No assets found. Click "Add Asset" to get started.</p></div>
           ) : (
-            <table className="table">
+            <table className="glass-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -227,7 +233,7 @@ export default function AssetCatalog() {
                 {data.assets.map(asset => (
                   <tr key={asset.id}>
                     <td><strong>{asset.name}</strong></td>
-                    <td><span className="tag tag-blue">{asset.category}</span></td>
+                    <td><span className="glass-badge glass-badge-info">{asset.category}</span></td>
                     <td>{asset.serial_number || '—'}</td>
                     <td>{[asset.brand, asset.model].filter(Boolean).join(' / ') || '—'}</td>
                     <td>{statusBadge(asset.status)}</td>
@@ -236,16 +242,16 @@ export default function AssetCatalog() {
                     ) : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        <button className="btn btn-sm btn-outline" onClick={() => openEdit(asset)}>Edit</button>
-                        {asset.status === 'available' && <button className="btn btn-sm btn-primary" onClick={() => openAssign(asset)}>Assign</button>}
-                        {asset.status === 'assigned' && <button className="btn btn-sm btn-outline" onClick={() => openReturn(asset)}>Return</button>}
-                        {asset.status === 'assigned' && <button className="btn btn-sm btn-outline" onClick={() => handleMarkDamaged(asset)}>Damaged</button>}
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(asset)}><span className="iconify" data-icon="lucide:pencil"/></button>
+                        {asset.status === 'available' && <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => openAssign(asset)}><span className="iconify" data-icon="lucide:user-plus"/> Assign</button>}
+                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openReturn(asset)}><span className="iconify" data-icon="lucide:undo-2"/> Return</button>}
+                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => handleMarkDamaged(asset)}><span className="iconify" data-icon="lucide:alert-triangle"/> Damaged</button>}
                         {(asset.status === 'available' || asset.status === 'damaged') && !asset.assigned_to_id &&
-                          <button className="btn btn-sm btn-outline" onClick={() => {
+                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => {
                             if (asset.status === 'damaged') handleDispose(asset);
                             else setConfirm({ action: () => handleDelete(asset), label: `Delete "${asset.name}"?` });
-                          }}>{asset.status === 'damaged' ? 'Dispose' : 'Delete'}</button>}
-                        <button className="btn btn-sm btn-outline" onClick={() => openHistory(asset)}>History</button>
+                          }}><span className="iconify" data-icon={asset.status === 'damaged' ? 'lucide:trash-2' : 'lucide:trash-2'}/> {asset.status === 'damaged' ? 'Dispose' : 'Delete'}</button>}
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openHistory(asset)}><span className="iconify" data-icon="lucide:history"/></button>
                       </div>
                     </td>
                   </tr>
@@ -257,117 +263,121 @@ export default function AssetCatalog() {
         </div>
 
         {showForm && (
-          <div className="modal-overlay" onClick={() => setShowForm(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+            <div className="glass-modal" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>{editId ? 'Edit Asset' : 'Add Asset'}</h3>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Name *</label>
-                <input className="form-control" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                <input className="glass-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
               </div>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
                   <label>Category</label>
-                  <select className="form-control" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                  <select className="glass-select" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Serial Number</label>
-                  <input className="form-control" value={form.serial_number} onChange={e => setForm({...form, serial_number: e.target.value})} />
+                  <input className="glass-input" value={form.serial_number} onChange={e => setForm({...form, serial_number: e.target.value})} />
                 </div>
               </div>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
                   <label>Brand</label>
-                  <input className="form-control" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} />
+                  <input className="glass-input" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} />
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Model</label>
-                  <input className="form-control" value={form.model} onChange={e => setForm({...form, model: e.target.value})} />
+                  <input className="glass-input" value={form.model} onChange={e => setForm({...form, model: e.target.value})} />
                 </div>
               </div>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group">
                   <label>Purchase Date</label>
-                  <input type="date" className="form-control" value={form.purchase_date} onChange={e => setForm({...form, purchase_date: e.target.value})} />
+                  <input type="date" className="glass-input" value={form.purchase_date} onChange={e => setForm({...form, purchase_date: e.target.value})} />
                 </div>
-                <div className="form-group">
+                <div className="glass-form-group">
                   <label>Purchase Price</label>
-                  <input type="number" step="0.01" className="form-control" value={form.purchase_price} onChange={e => setForm({...form, purchase_price: e.target.value})} />
+                  <input type="number" step="0.01" className="glass-input" value={form.purchase_price} onChange={e => setForm({...form, purchase_price: e.target.value})} />
                 </div>
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Notes</label>
-                <textarea className="form-control" rows="3" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                <textarea className="glass-textarea" rows="3" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleSave}>{editId ? 'Update' : 'Create'}</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleSave}>{editId ? 'Update' : 'Create'}</button>
               </div>
             </div>
           </div>
         )}
 
         {assignModal && (
-          <div className="modal-overlay" onClick={() => setAssignModal(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setAssignModal(null)}>
+            <div className="glass-modal" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setAssignModal(null)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>Assign Asset: {assignModal.name}</h3>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Employee *</label>
-                <select className="form-control" value={assignForm.employee_id} onChange={e => setAssignForm({...assignForm, employee_id: e.target.value})}>
+                <select className="glass-select" value={assignForm.employee_id} onChange={e => setAssignForm({...assignForm, employee_id: e.target.value})}>
                   <option value="">Select employee...</option>
                   {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} ({emp.employee_id})</option>)}
                 </select>
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Expected Return Date</label>
-                <input type="date" className="form-control" value={assignForm.expected_return_date} onChange={e => setAssignForm({...assignForm, expected_return_date: e.target.value})} />
+                <input type="date" className="glass-input" value={assignForm.expected_return_date} onChange={e => setAssignForm({...assignForm, expected_return_date: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Condition at Assign</label>
-                <textarea className="form-control" rows="2" value={assignForm.condition_at_assign} onChange={e => setAssignForm({...assignForm, condition_at_assign: e.target.value})} />
+                <textarea className="glass-textarea" rows="2" value={assignForm.condition_at_assign} onChange={e => setAssignForm({...assignForm, condition_at_assign: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Notes</label>
-                <textarea className="form-control" rows="2" value={assignForm.notes} onChange={e => setAssignForm({...assignForm, notes: e.target.value})} />
+                <textarea className="glass-textarea" rows="2" value={assignForm.notes} onChange={e => setAssignForm({...assignForm, notes: e.target.value})} />
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setAssignModal(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleAssign}>Assign</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setAssignModal(null)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleAssign}>Assign</button>
               </div>
             </div>
           </div>
         )}
 
         {returnModal && (
-          <div className="modal-overlay" onClick={() => setReturnModal(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setReturnModal(null)}>
+            <div className="glass-modal" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setReturnModal(null)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>Return Asset: {returnModal.name}</h3>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Condition on Return</label>
-                <textarea className="form-control" rows="2" value={returnForm.condition_on_return} onChange={e => setReturnForm({...returnForm, condition_on_return: e.target.value})} />
+                <textarea className="glass-textarea" rows="2" value={returnForm.condition_on_return} onChange={e => setReturnForm({...returnForm, condition_on_return: e.target.value})} />
               </div>
-              <div className="form-group">
+              <div className="glass-form-group">
                 <label>Notes</label>
-                <textarea className="form-control" rows="2" value={returnForm.return_notes} onChange={e => setReturnForm({...returnForm, return_notes: e.target.value})} />
+                <textarea className="glass-textarea" rows="2" value={returnForm.return_notes} onChange={e => setReturnForm({...returnForm, return_notes: e.target.value})} />
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setReturnModal(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleReturn}>Confirm Return</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setReturnModal(null)}>Cancel</button>
+                <button className="glass-btn glass-btn-primary" onClick={handleReturn}>Confirm Return</button>
               </div>
             </div>
           </div>
         )}
 
         {historyAsset && (
-          <div className="modal-overlay" onClick={() => setHistoryAsset(null)}>
-            <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+          <div className="glass-modal-overlay" onClick={() => setHistoryAsset(null)}>
+            <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()}>
+              <button className="glass-modal-close" onClick={() => setHistoryAsset(null)}><span className="iconify" data-icon="lucide:x"/></button>
               <h3>Asset History: {historyAsset.name}</h3>
               {historyData.length === 0 ? (
-                <p className="empty-state">No history records.</p>
+                <div className="glass-empty"><span className="iconify" data-icon="lucide:history"/><p>No history records.</p></div>
               ) : (
                 <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                  <table className="table">
+                  <table className="glass-table">
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -381,7 +391,7 @@ export default function AssetCatalog() {
                       {historyData.map(h => (
                         <tr key={h.id}>
                           <td>{new Date(h.created_at).toLocaleDateString()}</td>
-                          <td><span className={`tag ${h.action === 'assigned' ? 'tag-blue' : h.action === 'returned' ? 'tag-green' : h.action === 'damaged' ? 'tag-red' : 'tag-gray'}`}>{h.action}</span></td>
+                          <td><span className={`glass-badge glass-badge-${h.action === 'assigned' ? 'info' : h.action === 'returned' ? 'success' : h.action === 'damaged' ? 'danger' : 'default'}`}>{h.action}</span></td>
                           <td>{h.employee_name || '—'}</td>
                           <td>{h.performed_by_name || '—'}</td>
                           <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.description}</td>
@@ -391,8 +401,8 @@ export default function AssetCatalog() {
                   </table>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                <button className="btn btn-outline" onClick={() => setHistoryAsset(null)}>Close</button>
+              <div className="glass-modal-footer">
+                <button className="glass-btn glass-btn-ghost" onClick={() => setHistoryAsset(null)}>Close</button>
               </div>
             </div>
           </div>

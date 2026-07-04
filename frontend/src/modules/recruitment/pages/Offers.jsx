@@ -44,18 +44,23 @@ export default function Offers() {
     setActioning(null);
   };
 
-  const statusStyles = {
-    sent: { background: '#fef3c7', color: '#92400e' },
-    accepted: { background: '#d1fae5', color: '#065f46' },
-    rejected: { background: '#fee2e2', color: '#991b1b' },
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'sent': return 'glass-badge glass-badge-warning';
+      case 'accepted': return 'glass-badge glass-badge-success';
+      case 'rejected': return 'glass-badge glass-badge-danger';
+      default: return 'glass-badge glass-badge-neutral';
+    }
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <div className="admin-page-header">
-        <h2 style={{ margin: 0 }}>Offer Management</h2>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}>
+    <div className="page fade-in-up" style={{ padding: 24 }}>
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="iconify" data-icon="lucide:gift" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          Offer Management
+        </h1>
+        <select className="glass-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All Statuses</option>
           <option value="sent">Sent</option>
           <option value="accepted">Accepted</option>
@@ -63,67 +68,71 @@ export default function Offers() {
         </select>
       </div>
 
-      <p style={{ color: '#6b7280', marginTop: -8, marginBottom: 16, fontSize: '0.9rem' }}>
+      <p style={{ color: 'var(--text-dim)', marginTop: -8, marginBottom: 16, fontSize: '0.9rem' }}>
         {total} total offer{total !== 1 ? 's' : ''}
       </p>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>Loading...</div>
+        <div className="glass-loading">
+          <div className="spinner"></div>
+          <span>Loading...</span>
+        </div>
       ) : offers.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-          No offers found
+        <div className="glass-empty">
+          <span className="iconify" data-icon="lucide:inbox"></span>
+          <h3>No offers found</h3>
         </div>
       ) : (
-        <div className="table-wrapper" style={{ overflowX: 'auto' }}>
-          <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="glass-table-wrapper">
+          <table className="glass-table">
             <thead>
-              <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
-                <th style={thStyle}>Candidate</th>
-                <th style={thStyle}>Job Title</th>
-                <th style={thStyle}>Department</th>
-                <th style={thStyle}>Salary</th>
-                <th style={thStyle}>Start Date</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Created</th>
-                <th style={thStyle}>Action</th>
+              <tr>
+                <th>Candidate</th>
+                <th>Job Title</th>
+                <th>Department</th>
+                <th>Salary</th>
+                <th>Start Date</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {offers.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={tdStyle}>
-                    <span style={{ cursor: 'pointer' }}
+                <tr key={o.id}>
+                  <td>
+                    <span style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--brand-primary)' }}
                       onClick={() => navigate(`/hr/recruitment/candidates/${o.candidate_id}`)}>
                       {o.candidate_name}
                     </span>
                   </td>
-                  <td style={tdStyle}>{o.job_title}</td>
-                  <td style={tdStyle}>{o.department || '—'}</td>
-                  <td style={tdStyle}>{o.salary ? `EGP ${Number(o.salary).toLocaleString()}` : '—'}</td>
-                  <td style={tdStyle}>{o.start_date ? new Date(o.start_date).toLocaleDateString() : '—'}</td>
-                  <td style={tdStyle}>
-                    <span style={{ ...statusStyles[o.status] || {}, padding: '2px 10px', borderRadius: 12, fontSize: '0.8rem' }}>
-                      {o.status}
-                    </span>
+                  <td>{o.job_title}</td>
+                  <td>{o.department || '—'}</td>
+                  <td>
+                    {o.salary ? (
+                      <span className="glass-badge glass-badge-success">EGP {Number(o.salary).toLocaleString()}</span>
+                    ) : '—'}
                   </td>
-                  <td style={tdStyle}>{new Date(o.created_at).toLocaleDateString()}</td>
-                  <td style={tdStyle}>
+                  <td>{o.start_date ? new Date(o.start_date).toLocaleDateString() : '—'}</td>
+                  <td><span className={getStatusBadge(o.status)}>{o.status}</span></td>
+                  <td style={{ color: 'var(--text-dim)' }}>{new Date(o.created_at).toLocaleDateString()}</td>
+                  <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {o.status === 'sent' && (
                         <>
-                          <button className="btn btn-sm btn-success"
+                          <button className="glass-btn glass-btn-xs glass-btn-success"
                             disabled={actioning === o.id}
                             onClick={() => handleStatusChange(o.id, 'accepted')}>
-                            {actioning === o.id ? '...' : 'Accept'}
+                            {actioning === o.id ? '...' : <><span className="iconify" data-icon="lucide:check" style={{ marginRight: 2 }}></span> Accept</>}
                           </button>
-                          <button className="btn btn-sm btn-danger"
+                          <button className="glass-btn glass-btn-xs glass-btn-danger"
                             disabled={actioning === o.id}
                             onClick={() => handleStatusChange(o.id, 'rejected')}>
-                            {actioning === o.id ? '...' : 'Reject'}
+                            {actioning === o.id ? '...' : <><span className="iconify" data-icon="lucide:x" style={{ marginRight: 2 }}></span> Reject</>}
                           </button>
                         </>
                       )}
-                      {o.status !== 'sent' && <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>—</span>}
+                      {o.status !== 'sent' && <span style={{ color: 'var(--text-faint)', fontSize: '0.85rem' }}>—</span>}
                     </div>
                   </td>
                 </tr>
@@ -135,14 +144,15 @@ export default function Offers() {
 
       {pages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-          <button disabled={page <= 1} onClick={() => fetchOffers(page - 1)} className="btn btn-outline btn-sm">Prev</button>
-          <span style={{ padding: '6px 12px' }}>Page {page} of {pages}</span>
-          <button disabled={page >= pages} onClick={() => fetchOffers(page + 1)} className="btn btn-outline btn-sm">Next</button>
+          <button disabled={page <= 1} onClick={() => fetchOffers(page - 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
+            <span className="iconify" data-icon="lucide:chevron-left"></span> Prev
+          </button>
+          <span className="glass-badge glass-badge-neutral" style={{ padding: '6px 12px' }}>Page {page} of {pages}</span>
+          <button disabled={page >= pages} onClick={() => fetchOffers(page + 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
+            Next <span className="iconify" data-icon="lucide:chevron-right"></span>
+          </button>
         </div>
       )}
     </div>
   );
 }
-
-const thStyle = { padding: '10px 12px', fontSize: '0.85rem', fontWeight: 600, color: '#374151', borderBottom: '2px solid #e5e7eb' };
-const tdStyle = { padding: '10px 12px', fontSize: '0.9rem', color: '#374151' };

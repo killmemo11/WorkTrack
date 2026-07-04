@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 
 function ProgressBar({ filled, max }) {
-  if (max === 0) return <span className="text-muted" style={{ fontSize: 13 }}>Unlimited</span>;
+  if (max === 0) return <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Unlimited</span>;
   const pct = Math.round((filled / max) * 100);
   const overLimit = filled > max;
   return (
-    <div className="hc-progress-track">
-      <div className="hc-progress-fill" style={{
+    <div className="stat-bar" style={{ height: 6, borderRadius: 3, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+      <div className="stat-bar-fill" style={{
         width: `${overLimit ? 100 : pct}%`,
-        background: overLimit ? '#ef4444' : pct >= 90 ? '#f59e0b' : '#22c55e',
+        height: '100%',
+        borderRadius: 3,
+        background: overLimit ? 'var(--color-danger)' : pct >= 90 ? 'var(--color-warning)' : 'var(--color-success)',
+        transition: 'width .3s ease',
       }} />
-      {overLimit && <span className="hc-over-icon">!</span>}
     </div>
   );
 }
@@ -28,35 +30,40 @@ export default function HeadcountReport() {
     hrApi.get('/reports/headcount').then(r => setReport(r.data)).catch(() => {});
   }, []);
 
-  if (!report) return <div className="loading">Loading...</div>;
+  if (!report) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
 
   const { byDepartment, byTitle, byContract, summary } = report;
 
   return (
     <>
-      <div className="page-header"><h2>Headcount Report</h2></div>
+      <div className="glass-page-header">
+        <h2><span className="iconify" data-icon="lucide:bar-chart-3" style={{ marginRight: 8 }} />Headcount Report</h2>
+      </div>
 
       {summary && (
-        <div className="dashboard-stats-row" style={{ marginBottom: 20 }}>
+        <div className="glass-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 20 }}>
           {[
-            { label: 'Total Departments', value: summary.total_depts, color: '#8b5cf6' },
-            { label: 'Max Headcount', value: summary.total_max, color: '#3b82f6' },
-            { label: 'Filled', value: summary.total_filled, color: '#22c55e' },
-            { label: 'Vacant', value: summary.total_vacant, color: '#f59e0b' },
-            { label: 'Full Departments', value: summary.full_depts, color: '#ef4444' },
+            { label: 'Total Departments', value: summary.total_depts, icon: 'lucide:building-2', class: 'gradient-purple' },
+            { label: 'Max Headcount', value: summary.total_max, icon: 'lucide:users', class: 'gradient-blue' },
+            { label: 'Filled', value: summary.total_filled, icon: 'lucide:user-check', class: 'gradient-green' },
+            { label: 'Vacant', value: summary.total_vacant, icon: 'lucide:user-x', class: 'gradient-amber' },
+            { label: 'Full Departments', value: summary.full_depts, icon: 'lucide:alert-circle', class: 'gradient-red' },
           ].map(s => (
-            <div key={s.label} className="mini-stat-card" style={{ borderTop: `3px solid ${s.color}` }}>
-              <div className="mini-stat-number" style={{ color: s.color }}>{s.value}</div>
-              <div className="mini-stat-label">{s.label}</div>
+            <div key={s.label} className={`glass-stat-card ${s.class} card-hover fade-in-up`}>
+              <div className="stat-icon"><span className="iconify" data-icon={s.icon} /></div>
+              <div className="stat-number">{s.value}</div>
+              <div className="stat-label">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="card">
-        <div className="card-header"><h3>By Department</h3></div>
-        <div className="card-body" style={{ overflowX: 'auto' }}>
-          <table className="table">
+      <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+        <div className="glass-card-header">
+          <h3><span className="iconify" data-icon="lucide:git-branch" style={{ marginRight: 8 }} />By Department</h3>
+        </div>
+        <div className="glass-card-body" style={{ overflowX: 'auto' }}>
+          <table className="glass-table">
             <thead><tr><th>Department</th><th>Filled</th><th>Max</th><th>Vacant</th><th>Usage</th></tr></thead>
             <tbody>
               {byDepartment.map(d => {
@@ -66,7 +73,7 @@ export default function HeadcountReport() {
                     <td><strong>{d.name}</strong></td>
                     <td>{d.count}</td>
                     <td>{formatHC(d.max_headcount)}</td>
-                    <td style={{ color: d.vacant === 0 && d.max_headcount > 0 ? '#ef4444' : 'inherit' }}>
+                    <td style={{ color: d.vacant === 0 && d.max_headcount > 0 ? 'var(--color-danger)' : 'inherit' }}>
                       {d.vacant != null ? d.vacant : '\u221E'}
                     </td>
                     <td style={{ minWidth: 140 }}>
@@ -85,10 +92,12 @@ export default function HeadcountReport() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>By Title</h3></div>
-        <div className="card-body" style={{ overflowX: 'auto' }}>
-          <table className="table">
+      <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
+        <div className="glass-card-header">
+          <h3><span className="iconify" data-icon="lucide:badge-check" style={{ marginRight: 8 }} />By Title</h3>
+        </div>
+        <div className="glass-card-body" style={{ overflowX: 'auto' }}>
+          <table className="glass-table">
             <thead><tr><th>Title</th><th>Department</th><th>Filled</th><th>Max</th><th>Vacant</th></tr></thead>
             <tbody>
               {byTitle.map(t => (
@@ -97,7 +106,7 @@ export default function HeadcountReport() {
                   <td>{t.department_name}</td>
                   <td>{t.count}</td>
                   <td>{formatHC(t.max_headcount)}</td>
-                  <td style={{ color: t.vacant === 0 && t.max_headcount > 0 ? '#ef4444' : 'inherit' }}>
+                  <td style={{ color: t.vacant === 0 && t.max_headcount > 0 ? 'var(--color-danger)' : 'inherit' }}>
                     {t.vacant != null ? t.vacant : '\u221E'}
                   </td>
                 </tr>
@@ -107,10 +116,12 @@ export default function HeadcountReport() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header"><h3>By Contract Type</h3></div>
-        <div className="card-body">
-          <table className="table">
+      <div className="glass-card card-hover fade-in-up">
+        <div className="glass-card-header">
+          <h3><span className="iconify" data-icon="lucide:file-text" style={{ marginRight: 8 }} />By Contract Type</h3>
+        </div>
+        <div className="glass-card-body">
+          <table className="glass-table">
             <thead><tr><th>Contract Type</th><th>Count</th></tr></thead>
             <tbody>
               {byContract.map(c => (

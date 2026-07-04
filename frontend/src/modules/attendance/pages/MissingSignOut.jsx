@@ -54,109 +54,133 @@ export default function MissingSignOut() {
     setTimeout(() => { setMessage(''); setError(''); }, 4000);
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return (
+    <div className="page">
+      <div className="glass-page-header"><h1>Missing Sign Out</h1></div>
+      <div className="glass-loading">
+        <div className="spinner" />
+        <span>Loading...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="page">
-      <h1>Missing Sign Out</h1>
-      <p className="subtitle">Days you forgot to sign out. Submit a request with your exit time for approval.</p>
+      <div className="glass-page-header">
+        <div>
+          <h1>Missing Sign Out</h1>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Days you forgot to sign out. Submit a request with your exit time for approval.</p>
+        </div>
+      </div>
 
-      {message && <div className="alert alert-success">{message}</div>}
+      {message && <div className="glass-alert glass-alert-success">{message}</div>}
 
       {records.length === 0 ? (
-        <p className="empty">No missing sign outs. Great job!</p>
+        <div className="glass-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <h3>No missing sign outs. Great job!</h3>
+        </div>
       ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Sign In</th>
-                <th>Duration So Far</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((r) => {
-                const diff = ((Date.now() - new Date(r.sign_in_time)) / (1000 * 60 * 60)).toFixed(1);
-                const status = getRequestStatus(r.id);
-                const rejectionReason = getRejectionReason(r.id);
-                return (
-                  <tr key={r.id}>
-                    <td>{r.date}</td>
-                    <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
-                    <td>{diff}h</td>
-                    <td>
-                      {status === 'pending' && <span className="badge badge-warning">Pending Approval</span>}
-                      {status === 'approved' && <span className="badge badge-success">Approved</span>}
-                      {status === 'rejected' && (
-                        <span className="badge badge-error" title={rejectionReason || ''}>Rejected</span>
-                      )}
-                      {!status && <span className="badge badge-employee">Not Requested</span>}
-                    </td>
-                    <td>
-                      {!status && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => setForm({
-                            recordId: r.id,
-                            signOutTime: new Date().toISOString().slice(0, 16),
-                            notes: '',
-                          })}
-                        >
-                          Request Sign Out
-                        </button>
-                      )}
-                      {status === 'rejected' && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => setForm({
-                            recordId: r.id,
-                            signOutTime: new Date().toISOString().slice(0, 16),
-                            notes: '',
-                          })}
-                        >
-                          Resubmit Request
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="glass-card">
+          <div className="glass-table-wrapper">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Sign In</th>
+                  <th>Duration So Far</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r) => {
+                  const diff = ((Date.now() - new Date(r.sign_in_time)) / (1000 * 60 * 60)).toFixed(1);
+                  const status = getRequestStatus(r.id);
+                  const rejectionReason = getRejectionReason(r.id);
+                  return (
+                    <tr key={r.id}>
+                      <td>{r.date}</td>
+                      <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
+                      <td>{diff}h</td>
+                      <td>
+                        {status === 'pending' && <span className="glass-badge glass-badge-warning">Pending Approval</span>}
+                        {status === 'approved' && <span className="glass-badge glass-badge-success">Approved</span>}
+                        {status === 'rejected' && (
+                          <span className="glass-badge glass-badge-danger" title={rejectionReason || ''}>Rejected</span>
+                        )}
+                        {!status && <span className="glass-badge glass-badge-default">Not Requested</span>}
+                      </td>
+                      <td>
+                        {!status && (
+                          <button
+                            className="glass-btn glass-btn-sm glass-btn-primary"
+                            onClick={() => setForm({
+                              recordId: r.id,
+                              signOutTime: new Date().toISOString().slice(0, 16),
+                              notes: '',
+                            })}
+                          >
+                            Request Sign Out
+                          </button>
+                        )}
+                        {status === 'rejected' && (
+                          <button
+                            className="glass-btn glass-btn-sm glass-btn-primary"
+                            onClick={() => setForm({
+                              recordId: r.id,
+                              signOutTime: new Date().toISOString().slice(0, 16),
+                              notes: '',
+                            })}
+                          >
+                            Resubmit Request
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {form.recordId && (
-        <div className="modal-overlay" onClick={() => { setForm({ recordId: null, signOutTime: '', notes: '' }); setError(''); setMessage(''); }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Submit Sign-Out Request</h2>
-            {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
-            <label>
-              Sign Out Time:
-              <input
-                type="datetime-local"
-                value={form.signOutTime}
-                onChange={(e) => setForm({ ...form, signOutTime: e.target.value })}
-                className="form-control"
-              />
-            </label>
-            <label>
-              Notes:
-              <textarea
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="form-control"
-                rows={3}
-              />
-            </label>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>
+        <div className="glass-modal-overlay" onClick={() => { setForm({ recordId: null, signOutTime: '', notes: '' }); setError(''); setMessage(''); }}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="glass-modal-header">
+              <h2>Submit Sign-Out Request</h2>
+              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <div className="glass-card-body">
+              {error && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 12 }}>{error}</div>}
+              <div className="glass-form-group">
+                <label className="glass-label">Sign Out Time</label>
+                <input
+                  type="datetime-local"
+                  value={form.signOutTime}
+                  onChange={(e) => setForm({ ...form, signOutTime: e.target.value })}
+                  className="glass-input"
+                />
+              </div>
+              <div className="glass-form-group">
+                <label className="glass-label">Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="glass-textarea"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setForm({ recordId: null, signOutTime: '', notes: '' })}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleRequest}>
+              <button className="glass-btn glass-btn-primary" onClick={handleRequest}>
                 Submit Request
               </button>
             </div>

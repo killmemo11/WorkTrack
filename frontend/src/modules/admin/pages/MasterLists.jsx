@@ -90,66 +90,99 @@ export default function MasterLists() {
 
   const list = activeTab === 'skills' ? skills : certs;
 
-  if (loading) return <div className="loading">Loading master lists...</div>;
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner"></div>
+      <span>Loading master lists...</span>
+    </div>
+  );
 
   return (
-    <div className="admin-page">
-      <div className="admin-page-header">
-        <h2>Master Lists</h2>
+    <div className="page fade-in-up">
+      <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="iconify" data-icon="lucide:list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          Master Lists
+        </h1>
       </div>
 
-      {message && <div className="alert alert-info">{message}</div>}
+      {message && (
+        <div className="glass-alert glass-alert-info">
+          <span className="iconify" data-icon="lucide:info"></span>
+          {message}
+        </div>
+      )}
 
-      <div className="tabs" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-        <button className={`btn btn-sm ${activeTab === 'skills' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('skills')}>Skills</button>
-        <button className={`btn btn-sm ${activeTab === 'certs' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('certs')}>Certifications</button>
+      <div className="glass-tabs" style={{ marginBottom: 20 }}>
+        <button className={`glass-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>
+          <span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 4 }}></span> Skills
+        </button>
+        <button className={`glass-tab ${activeTab === 'certs' ? 'active' : ''}`} onClick={() => setActiveTab('certs')}>
+          <span className="iconify" data-icon="lucide:award" style={{ marginRight: 4 }}></span> Certifications
+        </button>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <input className="form-control" value={newName}
+      <div className="glass-card fade-in-up">
+        <div className="glass-card-body">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <input className="glass-input" value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
               placeholder={`Add new ${activeTab === 'skills' ? 'skill' : 'certification'}...`}
               style={{ maxWidth: 400 }} />
-            <button className="btn btn-primary" onClick={handleAdd} disabled={!newName.trim()}>+ Add</button>
+            <button className="glass-btn glass-btn-primary" onClick={handleAdd} disabled={!newName.trim()}>
+              <span className="iconify" data-icon="lucide:plus"></span> Add
+            </button>
           </div>
 
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ width: 60 }}>#</th>
-                <th>Name</th>
-                <th style={{ width: 200 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 ? (
-                <tr><td colSpan={3} className="text-center">No {activeTab === 'skills' ? 'skills' : 'certifications'} yet. Add one above.</td></tr>
-              ) : list.map(item => (
-                <tr key={item.id}>
-                  <td>{item.id}</td>
-                  <td>
-                    {editing?.id === item.id ? (
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <input className="form-control form-control-sm" value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleUpdate(); if (e.key === 'Escape') setEditing(null); }}
-                          style={{ maxWidth: 300 }} />
-                        <button className="btn btn-sm btn-primary" onClick={handleUpdate}>Save</button>
-                        <button className="btn btn-sm btn-outline" onClick={() => setEditing(null)}>Cancel</button>
-                      </div>
-                    ) : item.name}
-                  </td>
-                  <td>
-                    <button className="btn btn-sm btn-outline" onClick={() => { setEditing(item); setEditName(item.name); }}>Edit</button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirm(item)} style={{ marginLeft: 4 }}>Delete</button>
-                  </td>
+          <div className="glass-table-wrapper">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 60 }}>#</th>
+                  <th>Name</th>
+                  <th style={{ width: 200 }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {list.length === 0 ? (
+                  <tr><td colSpan={3}>
+                    <div className="glass-empty" style={{ minHeight: 120 }}>
+                      <span className="iconify" data-icon="lucide:inbox"></span>
+                      <h3>No {activeTab === 'skills' ? 'skills' : 'certifications'} yet.</h3>
+                      <p>Add one above.</p>
+                    </div>
+                  </td></tr>
+                ) : list.map(item => (
+                  <tr key={item.id}>
+                    <td style={{ color: 'var(--text-dim)' }}>{item.id}</td>
+                    <td>
+                      {editing?.id === item.id ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input className="glass-input" value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleUpdate(); if (e.key === 'Escape') setEditing(null); }}
+                            style={{ maxWidth: 300 }} />
+                          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleUpdate}>Save</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
+                        </div>
+                      ) : <strong>{item.name}</strong>}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => { setEditing(item); setEditName(item.name); }}>
+                          <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                        </button>
+                        <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(item)}>
+                          <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
