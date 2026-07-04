@@ -1,25 +1,17 @@
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo, Fragment, useRef } from 'react';
 import api from '../../../shared/api';
 import hrApi from '../../../shared/api/hrApi';
-
-const DEPT_COLORS = [
-  { bg: '#eef2ff', border: '#4f46e5', text: '#4338ca' },
-  { bg: '#ecfeff', border: '#0891b2', text: '#0e7490' },
-  { bg: '#ecfdf5', border: '#059669', text: '#047857' },
-  { bg: '#fffbeb', border: '#d97706', text: '#b45309' },
-  { bg: '#fef2f2', border: '#dc2626', text: '#b91c1c' },
-  { bg: '#f5f3ff', border: '#7c3aed', text: '#6d28d9' },
-  { bg: '#fdf2f8', border: '#db2777', text: '#be185d' },
-  { bg: '#fff7ed', border: '#ea580c', text: '#c2410c' },
-  { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
-  { bg: '#fefce8', border: '#ca8a04', text: '#a16207' },
-];
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OrganizationChart() {
   const [data, setData] = useState(null);
   const [headcount, setHeadcount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [hoveredEmployee, setHoveredEmployee] = useState(null);
+  const [animateCards, setAnimateCards] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
@@ -29,6 +21,7 @@ export default function OrganizationChart() {
       .then(([orgRes, hcRes]) => {
         setData(orgRes.data);
         setHeadcount(hcRes.data.byDepartment);
+        setTimeout(() => setAnimateCards(true), 100);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -42,13 +35,6 @@ export default function OrganizationChart() {
   const supervisorIds = useMemo(() => {
     if (!data) return new Set();
     return new Set(data.employees.filter(e => e.supervisor_id).map(e => e.supervisor_id));
-  }, [data]);
-
-  const deptColorMap = useMemo(() => {
-    if (!data) return {};
-    const map = {};
-    data.departments.forEach((d, i) => { map[String(d.id)] = DEPT_COLORS[i % DEPT_COLORS.length]; });
-    return map;
   }, [data]);
 
   const headcountMap = useMemo(() => {
@@ -105,102 +91,234 @@ export default function OrganizationChart() {
     return allDepts.filter(d => activeIds.has(d.id));
   }, [allDepts, gradeRows]);
 
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!data) return <div className="error">Could not load organization chart.</div>;
+  const selectedEmployeeData = useMemo(() => {
+    if (!selectedEmployee || !data) return null;
+    return data.employees.find(e => e.id === selectedEmployee) || null;
+  }, [selectedEmployee, data]);
+
+  if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
+  if (!data) return <div className="glass-alert glass-alert-danger">Could not load organization chart.</div>;
 
   const numCols = activeDepts.length;
 
   return (
-    <div className="page">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
+    <motion.div
+      ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="page"
+    >
+      <motion.div
+        initial={{ y: -20 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="glass-page-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}
+      >
+        <motion.div
+          initial={{ x: -20 }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <h1>Organization Chart</h1>
           <p className="subtitle">Company hierarchy by grade level</p>
-        </div>
-        <div className="org-search" style={{ position: 'relative' }}>
+        </motion.div>
+        <motion.div
+          initial={{ x: 20 }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          style={{ position: 'relative' }}
+        >
           <input
             type="text"
             placeholder="Search employee..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="form-control"
+            className="glass-input"
             style={{ paddingLeft: 32, minWidth: 220 }}
           />
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
-        </div>
-      </div>
+          <span className="iconify" data-icon="lucide:search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none', color: 'var(--text-dim)' }} />
+        </motion.div>
+      </motion.div>
 
-      <div className="org-levels">
-        {headcount && numCols > 0 && (
-          <HeadcountRow
-            activeDepts={activeDepts}
-            headcountMap={headcountMap}
-            deptColorMap={deptColorMap}
-            numCols={numCols}
-          />
-        )}
-        {gradeRows.map((grade, gi) => (
-          <Fragment key={gi}>
-            {gi > 0 && (
-              <ConnectorRow
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="org-levels"
+      >
+        <AnimatePresence>
+          {headcount && numCols > 0 && (
+            <motion.div
+              key="headcount"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <HeadcountRow
                 activeDepts={activeDepts}
-                prevDepts={gradeRows[gi - 1].deptGroups}
-                currDepts={grade.deptGroups}
+                headcountMap={headcountMap}
                 numCols={numCols}
               />
-            )}
-            <GradeBand
-              grade={grade}
-              activeDepts={activeDepts}
-              managerEmails={managerEmails}
-              supervisorIds={supervisorIds}
-              deptColorMap={deptColorMap}
-              headcountMap={headcountMap}
-              numCols={numCols}
-            />
-          </Fragment>
-        ))}
-        {gradeRows.length === 0 && search && (
-          <p className="empty-state" style={{ textAlign: 'center', padding: 40 }}>No employees match "<strong>{search}</strong>"</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+          {gradeRows.map((grade, gi) => (
+            <Fragment key={gi}>
+              {gi > 0 && (
+                <motion.div
+                  key={`connector-${gi}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ConnectorRow
+                    activeDepts={activeDepts}
+                    prevDepts={gradeRows[gi - 1].deptGroups}
+                    currDepts={grade.deptGroups}
+                    numCols={numCols}
+                  />
+                </motion.div>
+              )}
+              <motion.div
+                key={`grade-${gi}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3, delay: gi * 0.05 }}
+              >
+                <GradeBand
+                  grade={grade}
+                  activeDepts={activeDepts}
+                  managerEmails={managerEmails}
+                  supervisorIds={supervisorIds}
+                  headcountMap={headcountMap}
+                  numCols={numCols}
+                  hoveredEmployee={hoveredEmployee}
+                  setHoveredEmployee={setHoveredEmployee}
+                  selectedEmployee={selectedEmployee}
+                  setSelectedEmployee={setSelectedEmployee}
+                />
+              </motion.div>
+            </Fragment>
+          ))}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+          {gradeRows.length === 0 && search && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="glass-empty"
+            >
+              <span className="iconify" data-icon="lucide:search-x" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+              <h3>No employees match &quot;<strong>{search}</strong>&quot;</h3>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      <AnimatePresence>
+        {selectedEmployeeData && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="employee-details-modal"
+            onClick={() => setSelectedEmployee(null)}
+          >
+            <div className="employee-details-content" onClick={(e) => e.stopPropagation()}>
+              <div className="employee-details-header">
+                <button onClick={() => setSelectedEmployee(null)} className="close-btn">
+                  <span className="iconify" data-icon="lucide:x" />
+                </button>
+                <div className="employee-avatar">
+                  {selectedEmployeeData.avatar_path
+                    ? <img src={`/${selectedEmployeeData.avatar_path}`} alt="" />
+                    : <span>{selectedEmployeeData.name?.[0]?.toUpperCase()}</span>}
+                </div>
+              </div>
+              <div className="employee-details-body">
+                <h3>{selectedEmployeeData.name}</h3>
+                <div className="employee-info">
+                  <div className="info-row">
+                    <span className="label">Position:</span>
+                    <span className="value">{selectedEmployeeData.position_title}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Department:</span>
+                    <span className="value">{selectedEmployeeData.department_name}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Email:</span>
+                    <span className="value">{selectedEmployeeData.email}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="label">Grade Level:</span>
+                    <span className="value">Lv.{selectedEmployeeData.grade_level}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
-      </div>
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
-function HeadcountRow({ activeDepts, headcountMap, deptColorMap, numCols }) {
+function HeadcountRow({ activeDepts, headcountMap, numCols }) {
   return (
     <div className="org-grade" style={{ marginBottom: 8 }}>
-      <div className="org-grade-header" style={{ background: '#f1f5f9' }}>
+      <div className="org-grade-header" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
         <div className="org-grade-title">
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>Headcount</span>
+          <span className="iconify" data-icon="lucide:bar-chart-2" style={{ marginRight: 6, fontSize: 13 }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Headcount</span>
         </div>
       </div>
       <div className="org-grade-body" style={{ display: 'grid', gridTemplateColumns: `repeat(${numCols}, 1fr)`, gap: 12, padding: '10px 16px' }}>
         {activeDepts.map(dept => {
           const hc = headcountMap[dept.id];
-          const color = deptColorMap[dept.id] || DEPT_COLORS[0];
           if (!hc) return <div key={dept.id} />;
           const pct = hc.max_headcount > 0 ? Math.round((hc.count / hc.max_headcount) * 100) : null;
           return (
-            <div key={dept.id} style={{ fontSize: 12 }}>
+            <motion.div
+              key={dept.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ fontSize: 12 }}
+            >
               {pct != null ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2, color: color.text }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2, color: 'var(--text-secondary)' }}>
                     <span>{hc.count} / {hc.max_headcount === 0 ? '\u221E' : hc.max_headcount}</span>
                     <span style={{ fontWeight: 600 }}>{pct}%</span>
                   </div>
-                  <div className="progress-track" style={{ height: 6, marginBottom: 0 }}>
-                    <div className="progress-fill" style={{
-                      width: `${Math.min(pct, 100)}%`,
-                      background: hc.count > hc.max_headcount ? '#ef4444' : pct >= 90 ? '#f59e0b' : color.border,
-                    }} />
+                  <div className="stat-bar" style={{ height: 6, marginBottom: 0 }}>
+                    <motion.div
+                      className="stat-bar-fill"
+                      style={{
+                        width: `${Math.min(pct, 100)}%`,
+                        height: '100%',
+                        background: hc.count > hc.max_headcount ? 'var(--color-danger)' : pct >= 90 ? 'var(--color-warning)' : 'var(--brand-primary)',
+                      }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(pct, 100)}%` }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
                   </div>
                 </>
               ) : (
-                <span className="text-muted">No limit set</span>
+                <span style={{ color: 'var(--text-dim)' }}>No limit set</span>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -220,9 +338,9 @@ function ConnectorRow({ activeDepts, prevDepts, currDepts, numCols }) {
           if (!hasPrev && !hasCurr) return null;
           return (
             <g key={dept.id}>
-              {hasPrev && <line x1={cx} y1="0" x2={cx} y2="14" stroke="#cbd5e1" strokeWidth="2" />}
-              {hasCurr && <line x1={cx} y1="14" x2={cx} y2="28" stroke="#cbd5e1" strokeWidth="2" />}
-              {hasPrev && hasCurr && <circle cx={cx} cy="14" r="3" fill="#cbd5e1" />}
+              {hasPrev && <line x1={cx} y1="0" x2={cx} y2="14" stroke="var(--border-glass)" strokeWidth="2" />}
+              {hasCurr && <line x1={cx} y1="14" x2={cx} y2="28" stroke="var(--border-glass)" strokeWidth="2" />}
+              {hasPrev && hasCurr && <circle cx={cx} cy="14" r="3" fill="var(--text-dim)" />}
             </g>
           );
         })}
@@ -231,10 +349,16 @@ function ConnectorRow({ activeDepts, prevDepts, currDepts, numCols }) {
   );
 }
 
-function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, deptColorMap, headcountMap, numCols }) {
+function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, headcountMap, numCols, hoveredEmployee, setHoveredEmployee, selectedEmployee, setSelectedEmployee }) {
   return (
-    <div className="org-grade">
-      <div className="org-grade-header">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.3, delay: grade.grade_level * 0.05 }}
+      className="org-grade"
+    >
+      <div className="org-grade-header" style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border-glass)' }}>
         <div className="org-grade-title">
           <span className="org-grade-level">Lv.{grade.grade_level}</span>
           <span className="org-grade-name">{grade.grade_name}</span>
@@ -245,12 +369,18 @@ function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, deptColor
         <div className="org-grade-body" style={{ display: 'grid', gridTemplateColumns: `repeat(${numCols}, 1fr)`, gap: 12, padding: '12px 16px' }}>
           {activeDepts.map(dept => {
             const members = grade.deptGroups[dept.id];
-            const color = deptColorMap[dept.id] || DEPT_COLORS[0];
             return (
-              <div key={dept.id} className={`org-dept-section${!members ? ' org-dept-empty' : ''}`} style={{ borderLeftColor: color.border }}>
+              <motion.div
+                key={dept.id}
+                className={`org-dept-section${!members ? ' org-dept-empty' : ''}`}
+                style={{ borderLeftColor: 'var(--brand-primary)' }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: dept.id * 0.02 }}
+              >
                 {members && (
                   <>
-                    <div className="org-dept-label" style={{ color: color.text }}>{dept.name}</div>
+                    <div className="org-dept-label" style={{ color: 'var(--text-secondary)' }}>{dept.name}</div>
                     <div className="org-dept-members">
                       {members.map(m => (
                         <OrgCard
@@ -258,23 +388,41 @@ function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, deptColor
                           employee={m}
                           isManager={managerEmails.has(m.email)}
                           isSupervisor={supervisorIds.has(m.id)}
+                          hoveredEmployee={hoveredEmployee}
+                          setHoveredEmployee={setHoveredEmployee}
+                          selectedEmployee={selectedEmployee}
+                          setSelectedEmployee={setSelectedEmployee}
                         />
                       ))}
                     </div>
                   </>
                 )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
-function OrgCard({ employee, isManager, isSupervisor }) {
+function OrgCard({ employee, isManager, isSupervisor, hoveredEmployee, setHoveredEmployee, selectedEmployee, setSelectedEmployee }) {
+  const isHovered = hoveredEmployee === employee.id;
+  const isSelected = selectedEmployee === employee.id;
+
   return (
-    <div className={`org-emp-card${isManager ? ' org-emp-card-manager' : ''}`}>
+    <motion.div
+      className={`glass-card org-emp-card${isManager ? ' org-emp-card-manager' : ''}`}
+      style={{ padding: '8px 12px', cursor: 'pointer', position: 'relative' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: employee.id * 0.01 }}
+      whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)' }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => setSelectedEmployee(employee.id)}
+      onMouseEnter={() => setHoveredEmployee(employee.id)}
+      onMouseLeave={() => setHoveredEmployee(null)}
+    >
       <div className="org-emp-avatar">
         {employee.avatar_path
           ? <img src={`/${employee.avatar_path}`} alt="" />
@@ -285,9 +433,25 @@ function OrgCard({ employee, isManager, isSupervisor }) {
         <div className="org-emp-title">{employee.position_title || '—'}</div>
       </div>
       <div className="org-emp-tags">
-        {isManager && <span className="org-tag org-tag-manager" title="Department Manager">M</span>}
-        {isSupervisor && !isManager && <span className="org-tag org-tag-supervisor" title="Supervisor">S</span>}
+        {isManager && <span className="glass-badge glass-badge-success" title="Department Manager" style={{ fontSize: 10, padding: '2px 6px' }}>M</span>}
+        {isSupervisor && !isManager && <span className="glass-badge glass-badge-info" title="Supervisor" style={{ fontSize: 10, padding: '2px 6px' }}>S</span>}
       </div>
-    </div>
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div
+            className="org-emp-tooltip"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="tooltip-content">
+              <div className="tooltip-email">{employee.email}</div>
+              <div className="tooltip-dept">{employee.department_name}</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

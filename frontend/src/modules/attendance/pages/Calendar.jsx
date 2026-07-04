@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -13,6 +13,7 @@ const leaveTypeLabels = { annual: 'A', sick: 'S', casual: 'C', personal: 'P', un
 
 export default function Calendar() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const now = new Date();
   const urlYear = parseInt(searchParams.get('year')) || now.getFullYear();
   const urlMonth = parseInt(searchParams.get('month')) || (now.getMonth() + 1);
