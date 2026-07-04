@@ -1,4 +1,4 @@
-export function buildDashboardInsights({ attendanceRate, presentDays, totalWorkDays, status, monthName, leaveDays, absenceDays }) {
+export function buildDashboardInsights({ attendanceRate, presentDays, totalWorkDays, status, monthName, leaveDays, absenceDays, isHoliday, holidayName }) {
   const isSignedIn = Boolean(status?.signedIn);
   const isSignedOut = Boolean(status?.signedOut);
 
@@ -23,9 +23,9 @@ export function buildDashboardInsights({ attendanceRate, presentDays, totalWorkD
     },
     {
       title: 'Today',
-      value: todayStatus,
-      detail: `${monthName} overview`,
-      tone: todayStatus === 'In progress' ? 'good' : todayStatus === 'Completed' ? 'ok' : 'bad'
+      value: isHoliday ? 'Holiday!' : todayStatus,
+      detail: isHoliday ? (holidayName || 'Enjoy your day off!') : `${monthName} overview`,
+      tone: isHoliday ? 'holiday' : todayStatus === 'In progress' ? 'good' : todayStatus === 'Completed' ? 'ok' : 'bad'
     },
     {
       title: 'This month',

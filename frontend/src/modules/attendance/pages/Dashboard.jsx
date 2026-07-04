@@ -268,6 +268,11 @@ export default function Dashboard() {
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const todayDow = now.getDay();
+  const isWeekend = todayDow === 5 || todayDow === 6;
+  const todayDay = calendarData?.months?.[0]?.days?.find(d => d.date === todayStr);
+  const isHoliday = Boolean(todayDay?.is_off_day || todayDay?.is_holiday);
+  const holidayName = todayDay?.holiday_name || '';
   const isMissingSignOut = (day) => day.signed_in && !day.signed_out && !day.is_future && day.date !== todayStr;
 
   const quickActions = [
@@ -286,7 +291,9 @@ export default function Dashboard() {
     monthName: monthNames[now.getMonth()],
     leaveDays: summary?.leave_days || 0,
     absenceDays: summary?.absence_days || 0,
-  }), [attendanceRate, summary, status, now]);
+    isHoliday,
+    holidayName,
+  }), [attendanceRate, summary, status, now, isHoliday, holidayName]);
 
   if (loading) return <LoadingSkeleton />;
 

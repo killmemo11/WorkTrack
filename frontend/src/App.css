@@ -561,6 +561,60 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* Holiday card animation */
+@keyframes holiday-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(245,158,11,0.2), 0 0 40px rgba(139,92,246,0.1); }
+  50% { box-shadow: 0 0 40px rgba(245,158,11,0.4), 0 0 80px rgba(139,92,246,0.2); }
+}
+@keyframes holiday-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-6px) rotate(5deg); }
+  75% { transform: translateY(4px) rotate(-3deg); }
+}
+@keyframes holiday-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes holiday-sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.glass-stat-card.insight-holiday {
+  background: linear-gradient(145deg, rgba(245,158,11,0.15) 0%, rgba(139,92,246,0.1) 50%, rgba(245,158,11,0.05) 100%);
+  border-color: rgba(245,158,11,0.3);
+  animation: holiday-glow 3s ease-in-out infinite, holiday-float 4s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+.glass-stat-card.insight-holiday .glass-stat-label {
+  color: #fbbf24;
+}
+.glass-stat-card.insight-holiday .glass-stat-number {
+  color: #f59e0b;
+  animation: holiday-pulse 2s ease-in-out infinite;
+}
+.glass-stat-card.insight-holiday .insight-detail {
+  color: #a78bfa;
+}
+.glass-stat-card.insight-holiday::before {
+  content: '🎉';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 1.5rem;
+  opacity: 0.6;
+  animation: holiday-sparkle 2s ease-in-out infinite;
+}
+.glass-stat-card.insight-holiday::after {
+  content: '✨';
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  font-size: 1rem;
+  opacity: 0.5;
+  animation: holiday-sparkle 3s ease-in-out infinite 0.5s;
+}
+
 /* Glass Grid */
 .glass-grid {
   display: grid;
