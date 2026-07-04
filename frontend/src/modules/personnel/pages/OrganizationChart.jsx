@@ -14,7 +14,7 @@ export default function OrganizationChart() {
   const [search, setSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [hoveredEmployee, setHoveredEmployee] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(0.8);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -146,7 +146,7 @@ export default function OrganizationChart() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="page"
-      style={{ overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab' }}
+      style={{ overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab', display: 'flex', flexDirection: 'column', height: '100%' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -218,7 +218,7 @@ export default function OrganizationChart() {
       >
         <div
           style={{
-            transform: `scale(${zoomLevel}) translate(${dragOffset.x / zoomLevel}px, ${dragOffset.y / zoomLevel}px)`,
+            transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(${zoomLevel})`,
             transformOrigin: '0 0',
             transition: isDragging ? 'none' : 'transform 0.1s ease',
             padding: 32,

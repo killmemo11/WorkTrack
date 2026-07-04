@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Mail, Phone, Building, X, Calendar, Search } from 'lucide-react';
 
@@ -69,13 +69,13 @@ function OrgCard({ employee, isManager, isSupervisor, isHighlighted, onClick, on
   );
 }
 
-function TreeConnectors({ positions }) {
+function TreeConnectors({ positions, gradientId }) {
   const posArray = Array.from(positions.values());
 
   return (
     <svg className="org-tree-connectors" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
       <defs>
-        <linearGradient id="connectorGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--brand-primary)" stopOpacity="0.6" />
           <stop offset="100%" stopColor="var(--brand-primary)" stopOpacity="0.2" />
         </linearGradient>
@@ -97,7 +97,7 @@ function TreeConnectors({ positions }) {
               key={`conn-${node.id}-${child.id}`}
               d={path}
               fill="none"
-              stroke="url(#connectorGrad)"
+              stroke={`url(#${gradientId})`}
               strokeWidth="2"
               strokeLinecap="round"
               initial={{ pathLength: 0, opacity: 0 }}
@@ -196,6 +196,7 @@ export default function OrgChartTree({
   setSelectedEmployee,
   search,
 }) {
+  const gradientId = useId();
   const [collapsed, setCollapsed] = useState(new Set());
   const posArray = useMemo(() => Array.from(positions.values()), [positions]);
 
@@ -229,7 +230,7 @@ export default function OrgChartTree({
   return (
     <div className="org-tree-container" style={{ position: 'relative', minHeight: 400 }}>
       <div className="org-tree-wrapper" style={{ position: 'relative', width: maxX, height: maxY }}>
-        <TreeConnectors positions={positions} />
+        <TreeConnectors positions={positions} gradientId={gradientId} />
         <div style={{ position: 'relative', zIndex: 2 }}>
           {posArray.map(pos => {
             const node = pos.node;
