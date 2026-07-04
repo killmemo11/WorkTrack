@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
-import { LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -19,15 +19,6 @@ const statusLabels = {
   signed_out: { label: 'Signed Out', color: '#6366f1', icon: 'lucide:log-out' },
   not_signed_in: { label: 'Not Signed In', color: '#f59e0b', icon: 'lucide:clock' },
   on_leave: { label: 'On Leave', color: '#8b5cf6', icon: 'lucide:calendar-off' },
-};
-
-const getAttendanceTrend = () => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days.map((day, i) => ({
-    day,
-    attendance: Math.floor(Math.random() * 20 + 80),
-    previous: Math.floor(Math.random() * 20 + 75),
-  }));
 };
 
 const tooltipStyle = {
@@ -113,8 +104,6 @@ export default function EmployeeDashboard() {
     { name: 'Casual', value: parseFloat(leaveBalance.casual) || 0, color: '#22c55e' },
   ];
 
-  const attendanceTrend = getAttendanceTrend();
-
   return (
     <div className="employee-dashboard">
       <div className="dashboard-greeting fade-in-up">
@@ -170,29 +159,6 @@ export default function EmployeeDashboard() {
               <span className="iconify stat-card-icon" data-icon={statusInfo.icon}></span>
             </div>
 
-            <div className={`stat-card ${isHoliday ? 'gradient-holiday' : 'gradient-blue'} card-hover fade-in-up delay-2`}>
-              <div className="stat-card-bg"></div>
-              <div className="stat-card-content">
-                {isHoliday ? (
-                  <>
-                    <div className="stat-label">🎉 Holiday Time</div>
-                    <div className="stat-value holiday-text">🎉 Holiday!</div>
-                    <div className="stat-details" style={{ color: '#fbbf24' }}>Enjoy your day off!</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="stat-label">Attendance Rate</div>
-                    <div className="stat-value">{monthlyStats.attendanceRate}%</div>
-                    <div className="stat-bar">
-                      <div className="stat-bar-fill" style={{ width: `${monthlyStats.attendanceRate}%` }}></div>
-                    </div>
-                    <div className="stat-details">{monthlyStats.signedDays} of {monthlyStats.totalDays} days</div>
-                  </>
-                )}
-              </div>
-              <span className="iconify stat-card-icon" data-icon={isHoliday ? 'lucide:party-popper' : 'lucide:trending-up'}></span>
-            </div>
-
             <div className="stat-card gradient-green card-hover fade-in-up delay-3">
               <div className="stat-card-bg"></div>
               <div className="stat-card-content">
@@ -214,68 +180,36 @@ export default function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="charts-grid">
-            <div className="chart-card card-hover fade-in-up delay-2">
-              <h3>Attendance Trend</h3>
-              <p className="chart-subtitle">Weekly attendance rate comparison</p>
-              {isHoliday ? (
-                <div className="glass-empty" style={{ height: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-                  <h3>No work today!</h3>
-                  <p>Happy holiday!</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={attendanceTrend}>
-                    <defs>
-                      <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="day" stroke="#71717a" tick={{ fontSize: 12 }} />
-                    <YAxis stroke="#71717a" tick={{ fontSize: 12 }} domain={[60, 100]} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Area type="monotone" dataKey="attendance" stroke="#6366f1" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="previous" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            <div className="chart-card card-hover fade-in-up delay-3">
-              <h3>Leave Distribution</h3>
-              <p className="chart-subtitle">Your available leave balance</p>
-              {isHoliday ? (
-                <div className="glass-empty" style={{ height: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
-                  <h3>No work today!</h3>
-                  <p>Happy holiday!</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={leaveData.filter(d => d.value > 0)}
-                      cx="50%" cy="50%"
-                      innerRadius={60} outerRadius={100}
-                      paddingAngle={4} dataKey="value"
-                    >
-                      {leaveData.filter(d => d.value > 0).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend
-                      wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div className="chart-card card-hover fade-in-up delay-2">
+            <h3>Leave Distribution</h3>
+            <p className="chart-subtitle">Your available leave balance</p>
+            {isHoliday ? (
+              <div className="glass-empty" style={{ height: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                <h3>No work today!</h3>
+                <p>Happy holiday!</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={leaveData.filter(d => d.value > 0)}
+                    cx="50%" cy="50%"
+                    innerRadius={60} outerRadius={100}
+                    paddingAngle={4} dataKey="value"
+                  >
+                    {leaveData.filter(d => d.value > 0).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend
+                    wrapperStyle={{ fontSize: '12px' }}
+                    formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <div className="section-card glass-card card-hover fade-in-up delay-3">
@@ -320,6 +254,73 @@ export default function EmployeeDashboard() {
                     <div className="goal-progress-fill fill-green" style={{ width: '90%' }}></div>
                   </div>
                   <p className="goal-desc">Maintain active participation in team meetings and projects</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="section-card glass-card card-hover fade-in-up delay-3">
+            <div className="section-card-header glass-card-header">
+              <h2>Performance Overview</h2>
+            </div>
+            <div className="glass-card-body">
+              <div className="goals-grid">
+                <div className="goal-card glass-detail-row">
+                  <span className="iconify goal-icon" data-icon="lucide:check-circle" style={{ fontSize: 28, color: '#22c55e' }}></span>
+                  <div className="goal-body">
+                    <div className="goal-header-row">
+                      <h4>Tasks Completed</h4>
+                      <span className="goal-percent">
+                        {upcomingTasks.length > 0
+                          ? Math.round((upcomingTasks.filter(t => t.status === 'completed').length / upcomingTasks.length) * 100)
+                          : 0}%
+                      </span>
+                    </div>
+                    <div className="goal-progress-track">
+                      <div className="goal-progress-fill fill-green" style={{
+                        width: `${upcomingTasks.length > 0
+                          ? Math.round((upcomingTasks.filter(t => t.status === 'completed').length / upcomingTasks.length) * 100)
+                          : 0}%`
+                      }}></div>
+                    </div>
+                    <p className="goal-desc">
+                      {upcomingTasks.filter(t => t.status === 'completed').length} of {upcomingTasks.length} tasks completed
+                    </p>
+                  </div>
+                </div>
+                <div className="goal-card glass-detail-row">
+                  <span className="iconify goal-icon" data-icon="lucide:activity" style={{ fontSize: 28, color: '#818cf8' }}></span>
+                  <div className="goal-body">
+                    <div className="goal-header-row">
+                      <h4>Active Tasks</h4>
+                      <span className="goal-percent">
+                        {upcomingTasks.filter(t => t.status === 'in_progress').length}
+                      </span>
+                    </div>
+                    <div className="goal-progress-track">
+                      <div className="goal-progress-fill" style={{
+                        width: `${upcomingTasks.length > 0
+                          ? Math.round((upcomingTasks.filter(t => t.status === 'in_progress').length / upcomingTasks.length) * 100)
+                          : 0}%`
+                      }}></div>
+                    </div>
+                    <p className="goal-desc">Tasks currently in progress</p>
+                  </div>
+                </div>
+                <div className="goal-card glass-detail-row">
+                  <span className="iconify goal-icon" data-icon="lucide:bell" style={{ fontSize: 28, color: '#f59e0b' }}></span>
+                  <div className="goal-body">
+                    <div className="goal-header-row">
+                      <h4>Recent Updates</h4>
+                      <span className="goal-percent">{recentNotifications.length}</span>
+                    </div>
+                    <div className="goal-progress-track">
+                      <div className="goal-progress-fill fill-orange" style={{
+                        width: `${Math.min(100, recentNotifications.length * 20)}%`
+                      }}></div>
+                    </div>
+                    <p className="goal-desc">Notifications this period</p>
+                  </div>
                 </div>
               </div>
             </div>
