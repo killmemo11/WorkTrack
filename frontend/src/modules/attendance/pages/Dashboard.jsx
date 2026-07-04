@@ -271,7 +271,7 @@ export default function Dashboard() {
   const todayDow = now.getDay();
   const isWeekend = todayDow === 5 || todayDow === 6;
   const todayDay = calendarData?.months?.[0]?.days?.find(d => d.date === todayStr);
-  const isHoliday = Boolean(todayDay?.is_off_day || todayDay?.is_holiday);
+  const isHoliday = Boolean(isWeekend || todayDay?.is_off_day || todayDay?.is_holiday);
   const holidayName = todayDay?.holiday_name || '';
   const isMissingSignOut = (day) => day.signed_in && !day.signed_out && !day.is_future && day.date !== todayStr;
 
@@ -317,6 +317,15 @@ export default function Dashboard() {
 
         <div className="dashboard-top-grid">
           <div className="glass-card fade-in-up delay-1">
+            {isHoliday ? (
+              <div className="holiday-greeting">
+                <div className="holiday-icon">🎉</div>
+                <h2>Happy Holiday!</h2>
+                <p>{holidayName || 'Enjoy your day off! 🎊'}</p>
+                <p className="holiday-sub">No attendance tracking needed today</p>
+              </div>
+            ) : (
+              <>
             {!status?.signedIn ? (
               <div className="status-not-started">
                 <div className="status-icon-badge status-pending">
@@ -399,6 +408,8 @@ export default function Dashboard() {
                   Duration: {Math.round((new Date(status.record.sign_out_time) - new Date(status.record.sign_in_time)) / 3600000)}h
                 </p>
               </div>
+              )}
+            </>
             )}
           </div>
 

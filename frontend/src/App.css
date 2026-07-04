@@ -561,6 +561,38 @@ body {
   letter-spacing: 0.06em;
 }
 
+
+/* Holiday greeting card */
+.holiday-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 0;
+  animation: holiday-glow 3s ease-in-out infinite;
+}
+.holiday-greeting .holiday-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  animation: holiday-float 3s ease-in-out infinite;
+}
+.holiday-greeting h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f59e0b;
+  animation: holiday-pulse 2s ease-in-out infinite;
+}
+.holiday-greeting p {
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+.holiday-greeting .holiday-sub {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
 /* Holiday card animation */
 @keyframes holiday-glow {
   0%, 100% { box-shadow: 0 0 20px rgba(245,158,11,0.2), 0 0 40px rgba(139,92,246,0.1); }
