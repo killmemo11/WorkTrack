@@ -648,38 +648,33 @@ export default function Dashboard() {
                                     >
                                       <div className="cal-day-content">
                                         <span className="cal-day-number">{day.day}</span>
-                                        {day.is_holiday && (
-                                          <span className="cal-label cal-label-holiday" title={day.holiday_name}>
-                                            H
-                                          </span>
-                                        )}
-                                        {day.type === 'office' && (
-                                          <span className={`cal-label ${day.signed_out ? 'cal-label-office' : 'cal-label-missing'}`}>
-                                            {day.signed_out ? 'O' : '!'}
-                                          </span>
-                                        )}
-                                        {day.type === 'wfh' && (
-                                          <span className={`cal-label ${day.signed_out ? 'cal-label-wfh' : 'cal-label-missing'}`}>
-                                            {day.signed_out ? 'W' : '!'}
-                                          </span>
-                                        )}
-                                        {day.leaves?.map((lt, i) => (
-                                          <span 
-                                            key={i} 
-                                            className="cal-label" 
-                                            style={{ 
-                                              background: leaveTypeColors[lt] || '#6b7280', 
-                                              color: '#fff', 
-                                              fontSize: '0.65rem',
-                                              marginRight: '2px'
-                                            }}
-                                          >
-                                            {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
-                                          </span>
-                                        ))}
-                                        {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && (
-                                          <span className="cal-label cal-label-absent">A</span>
-                                        )}
+                                        <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+                                          {day.is_holiday && (
+                                            <span className="cal-label cal-label-holiday">H</span>
+                                          )}
+                                          {day.type === 'office' && (
+                                            <span className={`cal-label ${day.signed_out ? 'cal-label-office' : 'cal-label-missing'}`}>
+                                              {day.signed_out ? 'O' : '!'}
+                                            </span>
+                                          )}
+                                          {day.type === 'wfh' && (
+                                            <span className={`cal-label ${day.signed_out ? 'cal-label-wfh' : 'cal-label-missing'}`}>
+                                              {day.signed_out ? 'W' : '!'}
+                                            </span>
+                                          )}
+                                          {day.leaves?.map((lt, i) => (
+                                            <span key={i} className="cal-label" style={{
+                                              background: leaveTypeColors[lt] || '#6b7280',
+                                              color: '#fff',
+                                              fontSize: '0.6rem'
+                                            }}>
+                                              {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
+                                            </span>
+                                          ))}
+                                          {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && (
+                                            <span className="cal-label cal-label-absent">A</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </td>
                                   );

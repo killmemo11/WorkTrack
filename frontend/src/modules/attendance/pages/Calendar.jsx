@@ -190,21 +190,9 @@ export default function Calendar() {
                             onClick={() => setSelectedDay(day)}
                             title={day.is_holiday ? day.holiday_name : day.leaves?.length > 0 ? `Leave: ${day.leaves.join(', ')}` : ''}
                           >
-                            <div className="cal-day-content" style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 3,
-                              padding: '6px 4px'
-                            }}>
-                              <span className="cal-day-number" style={{
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                color: 'var(--text-primary)',
-                                lineHeight: 1.3
-                              }}>{day.day}</span>
-                              <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <div className="cal-day-content">
+                              <span className="cal-day-number">{day.day}</span>
+                              <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
                                 {day.is_holiday && (
                                   <span className="cal-label cal-label-holiday">H</span>
                                 )}
