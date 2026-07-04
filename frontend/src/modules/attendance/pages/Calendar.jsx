@@ -221,14 +221,7 @@ export default function Calendar() {
               </table>
             </div>
 
-            <div className="calendar-legend" style={{
-              padding: '14px 20px',
-              borderTop: '1px solid var(--border-glass)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 16,
-              justifyContent: 'center'
-            }}>
+            <div className="calendar-legend">
               {[
                 { color: '#22c55e', label: 'Office' },
                 { color: '#3b82f6', label: 'WFH' },
@@ -239,18 +232,8 @@ export default function Calendar() {
                 { color: '#8b5cf6', label: 'Annual' },
                 { color: '#ef4444', label: 'Sick' },
               ].map((item) => (
-                <div key={item.label} className="legend-item" style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted)'
-                }}>
+                <div key={item.label} className="legend-item">
                   <span className="legend-dot" style={{
-                    display: 'inline-block',
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
                     background: item.isMissing ? 'transparent' : item.color,
                     border: item.isMissing ? '1.5px solid #ef4444' : 'none',
                     position: 'relative'

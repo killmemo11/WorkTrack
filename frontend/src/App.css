@@ -1340,13 +1340,14 @@ body {
 
 .calendar-legend {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-  padding-top: 16px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border-glass);
   font-size: 0.8rem;
   color: var(--text-dim);
+  justify-content: center;
 }
 
 .legend-row {

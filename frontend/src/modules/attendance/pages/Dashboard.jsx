@@ -677,14 +677,7 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              <div className="calendar-legend" style={{ 
-                padding: '16px 20px', 
-                borderTop: '1px solid var(--border-subtle)',
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 20,
-                justifyContent: 'center'
-              }}>
+              <div className="calendar-legend" style={{ gap: 12 }}>
                 <div className="legend-row">
                   <div className="legend-item">
                     <span className="legend-dot" style={{background:'#22c55e'}}></span>
