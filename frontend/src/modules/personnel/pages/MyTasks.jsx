@@ -52,6 +52,22 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date();
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
     <div 
       className={`glass-card card-hover fade-in-up ${isSelected ? 'selected-task' : ''}`} 
@@ -84,7 +100,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
             {task.due_date && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span className="iconify" data-icon="lucide:calendar" style={{ fontSize: 12 }}></span>
-                Due {task.due_date}
+                Due {formatDate(task.due_date)}
               </span>
             )}
             {task.assigned_by_name && (
@@ -153,6 +169,32 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
 const TaskDetailsModal = ({ task, onClose }) => {
   if (!task) return null;
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: 'var(--warning)',
+      in_progress: 'var(--info)',
+      completed: 'var(--success)',
+      cancelled: 'var(--danger)'
+    };
+    return colors[status] || 'var(--text)';
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -173,29 +215,58 @@ const TaskDetailsModal = ({ task, onClose }) => {
               </div>
               <div className="info-row">
                 <span className="label">Status:</span>
-                <span className={`badge ${STATUS_CONFIG.badges[task.status]}`}>
+                <span 
+                  className={`badge ${STATUS_CONFIG.badges[task.status]}`}
+                  style={{ color: getStatusColor(task.status) }}
+                >
                   {STATUS_CONFIG.labels[task.status]}
                 </span>
               </div>
               <div className="info-row">
                 <span className="label">Due Date:</span>
-                <span>{task.due_date || 'Not set'}</span>
+                <span>{formatDate(task.due_date)}</span>
               </div>
               <div className="info-row">
                 <span className="label">Assigned by:</span>
                 <span>{task.assigned_by_name || 'Unknown'}</span>
               </div>
+              <div className="info-row">
+                <span className="label">Created:</span>
+                <span>{formatDate(task.created_at)}</span>
+              </div>
+              <div className="info-row">
+                <span className="label">Updated:</span>
+                <span>{formatDate(task.updated_at)}</span>
+              </div>
             </div>
+            
             {task.description && (
               <div className="task-description">
                 <h3>Description</h3>
                 <p>{task.description}</p>
               </div>
             )}
+            
             {task.notes && (
               <div className="task-notes">
                 <h3>Notes</h3>
                 <p>{task.notes}</p>
+              </div>
+            )}
+            
+            {task.attachments && task.attachments.length > 0 && (
+              <div className="task-attachments">
+                <h3>Attachments</h3>
+                <div className="attachments-list">
+                  {task.attachments.map((attachment, idx) => (
+                    <div key={idx} className="attachment-item">
+                      <span className="iconify" data-icon="lucide:paperclip" style={{ marginRight: 8 }} />
+                      <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                        {attachment.filename}
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -588,6 +659,8 @@ export default function MyTasks() {
   const [bulkStatus, setBulkStatus] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban' or 'calendar'
   const [stats, setStats] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   const pageRef = useRef(page);
 
   useEffect(() => {
@@ -635,10 +708,21 @@ export default function MyTasks() {
     }
   }, []);
 
+  const fetchUserRole = useCallback(async () => {
+    try {
+      const response = await api.get('/auth/me');
+      setUserRole(response.data.role);
+      setTeamMembers(response.data.team_members || []);
+    } catch (err) {
+      console.error('Failed to fetch user role:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTasks();
     fetchStats();
-  }, [fetchTasks, fetchStats]);
+    fetchUserRole();
+  }, [fetchTasks, fetchStats, fetchUserRole]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -752,6 +836,8 @@ export default function MyTasks() {
     return true;
   });
 
+  const canCreateTasks = userRole === 'manager' && teamMembers.length > 0;
+
   if (loading && page === 1) {
     return (
       <div className="glass-loading">
@@ -782,13 +868,15 @@ export default function MyTasks() {
           <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Tasks assigned to you by your manager</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            className="glass-btn glass-btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 4 }}></span>
-            Create Task
-          </button>
+          {canCreateTasks && (
+            <button
+              className="glass-btn glass-btn-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 4 }}></span>
+              Create Task
+            </button>
+          )}
           <div className="view-mode-toggle" style={{ display: 'flex', gap: 4 }}>
             <button
               className={`glass-btn ${viewMode === 'list' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
