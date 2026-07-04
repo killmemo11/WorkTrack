@@ -194,7 +194,8 @@ export default function Calendar() {
                         <th key={h} className="calendar-header" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '12px 8px', textAlign: 'center' }}>
                         {h}
                       </th>
-                    </tr>
+                    ))}
+                  </tr>
                   </thead>
                   <tbody>
                     {grid.map((week, wi) => (
