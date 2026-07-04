@@ -505,7 +505,15 @@ export default function Dashboard() {
                 <p className="chart-subtitle">A quick view of your attendance mix</p>
               </div>
             </div>
-            {pieData.length > 0 ? (
+            {isHoliday ? (
+              <div className="glass-empty" style={{ padding: '40px 0', textAlign: 'center' }}>
+                <div className="holiday-greeting">
+                  <div className="holiday-icon">🎉</div>
+                  <h3>Happy Holiday!</h3>
+                  <p>No attendance tracking today</p>
+                </div>
+              </div>
+            ) : pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72} innerRadius={44}>
@@ -519,7 +527,23 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {barData.length > 1 && (
+        {isHoliday ? (
+          <div className="chart-card fade-in-up">
+            <div className="chart-card-header">
+              <div>
+                <h3 className="chart-title">Holiday Time! 🎉</h3>
+                <p className="chart-subtitle">Enjoy your well-deserved break</p>
+              </div>
+            </div>
+            <div className="chart-container" style={{ height: '260px', position: 'relative' }}>
+              <div className="glass-empty" style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                <h3>No work today!</h3>
+                <p>Happy holiday!</p>
+              </div>
+            </div>
+          </div>
+        ) : barData.length > 1 && (
           <div className="chart-card fade-in-up">
             <div className="chart-card-header">
               <div>

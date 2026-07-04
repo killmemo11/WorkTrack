@@ -208,47 +208,63 @@ export default function EmployeeDashboard() {
             <div className="chart-card card-hover fade-in-up delay-2">
               <h3>Attendance Trend</h3>
               <p className="chart-subtitle">Weekly attendance rate comparison</p>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={attendanceTrend}>
-                  <defs>
-                    <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" stroke="#71717a" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="#71717a" tick={{ fontSize: 12 }} domain={[60, 100]} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Area type="monotone" dataKey="attendance" stroke="#6366f1" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={2} />
-                  <Line type="monotone" dataKey="previous" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {isHoliday ? (
+                <div className="glass-empty" style={{ height: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                  <h3>No work today!</h3>
+                  <p>Happy holiday!</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={attendanceTrend}>
+                    <defs>
+                      <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="day" stroke="#71717a" tick={{ fontSize: 12 }} />
+                    <YAxis stroke="#71717a" tick={{ fontSize: 12 }} domain={[60, 100]} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Area type="monotone" dataKey="attendance" stroke="#6366f1" fillOpacity={1} fill="url(#colorAtt)" strokeWidth={2} />
+                    <Line type="monotone" dataKey="previous" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             <div className="chart-card card-hover fade-in-up delay-3">
               <h3>Leave Distribution</h3>
               <p className="chart-subtitle">Your available leave balance</p>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={leaveData.filter(d => d.value > 0)}
-                    cx="50%" cy="50%"
-                    innerRadius={60} outerRadius={100}
-                    paddingAngle={4} dataKey="value"
-                  >
-                    {leaveData.filter(d => d.value > 0).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend
-                    wrapperStyle={{ fontSize: '12px' }}
-                    formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {isHoliday ? (
+                <div className="glass-empty" style={{ height: '250px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <div className="holiday-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                  <h3>No work today!</h3>
+                  <p>Happy holiday!</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={leaveData.filter(d => d.value > 0)}
+                      cx="50%" cy="50%"
+                      innerRadius={60} outerRadius={100}
+                      paddingAngle={4} dataKey="value"
+                    >
+                      {leaveData.filter(d => d.value > 0).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend
+                      wrapperStyle={{ fontSize: '12px' }}
+                      formatter={(value) => <span style={{ color: '#a1a1aa' }}>{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
