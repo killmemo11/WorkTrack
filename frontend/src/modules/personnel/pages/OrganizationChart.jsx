@@ -18,7 +18,7 @@ export default function OrganizationChart() {
   const [hoveredEmployee, setHoveredEmployee] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [expandedDepts, setExpandedDepts] = useState(new Set());
+  const [expandedDepts, setExpandedDepts] = useState(() => new Set());
   const [filters, setFilters] = useState({});
   const containerRef = useRef(null);
 
@@ -44,6 +44,8 @@ export default function OrganizationChart() {
       .then(([orgRes, hcRes]) => {
         setData(orgRes.data);
         setHeadcount(hcRes.data.byDepartment);
+        const deptIds = new Set(orgRes.data.employees.map(e => String(e.department_id || 'other')));
+        setExpandedDepts(deptIds);
         setTimeout(() => setAnimateCards(true), 100);
       })
       .catch((err) => {
@@ -383,6 +385,8 @@ export default function OrganizationChart() {
                   setHoveredEmployee={setHoveredEmployee}
                   selectedEmployee={selectedEmployee}
                   setSelectedEmployee={setSelectedEmployee}
+                  expandedDepts={expandedDepts}
+                  toggleDept={toggleDept}
                 />
               </motion.div>
             </Fragment>
@@ -745,7 +749,7 @@ function ConnectorRow({ activeDepts, prevDepts, currDepts, numCols }) {
   );
 }
 
-function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, headcountMap, numCols, hoveredEmployee, setHoveredEmployee, selectedEmployee, setSelectedEmployee }) {
+function GradeBand({ grade, activeDepts, managerEmails, supervisorIds, headcountMap, numCols, hoveredEmployee, setHoveredEmployee, selectedEmployee, setSelectedEmployee, expandedDepts, toggleDept }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
