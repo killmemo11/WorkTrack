@@ -7,6 +7,7 @@ export default function OrganizationChart() {
   const [data, setData] = useState(null);
   const [headcount, setHeadcount] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [hoveredEmployee, setHoveredEmployee] = useState(null);
@@ -23,7 +24,11 @@ export default function OrganizationChart() {
         setHeadcount(hcRes.data.byDepartment);
         setTimeout(() => setAnimateCards(true), 100);
       })
-      .catch(() => {})
+      .catch((err) => {
+        const msg = err.response?.data?.error || err.message || 'Unknown error';
+        console.error('Organization chart error:', msg, err);
+        setError(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -96,8 +101,28 @@ export default function OrganizationChart() {
     return data.employees.find(e => e.id === selectedEmployee) || null;
   }, [selectedEmployee, data]);
 
-  if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
-  if (!data) return <div className="glass-alert glass-alert-danger">Could not load organization chart.</div>;
+  if (loading) return (
+    <div className="page">
+      <div className="glass-loading"><div className="spinner" /><span>Loading organization chart...</span></div>
+    </div>
+  );
+  if (error) return (
+    <div className="page">
+      <div className="glass-alert glass-alert-danger">
+        <span className="iconify" data-icon="lucide:alert-circle" style={{ marginRight: 8 }} />
+        Could not load organization chart.
+        <br /><small style={{ opacity: 0.7 }}>{error}</small>
+      </div>
+    </div>
+  );
+  if (!data) return (
+    <div className="page">
+      <div className="glass-alert glass-alert-danger">
+        <span className="iconify" data-icon="lucide:alert-circle" style={{ marginRight: 8 }} />
+        Could not load organization chart.
+      </div>
+    </div>
+  );
 
   const numCols = activeDepts.length;
 
