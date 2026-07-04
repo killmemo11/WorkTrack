@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../../shared/api';
 
@@ -21,18 +21,28 @@ export default function Calendar() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const fetchCalendarData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const dateTo = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+      const response = await api.get(`/attendance/calendar?date_from=${dateFrom}&date_to=${dateTo}`);
+      setData(response.data);
+    } catch (error) {
+      console.error('Error fetching calendar data:', error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [year, month]);
 
   useEffect(() => {
-    setLoading(true);
-    const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const dateTo = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
-    api.get(`/attendance/calendar?date_from=${dateFrom}&date_to=${dateTo}`)
-      .then((res) => setData(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchCalendarData();
     setSearchParams({ year, month }, { replace: true });
-  }, [year, month]);
+  }, [year, month, fetchCalendarData, setSearchParams]);
 
   const prevMonth = () => {
     if (month === 1) { setYear(y => y - 1); setMonth(12); }
@@ -46,6 +56,9 @@ export default function Calendar() {
     const d = new Date();
     setYear(d.getFullYear());
     setMonth(d.getMonth() + 1);
+  };
+  const refreshData = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   function buildCalendarGrid(monthDays) {
@@ -105,86 +118,200 @@ export default function Calendar() {
   return (
     <div className="page">
       <div className="glass-page-header">
-        <div>
-          <h1>Attendance Calendar</h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>View your attendance by month</p>
+        <div className="page-header-content">
+          <div>
+            <h1>Attendance Calendar</h1>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>View and manage your attendance schedule</p>
+          </div>
+          <div className="header-actions">
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={refreshData} title="Refresh data">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="calendar-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', marginBottom: 16 }}>
-        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={prevMonth}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-        <h2 className="calendar-nav-title" style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>{monthNames[month - 1]} {year}</h2>
-        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={nextMonth}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-        {!isCurrentMonth && <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={goToday}>Today</button>}
+      <div className="calendar-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', marginBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div className="nav-buttons">
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={prevMonth}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+          <h2 className="calendar-nav-title" style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, padding: '0 16px' }}>
+            {monthNames[month - 1]} {year}
+          </h2>
+          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={nextMonth}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+        <div className="nav-actions">
+          {!isCurrentMonth && (
+            <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={goToday}>
+              Today
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && (
-        <div className="glass-loading">
+        <div className="glass-loading" style={{ padding: '40px 0', textAlign: 'center' }}>
           <div className="spinner" />
-          <span>Loading...</span>
+          <span>Loading calendar data...</span>
         </div>
       )}
 
       {!loading && data && monthDays && (
-        <div className="glass-card calendar-card">
-          {data.date_from && (
-            <div className="calendar-header" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                Period: {data.date_from} → {data.date_to}
+        <div className="calendar-container">
+          <div className="calendar-info" style={{ padding: '0 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="period-info" style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+              Period: {data.date_from} → {data.date_to}
+            </div>
+            <div className="stats-summary" style={{ display: 'flex', gap: 16, fontSize: '0.85rem' }}>
+              <span style={{ color: 'var(--text-dim)' }}>
+                {data.months[0].days.filter(d => d.in_period).length} days in period
+              </span>
+              <span style={{ color: 'var(--text-dim)' }}>
+                {data.months[0].days.filter(d => d.signed_in).length} days recorded
               </span>
             </div>
-          )}
-          <table className="calendar-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {dayHeaders.map((h) => <th key={h} style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 4px', textAlign: 'center' }}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {grid.map((week, wi) => (
-                <tr key={wi}>
-                  {week.map((day, di) => {
-                    if (!day) return <td key={di} className="cal-empty" style={{ padding: 0 }}></td>;
-                    return (
-                      <td key={di} className={getDayClass(day)} onClick={() => setSelectedDay(day)}>
-                        <span className="cal-day-number">{day.day}</span>
-                        {day.is_holiday && <span className="cal-label cal-label-holiday" title={day.holiday_name}>H</span>}
-                        {day.type === 'office' && <span className="cal-label cal-label-office">O</span>}
-                        {day.type === 'wfh' && <span className="cal-label cal-label-wfh">W</span>}
-                        {day.leaves?.map((lt, i) => (
-                          <span key={i} className="cal-label" style={{ background: leaveTypeColors[lt] || '#6b7280', color: '#fff', fontSize: '0.65rem' }}>
-                            {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
-                          </span>
-                        ))}
-                        {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && <span className="cal-label cal-label-absent">A</span>}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="calendar-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '14px 16px', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#22c55e'}}></span> Office</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#3b82f6'}}></span> WFH</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#ef4444'}}></span> Absent</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#f59e0b'}}></span> Holiday</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'rgba(255,255,255,0.15)'}}></span> Off Day</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#8b5cf6'}}></span> Annual</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#ef4444'}}></span> Sick</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--text-dim)' }}><span className="legend-dot" style={{background:'#f59e0b'}}></span> Casual</span>
+          </div>
+
+          <div className="calendar-months">
+            <div className="calendar-month">
+              <h4 className="calendar-month-title" style={{ fontSize: '1.1rem', fontWeight: 600, padding: '0 20px 12px', color: 'var(--text-primary)' }}>
+                {monthNames[month - 1]} {year}
+              </h4>
+              <div className="calendar-table-wrapper" style={{ overflowX: 'auto' }}>
+                <table className="glass-calendar-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {dayHeaders.map((h) => (
+                        <th key={h} className="calendar-header" style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '12px 8px', textAlign: 'center' }}>
+                        {h}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grid.map((week, wi) => (
+                      <tr key={wi}>
+                        {week.map((day, di) => {
+                          if (!day) return <td key={di} className="cal-empty" style={{ padding: 0 }}></td>;
+                          return (
+                            <td 
+                              key={di} 
+                              className={getDayClass(day)} 
+                              onClick={() => setSelectedDay(day)}
+                              title={day.is_holiday ? day.holiday_name : day.leaves?.length > 0 ? `Leave: ${day.leaves.join(', ')}` : ''}
+                            >
+                              <div className="cal-day-content">
+                                <span className="cal-day-number">{day.day}</span>
+                                {day.is_holiday && (
+                                  <span className="cal-label cal-label-holiday" title={day.holiday_name}>
+                                    H
+                                  </span>
+                                )}
+                                {day.type === 'office' && (
+                                  <span className={`cal-label ${day.signed_out ? 'cal-label-office' : 'cal-label-missing'}`}>
+                                    {day.signed_out ? 'O' : '!'}
+                                  </span>
+                                )}
+                                {day.type === 'wfh' && (
+                                  <span className={`cal-label ${day.signed_out ? 'cal-label-wfh' : 'cal-label-missing'}`}>
+                                    {day.signed_out ? 'W' : '!'}
+                                  </span>
+                                )}
+                                {day.leaves?.map((lt, i) => (
+                                  <span 
+                                    key={i} 
+                                    className="cal-label" 
+                                    style={{ 
+                                      background: leaveTypeColors[lt] || '#6b7280', 
+                                      color: '#fff', 
+                                      fontSize: '0.65rem',
+                                      marginRight: '2px'
+                                    }}
+                                  >
+                                    {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
+                                  </span>
+                                ))}
+                                {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && (
+                                  <span className="cal-label cal-label-absent">A</span>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="calendar-legend" style={{ 
+            padding: '16px 20px', 
+            borderTop: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 20,
+            justifyContent: 'center'
+          }}>
+            <div className="legend-row">
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#22c55e'}}></span>
+                <span>Office</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#3b82f6'}}></span>
+                <span>WFH</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#ef4444'}}></span>
+                <span>Absent</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#f59e0b'}}></span>
+                <span>Holiday</span>
+              </div>
+            </div>
+            <div className="legend-row">
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#475569'}}></span>
+                <span>Off Day</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background: '#450a0a', border: '1px solid #ef4444', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span>
+                <span>Missing Out</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#8b5cf6'}}></span>
+                <span>Annual</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-dot" style={{background:'#ef4444'}}></span>
+                <span>Sick</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {!loading && !data?.months?.[0]?.days && (
-        <div className="glass-empty">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-          <h3>No calendar data available.</h3>
+        <div className="glass-empty" style={{ padding: '60px 0', textAlign: 'center' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+            <line x1="16" x2="16" y1="2" y2="6"/>
+            <line x1="8" x2="8" y1="2" y2="6"/>
+            <line x1="3" x2="21" y1="10" y2="10"/>
+          </svg>
+          <h3 style={{ marginTop: '16px', fontSize: '1.1rem', color: 'var(--text-primary)' }}>No calendar data available</h3>
+          <p style={{ color: 'var(--text-dim)', marginTop: '8px' }}>Try selecting a different month or contact your administrator.</p>
         </div>
       )}
 
@@ -194,29 +321,53 @@ export default function Calendar() {
             <div className="glass-modal-header">
               <h2>{monthNames[selectedDay.month - 1]} {selectedDay.day}, {selectedDay.year}</h2>
               <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setSelectedDay(null)}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
               </button>
             </div>
-            <table className="day-detail-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {getDayDetails(selectedDay).map((detail, i) => {
-                  const colonIdx = detail.indexOf(':');
-                  if (colonIdx > 0) {
+            <div className="day-details-content">
+              <table className="day-detail-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  {getDayDetails(selectedDay).map((detail, i) => {
+                    const colonIdx = detail.indexOf(':');
+                    if (colonIdx > 0) {
+                      return (
+                        <tr key={i}>
+                          <td style={{ padding: '12px 0', color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: 500 }}>
+                            {detail.slice(0, colonIdx)}
+                          </td>
+                          <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                            <strong style={{ fontSize: '0.95rem' }}>{detail.slice(colonIdx + 1).trim()}</strong>
+                          </td>
+                        </tr>
+                      );
+                    }
                     return (
                       <tr key={i}>
-                        <td style={{ padding: '8px 0', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{detail.slice(0, colonIdx)}</td>
-                        <td style={{ padding: '8px 0', textAlign: 'right' }}><strong>{detail.slice(colonIdx + 1).trim()}</strong></td>
+                        <td colSpan={2} style={{ padding: '12px 0' }}>
+                          <strong style={{ fontSize: '0.95rem' }}>{detail}</strong>
+                        </td>
                       </tr>
                     );
-                  }
-                  return (
-                    <tr key={i}>
-                      <td colSpan={2} style={{ padding: '8px 0' }}><strong>{detail}</strong></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  })}
+                </tbody>
+              </table>
+              
+              {selectedDay.signed_in && !selectedDay.signed_out && !selectedDay.is_future && (
+                <div className="missing-signout-alert glass-alert glass-alert-warning">
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                    Missing Sign-Out on this day
+                  </div>
+                  <button 
+                    className="glass-btn glass-btn-sm glass-btn-danger"
+                    onClick={() => { setSelectedDay(null); navigate('/requests'); }}
+                  >
+                    Submit Sign-Out Request
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setSelectedDay(null)}>Close</button>
             </div>

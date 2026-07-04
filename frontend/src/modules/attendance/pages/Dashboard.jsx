@@ -506,17 +506,25 @@ export default function Dashboard() {
             <div className="chart-card-header">
               <div>
                 <h3 className="chart-title">Monthly Trend</h3>
-                <p className="chart-subtitle">Office vs WFH across recent months</p>
+                <p className="chart-subtitle">Office vs WFH attendance over the past 6 months</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={barData} barGap={4}>
-                <CartesianGrid vertical={false} stroke="#334155" />
+              <BarChart data={barData} barGap={8}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Bar dataKey="office" name="Office" fill={BAR_COLORS.office} radius={[6, 6, 0, 0]} />
-                <Bar dataKey="wfh" name="WFH" fill={BAR_COLORS.wfh} radius={[6, 6, 0, 0]} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1e293b', 
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    padding: '8px'
+                  }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                />
+                <Bar dataKey="office" name="Office" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="wfh" name="WFH" fill="#3b82f6" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -531,11 +539,16 @@ export default function Dashboard() {
 
         <div className="glass-grid">
           {quickActions.map((a) => (
-            <div key={a.label} className="glass-card card-hover fade-in-up quick-action-card" style={{ borderLeftColor: a.color }}
-              onClick={() => navigate(a.path)}>
-              <span className="quick-action-icon">
-                <span className="iconify" data-icon={`lucide:${a.icon}`} style={{ fontSize: 22, color: 'var(--brand-primary)' }} />
-              </span>
+            <div key={a.label} className="glass-card card-hover fade-in-up quick-action-card" style={{ 
+              borderLeftColor: a.color,
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => navigate(a.path)}>
+              <div className="quick-action-icon">
+                <div className="quick-action-icon-bg" style={{ backgroundColor: a.color + '20' }}>
+                  <span className="iconify" data-icon={`lucide:${a.icon}`} style={{ fontSize: 24, color: a.color }} />
+                </div>
+              </div>
               <div className="quick-action-text">
                 <span className="quick-action-label">{a.label}</span>
                 <span className="quick-action-meta">{a.meta}</span>
@@ -545,65 +558,126 @@ export default function Dashboard() {
         </div>
 
         {calendarData && (
-          <div className="glass-card fade-in-up">
+          <div className="glass-card fade-in-up" style={{ marginTop: '24px' }}>
             <div className="glass-card-header">
               <h3>Attendance Calendar</h3>
               <span className="glass-badge glass-badge-default">
                 Period: {calendarData.date_from} → {calendarData.date_to}
               </span>
             </div>
-            <div className="calendar-months">
-              {calendarData.months.map((m) => {
-                const grid = buildCalendarGrid(m.days);
-                return (
-                  <div key={`${m.year}-${m.month}`} className="calendar-month">
-                    <h4>{monthNames[m.month - 1]} {m.year}</h4>
-                    <table className="glass-calendar-table">
-                      <thead>
-                        <tr>
-                          {dayHeaders.map((h) => <th key={h}>{h}</th>)}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {grid.map((week, wi) => (
-                          <tr key={wi}>
-                            {week.map((day, di) => {
-                              if (!day) return <td key={di} className="cal-empty"></td>;
-                              return (
-                                <td key={di} className={getDayClass(day)} onClick={() => setSelectedDay(day)}>
-                                  <span className="cal-day-number">{day.day}</span>
-                                  {day.is_holiday && <span className="cal-label cal-label-holiday" title={day.holiday_name}>H</span>}
-                                  {day.type === 'office' && !isMissingSignOut(day) && <span className="cal-label cal-label-office">O</span>}
-                                  {day.type === 'office' && isMissingSignOut(day) && <span className="cal-label cal-label-missing" title="Missing sign-out">O</span>}
-                                  {day.type === 'wfh' && !isMissingSignOut(day) && <span className="cal-label cal-label-wfh">W</span>}
-                                  {day.type === 'wfh' && isMissingSignOut(day) && <span className="cal-label cal-label-missing" title="Missing sign-out">W</span>}
-                                  {day.leaves?.map((lt, i) => (
-                                    <span key={i} className="cal-label" style={{ background: leaveTypeColors[lt] || '#6b7280', color: '#fff', fontSize: '0.65rem' }}>
-                                      {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
-                                    </span>
-                                  ))}
-                                  {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && <span className="cal-label cal-label-absent">A</span>}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            <div className="calendar-container">
+              <div className="calendar-months">
+                {calendarData.months.map((m) => {
+                  const grid = buildCalendarGrid(m.days);
+                  return (
+                    <div key={`${m.year}-${m.month}`} className="calendar-month">
+                      <h4 className="calendar-month-title">{monthNames[m.month - 1]} {m.year}</h4>
+                      <div className="calendar-table-wrapper">
+                        <table className="glass-calendar-table">
+                          <thead>
+                            <tr>
+                              {dayHeaders.map((h) => (
+                                <th key={h} className="calendar-header">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {grid.map((week, wi) => (
+                              <tr key={wi}>
+                                {week.map((day, di) => {
+                                  if (!day) return <td key={di} className="cal-empty"></td>;
+                                  return (
+                                    <td 
+                                      key={di} 
+                                      className={getDayClass(day)} 
+                                      onClick={() => setSelectedDay(day)}
+                                      title={day.is_holiday ? day.holiday_name : day.leaves?.length > 0 ? `Leave: ${day.leaves.join(', ')}` : ''}
+                                    >
+                                      <div className="cal-day-content">
+                                        <span className="cal-day-number">{day.day}</span>
+                                        {day.is_holiday && (
+                                          <span className="cal-label cal-label-holiday" title={day.holiday_name}>
+                                            H
+                                          </span>
+                                        )}
+                                        {day.type === 'office' && (
+                                          <span className={`cal-label ${isMissingSignOut(day) ? 'cal-label-missing' : 'cal-label-office'}`}>
+                                            {isMissingSignOut(day) ? '!' : 'O'}
+                                          </span>
+                                        )}
+                                        {day.type === 'wfh' && (
+                                          <span className={`cal-label ${isMissingSignOut(day) ? 'cal-label-missing' : 'cal-label-wfh'}`}>
+                                            {isMissingSignOut(day) ? '!' : 'W'}
+                                          </span>
+                                        )}
+                                        {day.leaves?.map((lt, i) => (
+                                          <span 
+                                            key={i} 
+                                            className="cal-label" 
+                                            style={{ 
+                                              background: leaveTypeColors[lt] || '#6b7280', 
+                                              color: '#fff', 
+                                              fontSize: '0.65rem',
+                                              marginRight: '2px'
+                                            }}
+                                          >
+                                            {leaveTypeLabels[lt] || lt.charAt(0).toUpperCase()}
+                                          </span>
+                                        ))}
+                                        {!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0 && (
+                                          <span className="cal-label cal-label-absent">A</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="calendar-legend">
+                <div className="legend-row">
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#22c55e'}}></span>
+                    <span>Office</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="calendar-legend">
-              <span><span className="legend-dot" style={{background:'#22c55e'}}></span> Office</span>
-              <span><span className="legend-dot" style={{background:'#3b82f6'}}></span> WFH</span>
-              <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Absent</span>
-              <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Holiday</span>
-              <span><span className="legend-dot" style={{background:'#475569'}}></span> Off Day</span>
-              <span><span className="legend-dot" style={{background: '#450a0a', border: '1px solid #ef4444', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span> Missing Out</span>
-              <span><span className="legend-dot" style={{background:'#4f46e5'}}></span> Annual</span>
-              <span><span className="legend-dot" style={{background:'#ef4444'}}></span> Sick</span>
-              <span><span className="legend-dot" style={{background:'#f59e0b'}}></span> Casual</span>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#3b82f6'}}></span>
+                    <span>WFH</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#ef4444'}}></span>
+                    <span>Absent</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#f59e0b'}}></span>
+                    <span>Holiday</span>
+                  </div>
+                </div>
+                <div className="legend-row">
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#475569'}}></span>
+                    <span>Off Day</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background: '#450a0a', border: '1px solid #ef4444', color: '#ef4444', fontSize: '0.6rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>!</span>
+                    <span>Missing Out</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#4f46e5'}}></span>
+                    <span>Annual</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{background:'#ef4444'}}></span>
+                    <span>Sick</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
