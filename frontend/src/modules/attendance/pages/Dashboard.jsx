@@ -481,21 +481,33 @@ export default function Dashboard() {
 
         <div className="charts-grid">
           <div className="chart-card fade-in-up">
-            <div className="chart-card-header">
-              <div>
-                <h3 className="chart-title">Attendance Rate</h3>
-                <p className="chart-subtitle">Your consistency across the current month</p>
+            {isHoliday ? (
+              <div className="chart-card-header">
+                <div>
+                  <h3 className="chart-title">🎉 Holiday Time</h3>
+                  <p className="chart-subtitle">Enjoy your well-deserved break</p>
+                </div>
+                <span className="glass-badge glass-badge-warning">Holiday! 🎉</span>
               </div>
-              <span className={`glass-badge ${attendanceRate >= 90 ? 'glass-badge-success' : attendanceRate >= 75 ? 'glass-badge-warning' : 'glass-badge-danger'}`}>
-                {attendanceRate}%
-              </span>
-            </div>
-            <div className="stat-bar">
-              <div className="stat-bar-fill" style={{ width: `${attendanceRate}%`, background: attendanceRate >= 90 ? '#22c55e' : attendanceRate >= 75 ? '#f59e0b' : '#ef4444' }} />
-            </div>
-            <p className="progress-label">
-              {summary?.total_work_days - summary?.absence_days || 0} present out of {summary?.total_work_days || 0} work days
-            </p>
+            ) : (
+              <>
+                <div className="chart-card-header">
+                  <div>
+                    <h3 className="chart-title">Attendance Rate</h3>
+                    <p className="chart-subtitle">Your consistency across the current month</p>
+                  </div>
+                  <span className={`glass-badge ${attendanceRate >= 90 ? 'glass-badge-success' : attendanceRate >= 75 ? 'glass-badge-warning' : 'glass-badge-danger'}`}>
+                    {attendanceRate}%
+                  </span>
+                </div>
+                <div className="stat-bar">
+                  <div className="stat-bar-fill" style={{ width: `${attendanceRate}%`, background: attendanceRate >= 90 ? '#22c55e' : attendanceRate >= 75 ? '#f59e0b' : '#ef4444' }} />
+                </div>
+                <p className="progress-label">
+                  {summary?.total_work_days - summary?.absence_days || 0} present out of {summary?.total_work_days || 0} work days
+                </p>
+              </>
+            )}
           </div>
 
           <div className="chart-card fade-in-up">

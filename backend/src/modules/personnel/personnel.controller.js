@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const { isWorkDay, formatDateCairo } = require('../../shared/utils/work-day.util');
 const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary } = require('./personnel.service');
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
 const { checkHeadcountCapacity, recalcDepartmentMaxHeadcount } = require('../../shared/utils/headcount.util');
@@ -44,13 +45,41 @@ async function getEmployeeDashboard(req, res) {
       [employeeId]
     );
 
+    // Get work week settings
+    const [settingsRows] = await pool.query(
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    );
+    const settings = {};
+    for (const row of settingsRows) settings[row.key] = row.value;
+    const workWeekStart = settings.work_week_start || 'Sunday';
+    const workWeekEnd = settings.work_week_end || 'Thursday';
+
+    // Get holidays for current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const [holidayRows] = await pool.query(
+      'SELECT date FROM holidays WHERE date >= ? AND date <= ?',
+      [formatDateCairo(firstDay), formatDateCairo(lastDay)]
+    );
+    const holidaySet = new Set(holidayRows.map(r => {
+      const d = r.date;
+      return d instanceof Date ? formatDateCairo(d) : d;
+    }));
+
+    // Calculate total work days in current month
+    let totalWorkDays = 0;
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      if (isWorkDay(d, workWeekStart, workWeekEnd) && !holidaySet.has(formatDateCairo(d))) {
+        totalWorkDays++;
+      }
+    }
+
     // Get attendance statistics for this month
     const [monthStats] = await pool.query(
       `SELECT 
-         COUNT(*) as total_days,
-         SUM(CASE WHEN sign_out_time IS NOT NULL THEN 1 ELSE 0 END) as present_days,
-         0 as leave_days,
-         0 as absent_days
+         COUNT(*) as signed_days,
+         SUM(CASE WHEN sign_out_time IS NOT NULL THEN 1 ELSE 0 END) as present_days
        FROM attendance_records 
        WHERE employee_id = ? AND MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())`,
       [employeeId]
@@ -109,12 +138,13 @@ async function getEmployeeDashboard(req, res) {
         status: todayAttendance[0] ? (todayAttendance[0].sign_out_time ? 'signed_out' : 'signed_in') : 'not_signed_in'
       },
       monthlyStats: {
-        totalDays: monthStats[0].total_days || 0,
+        totalDays: totalWorkDays,
         presentDays: monthStats[0].present_days || 0,
-        leaveDays: monthStats[0].leave_days || 0,
-        absentDays: monthStats[0].absent_days || 0,
-        attendanceRate: monthStats[0].total_days ? 
-          Math.round((monthStats[0].present_days / monthStats[0].total_days) * 100) : 0
+        signedDays: monthStats[0].signed_days || 0,
+        leaveDays: 0,
+        absentDays: Math.max(0, totalWorkDays - (monthStats[0].signed_days || 0)),
+        attendanceRate: totalWorkDays ? 
+          Math.round(((monthStats[0].signed_days || 0) / totalWorkDays) * 100) : 0
       },
       leaveBalance: {
         annual: leaveBalance[0].annual_balance || 0,

@@ -4635,6 +4635,7 @@ select.form-control { cursor: pointer; }
 .gradient-blue .stat-label { color: #93c5fd; }
 .gradient-green .stat-label { color: #86efac; }
 .gradient-pink .stat-label { color: #f9a8d4; }
+.gradient-holiday .stat-label { color: #fcd34d; }
 
 .stat-card .stat-value {
   font-size: 1.8rem;

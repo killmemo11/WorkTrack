@@ -170,17 +170,27 @@ export default function EmployeeDashboard() {
               <span className="iconify stat-card-icon" data-icon={statusInfo.icon}></span>
             </div>
 
-            <div className="stat-card gradient-blue card-hover fade-in-up delay-2">
+            <div className={`stat-card ${isHoliday ? 'gradient-holiday' : 'gradient-blue'} card-hover fade-in-up delay-2`}>
               <div className="stat-card-bg"></div>
               <div className="stat-card-content">
-                <div className="stat-label">Attendance Rate</div>
-                <div className="stat-value">{monthlyStats.attendanceRate}%</div>
-                <div className="stat-bar">
-                  <div className="stat-bar-fill" style={{ width: `${monthlyStats.attendanceRate}%` }}></div>
-                </div>
-                <div className="stat-details">{monthlyStats.presentDays} of {monthlyStats.totalDays} days</div>
+                {isHoliday ? (
+                  <>
+                    <div className="stat-label">🎉 Holiday Time</div>
+                    <div className="stat-value holiday-text">🎉 Holiday!</div>
+                    <div className="stat-details" style={{ color: '#fbbf24' }}>Enjoy your day off!</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="stat-label">Attendance Rate</div>
+                    <div className="stat-value">{monthlyStats.attendanceRate}%</div>
+                    <div className="stat-bar">
+                      <div className="stat-bar-fill" style={{ width: `${monthlyStats.attendanceRate}%` }}></div>
+                    </div>
+                    <div className="stat-details">{monthlyStats.signedDays} of {monthlyStats.totalDays} days</div>
+                  </>
+                )}
               </div>
-              <span className="iconify stat-card-icon" data-icon="lucide:trending-up"></span>
+              <span className="iconify stat-card-icon" data-icon={isHoliday ? 'lucide:party-popper' : 'lucide:trending-up'}></span>
             </div>
 
             <div className="stat-card gradient-green card-hover fade-in-up delay-3">
