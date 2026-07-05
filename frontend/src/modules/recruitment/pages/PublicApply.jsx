@@ -221,6 +221,12 @@ export default function PublicApply() {
                   {jobMinReqs.min_experience_years != null && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:calendar" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>{jobMinReqs.min_experience_years}+ years</span>}
                   {(jobMinReqs.required_skills || []).map(s => <span key={s} className="glass-badge glass-badge-info">{s}</span>)}
                   {(jobMinReqs.required_certs || []).map(c => <span key={c} className="glass-badge glass-badge-danger">{c}</span>)}
+                  {jobMinReqs.preferred_skills && jobMinReqs.preferred_skills.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Preferred:</span>
+                      {jobMinReqs.preferred_skills.map(s => <span key={s} className="glass-badge glass-badge-success">{s}</span>)}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

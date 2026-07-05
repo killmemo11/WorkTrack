@@ -428,16 +428,25 @@ async function getActiveJobs(req, res) {
      WHERE j.status = 'active'
      ORDER BY j.created_at DESC`
   );
-  const result = rows.map(r => ({
-    ...r,
-    min_requirements: typeof r.min_requirements === 'string' ? JSON.parse(r.min_requirements) : r.min_requirements,
-    min_requirements: r.min_requirements ? {
-      ...r.min_requirements,
-      required_skills: JSON.parse(r.min_requirements.required_skills || '[]'),
-      required_certs: JSON.parse(r.min_requirements.required_certs || '[]'),
-      preferred_skills: JSON.parse(r.min_requirements.preferred_skills || '[]'),
-    } : null,
-  }));
+  const parseArr = v => {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string') try { return JSON.parse(v); } catch { return []; }
+    return [];
+  };
+  const result = rows.map(r => {
+    const parsed = typeof r.min_requirements === 'string'
+      ? JSON.parse(r.min_requirements)
+      : r.min_requirements;
+    return {
+      ...r,
+      min_requirements: parsed ? {
+        ...parsed,
+        required_skills: parseArr(parsed.required_skills),
+        required_certs: parseArr(parsed.required_certs),
+        preferred_skills: parseArr(parsed.preferred_skills),
+      } : null,
+    };
+  });
   res.json(result);
 }
 
