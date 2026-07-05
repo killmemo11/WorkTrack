@@ -414,6 +414,13 @@ async function publicTrack(req, res) {
 
 // ── Get active jobs (public) ───────────────────────────────────
 async function getActiveJobs(req, res) {
+  const [[allSkills], [allCerts]] = await Promise.all([
+    pool.query('SELECT id, name FROM master_skills'),
+    pool.query('SELECT id, name FROM master_certifications'),
+  ]);
+  const skillMap = Object.fromEntries(allSkills.map(s => [s.id, s.name]));
+  const certMap = Object.fromEntries(allCerts.map(c => [c.id, c.name]));
+
   const [rows] = await pool.query(
     `SELECT j.id, j.title, j.department, j.type, j.technical, j.description, j.created_at,
        JSON_OBJECT(
@@ -437,14 +444,21 @@ async function getActiveJobs(req, res) {
     const parsed = typeof r.min_requirements === 'string'
       ? JSON.parse(r.min_requirements)
       : r.min_requirements;
+    if (!parsed) return { ...r, min_requirements: null };
+    const reqSkills = parseArr(parsed.required_skills);
+    const reqCerts = parseArr(parsed.required_certs);
+    const prefSkills = parseArr(parsed.preferred_skills);
     return {
       ...r,
-      min_requirements: parsed ? {
+      min_requirements: {
         ...parsed,
-        required_skills: parseArr(parsed.required_skills),
-        required_certs: parseArr(parsed.required_certs),
-        preferred_skills: parseArr(parsed.preferred_skills),
-      } : null,
+        required_skills: reqSkills,
+        required_certs: reqCerts,
+        preferred_skills: prefSkills,
+        required_skills_display: reqSkills.map(id => skillMap[parseInt(id, 10)] || `#${id}`),
+        required_certs_display: reqCerts.map(id => certMap[parseInt(id, 10)] || `#${id}`),
+        preferred_skills_display: prefSkills.map(id => skillMap[parseInt(id, 10)] || `#${id}`),
+      },
     };
   });
   res.json(result);
