@@ -48,7 +48,7 @@ export default function Login() {
       <div className="login-card-modern">
         {/* Logo */}
         <div className="login-modern-header">
-          <img src="/logo.png" alt="WorkTrack" className="login-modern-logo" />
+          <img src="/logo.svg" alt="WorkTrack" className="login-modern-logo" />
           <h1>WorkTrack</h1>
           <p>Sign in to your account to continue</p>
         </div>
