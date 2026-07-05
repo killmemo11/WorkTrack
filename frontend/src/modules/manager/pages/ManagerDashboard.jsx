@@ -262,6 +262,26 @@ export default function ManagerDashboard() {
                 </div>
               </div>
 
+              {member.goals && member.goals.length > 0 && (
+                <div className="glass-detail-grid" style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-glass)', paddingTop: '0.5rem' }}>
+                  <div className="glass-detail-row" style={{ gridColumn: '1 / -1', fontSize: '0.75rem', fontWeight: 600, opacity: 0.7, marginBottom: 4 }}>GOALS</div>
+                  {member.goals.slice(0, 2).map(goal => (
+                    <div key={goal.id} className="glass-detail-row" style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                        <span className="iconify" data-icon={goal.icon || 'lucide:target'} style={{ fontSize: 14, color: goal.color || '#818cf8', flexShrink: 0 }}></span>
+                        <span style={{ flex: 1, fontSize: '0.8rem' }}>{goal.title}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{Math.round(goal.progress_percentage)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                  {member.goals.length > 2 && (
+                    <div className="glass-detail-row" style={{ gridColumn: '1 / -1', fontSize: '0.75rem', opacity: 0.5 }}>
+                      +{member.goals.length - 2} more goals
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="glass-modal-footer" style={{ marginTop: '1rem', borderTop: 'none' }}>
                 <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => navigate(`/personnel/${member.id}`)}>
                   <span className="iconify" data-icon="lucide:user"></span>

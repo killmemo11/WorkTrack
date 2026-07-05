@@ -64,6 +64,11 @@ async function getFullProfile(employeeId) {
   );
   employee.statusLog = statusLog;
 
+  const [goals] = await pool.query(
+    'SELECT * FROM employee_goals WHERE employee_id = ? ORDER BY sort_order ASC, id ASC', [employeeId]
+  );
+  employee.goals = goals;
+
   return employee;
 }
 

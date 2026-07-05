@@ -69,6 +69,7 @@ const {
   getGrades, createGrade, updateGrade, deleteGrade,
   getDepartmentTitles, createDepartmentTitle, updateDepartmentTitle, deleteDepartmentTitle,
   getEvaluationCriteria, saveEvaluationCriteria,
+  getEmployeeGoals, createEmployeeGoal, updateEmployeeGoal, deleteEmployeeGoal,
 } = require('../modules/personnel/personnel.controller');
 
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
@@ -160,6 +161,11 @@ function createRoutes(requireAuth) {
 
   router.get('/evaluation-criteria', getEvaluationCriteria);
   router.post('/evaluation-criteria', saveEvaluationCriteria);
+
+  router.get('/employees/:id/goals', getEmployeeGoals);
+  router.post('/employees/:id/goals', createEmployeeGoal);
+  router.put('/employees/:id/goals/:goalId', updateEmployeeGoal);
+  router.delete('/employees/:id/goals/:goalId', deleteEmployeeGoal);
 
   router.get('/employees/:id/salary', getSalaryComponents);
   router.post('/employees/:id/salary', addSalaryComponent);

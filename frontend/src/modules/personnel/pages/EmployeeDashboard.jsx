@@ -94,7 +94,7 @@ export default function EmployeeDashboard() {
     );
   }
 
-  const { employee: empData, today, monthlyStats, leaveBalance, upcomingTasks, recentNotifications } = dashboardData;
+  const { employee: empData, today, monthlyStats, leaveBalance, upcomingTasks, recentNotifications, goals } = dashboardData;
 
   const statusInfo = statusLabels[today.status] || statusLabels.not_signed_in;
 
@@ -217,45 +217,28 @@ export default function EmployeeDashboard() {
               <h2>Personal Goals</h2>
             </div>
             <div className="goals-grid glass-card-body">
-              <div className="goal-card glass-detail-row">
-                <span className="iconify goal-icon" data-icon="lucide:target" style={{ fontSize: 28, color: '#818cf8' }}></span>
-                <div className="goal-body">
-                  <div className="goal-header-row">
-                    <h4>Performance Improvement</h4>
-                    <span className="goal-percent">75%</span>
-                  </div>
-                  <div className="goal-progress-track">
-                    <div className="goal-progress-fill" style={{ width: '75%' }}></div>
-                  </div>
-                  <p className="goal-desc">Focus on improving attendance and completing tasks on time</p>
+              {(!goals || goals.length === 0) ? (
+                <div className="glass-empty" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
+                  <span className="iconify" data-icon="lucide:target" style={{ fontSize: 40, opacity: 0.3 }}></span>
+                  <p>No goals set yet. Contact your HR to set personal goals.</p>
                 </div>
-              </div>
-              <div className="goal-card glass-detail-row">
-                <span className="iconify goal-icon" data-icon="lucide:book-open" style={{ fontSize: 28, color: '#f97316' }}></span>
-                <div className="goal-body">
-                  <div className="goal-header-row">
-                    <h4>Professional Development</h4>
-                    <span className="goal-percent">60%</span>
+              ) : (
+                goals.map((goal) => (
+                  <div key={goal.id} className="goal-card glass-detail-row">
+                    <span className="iconify goal-icon" data-icon={goal.icon || 'lucide:target'} style={{ fontSize: 28, color: goal.color || '#818cf8' }}></span>
+                    <div className="goal-body">
+                      <div className="goal-header-row">
+                        <h4>{goal.title}</h4>
+                        <span className="goal-percent">{Math.round(goal.progress_percentage)}%</span>
+                      </div>
+                      <div className="goal-progress-track">
+                        <div className="goal-progress-fill" style={{ width: `${Math.round(goal.progress_percentage)}%` }}></div>
+                      </div>
+                      {goal.description && <p className="goal-desc">{goal.description}</p>}
+                    </div>
                   </div>
-                  <div className="goal-progress-track">
-                    <div className="goal-progress-fill fill-orange" style={{ width: '60%' }}></div>
-                  </div>
-                  <p className="goal-desc">Complete 3 training courses this quarter</p>
-                </div>
-              </div>
-              <div className="goal-card glass-detail-row">
-                <span className="iconify goal-icon" data-icon="lucide:users" style={{ fontSize: 28, color: '#22c55e' }}></span>
-                <div className="goal-body">
-                  <div className="goal-header-row">
-                    <h4>Team Collaboration</h4>
-                    <span className="goal-percent">90%</span>
-                  </div>
-                  <div className="goal-progress-track">
-                    <div className="goal-progress-fill fill-green" style={{ width: '90%' }}></div>
-                  </div>
-                  <p className="goal-desc">Maintain active participation in team meetings and projects</p>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
 

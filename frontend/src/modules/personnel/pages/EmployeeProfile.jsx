@@ -17,11 +17,13 @@ import IDCardModal from '../../../shared/components/IDCardModal';
 import ProfileContracts from '../components/ProfileContracts';
 import ProfileSalary from '../components/ProfileSalary';
 import ProfileChecklists from '../components/ProfileChecklists';
+import ProfileGoals from '../components/ProfileGoals';
 
 const TABS = [
   { key: 'basic', label: 'Basic Info', icon: 'lucide:user' },
   { key: 'employment', label: 'Employment', icon: 'lucide:briefcase' },
   { key: 'salary', label: 'Salary', icon: 'lucide:banknote' },
+  { key: 'goals', label: 'Goals', icon: 'lucide:target' },
   { key: 'education', label: 'Education', icon: 'lucide:graduation-cap' },
   { key: 'work-history', label: 'Work History', icon: 'lucide:clock' },
   { key: 'certifications', label: 'Certifications', icon: 'lucide:award' },
@@ -116,6 +118,7 @@ export default function EmployeeProfile() {
         {activeTab === 'certifications' && <ProfileCertifications profile={profile} onUpdate={loadProfile} />}
         {activeTab === 'medical-family' && <ProfileMedicalFamily profile={profile} onUpdate={loadProfile} />}
         {activeTab === 'documents' && <ProfileDocuments profile={profile} onUpdate={loadProfile} />}
+        {activeTab === 'goals' && <ProfileGoals profile={profile} onUpdate={loadProfile} />}
         {activeTab === 'salary' && <ProfileSalary employeeId={id} profile={profile} />}
         {activeTab === 'contracts' && <ProfileContracts employeeId={id} profile={profile} />}
         {activeTab === 'checklists' && <ProfileChecklists employeeId={id} profile={profile} />}

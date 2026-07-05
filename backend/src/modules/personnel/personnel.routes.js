@@ -30,6 +30,7 @@ const {
   uploadAvatar,
   submitResignation,
   getEmployeeDashboard,
+  updateGoalProgress,
 } = require('./personnel.controller');
 const {
   getMyAssets, getMyAssetHistory,
@@ -54,5 +55,6 @@ router.get('/my-contracts', requireAuth, getMyContracts);
 router.get('/my-contracts/:id/content', requireAuth, getMyContractContent);
 router.get('/my-contracts/:cid/pdf', requireAuth, (req, res, next) => { req.params.id = req.employee.id; next(); }, downloadContractPdf);
 router.get('/my-pending-tasks', requireAuth, getMyPendingTasks);
+router.patch('/goals/:goalId/progress', requireAuth, requireReadWrite, updateGoalProgress);
 
 module.exports = router;

@@ -96,6 +96,18 @@ async function getEmployeeDashboard(req, res) {
       [employeeId]
     );
 
+    // Get goals
+    let goals = [];
+    try {
+      const [goalRows] = await pool.query(
+        'SELECT * FROM employee_goals WHERE employee_id = ? ORDER BY sort_order ASC, id ASC',
+        [employeeId]
+      );
+      goals = goalRows;
+    } catch (err) {
+      // Goals table might not exist yet
+    }
+
     // Get upcoming tasks (if tasks module exists)
     let upcomingTasks = [];
     try {
@@ -151,6 +163,7 @@ async function getEmployeeDashboard(req, res) {
         sick: leaveBalance[0].sick_balance || 0,
         casual: leaveBalance[0].casual_balance || 0
       },
+      goals,
       upcomingTasks,
       recentNotifications
     });
@@ -1073,6 +1086,119 @@ async function saveEvaluationCriteria(req, res) {
   res.json({ message: 'Evaluation criteria saved' });
 }
 
+// ── Employee Goals ────────────────────────────────────────────
+async function getEmployeeGoals(req, res) {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM employee_goals WHERE employee_id = ? ORDER BY sort_order ASC, id ASC',
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching goals:', err);
+    res.status(500).json({ error: 'Failed to fetch goals' });
+  }
+}
+
+async function createEmployeeGoal(req, res) {
+  const { id } = req.params;
+  const { title, description, progress_percentage, icon, color, sort_order } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Goal title is required' });
+  }
+  try {
+    const [result] = await pool.query(
+      'INSERT INTO employee_goals (employee_id, title, description, progress_percentage, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        title.trim(),
+        description || null,
+        progress_percentage !== undefined ? parseFloat(progress_percentage) : 0,
+        icon || 'lucide:target',
+        color || '#818cf8',
+        sort_order || 0
+      ]
+    );
+    const [created] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [result.insertId]);
+    res.status(201).json(created[0]);
+  } catch (err) {
+    console.error('Error creating goal:', err);
+    res.status(500).json({ error: 'Failed to create goal' });
+  }
+}
+
+async function updateEmployeeGoal(req, res) {
+  const { id, goalId } = req.params;
+  const { title, description, progress_percentage, icon, color, sort_order } = req.body;
+  try {
+    const updates = [];
+    const params = [];
+    if (title !== undefined) { updates.push('title = ?'); params.push(title.trim()); }
+    if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+    if (progress_percentage !== undefined) { updates.push('progress_percentage = ?'); params.push(parseFloat(progress_percentage)); }
+    if (icon !== undefined) { updates.push('icon = ?'); params.push(icon); }
+    if (color !== undefined) { updates.push('color = ?'); params.push(color); }
+    if (sort_order !== undefined) { updates.push('sort_order = ?'); params.push(sort_order); }
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    params.push(goalId, id);
+    await pool.query(
+      `UPDATE employee_goals SET ${updates.join(', ')} WHERE id = ? AND employee_id = ?`,
+      params
+    );
+    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [goalId]);
+    if (updated.length === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+    res.json(updated[0]);
+  } catch (err) {
+    console.error('Error updating goal:', err);
+    res.status(500).json({ error: 'Failed to update goal' });
+  }
+}
+
+async function deleteEmployeeGoal(req, res) {
+  const { id, goalId } = req.params;
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM employee_goals WHERE id = ? AND employee_id = ?',
+      [goalId, id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+    res.json({ message: 'Goal deleted' });
+  } catch (err) {
+    console.error('Error deleting goal:', err);
+    res.status(500).json({ error: 'Failed to delete goal' });
+  }
+}
+
+async function updateGoalProgress(req, res) {
+  const { goalId } = req.params;
+  const employeeId = req.employee.id;
+  const { progress_percentage } = req.body;
+  if (progress_percentage === undefined) {
+    return res.status(400).json({ error: 'progress_percentage is required' });
+  }
+  try {
+    await pool.query(
+      'UPDATE employee_goals SET progress_percentage = ? WHERE id = ? AND employee_id = ?',
+      [parseFloat(progress_percentage), goalId, employeeId]
+    );
+    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [goalId]);
+    if (updated.length === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+    res.json(updated[0]);
+  } catch (err) {
+    console.error('Error updating goal progress:', err);
+    res.status(500).json({ error: 'Failed to update goal progress' });
+  }
+}
+
 module.exports = {
   getPositions, createPosition, updatePosition, deletePosition,
   getEmployeeProfile, updateEmployeeProfile,
@@ -1092,4 +1218,5 @@ module.exports = {
   getGrades, createGrade, updateGrade, deleteGrade,
   getDepartmentTitles, createDepartmentTitle, updateDepartmentTitle, deleteDepartmentTitle,
   getEvaluationCriteria, saveEvaluationCriteria,
+  getEmployeeGoals, createEmployeeGoal, updateEmployeeGoal, deleteEmployeeGoal, updateGoalProgress,
 };

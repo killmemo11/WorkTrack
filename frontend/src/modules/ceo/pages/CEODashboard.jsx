@@ -68,6 +68,7 @@ export default function CEODashboard() {
   }
 
   const { month, is_current_month, today, summary, departments } = dashboardData;
+  const [openDept, setOpenDept] = useState(null);
   const recruitment_metrics = summary.recruitment_metrics;
   const headcount_metrics = summary.headcount_metrics;
   const performance_metrics = summary.performance_metrics;
@@ -185,6 +186,17 @@ export default function CEODashboard() {
                     </p>
                   </div>
                 </div>
+
+                <div className={`stat-card gradient-purple fade-in-up delay-4`}>
+                  <span className="iconify stat-card-icon" data-icon="lucide:target"></span>
+                  <div className="stat-card-content">
+                    <h3>Department Goals</h3>
+                    <p className="stat-value">{departments.filter(d => d.goals?.total > 0).length}/{departments.length}</p>
+                    <p className="stat-details">
+                      Depts with active goals
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -246,6 +258,12 @@ export default function CEODashboard() {
                       <span className="glass-detail-label">Attendance Days:</span>
                       <span className="glass-detail-value">{dept.month.attendance_days}</span>
                     </div>
+                    {dept.goals && dept.goals.total > 0 && (
+                      <div className="glass-detail-row">
+                        <span className="glass-detail-label">Goals Avg:</span>
+                        <span className="glass-detail-value">{dept.goals.avg_progress}% ({dept.goals.total})</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="department-actions">

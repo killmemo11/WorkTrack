@@ -86,6 +86,26 @@ async function getCeoDashboard(req, res) {
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayIsWorkDay = workDays.includes(todayStr);
 
+    // Get all goals
+    let allGoals = [];
+    try {
+      const [goals] = await pool.query('SELECT eg.*, e.department_id FROM employee_goals eg JOIN employees e ON eg.employee_id = e.id');
+      allGoals = goals;
+    } catch (err) {
+      // Goals table might not exist yet
+    }
+    const goalsByDept = {};
+    for (const g of allGoals) {
+      const deptId = g.department_id || 0;
+      if (!goalsByDept[deptId]) goalsByDept[deptId] = [];
+      goalsByDept[deptId].push(g);
+    }
+    const goalsByEmp = {};
+    for (const g of allGoals) {
+      if (!goalsByEmp[g.employee_id]) goalsByEmp[g.employee_id] = [];
+      goalsByEmp[g.employee_id].push(g);
+    }
+
     // Get today's attendance
     const [todayAttendance] = await pool.query(
       `SELECT ar1.* FROM attendance_records ar1
@@ -267,6 +287,11 @@ async function getCeoDashboard(req, res) {
       empTotals.attendance += monthAttDays;
       empTotals.work += totalWorkDays;
 
+      const empGoals = goalsByEmp[emp.id] || [];
+      const avgGoalProgress = empGoals.length > 0
+        ? Math.round(empGoals.reduce((sum, g) => sum + parseFloat(g.progress_percentage), 0) / empGoals.length)
+        : 0;
+
       const empData = {
         id: emp.id,
         employee_id: emp.employee_id,
@@ -276,6 +301,8 @@ async function getCeoDashboard(req, res) {
         department_id: emp.department_id,
         department_name: emp.department_name,
         today: todayStatus,
+        goals: empGoals,
+        avg_goal_progress: avgGoalProgress,
         month: {
           total_work_days: totalWorkDays,
           attendance_days: monthAttDays,
@@ -319,6 +346,13 @@ async function getCeoDashboard(req, res) {
       const deptMonthAtt = dept.employees.reduce((sum, e) => sum + e.month.attendance_days, 0);
       const deptMonthWork = dept.employees.reduce((sum, e) => sum + e.month.total_work_days, 0);
 
+      // Department goals stats
+      const deptGoals = goalsByDept[dept.id] || [];
+      const deptAvgGoalProgress = deptGoals.length > 0
+        ? Math.round(deptGoals.reduce((sum, g) => sum + parseFloat(g.progress_percentage), 0) / deptGoals.length)
+        : 0;
+      const deptGoalsCount = deptGoals.length;
+
       departments.push({
         id: dept.id,
         name: dept.name || 'Unassigned',
@@ -336,6 +370,10 @@ async function getCeoDashboard(req, res) {
           attendance_rate: deptMonthWork > 0 ? Math.round((deptMonthAtt / deptMonthWork) * 100) : 0,
         },
         employees: dept.employees,
+        goals: {
+          total: deptGoalsCount,
+          avg_progress: deptAvgGoalProgress,
+        },
       });
     }
 

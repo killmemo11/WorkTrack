@@ -39,6 +39,25 @@ async function getManagerTeamDashboard(req, res) {
     [deptId, managerId]
   );
 
+  // Get goals for team members
+  let teamGoals = [];
+  try {
+    const [goals] = await pool.query(
+      `SELECT eg.* FROM employee_goals eg
+       WHERE eg.employee_id IN (${team.length ? team.map(() => '?').join(',') : 'NULL'})
+       ORDER BY eg.sort_order ASC, eg.id ASC`,
+      team.map((e) => e.id)
+    );
+    teamGoals = goals;
+  } catch (err) {
+    // Goals table might not exist yet
+  }
+  const goalsMap = {};
+  for (const g of teamGoals) {
+    if (!goalsMap[g.employee_id]) goalsMap[g.employee_id] = [];
+    goalsMap[g.employee_id].push(g);
+  }
+
   // Get today's attendance for team
   const [todayAttendance] = await pool.query(
     `SELECT a.* FROM attendance_records a
@@ -169,6 +188,7 @@ async function getManagerTeamDashboard(req, res) {
       period_missing_sign_outs: period?.missing_sign_outs || 0,
       period_office_days: period?.office_days || 0,
       period_wfh_days: period?.wfh_days || 0,
+      goals: goalsMap[e.id] || [],
     };
   });
 
