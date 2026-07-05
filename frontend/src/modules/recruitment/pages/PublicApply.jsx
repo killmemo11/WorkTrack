@@ -210,27 +210,6 @@ export default function PublicApply() {
               <input name="phone" type="tel" className="glass-input" value={form.phone} onChange={handleChange} />
             </div>
 
-            {/* Job Minimum Requirements */}
-            {selectedJobId && jobMinReqs && (
-              <div className="glass-card" style={{ padding: '12px 14px', marginBottom: 16, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)', fontSize: 13 }}>
-                  <Icon icon="lucide:target"></Icon> This position requires:
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {jobMinReqs.min_education_level && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:graduation-cap" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>{EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
-                  {jobMinReqs.min_experience_years != null && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:calendar" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>{jobMinReqs.min_experience_years}+ years</span>}
-                  {(jobMinReqs.required_skills_display || []).map(s => <span key={s} className="glass-badge glass-badge-info">{s}</span>)}
-                  {(jobMinReqs.required_certs_display || []).map(c => <span key={c} className="glass-badge glass-badge-danger">{c}</span>)}
-                  {jobMinReqs.preferred_skills_display && jobMinReqs.preferred_skills_display.length > 0 && (
-                    <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Preferred:</span>
-                      {jobMinReqs.preferred_skills_display.map(s => <span key={s} className="glass-badge glass-badge-success">{s}</span>)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon icon="lucide:award"></Icon> Qualifications

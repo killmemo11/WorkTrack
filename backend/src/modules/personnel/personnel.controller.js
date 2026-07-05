@@ -1090,7 +1090,23 @@ async function getDepartmentTitles(req, res) {
      ${where}
      ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, params
   );
-  res.json(rows.map(parseTitleRow));
+  const [[allSkills], [allCerts]] = await Promise.all([
+    pool.query('SELECT id, name FROM master_skills'),
+    pool.query('SELECT id, name FROM master_certifications'),
+  ]);
+  const skillMap = Object.fromEntries(allSkills.map(s => [s.id, s.name]));
+  const certMap = Object.fromEntries(allCerts.map(c => [c.id, c.name]));
+  res.json(rows.map(r => {
+    const t = parseTitleRow(r);
+    if (!t) return t;
+    const mapIds = (ids, map) => (Array.isArray(ids) ? ids : []).map(id => map[parseInt(id, 10)] || `#${id}`);
+    return {
+      ...t,
+      required_skills_display: mapIds(t.required_skills, skillMap),
+      required_certs_display: mapIds(t.required_certs, certMap),
+      preferred_skills_display: mapIds(t.preferred_skills, skillMap),
+    };
+  }));
 }
 
 const DEPT_TITLE_SELECT = `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,

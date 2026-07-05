@@ -315,9 +315,9 @@ export default function Jobs() {
                   const t = titles.find(x => String(x.id) === form.title_id);
                   if (!t || (!t.min_education_level && t.min_experience_years == null && (!t.required_skills || t.required_skills.length === 0) && (!t.required_certs || t.required_certs.length === 0))) return null;
                   const eduLabel = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
-                  const skills = Array.isArray(t.required_skills) ? t.required_skills : [];
-                  const certs = Array.isArray(t.required_certs) ? t.required_certs : [];
-                  const prefSkills = Array.isArray(t.preferred_skills) ? t.preferred_skills : [];
+                  const skills = Array.isArray(t.required_skills_display) ? t.required_skills_display : [];
+                  const certs = Array.isArray(t.required_certs_display) ? t.required_certs_display : [];
+                  const prefSkills = Array.isArray(t.preferred_skills_display) ? t.preferred_skills_display : [];
                   return (
                     <div className="glass-card" style={{ marginBottom: 20, padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)' }}>
