@@ -1,8 +1,7 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import ProfileSection from './ProfileSection';
+import '../styles/profile.css';
 
 export default function ProfileChecklists({ employeeId }) {
   const [checklists, setChecklists] = useState([]);
@@ -54,68 +53,93 @@ export default function ProfileChecklists({ employeeId }) {
     return <span className={`glass-badge glass-badge-${colors[s] || 'neutral'}`}>{s}</span>;
   };
 
-  if (loading) return <p className="loading">Loading...</p>;
+  if (loading) return (
+    <ProfileSection title="Checklists" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}>
+      <div className="doc-skeleton"><div className="doc-skeleton-card" style={{ height: 60 }} /></div>
+    </ProfileSection>
+  );
 
   return (
-    <div>
-      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
+    <ProfileSection
+      title="Checklists"
+      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}
+    >
+      {message && <div className={`profile-message profile-message-${message.includes('Failed') ? 'error' : 'success'}`}>{message}</div>}
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {templates.filter(t => t.is_active !== 0).map(t => (
-          <button key={t.id} className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => startChecklist(t.id)}>
+          <button key={t.id} className="profile-btn profile-btn-primary profile-btn-sm" onClick={() => startChecklist(t.id)}>
             + Start {t.name}
           </button>
         ))}
       </div>
 
       {checklists.length === 0 ? (
-        <p className="glass-empty">No checklists started.</p>
+        <div className="doc-empty" style={{ padding: '20px' }}>
+          <span className="doc-empty-icon" style={{ fontSize: 36 }}>📋</span>
+          <h4>No checklists started</h4>
+          <p>Use the buttons above to start a checklist.</p>
+        </div>
       ) : (
-        <div style={{ display: 'flex', gap: 16 }}>
-          <div style={{ flex: 1 }}>
-            <h4>Checklists</h4>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: '0.88rem', color: 'var(--text-primary)' }}>Checklists</h4>
             {checklists.map(chk => (
               <div key={chk.id} onClick={() => loadDetail(chk.id)}
-                style={{ padding: '8px 12px', cursor: 'pointer', background: selected === chk.id ? '#eef2ff' : 'transparent', border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <div><strong>{chk.template_name}</strong> <span className={`glass-badge ${chk.type === 'onboarding' ? 'glass-badge-success' : 'glass-badge-warning'}`}>{chk.type}</span></div>
+                className="profile-list-item"
+                style={{
+                  cursor: 'pointer',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  marginBottom: 8,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: selected === chk.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                  border: selected === chk.id ? '1px solid rgba(99,102,241,0.2)' : '1px solid rgba(255,255,255,0.04)',
+                  transition: 'background 200ms ease, border-color 200ms ease',
+                }}>
+                <div><strong style={{ color: 'var(--text-primary)' }}>{chk.template_name}</strong> <span className={`glass-badge ${chk.type === 'onboarding' ? 'glass-badge-success' : 'glass-badge-warning'}`}>{chk.type}</span></div>
                 <div>{statusBadge(chk.status)}</div>
               </div>
             ))}
           </div>
 
           {detail && (
-            <div style={{ flex: 2 }}>
-              <h4>Tasks — {detail.checklist.template_name}</h4>
-              <table className="glass-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Task</th>
-                    <th>Assignee</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.tasks.map(t => (
-                    <tr key={t.id}>
-                      <td>{t.order_index}</td>
-                      <td>{t.task_name}</td>
-                      <td><span className={`glass-badge ${t.assigned_to === 'it' ? 'glass-badge-info' : t.assigned_to === 'hr' ? 'glass-badge-success' : t.assigned_to === 'admin' ? 'glass-badge-warning' : 'glass-badge-danger'}`}>{t.assigned_to}</span></td>
-                      <td>{statusBadge(t.status)}</td>
-                      <td>
-                        {t.status !== 'completed' && (
-                          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => completeTask(detail.checklist.id, t.id)}>Complete</button>
-                        )}
-                      </td>
+            <div style={{ flex: 2, minWidth: 300, animation: 'slideDown 300ms ease' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '0.88rem', color: 'var(--text-primary)' }}>Tasks — {detail.checklist.template_name}</h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      {['#', 'Task', 'Assignee', 'Status', 'Actions'].map(h => <th key={h} style={{ textAlign: 'left', padding: '10px 12px', color: 'var(--text-dim)', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>)}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {detail.tasks.map(t => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-faint)' }}>{t.order_index}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{t.task_name}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span className={`glass-badge ${t.assigned_to === 'it' ? 'glass-badge-info' : t.assigned_to === 'hr' ? 'glass-badge-success' : t.assigned_to === 'admin' ? 'glass-badge-warning' : 'glass-badge-danger'}`}>{t.assigned_to}</span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>{statusBadge(t.status)}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          {t.status !== 'completed' && (
+                            <button className="profile-btn profile-btn-xs profile-btn-primary" onClick={() => completeTask(detail.checklist.id, t.id)}>Complete</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
       )}
-    </div>
+    </ProfileSection>
   );
 }

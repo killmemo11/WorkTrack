@@ -1,8 +1,8 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import ProfileSection from './ProfileSection';
+import ProfileField from './ProfileField';
+import '../styles/profile.css';
 
 export default function ProfileEmployment({ profile, onUpdate }) {
   const [editing, setEditing] = useState(false);
@@ -11,7 +11,6 @@ export default function ProfileEmployment({ profile, onUpdate }) {
   const [employees, setEmployees] = useState([]);
   const [grades, setGrades] = useState([]);
   const [form, setForm] = useState(profileToForm(profile));
-  const [renewMsg, setRenewMsg] = useState('');
   const [gradeWarning, setGradeWarning] = useState('');
 
   function fmtDate(d) {
@@ -62,119 +61,103 @@ export default function ProfileEmployment({ profile, onUpdate }) {
   async function handleRenew() {
     if (!confirm('Renew contract for 1 more year?')) return;
     try {
-      const res = await hrApi.post(`/employees/${profile.id}/renew-contract`);
+      await hrApi.post(`/employees/${profile.id}/renew-contract`);
       onUpdate();
     } catch (err) {
       alert('Failed to renew: ' + (err.response?.data?.error || err.message));
     }
   }
 
-  const view = (
-    <div className="glass-card">
-      <div className="glass-card-header"><h3>Employment Details</h3><button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setForm(profileToForm(profile)); setEditing(true); }}>Edit</button></div>
-      <div className="glass-card-body">
-        <table className="glass-detail-table">
-          <tbody>
-            <tr><td>Position</td><td>{profile.position_title || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Department</td><td>{profile.department_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Grade</td><td>{profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Hire Date</td><td>{fmtDate(profile.profile?.hire_date) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Contract Type</td><td>{profile.profile?.contract_type === 'annual' ? 'Annual' : profile.profile?.contract_type || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Contract End</td><td>{fmtDate(profile.profile?.contract_end_date) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}
-              {profile.profile?.contract_end_date && profile.profile?.contract_type === 'annual' && (
-                <button className="glass-btn glass-btn-xs glass-btn-ghost" style={{ marginLeft: 8 }} onClick={handleRenew}>Renew</button>
-              )}
-            </td></tr>
-            <tr><td>Work Type</td><td>{profile.profile?.work_type || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Supervisor</td><td>{profile.profile?.supervisor_id ? `#${profile.profile.supervisor_id}` : <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Bank Name</td><td>{profile.profile?.bank_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Bank Account</td><td>{profile.profile?.bank_account || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Emergency Contact</td><td>{profile.profile?.emergency_contact_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Emergency Phone</td><td>{profile.profile?.emergency_contact_phone || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-            <tr><td>Emergency Relation</td><td>{profile.profile?.emergency_contact_relation || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  if (!editing) return view;
+  const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   const filteredTitles = form.department_id
     ? positions.filter(t => String(t.department_id) === String(form.department_id))
     : [];
 
-  const fields = [
-    { key: 'title_id', label: 'Position (Title)', type: 'select', options: filteredTitles, valueKey: 'id', displayKey: 'title', emptyLabel: '— Select Department First —' },
-    { key: 'department_id', label: 'Department', type: 'select', options: departments, valueKey: 'id', displayKey: 'name', emptyLabel: '— None —' },
-    { key: 'grade_id', label: 'Grade', type: 'select', options: grades, valueKey: 'id', displayKey: r => `Grade ${r.grade_level} — ${r.name}`, emptyLabel: '— Auto from Title —' },
-    { key: 'gradeWarning', label: '', type: 'warning' },
-    { key: 'supervisor_id', label: 'Supervisor', type: 'select', options: employees.filter(e => e.id !== profile.id), valueKey: 'id', displayKey: 'name', emptyLabel: '— None —' },
-    { key: 'hire_date', label: 'Hire Date', type: 'date' },
-    { key: 'contract_type', label: 'Contract Type', type: 'select', options: [['permanent','Permanent'],['annual','Annual'],['probation','Probation'],['contractor','Contractor']], inline: true },
-    { key: 'contract_end_date', label: 'Contract End Date', type: 'date' },
-    { key: 'work_type', label: 'Work Type', type: 'select', options: [['full_time','Full Time'],['part_time','Part Time'],['remote','Remote']], inline: true },
-    { key: 'bank_name', label: 'Bank Name' },
-    { key: 'bank_account', label: 'Bank Account' },
-    { key: 'emergency_contact_name', label: 'Emergency Contact Name' },
-    { key: 'emergency_contact_phone', label: 'Emergency Contact Phone' },
-    { key: 'emergency_contact_relation', label: 'Emergency Contact Relation' },
-  ];
-
   return (
-    <div className="glass-card">
-      <div className="glass-card-header"><h3>Edit Employment Details</h3></div>
-      <div className="glass-card-body">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {fields.map(f => (
-            <label key={f.key}>
-              {f.label}
-              {f.type === 'warning' ? (
-                gradeWarning && <div style={{ gridColumn: '1 / -1', fontSize: 13, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 10px' }}>{gradeWarning}</div>
-              ) : f.type === 'select' ? (
-                <select className="glass-form-control" value={form[f.key]} onChange={e => {
-                  const val = e.target.value;
-                  const extra = {};
-                  if (f.key === 'department_id') { extra.title_id = ''; setGradeWarning(''); }
-                  if (f.key === 'title_id') {
-                    const t = positions.find(x => String(x.id) === val);
-                    if (t) extra.grade_id = t.grade_id || '';
-                    setGradeWarning('');
-                  }
-                  if (f.key === 'grade_id') {
-                    const t = positions.find(x => String(x.id) === form.title_id);
-                    if (t && val) {
-                      const titleGrade = grades.find(g => String(g.id) === String(t.grade_id));
-                      const selectedGrade = grades.find(g => String(g.id) === String(val));
-                      if (titleGrade && selectedGrade && selectedGrade.grade_level > titleGrade.grade_level) {
-                        setGradeWarning(`Selected grade (${selectedGrade.name}, Lv.${selectedGrade.grade_level}) is higher than the title's grade (${titleGrade.name}, Lv.${titleGrade.grade_level})`);
-                      } else {
-                        setGradeWarning('');
-                      }
-                    } else {
-                      setGradeWarning('');
-                    }
-                  }
-                  setForm({ ...form, [f.key]: val, ...extra });
-                }}>
-                  <option value="">{f.emptyLabel || '—'}</option>
-                  {f.options.map(o => {
-                    const val = f.inline ? o[0] : o[f.valueKey];
-                    const display = f.inline ? o[1] : typeof f.displayKey === 'function' ? f.displayKey(o) : o[f.displayKey];
-                    return <option key={val} value={val}>{display}</option>;
-                  })}
-                </select>
-              ) : (
-                <input className="glass-form-control" type={f.type} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
-              )}
-            </label>
-          ))}
+    <ProfileSection
+      title="Employment Details"
+      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}
+      editing={editing}
+      onEdit={() => setEditing(true)}
+      onSave={handleSave}
+      onCancel={() => setEditing(false)}
+      actions={
+        profile.profile?.contract_end_date && profile.profile?.contract_type === 'annual' && (
+          <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={handleRenew}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Renew
+          </button>
+        )
+      }
+    >
+      {editing ? (
+        <>
+          {gradeWarning && (
+            <div className="profile-message profile-message-warning" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#fbbf24', marginBottom: 16 }}>
+              ⚠️ {gradeWarning}
+            </div>
+          )}
+          <div className="profile-fields-grid">
+            <ProfileField label="Department" value={form.department_id} type="select" icon="🏢" editing
+              options={departments.map(d => ({ value: String(d.id), label: d.name }))}
+              onChange={val => { update('department_id', val); update('title_id', ''); setGradeWarning(''); }} />
+            <ProfileField label="Position (Title)" value={form.title_id} type="select" icon="💼" editing
+              options={filteredTitles.map(t => ({ value: String(t.id), label: t.title }))}
+              onChange={val => {
+                update('title_id', val);
+                const t = positions.find(x => String(x.id) === val);
+                if (t?.grade_id) update('grade_id', String(t.grade_id));
+                setGradeWarning('');
+              }} />
+            <ProfileField label="Grade" value={form.grade_id} type="select" icon="📊" editing
+              options={grades.map(g => ({ value: String(g.id), label: `Grade ${g.grade_level} — ${g.name}` }))}
+              onChange={val => {
+                update('grade_id', val);
+                const t = positions.find(x => String(x.id) === form.title_id);
+                if (t && val) {
+                  const titleGrade = grades.find(g => String(g.id) === String(t.grade_id));
+                  const selectedGrade = grades.find(g => String(g.id) === String(val));
+                  if (titleGrade && selectedGrade && selectedGrade.grade_level > titleGrade.grade_level) {
+                    setGradeWarning(`Selected grade (${selectedGrade.name}, Lv.${selectedGrade.grade_level}) is higher than the title's grade (${titleGrade.name}, Lv.${titleGrade.grade_level})`);
+                  } else setGradeWarning('');
+                }
+              }} />
+            <ProfileField label="Supervisor" value={form.supervisor_id} type="select" icon="👤" editing
+              options={employees.filter(e => e.id !== profile.id).map(e => ({ value: String(e.id), label: e.name }))}
+              onChange={val => update('supervisor_id', val)} />
+            <ProfileField label="Hire Date" value={form.hire_date} type="date" icon="📅" editing onChange={val => update('hire_date', val)} />
+            <ProfileField label="Contract Type" value={form.contract_type} type="select" icon="📋" editing
+              options={[{ value: 'permanent', label: 'Permanent' }, { value: 'annual', label: 'Annual' }, { value: 'probation', label: 'Probation' }, { value: 'contractor', label: 'Contractor' }]}
+              onChange={val => update('contract_type', val)} />
+            <ProfileField label="Contract End Date" value={form.contract_end_date} type="date" icon="📅" editing onChange={val => update('contract_end_date', val)} />
+            <ProfileField label="Work Type" value={form.work_type} type="select" icon="⏰" editing
+              options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }, { value: 'remote', label: 'Remote' }]}
+              onChange={val => update('work_type', val)} />
+            <ProfileField label="Bank Name" value={form.bank_name} icon="🏦" editing onChange={val => update('bank_name', val)} />
+            <ProfileField label="Bank Account" value={form.bank_account} icon="💳" editing onChange={val => update('bank_account', val)} />
+            <ProfileField label="Emergency Contact" value={form.emergency_contact_name} icon="📞" editing onChange={val => update('emergency_contact_name', val)} />
+            <ProfileField label="Emergency Phone" value={form.emergency_contact_phone} icon="📱" editing onChange={val => update('emergency_contact_phone', val)} />
+            <ProfileField label="Emergency Relation" value={form.emergency_contact_relation} icon="👨‍👩‍👧‍👦" editing onChange={val => update('emergency_contact_relation', val)} />
+          </div>
+        </>
+      ) : (
+        <div className="profile-fields-grid">
+          <ProfileField label="Position" value={profile.position_title} icon="💼" />
+          <ProfileField label="Department" value={profile.department_name} icon="🏢" />
+          <ProfileField label="Grade" value={profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : null} icon="📊" />
+          <ProfileField label="Hire Date" value={profile.profile?.hire_date} type="date" icon="📅" />
+          <ProfileField label="Contract Type" value={profile.profile?.contract_type} icon="📋" />
+          <ProfileField label="Contract End" value={profile.profile?.contract_end_date} type="date" icon="📅" />
+          <ProfileField label="Work Type" value={profile.profile?.work_type} icon="⏰" />
+          <ProfileField label="Supervisor" value={profile.profile?.supervisor_id ? `#${profile.profile.supervisor_id}` : null} icon="👤" />
+          <ProfileField label="Bank Name" value={profile.profile?.bank_name} icon="🏦" />
+          <ProfileField label="Bank Account" value={profile.profile?.bank_account} icon="💳" />
+          <ProfileField label="Emergency Contact" value={profile.profile?.emergency_contact_name} icon="📞" />
+          <ProfileField label="Emergency Phone" value={profile.profile?.emergency_contact_phone} icon="📱" />
+          <ProfileField label="Emergency Relation" value={profile.profile?.emergency_contact_relation} icon="👨‍👩‍👧‍👦" />
         </div>
-        <div className="glass-modal-footer">
-          <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
-          <button className="glass-btn glass-btn-primary" onClick={handleSave}>Save</button>
-        </div>
-      </div>
-    </div>
+      )}
+    </ProfileSection>
   );
 }

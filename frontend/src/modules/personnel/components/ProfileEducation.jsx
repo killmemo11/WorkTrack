@@ -1,8 +1,8 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import ProfileSection from './ProfileSection';
+import ProfileField from './ProfileField';
+import '../styles/profile.css';
 
 export default function ProfileEducation({ profile, onUpdate }) {
   const [showForm, setShowForm] = useState(false);
@@ -36,38 +36,64 @@ export default function ProfileEducation({ profile, onUpdate }) {
   }
 
   return (
-    <div className="glass-card">
-      <div className="glass-card-header"><h3>Education</h3><button className="glass-btn glass-btn-sm glass-btn-primary" onClick={openCreate}>+ Add</button></div>
-      <div className="glass-card-body">
-        {profile.education.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No education records.</p>}
-        {profile.education.map(e => (
-          <div key={e.id} className="glass-detail-row">
-            <div><strong>{e.degree}</strong> in {e.field_of_study || '—'} <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>({e.graduation_year || '—'})</span></div>
-            <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{e.institution}{e.grade ? ` | Grade: ${e.grade}` : ''}</div>
-            <div className="">
-              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(e)}>Edit</button>
-              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(e.id)}>Delete</button>
+    <ProfileSection
+      title="Education"
+      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>}
+      actions={<button className="profile-btn profile-btn-primary profile-btn-sm" onClick={openCreate}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add
+      </button>}
+    >
+      {(!profile.education || profile.education.length === 0) ? (
+        <div className="doc-empty" style={{ padding: '30px 20px' }}>
+          <span className="doc-empty-icon" style={{ fontSize: 40 }}>🎓</span>
+          <h4>No education records</h4>
+        </div>
+      ) : (
+        <div className="documents-list">
+          {profile.education.map((e, i) => (
+            <div key={e.id} className="doc-list-item doc-stagger-enter" style={{ animationDelay: `${i * 40}ms` }}>
+              <div className="doc-list-icon" style={{ background: 'rgba(99,102,241,0.12)' }}>🎓</div>
+              <div className="doc-list-info">
+                <div className="doc-list-name"><strong>{e.degree}</strong> in {e.field_of_study || '—'}</div>
+                <div className="doc-list-meta">
+                  <span>{e.institution}</span>
+                  {e.graduation_year && <span>{e.graduation_year}</span>}
+                  {e.grade && <span>Grade: {e.grade}</span>}
+                </div>
+              </div>
+              <div className="doc-list-actions">
+                <button className="profile-btn profile-btn-xs profile-btn-ghost" onClick={() => openEdit(e)}>Edit</button>
+                <button className="profile-btn profile-btn-xs profile-btn-danger" onClick={() => handleDelete(e.id)}>Delete</button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {showForm && (
-        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="glass-modal" onClick={e => e.stopPropagation()}>
-            <h2>{editing ? 'Edit Education' : 'Add Education'}</h2>
-            <label>Degree<input className="glass-form-control" value={form.degree} onChange={e => setForm({ ...form, degree: e.target.value })} /></label>
-            <label>Institution<input className="glass-form-control" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} /></label>
-            <label>Field of Study<input className="glass-form-control" value={form.field_of_study} onChange={e => setForm({ ...form, field_of_study: e.target.value })} /></label>
-            <label>Graduation Year<input className="glass-form-control" type="number" value={form.graduation_year} onChange={e => setForm({ ...form, graduation_year: e.target.value })} /></label>
-            <label>Grade<input className="glass-form-control" value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })} /></label>
-            <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="glass-btn glass-btn-primary" onClick={handleSave}>Save</button>
+        <div className="doc-preview-overlay" onClick={() => setShowForm(false)}>
+          <div className="doc-preview-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="doc-preview-header">
+              <h3 style={{ margin: 0 }}>{editing ? 'Edit Education' : 'Add Education'}</h3>
+              <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={() => setShowForm(false)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="doc-preview-body" style={{ flexDirection: 'column', gap: 12, alignItems: 'stretch', background: 'var(--bg-glass)' }}>
+              <ProfileField label="Degree" value={form.degree} editing onChange={val => setForm(f => ({ ...f, degree: val }))} />
+              <ProfileField label="Institution" value={form.institution} editing onChange={val => setForm(f => ({ ...f, institution: val }))} />
+              <ProfileField label="Field of Study" value={form.field_of_study} editing onChange={val => setForm(f => ({ ...f, field_of_study: val }))} />
+              <ProfileField label="Graduation Year" value={form.graduation_year} type="number" editing onChange={val => setForm(f => ({ ...f, graduation_year: val }))} />
+              <ProfileField label="Grade" value={form.grade} editing onChange={val => setForm(f => ({ ...f, grade: val }))} />
+            </div>
+            <div className="doc-preview-footer" style={{ justifyContent: 'flex-end' }}>
+              <button className="profile-btn profile-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="profile-btn profile-btn-primary" onClick={handleSave}>Save</button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </ProfileSection>
   );
 }
