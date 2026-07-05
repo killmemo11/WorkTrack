@@ -200,10 +200,10 @@ async function getManagerTeamDashboard(req, res) {
     on_leave: teamWithStatus.filter((e) => e.today_status === 'leave').length,
     department_name: deptRows[0]?.name || '',
     performance_metrics: {
-      avg_days_worked: performanceMetrics[0].avg_days_worked || 0,
-      avg_missing_sign_outs: performanceMetrics[0].avg_missing_sign_outs || 0,
-      avg_office_days: performanceMetrics[0].avg_office_days || 0,
-      avg_wfh_days: performanceMetrics[0].avg_wfh_days || 0,
+      avg_days_worked: parseFloat(performanceMetrics[0].avg_days_worked) || 0,
+      avg_missing_sign_outs: parseFloat(performanceMetrics[0].avg_missing_sign_outs) || 0,
+      avg_office_days: parseFloat(performanceMetrics[0].avg_office_days) || 0,
+      avg_wfh_days: parseFloat(performanceMetrics[0].avg_wfh_days) || 0,
     },
     task_completion: {
       total: taskCompletion.total || 0,

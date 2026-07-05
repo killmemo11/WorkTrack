@@ -161,25 +161,25 @@ export default function ManagerDashboard() {
         <div className="stats-grid">
           <div className="stat-card gradient-blue fade-in-up delay-1 card-hover">
             <h3>Average Days Worked</h3>
-            <p className="stat-value">{(performance_metrics.avg_days_worked ?? 0).toFixed(1)}</p>
+            <p className="stat-value">{(Number(performance_metrics.avg_days_worked) || 0).toFixed(1)}</p>
             <p className="stat-details">This period</p>
           </div>
 
           <div className="stat-card gradient-blue fade-in-up delay-2 card-hover">
             <h3>Average Missing Sign-outs</h3>
-            <p className="stat-value">{(performance_metrics.avg_missing_sign_outs ?? 0).toFixed(1)}</p>
+            <p className="stat-value">{(Number(performance_metrics.avg_missing_sign_outs) || 0).toFixed(1)}</p>
             <p className="stat-details">This period</p>
           </div>
 
           <div className="stat-card gradient-blue fade-in-up delay-3 card-hover">
             <h3>Office Days</h3>
-            <p className="stat-value">{(performance_metrics.avg_office_days ?? 0).toFixed(1)}</p>
+            <p className="stat-value">{(Number(performance_metrics.avg_office_days) || 0).toFixed(1)}</p>
             <p className="stat-details">This period</p>
           </div>
 
           <div className="stat-card gradient-blue fade-in-up delay-4 card-hover">
             <h3>WFH Days</h3>
-            <p className="stat-value">{(performance_metrics.avg_wfh_days ?? 0).toFixed(1)}</p>
+            <p className="stat-value">{(Number(performance_metrics.avg_wfh_days) || 0).toFixed(1)}</p>
             <p className="stat-details">This period</p>
           </div>
 
