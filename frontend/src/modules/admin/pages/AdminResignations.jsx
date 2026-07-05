@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate } from '../../../shared/utils/date';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
@@ -100,7 +101,7 @@ export default function AdminResignations() {
             </thead>
             <tbody>
               {data.length === 0 && (
-                <tr><td colSpan={7}><div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No resignation requests found.</h3><p>Nothing to show yet.</p></div></td></tr>
+                <tr><td colSpan={7}><div className="glass-empty"><Icon icon="lucide:inbox" style={{fontSize:40,opacity:0.3}} /><h3>No resignation requests found.</h3><p>Nothing to show yet.</p></div></td></tr>
               )}
               {data.map((r) => (
                 <tr key={r.id}>
@@ -121,8 +122,8 @@ export default function AdminResignations() {
                   <td>
                     {r.status === 'pending' && (
                       <div className="action-btns">
-                        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); }}><span className="iconify" data-icon="lucide:check"/> Approve</button>
-                        <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); }}><span className="iconify" data-icon="lucide:x"/> Reject</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); }}><Icon icon="lucide:check" /> Approve</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); }}><Icon icon="lucide:x" /> Reject</button>
                       </div>
                     )}
                   </td>
@@ -146,7 +147,7 @@ export default function AdminResignations() {
         {actionTarget && actionType === 'reject' && (
           <div className="glass-modal-overlay" onClick={() => setActionTarget(null)}>
             <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><Icon icon="lucide:x" /></button>
               <h2>Reject Resignation</h2>
               <p>Reject {actionTarget.employee_name}'s resignation?</p>
               <label style={{ display: 'block', marginTop: 12 }}>
@@ -157,7 +158,7 @@ export default function AdminResignations() {
               </label>
               <div className="glass-modal-footer" style={{ marginTop: 16 }}>
                 <button className="glass-btn glass-btn-ghost" onClick={() => setActionTarget(null)}>Cancel</button>
-                <button className="glass-btn glass-btn-danger" onClick={() => handleReject(actionTarget.id)}><span className="iconify" data-icon="lucide:x"/> Reject</button>
+                <button className="glass-btn glass-btn-danger" onClick={() => handleReject(actionTarget.id)}><Icon icon="lucide:x" /> Reject</button>
               </div>
             </div>
           </div>
@@ -166,8 +167,8 @@ export default function AdminResignations() {
         {assetWarning && (
           <div className="glass-modal-overlay" onClick={() => setAssetWarning(null)}>
             <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
-              <button className="glass-modal-close" onClick={() => setAssetWarning(null)}><span className="iconify" data-icon="lucide:x"/></button>
-              <h2 style={{ color: 'var(--warning)' }}><span className="iconify" data-icon="lucide:alert-triangle"/> Unreturned Assets</h2>
+              <button className="glass-modal-close" onClick={() => setAssetWarning(null)}><Icon icon="lucide:x" /></button>
+              <h2 style={{ color: 'var(--warning)' }}><Icon icon="lucide:alert-triangle" /> Unreturned Assets</h2>
               <p style={{ marginBottom: 12 }}>This employee still has the following assets assigned:</p>
               <ul style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 'var(--radius-md)', padding: '12px 12px 12px 28px', marginBottom: 16, border: '1px solid rgba(245,158,11,0.2)' }}>
                 {assetWarning.assets.map((a, i) => <li key={i}>{a}</li>)}

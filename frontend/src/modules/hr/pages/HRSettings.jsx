@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate } from '../../../shared/utils/date';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
@@ -302,7 +303,7 @@ export default function HRSettings() {
             { key: 'master-lists', label: 'Master Lists', icon: 'lucide:list' },
           ].map(tab => (
             <button key={tab.key} className={`glass-tab ${activeTab === tab.key ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-              <span className="iconify" data-icon={tab.icon} style={{ marginRight: 6, fontSize: 14 }} />{tab.label}
+              <Icon icon={tab.icon} style={{ marginRight: 6, fontSize: 14 }} />{tab.label}
             </button>
           ))}
         </div>
@@ -312,7 +313,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 8 }} />Company Information</h3>
+                  <h3><Icon icon="lucide:building-2" style={{ marginRight: 8 }} />Company Information</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -380,7 +381,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:crown" style={{ marginRight: 8 }} />Company CEO</h3>
+                  <h3><Icon icon="lucide:crown" style={{ marginRight: 8 }} />Company CEO</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -404,7 +405,7 @@ export default function HRSettings() {
                   <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border-glass)' }} />
 
                   <div className="glass-page-header" style={{ padding: 0, marginBottom: 16 }}>
-                    <h3 style={{ margin: 0 }}><span className="iconify" data-icon="lucide:git-branch" style={{ marginRight: 8 }} />Manage Departments</h3>
+                    <h3 style={{ margin: 0 }}><Icon icon="lucide:git-branch" style={{ marginRight: 8 }} />Manage Departments</h3>
                   </div>
 
                   <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -420,10 +421,10 @@ export default function HRSettings() {
                         a.remove();
                         window.URL.revokeObjectURL(url);
                       } catch { setMessage('Failed to download template'); setTimeout(() => setMessage(''), 3000); }
-                    }}><span className="iconify" data-icon="lucide:download" style={{ marginRight: 6 }} />Download Template</button>
+                    }}><Icon icon="lucide:download" style={{ marginRight: 6 }} />Download Template</button>
                     <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ position: 'relative', overflow: 'hidden' }}
                       onClick={() => document.getElementById('excel-import-input').click()}>
-                      <span className="iconify" data-icon="lucide:upload" style={{ marginRight: 6 }} />Import from Excel
+                      <Icon icon="lucide:upload" style={{ marginRight: 6 }} />Import from Excel
                       <input id="excel-import-input" type="file" accept=".xlsx,.xls" style={{ position: 'absolute', left: '-9999px' }}
                         onChange={async (e) => {
                           const file = e.target.files[0];
@@ -586,7 +587,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:calendar-clock" style={{ marginRight: 8 }} />Work Week</h3>
+                  <h3><Icon icon="lucide:calendar-clock" style={{ marginRight: 8 }} />Work Week</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -618,7 +619,7 @@ export default function HRSettings() {
 
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:timer" style={{ marginRight: 8 }} />Attendance Period</h3>
+                  <h3><Icon icon="lucide:timer" style={{ marginRight: 8 }} />Attendance Period</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -643,7 +644,7 @@ export default function HRSettings() {
 
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:party-popper" style={{ marginRight: 8 }} />Official Holidays</h3>
+                  <h3><Icon icon="lucide:party-popper" style={{ marginRight: 8 }} />Official Holidays</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -708,7 +709,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:calendar-check" style={{ marginRight: 8 }} />Manage Leave Types</h3>
+                  <h3><Icon icon="lucide:calendar-check" style={{ marginRight: 8 }} />Manage Leave Types</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -796,7 +797,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:layers" style={{ marginRight: 8 }} />Manage Grades (Job Levels)</h3>
+                  <h3><Icon icon="lucide:layers" style={{ marginRight: 8 }} />Manage Grades (Job Levels)</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -929,7 +930,7 @@ export default function HRSettings() {
             <>
               <div className="glass-card card-hover fade-in-up">
                 <div className="glass-card-header">
-                  <h3><span className="iconify" data-icon="lucide:list" style={{ marginRight: 8 }} />Master Lists</h3>
+                  <h3><Icon icon="lucide:list" style={{ marginRight: 8 }} />Master Lists</h3>
                 </div>
                 <div className="glass-card-body">
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
@@ -938,10 +939,10 @@ export default function HRSettings() {
                   {message && <div className={`glass-alert ${message.toLowerCase().includes('failed') ? 'glass-alert-danger' : 'glass-alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
                   <div className="glass-tabs" style={{ marginBottom: 16 }}>
                     <button className={`glass-tab ${mlActiveSubtab === 'skills' ? 'glass-tab-active' : ''}`} onClick={() => setMlActiveSubtab('skills')}>
-                      <span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 4 }} /> Skills
+                      <Icon icon="lucide:wrench" style={{ marginRight: 4 }} /> Skills
                     </button>
                     <button className={`glass-tab ${mlActiveSubtab === 'certs' ? 'glass-tab-active' : ''}`} onClick={() => setMlActiveSubtab('certs')}>
-                      <span className="iconify" data-icon="lucide:award" style={{ marginRight: 4 }} /> Certifications
+                      <Icon icon="lucide:award" style={{ marginRight: 4 }} /> Certifications
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -951,7 +952,7 @@ export default function HRSettings() {
                       placeholder={`Add new ${mlActiveSubtab === 'skills' ? 'skill' : 'certification'}...`}
                       style={{ maxWidth: 400 }} />
                     <button className="glass-btn glass-btn-primary" onClick={handleMlAdd} disabled={!mlNewName.trim()}>
-                      <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> Add
+                      <Icon icon="lucide:plus" style={{ marginRight: 6 }} /> Add
                     </button>
                   </div>
                   <div className="glass-table-wrapper">

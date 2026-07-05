@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
@@ -84,13 +85,13 @@ export default function AdminDocuments() {
 
         <div className="glass-table-wrapper fade-in-up">
           {data.documents.length === 0 ? (
-            <div className="glass-empty"><span className="iconify" data-icon="lucide:folder-open"/><p>No documents found.</p></div>
+            <div className="glass-empty"><Icon icon="lucide:folder-open" /><p>No documents found.</p></div>
           ) : (
             <table className="glass-table">
               <thead>
                 <tr>
-                  <th><span className="iconify" data-icon="lucide:user" style={{verticalAlign:'middle', marginRight:4}}/> Employee</th>
-                  <th><span className="iconify" data-icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}}/> Document</th>
+                  <th><Icon icon="lucide:user" style={{verticalAlign:'middle', marginRight:4}} /> Employee</th>
+                  <th><Icon icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}} /> Document</th>
                   <th>Type</th>
                   <th>Uploaded By</th>
                   <th>Status</th>
@@ -102,7 +103,7 @@ export default function AdminDocuments() {
                 {data.documents.map(doc => (
                   <tr key={doc.id}>
                     <td><a href={`/hr/employees/${doc.employee_id}/profile`} className="link">{doc.employee_name}</a></td>
-                    <td><strong><span className="iconify" data-icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}}/>{doc.doc_name}</strong></td>
+                    <td><strong><Icon icon="lucide:file-text" style={{verticalAlign:'middle', marginRight:4}} />{doc.doc_name}</strong></td>
                     <td><span className="glass-badge glass-badge-info">{doc.doc_type}</span></td>
                     <td>{doc.uploaded_by_name || '—'}</td>
                     <td>{statusBadge(doc.status)}</td>
@@ -110,11 +111,11 @@ export default function AdminDocuments() {
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {doc.status === 'pending' && <>
-                          <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => handleVerify(doc.id)}><span className="iconify" data-icon="lucide:check-circle"/> Verify</button>
-                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleReject(doc.id)}><span className="iconify" data-icon="lucide:x-circle"/> Reject</button>
+                          <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => handleVerify(doc.id)}><Icon icon="lucide:check-circle" /> Verify</button>
+                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleReject(doc.id)}><Icon icon="lucide:x-circle" /> Reject</button>
                         </>}
                         {doc.status === 'rejected' && doc.rejection_reason && (
-                          <span className="glass-badge glass-badge-danger" title={doc.rejection_reason}><span className="iconify" data-icon="lucide:alert-circle"/> Reason</span>
+                          <span className="glass-badge glass-badge-danger" title={doc.rejection_reason}><Icon icon="lucide:alert-circle" /> Reason</span>
                         )}
                       </div>
                     </td>

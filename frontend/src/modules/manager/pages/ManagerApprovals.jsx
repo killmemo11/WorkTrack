@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
@@ -156,7 +157,7 @@ export default function ManagerApprovals() {
     <div className="page">
       <div className="glass-page-header">
         <div>
-          <h1><span className="iconify" data-icon="lucide:clipboard-check" style={{ marginRight: 10, verticalAlign: 'middle' }} />Pending Approvals</h1>
+          <h1><Icon icon="lucide:clipboard-check" style={{ marginRight: 10, verticalAlign: 'middle' }} />Pending Approvals</h1>
           <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Review and manage requests from your team</p>
         </div>
       </div>
@@ -165,19 +166,19 @@ export default function ManagerApprovals() {
 
       <div className="glass-tabs">
         <button className={`glass-tab ${tab === 'leaves' ? 'glass-tab-active' : ''}`} onClick={() => setTab('leaves')}>
-          <span className="iconify" data-icon="lucide:calendar-clock" style={{ marginRight: 6 }} />
+          <Icon icon="lucide:calendar-clock" style={{ marginRight: 6 }} />
           Leave Requests {leaves.length > 0 && <span className="glass-badge glass-badge-warning">{leaves.length}</span>}
         </button>
         <button className={`glass-tab ${tab === 'signouts' ? 'glass-tab-active' : ''}`} onClick={() => setTab('signouts')}>
-          <span className="iconify" data-icon="lucide:log-out" style={{ marginRight: 6 }} />
+          <Icon icon="lucide:log-out" style={{ marginRight: 6 }} />
           Sign-Out Requests {signouts.length > 0 && <span className="glass-badge glass-badge-warning">{signouts.length}</span>}
         </button>
         <button className={`glass-tab ${tab === 'resignations' ? 'glass-tab-active' : ''}`} onClick={() => setTab('resignations')}>
-          <span className="iconify" data-icon="lucide:user-x" style={{ marginRight: 6 }} />
+          <Icon icon="lucide:user-x" style={{ marginRight: 6 }} />
           Resignations {resignations.length > 0 && <span className="glass-badge glass-badge-warning">{resignations.length}</span>}
         </button>
         <button className={`glass-tab ${tab === 'headcount' ? 'glass-tab-active' : ''}`} onClick={() => setTab('headcount')}>
-          <span className="iconify" data-icon="lucide:users-round" style={{ marginRight: 6 }} />
+          <Icon icon="lucide:users-round" style={{ marginRight: 6 }} />
           Headcount {headcountReqs.length > 0 && <span className="glass-badge glass-badge-warning">{headcountReqs.length}</span>}
         </button>
       </div>
@@ -215,10 +216,10 @@ export default function ManagerApprovals() {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('leave'); }}>
-                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                      <Icon icon="lucide:check" style={{ marginRight: 4 }} />Approve
                     </button>
                     <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('leave'); }}>
-                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                      <Icon icon="lucide:x" style={{ marginRight: 4 }} />Reject
                     </button>
                   </div>
                 </td>
@@ -260,10 +261,10 @@ export default function ManagerApprovals() {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(item); setActionType('approve'); setActionKind('signout'); }}>
-                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                      <Icon icon="lucide:check" style={{ marginRight: 4 }} />Approve
                     </button>
                     <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(item); setActionType('reject'); setActionKind('signout'); }}>
-                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                      <Icon icon="lucide:x" style={{ marginRight: 4 }} />Reject
                     </button>
                   </div>
                 </td>
@@ -303,10 +304,10 @@ export default function ManagerApprovals() {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('resignation'); }}>
-                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                      <Icon icon="lucide:check" style={{ marginRight: 4 }} />Approve
                     </button>
                     <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('resignation'); }}>
-                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                      <Icon icon="lucide:x" style={{ marginRight: 4 }} />Reject
                     </button>
                   </div>
                 </td>
@@ -354,10 +355,10 @@ export default function ManagerApprovals() {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); setActionKind('headcount'); }}>
-                      <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} />Approve
+                      <Icon icon="lucide:check" style={{ marginRight: 4 }} />Approve
                     </button>
                     <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); setActionKind('headcount'); }}>
-                      <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} />Reject
+                      <Icon icon="lucide:x" style={{ marginRight: 4 }} />Reject
                     </button>
                   </div>
                 </td>
@@ -417,7 +418,7 @@ export default function ManagerApprovals() {
           <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="glass-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className="glass-modal-title">{actionKind === 'leave' ? 'Reject Leave' : actionKind === 'signout' ? 'Reject Sign-Out Request' : actionKind === 'resignation' ? 'Reject Resignation' : 'Reject Headcount Request'}</h2>
-              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><span className="iconify" data-icon="lucide:x" /></button>
+              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><Icon icon="lucide:x" /></button>
             </div>
             <div className="glass-card-body">
               <p>Reject {actionTarget.employee_name || actionTarget.requester_name}'s request?</p>

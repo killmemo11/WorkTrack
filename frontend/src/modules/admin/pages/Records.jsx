@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate } from '../../../shared/utils/date';
 
@@ -101,19 +102,19 @@ export default function AdminRecords() {
         <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
           <div>
             <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="iconify" data-icon="lucide:clipboard-list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+              <Icon icon="lucide:clipboard-list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
               Attendance Records
             </h1>
             <p className="subtitle" style={{ color: 'var(--text-dim)' }}>View and manage all attendance records</p>
           </div>
           <button className="glass-btn glass-btn-ghost" onClick={handleExport}>
-            <span className="iconify" data-icon="lucide:download"></span> Export Excel
+            <Icon icon="lucide:download"></Icon> Export Excel
           </button>
         </div>
 
         {message && (
           <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>
-            <span className="iconify" data-icon={message.includes('Failed') ? 'lucide:alert-circle' : 'lucide:check-circle'}></span>
+            <Icon icon={message.includes('Failed') ? 'lucide:alert-circle' : 'lucide:check-circle'}></Icon>
             {message}
           </div>
         )}
@@ -139,10 +140,10 @@ export default function AdminRecords() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="glass-btn glass-btn-primary" onClick={() => fetchRecords(1)}>
-                <span className="iconify" data-icon="lucide:filter"></span> Filter
+                <Icon icon="lucide:filter"></Icon> Filter
               </button>
               <button className="glass-btn glass-btn-ghost" onClick={() => { setFilters({ date_from: '', date_to: '', employee_id: '' }); fetchRecords(1); }}>
-                <span className="iconify" data-icon="lucide:x"></span> Clear
+                <Icon icon="lucide:x"></Icon> Clear
               </button>
             </div>
           </div>
@@ -163,7 +164,7 @@ export default function AdminRecords() {
         <div className="glass-table-wrapper">
           {data.records.length === 0 ? (
             <div className="glass-empty">
-              <span className="iconify" data-icon="lucide:inbox"></span>
+              <Icon icon="lucide:inbox"></Icon>
               <h3>No records found</h3>
             </div>
           ) : (
@@ -201,10 +202,10 @@ export default function AdminRecords() {
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => { setEditSignOut(r); setEditForm({ sign_out_time: r.sign_out_time ? new Date(r.sign_out_time).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16), notes: r.notes || '' }); }} title="Edit sign-out time">
-                        <span className="iconify" data-icon="lucide:pencil"></span> Edit Sign-Out
+                        <Icon icon="lucide:pencil"></Icon> Edit Sign-Out
                       </button>
                       <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(r)} title="Delete record">
-                        <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                        <Icon icon="lucide:trash-2"></Icon> Delete
                       </button>
                     </div>
                   </td>
@@ -232,9 +233,9 @@ export default function AdminRecords() {
           <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:pencil"></span> Edit Sign-Out Time
+                <Icon icon="lucide:pencil"></Icon> Edit Sign-Out Time
               </h3>
-              <button className="glass-modal-close" onClick={() => setEditSignOut(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setEditSignOut(null)}><Icon icon="lucide:x" /></button>
             </div>
             <p style={{ marginBottom: 16, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
               {editSignOut.employee_name} — {editSignOut.date}
@@ -260,7 +261,7 @@ export default function AdminRecords() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setEditSignOut(null)}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleEditSignOut}>
-                <span className="iconify" data-icon="lucide:check"></span> Save
+                <Icon icon="lucide:check"></Icon> Save
               </button>
             </div>
           </div>

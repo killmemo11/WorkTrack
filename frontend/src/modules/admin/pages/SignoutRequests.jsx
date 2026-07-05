@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
@@ -69,7 +70,7 @@ export default function AdminSignoutRequests() {
         <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
           <div>
             <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="iconify" data-icon="lucide:log-out" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+              <Icon icon="lucide:log-out" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
               Sign-Out Requests
             </h1>
             <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Pending manual sign-out requests requiring admin approval</p>
@@ -78,7 +79,7 @@ export default function AdminSignoutRequests() {
 
         {message && (
           <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>
-            <span className="iconify" data-icon={message.includes('Failed') ? 'lucide:alert-circle' : 'lucide:check-circle'}></span>
+            <Icon icon={message.includes('Failed') ? 'lucide:alert-circle' : 'lucide:check-circle'}></Icon>
             {message}
           </div>
         )}
@@ -86,7 +87,7 @@ export default function AdminSignoutRequests() {
         <div className="glass-table-wrapper">
           {data.requests.length === 0 ? (
             <div className="glass-empty">
-              <span className="iconify" data-icon="lucide:check-circle"></span>
+              <Icon icon="lucide:check-circle"></Icon>
               <h3>No pending sign-out requests.</h3>
             </div>
           ) : (
@@ -118,10 +119,10 @@ export default function AdminSignoutRequests() {
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(r); setActionType('approve'); }}>
-                        <span className="iconify" data-icon="lucide:check"></span> Approve
+                        <Icon icon="lucide:check"></Icon> Approve
                       </button>
                       <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(r); setActionType('reject'); }}>
-                        <span className="iconify" data-icon="lucide:x"></span> Reject
+                        <Icon icon="lucide:x"></Icon> Reject
                       </button>
                     </div>
                   </td>
@@ -149,10 +150,10 @@ export default function AdminSignoutRequests() {
             <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
               <div className="glass-modal-header">
                 <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="iconify" data-icon="lucide:x-circle" style={{ color: 'var(--error)' }}></span>
+                  <Icon icon="lucide:x-circle" style={{ color: 'var(--error)' }}></Icon>
                   Reject Sign-Out Request
                 </h3>
-                <button className="glass-modal-close" onClick={() => setActionTarget(null)}><span className="iconify" data-icon="lucide:x"/></button>
+                <button className="glass-modal-close" onClick={() => setActionTarget(null)}><Icon icon="lucide:x" /></button>
               </div>
               <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: 16 }}>
                 Reject {actionTarget.employee_name}'s request?
@@ -166,7 +167,7 @@ export default function AdminSignoutRequests() {
               <div className="glass-modal-footer">
                 <button className="glass-btn glass-btn-ghost" onClick={() => setActionTarget(null)}>Cancel</button>
                 <button className="glass-btn glass-btn-danger" onClick={() => handleReject(actionTarget.id)}>
-                  <span className="iconify" data-icon="lucide:x"></span> Reject
+                  <Icon icon="lucide:x"></Icon> Reject
                 </button>
               </div>
             </div>

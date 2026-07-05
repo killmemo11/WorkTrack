@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
 
@@ -72,11 +73,11 @@ export default function ManagerTasks() {
     <div className="page">
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1><span className="iconify" data-icon="lucide:list-checks" style={{ marginRight: 10, verticalAlign: 'middle' }} />Team Tasks</h1>
+          <h1><Icon icon="lucide:list-checks" style={{ marginRight: 10, verticalAlign: 'middle' }} />Team Tasks</h1>
           <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Manage tasks for your team</p>
         </div>
         <button className="glass-btn glass-btn-primary" onClick={() => setShowForm(!showForm)}>
-          <span className="iconify" data-icon={showForm ? 'lucide:x' : 'lucide:plus'} style={{ marginRight: 6 }} />
+          <Icon icon={showForm ? 'lucide:x' : 'lucide:plus'} style={{ marginRight: 6 }} />
           {showForm ? 'Cancel' : 'New Task'}
         </button>
       </div>
@@ -84,7 +85,7 @@ export default function ManagerTasks() {
       {showForm && (
         <div className="glass-card fade-in-up" style={{ marginBottom: 24 }}>
           <div className="glass-card-header">
-            <h3 className="glass-modal-title"><span className="iconify" data-icon="lucide:plus-circle" style={{ marginRight: 8 }} />Assign New Task</h3>
+            <h3 className="glass-modal-title"><Icon icon="lucide:plus-circle" style={{ marginRight: 8 }} />Assign New Task</h3>
           </div>
           <div className="glass-card-body">
             <form onSubmit={createTask}>
@@ -146,7 +147,7 @@ export default function ManagerTasks() {
                 />
               </div>
               <button type="submit" className="glass-btn glass-btn-primary">
-                <span className="iconify" data-icon="lucide:send" style={{ marginRight: 6 }} />Create Task
+                <Icon icon="lucide:send" style={{ marginRight: 6 }} />Create Task
               </button>
             </form>
           </div>
@@ -207,7 +208,7 @@ export default function ManagerTasks() {
                 <td>{t.due_date || '—'}</td>
                 <td>
                   <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => deleteTask(t.id)}>
-                    <span className="iconify" data-icon="lucide:trash-2" style={{ marginRight: 4 }} />Delete
+                    <Icon icon="lucide:trash-2" style={{ marginRight: 4 }} />Delete
                   </button>
                 </td>
               </tr>

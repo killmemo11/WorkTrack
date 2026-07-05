@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useMemo } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import hrApi from '../../../shared/api/hrApi';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -97,11 +98,11 @@ export default function TeamRequests() {
       <div className="page">
         <div className="glass-page-header">
           <div>
-            <h1><span className="iconify" data-icon="lucide:users-round" style={{ marginRight: 10, verticalAlign: 'middle' }} />Hiring Requests</h1>
+            <h1><Icon icon="lucide:users-round" style={{ marginRight: 10, verticalAlign: 'middle' }} />Hiring Requests</h1>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Submit and track headcount needs for your team</p>
           </div>
           <button className="glass-btn glass-btn-primary" onClick={openRequestModal}>
-            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} />
+            <Icon icon="lucide:plus" style={{ marginRight: 6 }} />
             New Hiring Request
           </button>
         </div>
@@ -116,7 +117,7 @@ export default function TeamRequests() {
             ].map((s, i) => (
               <div key={s.label} className="glass-card card-hover fade-in-up" style={{ textAlign: 'center', animationDelay: `${i * 60}ms` }}>
                 <div className="glass-card-body" style={{ padding: 16 }}>
-                  <span className="iconify" data-icon={s.icon} style={{ fontSize: '1.5rem', color: 'var(--text-dim)', marginBottom: 8 }} />
+                  <Icon icon={s.icon} style={{ fontSize: '1.5rem', color: 'var(--text-dim)', marginBottom: 8 }} />
                   <div style={{ fontSize: '2rem', fontWeight: 700 }}>{s.value}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>{s.label}</div>
                 </div>
@@ -130,22 +131,22 @@ export default function TeamRequests() {
         ) : error ? (
           <div className="glass-card fade-in-up">
             <div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
-              <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: '2.5rem', color: 'var(--color-danger)', marginBottom: 12 }} />
+              <Icon icon="lucide:alert-triangle" style={{ fontSize: '2.5rem', color: 'var(--color-danger)', marginBottom: 12 }} />
               <h3 style={{ color: 'var(--text-primary)' }}>Something went wrong</h3>
               <p style={{ color: 'var(--text-dim)', margin: '8px 0 16px' }}>{error}</p>
               <button className="glass-btn glass-btn-ghost" onClick={() => { setLoading(true); fetchRequests(); }}>
-                <span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 6 }} />Try Again
+                <Icon icon="lucide:refresh-cw" style={{ marginRight: 6 }} />Try Again
               </button>
             </div>
           </div>
         ) : requests.length === 0 ? (
           <div className="glass-card fade-in-up">
             <div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
-              <span className="iconify" data-icon="lucide:file-plus-2" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', marginBottom: 12 }} />
+              <Icon icon="lucide:file-plus-2" style={{ fontSize: '2.5rem', color: 'var(--text-dim)', marginBottom: 12 }} />
               <h3 style={{ color: 'var(--text-primary)' }}>No hiring requests yet</h3>
               <p style={{ color: 'var(--text-dim)', margin: '8px 0 16px' }}>Start by submitting your first request to expand your team.</p>
               <button className="glass-btn glass-btn-primary" onClick={() => setShowModal(true)}>
-                <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} />Create Your First Request
+                <Icon icon="lucide:plus" style={{ marginRight: 6 }} />Create Your First Request
               </button>
             </div>
           </div>
@@ -188,7 +189,7 @@ export default function TeamRequests() {
                       </td>
                       <td>
                         <span className={`glass-badge ${STATUS_BADGE_MAP[r.status] || 'glass-badge-default'}`}>
-                          {r.status === 'approved' ? <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} /> : r.status === 'rejected' ? <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4 }} /> : <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4 }} />}
+                          {r.status === 'approved' ? <Icon icon="lucide:check" style={{ marginRight: 4 }} /> : r.status === 'rejected' ? <Icon icon="lucide:x" style={{ marginRight: 4 }} /> : <Icon icon="lucide:clock" style={{ marginRight: 4 }} />}
                           {r.status}
                         </span>
                       </td>
@@ -212,10 +213,10 @@ export default function TeamRequests() {
           <div className="glass-modal" onClick={(e) => e.stopPropagation()}>
             <div className="glass-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 className="glass-modal-title"><span className="iconify" data-icon="lucide:user-plus" style={{ marginRight: 8 }} />New Hiring Request</h2>
+                <h2 className="glass-modal-title"><Icon icon="lucide:user-plus" style={{ marginRight: 8 }} />New Hiring Request</h2>
                 <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Submit a request to hire new team members</p>
               </div>
-              <button className="glass-modal-close" onClick={() => setShowModal(false)}><span className="iconify" data-icon="lucide:x" /></button>
+              <button className="glass-modal-close" onClick={() => setShowModal(false)}><Icon icon="lucide:x" /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="glass-card-body">
@@ -322,7 +323,7 @@ export default function TeamRequests() {
               <div className="glass-modal-footer">
                 <button type="button" className="glass-btn glass-btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="glass-btn glass-btn-primary" disabled={submitting}>
-                  {submitting ? <span className="spinner" /> : <><span className="iconify" data-icon="lucide:send" style={{ marginRight: 6 }} />Submit Request</>}
+                  {submitting ? <span className="spinner" /> : <><Icon icon="lucide:send" style={{ marginRight: 6 }} />Submit Request</>}
                 </button>
               </div>
             </form>

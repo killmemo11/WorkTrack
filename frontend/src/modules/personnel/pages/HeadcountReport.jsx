@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
 function ProgressBar({ filled, max }) {
@@ -37,7 +38,7 @@ export default function HeadcountReport() {
   return (
     <>
       <div className="glass-page-header">
-        <h2><span className="iconify" data-icon="lucide:bar-chart-3" style={{ marginRight: 8 }} />Headcount Report</h2>
+        <h2><Icon icon="lucide:bar-chart-3" style={{ marginRight: 8 }} />Headcount Report</h2>
       </div>
 
       {summary && (
@@ -50,7 +51,7 @@ export default function HeadcountReport() {
             { label: 'Full Departments', value: summary.full_depts, icon: 'lucide:alert-circle', class: 'gradient-red' },
           ].map(s => (
             <div key={s.label} className={`glass-stat-card ${s.class} card-hover fade-in-up`}>
-              <div className="stat-icon"><span className="iconify" data-icon={s.icon} /></div>
+              <div className="stat-icon"><Icon icon={s.icon} /></div>
               <div className="stat-number">{s.value}</div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -60,7 +61,7 @@ export default function HeadcountReport() {
 
       <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
         <div className="glass-card-header">
-          <h3><span className="iconify" data-icon="lucide:git-branch" style={{ marginRight: 8 }} />By Department</h3>
+          <h3><Icon icon="lucide:git-branch" style={{ marginRight: 8 }} />By Department</h3>
         </div>
         <div className="glass-card-body" style={{ overflowX: 'auto' }}>
           <table className="glass-table">
@@ -94,7 +95,7 @@ export default function HeadcountReport() {
 
       <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
         <div className="glass-card-header">
-          <h3><span className="iconify" data-icon="lucide:badge-check" style={{ marginRight: 8 }} />By Title</h3>
+          <h3><Icon icon="lucide:badge-check" style={{ marginRight: 8 }} />By Title</h3>
         </div>
         <div className="glass-card-body" style={{ overflowX: 'auto' }}>
           <table className="glass-table">
@@ -118,7 +119,7 @@ export default function HeadcountReport() {
 
       <div className="glass-card card-hover fade-in-up">
         <div className="glass-card-header">
-          <h3><span className="iconify" data-icon="lucide:file-text" style={{ marginRight: 8 }} />By Contract Type</h3>
+          <h3><Icon icon="lucide:file-text" style={{ marginRight: 8 }} />By Contract Type</h3>
         </div>
         <div className="glass-card-body">
           <table className="glass-table">

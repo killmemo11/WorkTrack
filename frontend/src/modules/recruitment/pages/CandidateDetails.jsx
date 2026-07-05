@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useParams, useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate, formatDateTime } from '../../../shared/utils/date';
@@ -165,7 +166,7 @@ export default function CandidateDetails() {
   if (!candidate) return (
     <div className="page">
       <div className="glass-empty">
-        <span className="iconify" data-icon="lucide:user-x"></span>
+        <Icon icon="lucide:user-x"></Icon>
         <h3>Candidate not found</h3>
       </div>
     </div>
@@ -176,10 +177,10 @@ export default function CandidateDetails() {
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/hr/candidates')}>
-            <span className="iconify" data-icon="lucide:chevron-left"></span> Back
+            <Icon icon="lucide:chevron-left"></Icon> Back
           </button>
           <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="iconify" data-icon="lucide:user-circle" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+            <Icon icon="lucide:user-circle" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
             {candidate.name}
           </h1>
         </div>
@@ -187,19 +188,14 @@ export default function CandidateDetails() {
 
       {message && (
         <div className="glass-alert glass-alert-info">
-          <span className="iconify" data-icon="lucide:info"></span> {message}
+          <Icon icon="lucide:info"></Icon> {message}
         </div>
       )}
 
       <div className="glass-tabs" style={{ marginBottom: 20 }}>
         {['info', 'screening', 'history', 'scorecards', 'offers'].map(tab => (
           <button key={tab} className={`glass-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-            <span className="iconify" data-icon={
-              tab === 'info' ? 'lucide:user' :
-              tab === 'screening' ? 'lucide:scan-search' :
-              tab === 'history' ? 'lucide:clock' :
-              tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift'
-            } style={{ marginRight: 4 }}></span>
+            <Icon icon={ tab === 'info' ? 'lucide:user' : tab === 'screening' ? 'lucide:scan-search' : tab === 'history' ? 'lucide:clock' : tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift' } style={{ marginRight: 4 }}></Icon>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
@@ -236,7 +232,7 @@ export default function CandidateDetails() {
                   ) : (
                     <span>
                       <label style={{ color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        {cvUploading ? 'Uploading...' : <><span className="iconify" data-icon="lucide:upload" style={{ marginRight: 4 }}></span> Upload CV</>}
+                        {cvUploading ? 'Uploading...' : <><Icon icon="lucide:upload" style={{ marginRight: 4 }}></Icon> Upload CV</>}
                         <input type="file" ref={fileRef} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
                           onChange={handleUploadCv} />
                       </label>
@@ -254,19 +250,19 @@ export default function CandidateDetails() {
                 <div className="glass-form-group"><label className="glass-label">Position</label><input className="glass-input" value={editForm.job_title} onChange={e => setEditForm({ ...editForm, job_title: e.target.value })} /></div>
                 <div className="glass-form-group"><label className="glass-label">Notes</label><textarea className="glass-textarea" rows={3} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button className="glass-btn glass-btn-primary" onClick={handleUpdate}><span className="iconify" data-icon="lucide:check"></span> Save</button>
+                  <button className="glass-btn glass-btn-primary" onClick={handleUpdate}><Icon icon="lucide:check"></Icon> Save</button>
                   <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
                 </div>
               </div>
             ) : (
               <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => setEditing(true)}>
-                <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                <Icon icon="lucide:pencil"></Icon> Edit
               </button>
             )}
 
             <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
             <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="iconify" data-icon="lucide:arrow-right-left" style={{ color: 'var(--brand-primary)' }}></span> Move Stage
+              <Icon icon="lucide:arrow-right-left" style={{ color: 'var(--brand-primary)' }}></Icon> Move Stage
             </h4>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <select className="glass-select" style={{ width: 160 }} value={moveStage} onChange={e => setMoveStage(e.target.value)}>
@@ -275,10 +271,10 @@ export default function CandidateDetails() {
               </select>
               <input className="glass-input" style={{ width: 200 }} placeholder="Note (optional)" value={moveNote} onChange={e => setMoveNote(e.target.value)} />
               <button className="glass-btn glass-btn-primary" onClick={handleMove} disabled={!moveStage}>
-                <span className="iconify" data-icon="lucide:arrow-right"></span> Move
+                <Icon icon="lucide:arrow-right"></Icon> Move
               </button>
               <button className="glass-btn glass-btn-success" onClick={openHireModal} style={{ marginLeft: 8 }}>
-                <span className="iconify" data-icon="lucide:user-plus"></span> Hire
+                <Icon icon="lucide:user-plus"></Icon> Hire
               </button>
             </div>
           </div>
@@ -291,14 +287,14 @@ export default function CandidateDetails() {
            <div className="glass-card-body">
              {!candidate.screening ? (
                <div className="glass-empty">
-                 <span className="iconify" data-icon="lucide:scan-search"></span>
+                 <Icon icon="lucide:scan-search"></Icon>
                  <h3>No auto-screening result available for this candidate.</h3>
                </div>
              ) : (
                <>
                  <div style={{ marginBottom: '24px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                    <span style={{ fontSize: '48px' }}>
-                     {candidate.screening.overall_status === 'most_recommended' ? <span className="iconify" data-icon="lucide:star" style={{ color: 'var(--success)' }}></span> : candidate.screening.overall_status === 'recommended' ? <span className="iconify" data-icon="lucide:thumbs-up" style={{ color: '#3b82f6' }}></span> : <span className="iconify" data-icon="lucide:x" style={{ color: 'var(--error)' }}></span>}
+                     {candidate.screening.overall_status === 'most_recommended' ? <Icon icon="lucide:star" style={{ color: 'var(--success)' }}></Icon> : candidate.screening.overall_status === 'recommended' ? <Icon icon="lucide:thumbs-up" style={{ color: '#3b82f6' }}></Icon> : <Icon icon="lucide:x" style={{ color: 'var(--error)' }}></Icon>}
                    </span>
                    <div>
                      <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
@@ -373,10 +369,10 @@ export default function CandidateDetails() {
                                  </td>
                                  <td>
                                    {r.status === 'most_recommended' ?
-                                     <span className="glass-badge glass-badge-success"><span className="iconify" data-icon="lucide:star" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Most Recommended</span>
+                                     <span className="glass-badge glass-badge-success"><Icon icon="lucide:star" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon> Most Recommended</span>
                                      : r.status === 'recommended' ?
-                                     <span className="glass-badge glass-badge-info"><span className="iconify" data-icon="lucide:thumbs-up" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Recommended</span>
-                                     : <span className="glass-badge glass-badge-danger"><span className="iconify" data-icon="lucide:x" style={{ marginRight: 2, fontSize: '0.65rem' }}></span> Rejected</span>}
+                                     <span className="glass-badge glass-badge-info"><Icon icon="lucide:thumbs-up" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon> Recommended</span>
+                                     : <span className="glass-badge glass-badge-danger"><Icon icon="lucide:x" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon> Rejected</span>}
                                  </td>
                                </tr>
                              );
@@ -398,7 +394,7 @@ export default function CandidateDetails() {
           <div className="glass-card-body">
             {(!candidate.history || candidate.history.length === 0) ? (
               <div className="glass-empty">
-                <span className="iconify" data-icon="lucide:clock"></span>
+                <Icon icon="lucide:clock"></Icon>
                 <h3>No history</h3>
               </div>
             ) : (
@@ -427,7 +423,7 @@ export default function CandidateDetails() {
         <div className="glass-card fade-in-up">
           <div className="glass-card-body">
             <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="iconify" data-icon="lucide:clipboard-list" style={{ color: 'var(--brand-primary)' }}></span> Add Scorecard
+              <Icon icon="lucide:clipboard-list" style={{ color: 'var(--brand-primary)' }}></Icon> Add Scorecard
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Interview</label><input className="glass-input" value={scoreForm.interview} onChange={e => setScoreForm({ ...scoreForm, interview: e.target.value })} /></div>
@@ -439,14 +435,14 @@ export default function CandidateDetails() {
             </div>
             <div className="glass-form-group"><label className="glass-label">Notes</label><textarea className="glass-textarea" rows={2} value={scoreForm.notes} onChange={e => setScoreForm({ ...scoreForm, notes: e.target.value })} /></div>
             <button className="glass-btn glass-btn-primary" onClick={handleAddScorecard}>
-              <span className="iconify" data-icon="lucide:plus"></span> Add Scorecard
+              <Icon icon="lucide:plus"></Icon> Add Scorecard
             </button>
 
             {candidate.scorecards && candidate.scorecards.length > 0 && (
               <>
                 <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
                 <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="iconify" data-icon="lucide:history" style={{ color: 'var(--text-dim)' }}></span> Previous Scorecards
+                  <Icon icon="lucide:history" style={{ color: 'var(--text-dim)' }}></Icon> Previous Scorecards
                 </h4>
                 <div className="glass-table-wrapper">
                   <table className="glass-table">
@@ -477,7 +473,7 @@ export default function CandidateDetails() {
         <div className="glass-card fade-in-up">
           <div className="glass-card-body">
             <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="iconify" data-icon="lucide:gift" style={{ color: 'var(--brand-primary)' }}></span> Create Offer
+              <Icon icon="lucide:gift" style={{ color: 'var(--brand-primary)' }}></Icon> Create Offer
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Position</label><input className="glass-input" value={offerForm.position} onChange={e => setOfferForm({ ...offerForm, position: e.target.value })} /></div>
@@ -488,14 +484,14 @@ export default function CandidateDetails() {
               <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Benefits</label><input className="glass-input" value={offerForm.benefits} onChange={e => setOfferForm({ ...offerForm, benefits: e.target.value })} /></div>
             </div>
             <button className="glass-btn glass-btn-primary" onClick={handleCreateOffer}>
-              <span className="iconify" data-icon="lucide:send"></span> Send Offer
+              <Icon icon="lucide:send"></Icon> Send Offer
             </button>
 
             {candidate.offers && candidate.offers.length > 0 && (
               <>
                 <hr style={{ borderColor: 'var(--border-glass)', margin: '20px 0' }} />
                 <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="iconify" data-icon="lucide:history" style={{ color: 'var(--text-dim)' }}></span> Sent Offers
+                  <Icon icon="lucide:history" style={{ color: 'var(--text-dim)' }}></Icon> Sent Offers
                 </h4>
                 <div className="glass-table-wrapper">
                   <table className="glass-table">
@@ -523,9 +519,9 @@ export default function CandidateDetails() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--success)' }}></span> Hire: {candidate.name}
+                <Icon icon="lucide:user-plus" style={{ color: 'var(--success)' }}></Icon> Hire: {candidate.name}
               </h3>
-              <button className="glass-modal-close" onClick={() => setShowHire(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowHire(false)}><Icon icon="lucide:x" /></button>
             </div>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 16 }}>
               Create employee record from this candidate.
@@ -560,7 +556,7 @@ export default function CandidateDetails() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowHire(false)}>Cancel</button>
               <button className="glass-btn glass-btn-success" onClick={handleHire} disabled={hiring}>
-                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><span className="iconify" data-icon="lucide:check"></span> Confirm Hire</>}
+                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><Icon icon="lucide:check"></Icon> Confirm Hire</>}
               </button>
             </div>
           </div>
@@ -572,9 +568,9 @@ export default function CandidateDetails() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)' }}>
-                <span className="iconify" data-icon="lucide:party-popper"></span> Hired Successfully
+                <Icon icon="lucide:party-popper"></Icon> Hired Successfully
               </h3>
-              <button className="glass-modal-close" onClick={() => { setHireResult(null); setShowHire(false); }}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => { setHireResult(null); setShowHire(false); }}><Icon icon="lucide:x" /></button>
             </div>
             <div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}>
               <p style={{ marginBottom: 8 }}><strong>Employee #:</strong> {hireResult.employee_id}</p>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Icon from './Icon';
 import api from '../api';
 
 export default function ResignationModal({ onClose, onSubmitted }) {
@@ -34,7 +35,7 @@ export default function ResignationModal({ onClose, onSubmitted }) {
             {step === 'form' ? 'Submit Resignation' : 'Confirm Resignation'}
           </h3>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
 

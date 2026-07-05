@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from './Icon';
 import hrApi from '../api/hrApi';
 import { formatDate } from '../utils/date';
 
@@ -59,7 +60,7 @@ export default function IDCardModal({ employeeId, onClose }) {
         <div className="glass-modal-header">
           <h3 className="glass-modal-title">Employee ID Card</h3>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         {card && (

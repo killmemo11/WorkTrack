@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -57,7 +58,7 @@ export default function Offers() {
     <div className="page fade-in-up" style={{ padding: 24 }}>
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:gift" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:gift" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Offer Management
         </h1>
         <select className="glass-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
@@ -79,7 +80,7 @@ export default function Offers() {
         </div>
       ) : offers.length === 0 ? (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:inbox"></span>
+          <Icon icon="lucide:inbox"></Icon>
           <h3>No offers found</h3>
         </div>
       ) : (
@@ -123,12 +124,12 @@ export default function Offers() {
                           <button className="glass-btn glass-btn-xs glass-btn-success"
                             disabled={actioning === o.id}
                             onClick={() => handleStatusChange(o.id, 'accepted')}>
-                            {actioning === o.id ? '...' : <><span className="iconify" data-icon="lucide:check" style={{ marginRight: 2 }}></span> Accept</>}
+                            {actioning === o.id ? '...' : <><Icon icon="lucide:check" style={{ marginRight: 2 }}></Icon> Accept</>}
                           </button>
                           <button className="glass-btn glass-btn-xs glass-btn-danger"
                             disabled={actioning === o.id}
                             onClick={() => handleStatusChange(o.id, 'rejected')}>
-                            {actioning === o.id ? '...' : <><span className="iconify" data-icon="lucide:x" style={{ marginRight: 2 }}></span> Reject</>}
+                            {actioning === o.id ? '...' : <><Icon icon="lucide:x" style={{ marginRight: 2 }}></Icon> Reject</>}
                           </button>
                         </>
                       )}
@@ -145,11 +146,11 @@ export default function Offers() {
       {pages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
           <button disabled={page <= 1} onClick={() => fetchOffers(page - 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            <span className="iconify" data-icon="lucide:chevron-left"></span> Prev
+            <Icon icon="lucide:chevron-left"></Icon> Prev
           </button>
           <span className="glass-badge glass-badge-neutral" style={{ padding: '6px 12px' }}>Page {page} of {pages}</span>
           <button disabled={page >= pages} onClick={() => fetchOffers(page + 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            Next <span className="iconify" data-icon="lucide:chevron-right"></span>
+            Next <Icon icon="lucide:chevron-right"></Icon>
           </button>
         </div>
       )}

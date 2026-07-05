@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 
@@ -49,7 +50,7 @@ export default function CEODashboard() {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div className="glass-alert glass-alert-danger">
-          <span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 8 }} />
+          <Icon icon="lucide:alert-triangle" style={{ marginRight: 8 }} />
           {error}
           <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={fetchDashboardData} style={{ marginLeft: 12 }}>Try Again</button>
         </div>
@@ -60,7 +61,7 @@ export default function CEODashboard() {
   if (!dashboardData) {
     return (
       <div className="glass-empty">
-        <span className="iconify" data-icon="lucide:bar-chart-2" style={{ fontSize: 48, opacity: 0.3 }} />
+        <Icon icon="lucide:bar-chart-2" style={{ fontSize: 48, opacity: 0.3 }} />
         <h3>No Data Available</h3>
         <p>Your dashboard data is still loading.</p>
       </div>
@@ -96,7 +97,7 @@ export default function CEODashboard() {
       <div className="dashboard-tabs fade-in-up delay-1">
         {['overview', 'departments', 'analytics', 'risk'].map(tab => (
           <button key={tab} className={`tab-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-            <span className="iconify" data-icon={`lucide:${tab === 'overview' ? 'layout-dashboard' : tab === 'departments' ? 'building-2' : tab === 'analytics' ? 'line-chart' : 'shield-alert'}`} style={{ marginRight: 6, fontSize: 14 }} />
+            <Icon icon={`lucide:${tab === 'overview' ? 'layout-dashboard' : tab === 'departments' ? 'building-2' : tab === 'analytics' ? 'line-chart' : 'shield-alert'} `} style={{ marginRight: 6, fontSize: 14 }} />
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}

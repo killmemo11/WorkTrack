@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
@@ -101,24 +102,24 @@ export default function MasterLists() {
     <div className="page fade-in-up">
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
         <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:list" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Master Lists
         </h1>
       </div>
 
       {message && (
         <div className="glass-alert glass-alert-info">
-          <span className="iconify" data-icon="lucide:info"></span>
+          <Icon icon="lucide:info"></Icon>
           {message}
         </div>
       )}
 
       <div className="glass-tabs" style={{ marginBottom: 20 }}>
         <button className={`glass-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>
-          <span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 4 }}></span> Skills
+          <Icon icon="lucide:wrench" style={{ marginRight: 4 }}></Icon> Skills
         </button>
         <button className={`glass-tab ${activeTab === 'certs' ? 'active' : ''}`} onClick={() => setActiveTab('certs')}>
-          <span className="iconify" data-icon="lucide:award" style={{ marginRight: 4 }}></span> Certifications
+          <Icon icon="lucide:award" style={{ marginRight: 4 }}></Icon> Certifications
         </button>
       </div>
 
@@ -131,7 +132,7 @@ export default function MasterLists() {
               placeholder={`Add new ${activeTab === 'skills' ? 'skill' : 'certification'}...`}
               style={{ maxWidth: 400 }} />
             <button className="glass-btn glass-btn-primary" onClick={handleAdd} disabled={!newName.trim()}>
-              <span className="iconify" data-icon="lucide:plus"></span> Add
+              <Icon icon="lucide:plus"></Icon> Add
             </button>
           </div>
 
@@ -148,7 +149,7 @@ export default function MasterLists() {
                 {list.length === 0 ? (
                   <tr><td colSpan={3}>
                     <div className="glass-empty" style={{ minHeight: 120 }}>
-                      <span className="iconify" data-icon="lucide:inbox"></span>
+                      <Icon icon="lucide:inbox"></Icon>
                       <h3>No {activeTab === 'skills' ? 'skills' : 'certifications'} yet.</h3>
                       <p>Add one above.</p>
                     </div>
@@ -171,10 +172,10 @@ export default function MasterLists() {
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => { setEditing(item); setEditName(item.name); }}>
-                          <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                          <Icon icon="lucide:pencil"></Icon> Edit
                         </button>
                         <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(item)}>
-                          <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                          <Icon icon="lucide:trash-2"></Icon> Delete
                         </button>
                       </div>
                     </td>

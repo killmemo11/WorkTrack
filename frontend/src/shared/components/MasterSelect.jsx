@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Icon from './Icon';
 import hrApi from '../api/hrApi';
 
 export default function MasterSelect({ type, value = [], onChange, placeholder = 'Type to search...' }) {
@@ -57,7 +58,7 @@ export default function MasterSelect({ type, value = [], onChange, placeholder =
             background: chipBg, padding: '2px 10px', borderRadius: 6, fontSize: 13,
             color: chipColor, fontWeight: 500,
           }}>
-            <span className="iconify" data-icon={type === 'skills' ? 'lucide:code' : 'lucide:award'} style={{ fontSize: '0.85rem' }} />
+            <Icon icon={type === 'skills' ? 'lucide:code' : 'lucide:award'} style={{ fontSize: '0.85rem' }} />
             {item.name}
             <span onClick={() => remove(item.id)} style={{ cursor: 'pointer', marginLeft: 2, fontWeight: 700, color: 'inherit', opacity: 0.6, fontSize: 14 }}>&times;</span>
           </span>

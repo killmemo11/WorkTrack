@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
 
@@ -75,9 +76,9 @@ export default function AdminReports() {
             <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Per-employee attendance summary</p>
           </div>
           <div className="filter-actions" style={{alignItems:'center'}}>
-            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={prevMonth}><span className="iconify" data-icon="lucide:chevron-left"/> Prev</button>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={prevMonth}><Icon icon="lucide:chevron-left" /> Prev</button>
             <strong style={{ minWidth: 180, textAlign: 'center', fontSize:'1.05rem', color: 'var(--text-primary)' }}>{MONTHS[month - 1]} {year}</strong>
-            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={nextMonth}>Next <span className="iconify" data-icon="lucide:chevron-right"/></button>
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={nextMonth}>Next <Icon icon="lucide:chevron-right" /></button>
           </div>
         </div>
 
@@ -123,10 +124,10 @@ export default function AdminReports() {
                   <label style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>To</label>
                   <input type="date" className="glass-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
                 </div>
-                <button className="glass-btn glass-btn-ghost" onClick={exportAttendance}><span className="iconify" data-icon="lucide:download"/> Excel: Attendance</button>
-                <button className="glass-btn glass-btn-ghost" onClick={exportKayan}><span className="iconify" data-icon="lucide:download"/> Excel: Kayan</button>
-                <button className="glass-btn glass-btn-ghost" onClick={exportLeaves}><span className="iconify" data-icon="lucide:download"/> Excel: Leaves</button>
-                <button className="glass-btn glass-btn-primary" onClick={exportSummary}><span className="iconify" data-icon="lucide:download"/> Excel: Summary</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportAttendance}><Icon icon="lucide:download" /> Excel: Attendance</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportKayan}><Icon icon="lucide:download" /> Excel: Kayan</button>
+                <button className="glass-btn glass-btn-ghost" onClick={exportLeaves}><Icon icon="lucide:download" /> Excel: Leaves</button>
+                <button className="glass-btn glass-btn-primary" onClick={exportSummary}><Icon icon="lucide:download" /> Excel: Summary</button>
               </div>
 
             <div className="glass-table-wrapper">
@@ -147,7 +148,7 @@ export default function AdminReports() {
                 </thead>
                 <tbody>
                     {data.report.length === 0 ? (
-                      <tr><td colSpan={10}><div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No employees found</h3><p>No data available for this period.</p></div></td></tr>
+                      <tr><td colSpan={10}><div className="glass-empty"><Icon icon="lucide:inbox" style={{fontSize:40,opacity:0.3}} /><h3>No employees found</h3><p>No data available for this period.</p></div></td></tr>
                     ) : (
                       data.report.map((emp, i) => (
                         <tr key={emp.id} className={emp.days_worked === 0 ? 'row-inactive' : ''}>

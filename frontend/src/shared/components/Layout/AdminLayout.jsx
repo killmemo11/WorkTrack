@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../Icon';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import axios from 'axios';
@@ -35,21 +36,21 @@ export default function AdminLayout() {
         </div>
         <nav className="admin-nav">
           <Link to="/admin/settings" className={isActive('/admin/settings')}>
-            <span className="iconify" data-icon="lucide:settings" /> Settings
+            <Icon icon="lucide:settings" /> Settings
           </Link>
           <Link to="/admin/activity-log" className={isActive('/admin/activity-log')}>
-            <span className="iconify" data-icon="lucide:activity" /> Activity Log
+            <Icon icon="lucide:activity" /> Activity Log
           </Link>
         </nav>
         <div className="admin-sidebar-footer">
           <Link to="/dashboard" className="admin-nav-link">
-            <span className="iconify" data-icon="lucide:arrow-left" /> Back to App
+            <Icon icon="lucide:arrow-left" /> Back to App
           </Link>
           <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
-            <span className="iconify" data-icon="lucide:log-out" /> Logout
+            <Icon icon="lucide:log-out" /> Logout
           </button>
           <div className="admin-user">
-            <span className="iconify" data-icon="lucide:user" style={{fontSize:'0.8rem'}} />
+            <Icon icon="lucide:user" style={{fontSize:'0.8rem'}} />
             {admin?.name || admin?.username}
             <span style={{ fontSize: '0.65rem', opacity: 0.6, marginLeft:2 }}>{admin?.type === 'admin' ? 'IT Admin' : 'Admin'}</span>
             <AdminNotificationBell />

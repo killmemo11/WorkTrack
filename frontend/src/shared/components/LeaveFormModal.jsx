@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import Icon from './Icon';
 import api from '../api';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
@@ -70,7 +71,7 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
         <div className="glass-modal-header">
           <h3 className="glass-modal-title">New Leave Request</h3>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         {error && <div className="glass-alert glass-alert-danger">{error}</div>}

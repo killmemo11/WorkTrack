@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
 import Pagination from '../../../shared/components/Pagination';
@@ -100,7 +101,7 @@ export default function NotificationsPage() {
           )}
           {unreadCount > 0 && (
             <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleMarkAllRead}>
-              <span className="iconify" data-icon="lucide:check-check" style={{ marginRight: 6 }} /> Mark all read
+              <Icon icon="lucide:check-check" style={{ marginRight: 6 }} /> Mark all read
             </button>
           )}
         </div>
@@ -118,7 +119,7 @@ export default function NotificationsPage() {
       <div className="glass-table-wrapper">
         {data.notifications.length === 0 ? (
           <div className="glass-empty">
-            <span className="iconify" data-icon="lucide:bell-off" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+            <Icon icon="lucide:bell-off" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
             <h3>{filter ? 'No notifications match this filter.' : 'No notifications yet.'}</h3>
           </div>
         ) : (
@@ -145,7 +146,7 @@ export default function NotificationsPage() {
                         onChange={() => toggleSelect(n.id)} />
                     </td>
                     <td onClick={() => handleClick(n)}>
-                      <span className="iconify" data-icon={typeIconMap[n.type] || 'lucide:info'} style={{ fontSize: '1.2rem', color: n.type === 'success' ? 'var(--color-success)' : n.type === 'warning' ? 'var(--color-warning)' : n.type === 'error' ? 'var(--color-danger)' : 'var(--brand-primary)' }} />
+                      <Icon icon={typeIconMap[n.type] || 'lucide:info'} style={{ fontSize: '1.2rem', color: n.type === 'success' ? 'var(--color-success)' : n.type === 'warning' ? 'var(--color-warning)' : n.type === 'error' ? 'var(--color-danger)' : 'var(--brand-primary)' }} />
                     </td>
                     <td onClick={() => handleClick(n)}>
                       <div style={{ fontWeight: !n.is_read ? 600 : 400, marginBottom: 2 }}>{n.title}</div>

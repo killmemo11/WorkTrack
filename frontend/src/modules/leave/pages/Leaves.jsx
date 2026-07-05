@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import { formatDate } from '../../../shared/utils/date';
 import LeaveFormModal from '../../../shared/components/LeaveFormModal';
@@ -53,10 +54,10 @@ export default function Leaves() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="glass-btn glass-btn-primary" onClick={() => setShowForm(true)}>
-            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> New Leave Request
+            <Icon icon="lucide:plus" style={{ marginRight: 6 }} /> New Leave Request
           </button>
           <button className="glass-btn glass-btn-danger glass-btn-ghost" onClick={() => setShowResignation(true)}>
-            <span className="iconify" data-icon="lucide:log-out" style={{ marginRight: 6 }} /> Resign
+            <Icon icon="lucide:log-out" style={{ marginRight: 6 }} /> Resign
           </button>
         </div>
       </div>
@@ -64,7 +65,7 @@ export default function Leaves() {
       <div className="glass-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 24 }}>
         {['annual', 'sick', 'casual'].map((type) => (
           <div key={type} className={`glass-stat-card ${balanceGradient[type]} card-hover fade-in-up`}>
-            <div className="stat-icon"><span className="iconify" data-icon={type === 'annual' ? 'lucide:sun' : type === 'sick' ? 'lucide:thermometer-snowflake' : 'lucide:coffee'} /></div>
+            <div className="stat-icon"><Icon icon={type === 'annual' ? 'lucide:sun' : type === 'sick' ? 'lucide:thermometer-snowflake' : 'lucide:coffee'} /></div>
             <div className="stat-number">{getBalance(type)}</div>
             <div className="stat-label">{typeLabels[type]} Days Left</div>
           </div>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate } from '../../../shared/utils/date';
 
@@ -101,7 +102,7 @@ export default function AdminLeaves() {
             </thead>
             <tbody>
               {(data.leaves || []).length === 0 && (
-                <tr><td colSpan={10}><div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No leave requests found.</h3><p>Nothing to show yet.</p></div></td></tr>
+                <tr><td colSpan={10}><div className="glass-empty"><Icon icon="lucide:inbox" style={{fontSize:40,opacity:0.3}} /><h3>No leave requests found.</h3><p>Nothing to show yet.</p></div></td></tr>
               )}
               {(data.leaves || []).map((l) => (
                 <tr key={l.id}>
@@ -127,8 +128,8 @@ export default function AdminLeaves() {
                   <td>
                     {l.status === 'pending' && (
                       <div className="action-btns">
-                        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(l); setActionType('approve'); }}><span className="iconify" data-icon="lucide:check"/> Approve</button>
-                        <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(l); setActionType('reject'); }}><span className="iconify" data-icon="lucide:x"/> Reject</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { setActionTarget(l); setActionType('approve'); }}><Icon icon="lucide:check" /> Approve</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => { setActionTarget(l); setActionType('reject'); }}><Icon icon="lucide:x" /> Reject</button>
                       </div>
                     )}
                     {l.rejection_reason && l.status === 'rejected' && (
@@ -147,7 +148,7 @@ export default function AdminLeaves() {
 
         {actionTarget && actionType === 'approve' && (
           <ConfirmModal
-            title={actionTarget.is_self_approval ? '<span className="iconify" data-icon="lucide:alert-triangle"/> Self-Approval' : 'Approve Leave'}
+            title={actionTarget.is_self_approval ? '<Icon icon="lucide:alert-triangle" /> Self-Approval' : 'Approve Leave'}
             message={
               actionTarget.is_self_approval
                 ? `You are approving YOUR OWN leave request.\nSince you are the only admin, this is allowed, but please confirm carefully.\n\nApprove ${actionTarget.employee_name}'s ${typeLabels[actionTarget.type] || actionTarget.type} leave (${formatDate(actionTarget.start_date)} \u2192 ${formatDate(actionTarget.end_date)}, ${actionTarget.days_count} day(s))? Balance will be deducted.`
@@ -163,7 +164,7 @@ export default function AdminLeaves() {
         {actionTarget && actionType === 'reject' && (
           <div className="glass-modal-overlay" onClick={() => setActionTarget(null)}>
             <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setActionTarget(null)}><Icon icon="lucide:x" /></button>
               <h2>Reject Leave</h2>
               <p>Reject {actionTarget.employee_name}'s request?</p>
               <label style={{ display: 'block', marginTop: 12 }}>
@@ -174,7 +175,7 @@ export default function AdminLeaves() {
               </label>
               <div className="glass-modal-footer" style={{ marginTop: 16 }}>
                 <button className="glass-btn glass-btn-ghost" onClick={() => setActionTarget(null)}>Cancel</button>
-                <button className="glass-btn glass-btn-danger" onClick={() => handleReject(actionTarget.id)}><span className="iconify" data-icon="lucide:x"/> Reject</button>
+                <button className="glass-btn glass-btn-danger" onClick={() => handleReject(actionTarget.id)}><Icon icon="lucide:x" /> Reject</button>
               </div>
             </div>
           </div>

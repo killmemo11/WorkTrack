@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import RichTextEditor from '../../../shared/components/RichTextEditor';
@@ -124,14 +125,14 @@ export default function ContractTemplates() {
             <h1>Contract Templates</h1>
             <p className="subtitle" style={{color:'var(--text-dim)'}}>Manage employment contract templates with auto-fill placeholders</p>
           </div>
-          <button className="glass-btn glass-btn-primary" onClick={openCreate}><span className="iconify" data-icon="lucide:file-plus"/> New Template</button>
+          <button className="glass-btn glass-btn-primary" onClick={openCreate}><Icon icon="lucide:file-plus" /> New Template</button>
         </div>
 
         {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
         <div className="glass-table-wrapper fade-in-up">
           {templates.length === 0 ? (
-            <div className="glass-empty"><span className="iconify" data-icon="lucide:file-text"/><p>No templates yet.</p></div>
+            <div className="glass-empty"><Icon icon="lucide:file-text" /><p>No templates yet.</p></div>
           ) : (
             <table className="glass-table">
               <thead>
@@ -150,9 +151,9 @@ export default function ContractTemplates() {
                     <td>{t.is_active ? <span className="glass-badge glass-badge-success">Active</span> : <span className="glass-badge glass-badge-default">Inactive</span>}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(t)}><span className="iconify" data-icon="lucide:pencil"/></button>
-                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openPreview(t)}><span className="iconify" data-icon="lucide:eye"/></button>
-                        <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDelete(t.id), label: `Delete "${t.name}"?` })}><span className="iconify" data-icon="lucide:trash-2"/></button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(t)}><Icon icon="lucide:pencil" /></button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openPreview(t)}><Icon icon="lucide:eye" /></button>
+                        <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDelete(t.id), label: `Delete "${t.name}"?` })}><Icon icon="lucide:trash-2" /></button>
                       </div>
                     </td>
                   </tr>
@@ -165,7 +166,7 @@ export default function ContractTemplates() {
         {showForm && (
           <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
             <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><Icon icon="lucide:x" /></button>
               <h3>{editId ? 'Edit Template' : 'New Template'}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="glass-form-group">
@@ -204,7 +205,7 @@ export default function ContractTemplates() {
         {previewContent && (
           <div className="glass-modal-overlay" onClick={() => setPreviewContent(null)}>
             <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-              <button className="glass-modal-close" onClick={() => setPreviewContent(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setPreviewContent(null)}><Icon icon="lucide:x" /></button>
               <h3>Preview: {previewName}</h3>
               <div className="glass-card" style={{ padding: 24 }} dangerouslySetInnerHTML={{ __html: previewContent }} />
               <div className="glass-modal-footer">

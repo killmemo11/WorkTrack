@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 import Pagination from '../../../shared/components/Pagination';
 
@@ -154,7 +155,7 @@ export default function ActivityLog() {
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="iconify" data-icon="lucide:scroll-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+            <Icon icon="lucide:scroll-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
             Activity Log
           </h1>
           <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Audit-ready trail of user actions, with actor and affected employee.</p>
@@ -192,10 +193,10 @@ export default function ActivityLog() {
             <option value="asset_returned">Asset Returned</option>
           </select>
           <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => fetchLog(1)}>
-            <span className="iconify" data-icon="lucide:filter"></span> Filter
+            <Icon icon="lucide:filter"></Icon> Filter
           </button>
           <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setFilter(''); fetchLog(1); }}>
-            <span className="iconify" data-icon="lucide:x"></span> Clear
+            <Icon icon="lucide:x"></Icon> Clear
           </button>
         </div>
       </div>
@@ -237,7 +238,7 @@ export default function ActivityLog() {
             {data.entries.length === 0 && (
               <tr><td colSpan={5}>
                 <div className="glass-empty">
-                  <span className="iconify" data-icon="lucide:scroll-text"></span>
+                  <Icon icon="lucide:scroll-text"></Icon>
                   <h3>No activity entries yet.</h3>
                 </div>
               </td></tr>
@@ -257,7 +258,7 @@ export default function ActivityLog() {
                 </td>
                 <td>
                   <span className={getActionBadge(e.action)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <span className="iconify" data-icon={getActionIcon(e.action)} style={{ fontSize: '0.7rem' }}></span>
+                    <Icon icon={getActionIcon(e.action)} style={{ fontSize: '0.7rem' }}></Icon>
                     {getActionLabel(e.action)}
                   </span>
                 </td>

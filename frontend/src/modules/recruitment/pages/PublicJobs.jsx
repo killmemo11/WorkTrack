@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -33,7 +34,7 @@ export default function PublicJobs() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(99,102,241,0.3)',
         }}>
-          <span className="iconify" data-icon="lucide:briefcase" style={{ fontSize: '1.6rem', color: '#fff' }}></span>
+          <Icon icon="lucide:briefcase" style={{ fontSize: '1.6rem', color: '#fff' }}></Icon>
         </div>
         <h1 style={{ fontSize: '2rem', background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Join Our Team</h1>
         <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>Explore current openings and apply online</p>
@@ -41,7 +42,7 @@ export default function PublicJobs() {
 
       {jobs.length === 0 ? (
         <div className="glass-card fade-in-up"><div className="glass-card-body" style={{ textAlign: 'center', padding: 40 }}>
-          <span className="iconify" data-icon="lucide:inbox" style={{ fontSize: '2rem', color: 'var(--text-faint)' }}></span>
+          <Icon icon="lucide:inbox" style={{ fontSize: '2rem', color: 'var(--text-faint)' }}></Icon>
           <h3 style={{ marginTop: 12, color: 'var(--text-dim)' }}>No open positions right now</h3>
           <p style={{ color: 'var(--text-faint)', marginTop: 8 }}>Check back later for new opportunities.</p>
         </div></div>
@@ -52,19 +53,19 @@ export default function PublicJobs() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="iconify" data-icon="lucide:briefcase" style={{ color: 'var(--brand-primary)' }}></span>
+                    <Icon icon="lucide:briefcase" style={{ color: 'var(--brand-primary)' }}></Icon>
                     {job.title}
                   </h3>
                   <p style={{ margin: '4px 0', color: 'var(--text-dim)', fontSize: '0.9rem' }}>
-                    <span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 4, fontSize: '0.75rem' }}></span>{job.department}
+                    <Icon icon="lucide:building-2" style={{ marginRight: 4, fontSize: '0.75rem' }}></Icon>{job.department}
                     {' \u00b7 '}
-                    <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4, fontSize: '0.75rem' }}></span>{job.type}
-                    {job.technical ? <span className="glass-badge glass-badge-info" style={{ marginLeft: 8 }}><span className="iconify" data-icon="lucide:code" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>Technical</span> : null}
+                    <Icon icon="lucide:clock" style={{ marginRight: 4, fontSize: '0.75rem' }}></Icon>{job.type}
+                    {job.technical ? <span className="glass-badge glass-badge-info" style={{ marginLeft: 8 }}><Icon icon="lucide:code" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>Technical</span> : null}
                   </p>
                   {job.description ? <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{job.description}</p> : null}
                 </div>
                 <button className="glass-btn glass-btn-primary" onClick={() => navigate(`/careers/apply?job=${job.id}`)}>
-                  <span className="iconify" data-icon="lucide:send"></span> Apply Now
+                  <Icon icon="lucide:send"></Icon> Apply Now
                 </button>
               </div>
             </div>
@@ -73,7 +74,7 @@ export default function PublicJobs() {
       )}
 
       <footer style={{ textAlign: 'center', marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--border-glass)', color: 'var(--text-faint)', fontSize: '0.8rem' }}>
-        <p><span className="iconify" data-icon="lucide:building" style={{ marginRight: 4 }}></span> WorkTrack &mdash; Careers Portal</p>
+        <p><Icon icon="lucide:building" style={{ marginRight: 4 }}></Icon> WorkTrack &mdash; Careers Portal</p>
       </footer>
     </div>
   );

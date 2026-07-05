@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 
 export default function MyContracts() {
@@ -54,7 +55,7 @@ export default function MyContracts() {
 
       {contracts.length === 0 ? (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: 48, opacity: 0.4 }}></span>
+          <Icon icon="lucide:file-text" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
           <h3>No contracts available</h3>
           <p>You have no contracts on record yet.</p>
         </div>
@@ -79,17 +80,17 @@ export default function MyContracts() {
                   <td>{c.end_date ? new Date(c.end_date).toLocaleDateString() : '—'}</td>
                   <td>{statusBadge(c.status)}</td>
                   <td>
-                    {c.signed_by_employee ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                    {c.signed_by_employee ? <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></Icon> : ''}
                     {c.signed_by_employee ? 'Employee' : ''}
                     {c.signed_by_employee && c.signed_by_company ? ' & ' : ''}
-                    {c.signed_by_company ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                    {c.signed_by_company ? <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></Icon> : ''}
                     {c.signed_by_company ? 'Company' : ''}
                     {!c.signed_by_employee && !c.signed_by_company ? '—' : ''}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openContent(c.id)}>
-                        <span className="iconify" data-icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></span>
+                        <Icon icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                         View
                       </button>
                       <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={async () => {
@@ -100,7 +101,7 @@ export default function MyContracts() {
                           document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
                         } catch (e) { console.error('Failed to download PDF:', e); }
                       }}>
-                        <span className="iconify" data-icon="lucide:download" style={{ marginRight: 4, fontSize: 12 }}></span>
+                        <Icon icon="lucide:download" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                         PDF
                       </button>
                     </div>
@@ -119,11 +120,11 @@ export default function MyContracts() {
             <div className="glass-card" dangerouslySetInnerHTML={{ __html: viewContent }} />
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(viewContent); w.print(); }}>
-                <span className="iconify" data-icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></span>
+                <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>
               <button className="glass-btn glass-btn-ghost" onClick={() => setViewContent(null)}>
-                <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4, fontSize: 14 }}></span>
+                <Icon icon="lucide:x" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Close
               </button>
             </div>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 
 const typeIcons = {
@@ -69,7 +70,7 @@ export default function AdminNotificationBell() {
   return (
     <div className="notif-bell" ref={ref} style={{ display: 'inline-block', marginLeft: 8 }}>
       <button className="notif-bell-btn" onClick={toggleOpen} title="Admin Notifications">
-        <span className="iconify" data-icon="lucide:bell" />
+        <Icon icon="lucide:bell" />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
@@ -92,7 +93,7 @@ export default function AdminNotificationBell() {
                   className={`notif-item ${!n.is_read ? 'notif-unread' : ''}`}
                   onClick={() => handleClick(n)}>
                   <span className="notif-item-icon">
-                    <span className="iconify" data-icon={typeInfo.icon} style={{ color: typeInfo.color }} />
+                    <Icon icon={typeInfo.icon} style={{ color: typeInfo.color }} />
                   </span>
                   <div className="notif-item-content">
                     <div className="notif-item-title">{n.title}</div>

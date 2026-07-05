@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MasterSelect from '../../../shared/components/MasterSelect';
@@ -122,16 +123,16 @@ export default function PublicApply() {
             width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
           }}>
-            <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: '2rem', color: 'var(--success)' }}></span>
+            <Icon icon="lucide:check-circle" style={{ fontSize: '2rem', color: 'var(--success)' }}></Icon>
           </div>
           <h2 style={{ color: 'var(--text-primary)' }}>Application Submitted!</h2>
           <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>
             Thank you for applying to <strong style={{ color: 'var(--brand-primary)' }}>{jobTitle}</strong>.
           </p>
           <p>Your reference number is <strong className="glass-badge glass-badge-success">{success.ref}</strong></p>
-          {success.email_sent && <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}><span className="iconify" data-icon="lucide:mail" style={{ marginRight: 4 }}></span>A confirmation email has been sent to {form.email}.</p>}
+          {success.email_sent && <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}><Icon icon="lucide:mail" style={{ marginRight: 4 }}></Icon>A confirmation email has been sent to {form.email}.</p>}
           <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/careers')}>
-            <span className="iconify" data-icon="lucide:arrow-left"></span> Back to Jobs
+            <Icon icon="lucide:arrow-left"></Icon> Back to Jobs
           </button>
         </div></div>
       </div>
@@ -147,7 +148,7 @@ export default function PublicApply() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 12px', boxShadow: '0 8px 24px rgba(99,102,241,0.25)',
         }}>
-          <span className="iconify" data-icon="lucide:send" style={{ fontSize: '1.4rem', color: '#fff' }}></span>
+          <Icon icon="lucide:send" style={{ fontSize: '1.4rem', color: '#fff' }}></Icon>
         </div>
         <h1 style={{ textAlign: 'center', color: 'var(--text-primary)' }}>Apply for a Position</h1>
       </div>
@@ -156,7 +157,7 @@ export default function PublicApply() {
         <div className="glass-card-body" style={{ padding: 32 }}>
           {error && (
             <div className="glass-alert glass-alert-danger" role="alert">
-              <span className="iconify" data-icon="lucide:alert-circle"></span> {error}
+              <Icon icon="lucide:alert-circle"></Icon> {error}
             </div>
           )}
 
@@ -197,11 +198,11 @@ export default function PublicApply() {
             {selectedJobId && jobMinReqs && (
               <div className="glass-card" style={{ padding: '12px 14px', marginBottom: 16, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)', fontSize: 13 }}>
-                  <span className="iconify" data-icon="lucide:target"></span> This position requires:
+                  <Icon icon="lucide:target"></Icon> This position requires:
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {jobMinReqs.min_education_level && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:graduation-cap" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>{EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
-                  {jobMinReqs.min_experience_years != null && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 2, fontSize: '0.65rem' }}></span>{jobMinReqs.min_experience_years}+ years</span>}
+                  {jobMinReqs.min_education_level && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:graduation-cap" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>{EDU_LEVELS.find(e => e.value === jobMinReqs.min_education_level)?.label || jobMinReqs.min_education_level}</span>}
+                  {jobMinReqs.min_experience_years != null && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:calendar" style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>{jobMinReqs.min_experience_years}+ years</span>}
                   {(jobMinReqs.required_skills || []).map(s => <span key={s} className="glass-badge glass-badge-info">{s}</span>)}
                   {(jobMinReqs.required_certs || []).map(c => <span key={c} className="glass-badge glass-badge-danger">{c}</span>)}
                 </div>
@@ -210,7 +211,7 @@ export default function PublicApply() {
 
             <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="iconify" data-icon="lucide:award"></span> Qualifications
+                <Icon icon="lucide:award"></Icon> Qualifications
               </div>
 
               <div className="glass-form-group">
@@ -244,7 +245,7 @@ export default function PublicApply() {
             </div>
 
             <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" disabled={loading || jobsLoading} style={{ marginTop: 8 }}>
-              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div> Submitting...</> : <><span className="iconify" data-icon="lucide:send"></span> Submit Application</>}
+              {loading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div> Submitting...</> : <><Icon icon="lucide:send"></Icon> Submit Application</>}
             </button>
           </form>
         </div>
@@ -252,7 +253,7 @@ export default function PublicApply() {
 
       <p style={{ textAlign: 'center', marginTop: 16 }}>
         <a href="/careers" style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>
-          <span className="iconify" data-icon="lucide:arrow-left" style={{ marginRight: 4 }}></span> Back to all jobs
+          <Icon icon="lucide:arrow-left" style={{ marginRight: 4 }}></Icon> Back to all jobs
         </a>
       </p>
     </div>

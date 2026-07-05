@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import TitleCard from '../components/TitleCard';
@@ -263,7 +264,7 @@ export default function Positions() {
           </p>
         </div>
         <button className="glass-btn glass-btn-primary" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className="iconify" data-icon="lucide:plus" /> Add Title
+          <Icon icon="lucide:plus" /> Add Title
         </button>
       </div>
 
@@ -275,7 +276,7 @@ export default function Positions() {
         alignItems: 'center',
       }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <span className="iconify" data-icon="lucide:search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: 14, pointerEvents: 'none' }} />
+          <Icon icon="lucide:search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: 14, pointerEvents: 'none' }} />
           <input
             ref={searchRef}
             type="text"
@@ -324,7 +325,7 @@ export default function Positions() {
           { label: 'Utilization', value: stats.totalMax > 0 ? `${Math.round(stats.totalFilled / stats.totalMax * 100)}%` : '—', icon: 'lucide:trending-up', class: 'gradient-purple' },
         ].map(s => (
           <div key={s.label} className={`glass-stat-card ${s.class} card-hover fade-in-up`}>
-            <div className="stat-icon"><span className="iconify" data-icon={s.icon} /></div>
+            <div className="stat-icon"><Icon icon={s.icon} /></div>
             <div className="stat-number">{s.value}</div>
             <div className="stat-label">{s.label}</div>
           </div>
@@ -334,7 +335,7 @@ export default function Positions() {
       {/* ── Empty Search State ── */}
       {search && filteredTitles.length === 0 && (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:search-x" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+          <Icon icon="lucide:search-x" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
           <h3>No titles match &quot;{search}&quot;</h3>
           <p style={{ color: 'var(--text-dim)', marginTop: 4 }}>Try a different search term or clear filters</p>
           <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => { setSearch(''); if (searchRef.current) searchRef.current.value = ''; setDeptFilter(''); setGradeFilter(''); }}>
@@ -346,11 +347,11 @@ export default function Positions() {
       {/* ── Empty State ── */}
       {!search && filteredTitles.length === 0 && titles.length === 0 && (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:inbox" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+          <Icon icon="lucide:inbox" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
           <h3>No titles yet</h3>
           <p style={{ color: 'var(--text-dim)', marginTop: 4 }}>Start by adding your first job title</p>
           <button className="glass-btn glass-btn-primary" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>
-            <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> Add First Title
+            <Icon icon="lucide:plus" style={{ marginRight: 6 }} /> Add First Title
           </button>
         </div>
       )}
@@ -379,7 +380,7 @@ export default function Positions() {
                 userSelect: 'none',
               }}
             >
-              <span className="iconify" data-icon={isCollapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'} style={{ fontSize: 12, color: 'var(--text-dim)', transition: 'transform .2s' }} />
+              <Icon icon={isCollapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'} style={{ fontSize: 12, color: 'var(--text-dim)', transition: 'transform .2s' }} />
               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
                 {dept.name}
                 <span style={{ fontWeight: 400, color: 'var(--text-dim)', fontSize: 12, marginLeft: 8 }}>
@@ -387,7 +388,7 @@ export default function Positions() {
                 </span>
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                <span className="iconify" data-icon="lucide:users" style={{ fontSize: 12 }} /> {deptFilled}/{deptMax || '∞'}
+                <Icon icon="lucide:users" style={{ fontSize: 12 }} /> {deptFilled}/{deptMax || '∞'}
                 {deptMax > 0 && (
                   <>
                     <div className="stat-bar" style={{ width: 60, height: 5, borderRadius: 3, overflow: 'hidden', background: 'var(--bg-primary)' }}>
@@ -410,12 +411,12 @@ export default function Positions() {
               <div style={{ padding: 16 }}>
                 {isEmpty ? (
                   <div className="glass-empty" style={{ padding: 30 }}>
-                    <span className="iconify" data-icon="lucide:inbox" style={{ fontSize: 32, color: 'var(--text-dim)' }} />
+                    <Icon icon="lucide:inbox" style={{ fontSize: 32, color: 'var(--text-dim)' }} />
                     <h3 style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)', marginTop: 8 }}>
                       No titles in this department yet
                     </h3>
                     <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => { setAddForm({ ...addForm, department_id: dept.id }); setShowAdd(true); }}>
-                      <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 4 }} /> Add First Title
+                      <Icon icon="lucide:plus" style={{ marginRight: 4 }} /> Add First Title
                     </button>
                   </div>
                 ) : (
@@ -465,7 +466,7 @@ export default function Positions() {
             <button className="glass-modal-close" onClick={() => setShowAdd(false)} />
             <div className="glass-card-body">
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:plus" /> Add New Title
+                <Icon icon="lucide:plus" /> Add New Title
               </h3>
             </div>
             <div className="glass-card-body" style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 16 }}>
@@ -512,7 +513,7 @@ export default function Positions() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleAddTitle} disabled={saving}>
-                {saving ? <><span className="spinner-sm" /> Adding...</> : <><span className="iconify" data-icon="lucide:plus" style={{ marginRight: 6 }} /> Add Title</>}
+                {saving ? <><span className="spinner-sm" /> Adding...</> : <><Icon icon="lucide:plus" style={{ marginRight: 6 }} /> Add Title</>}
               </button>
             </div>
           </div>
@@ -525,7 +526,7 @@ export default function Positions() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 680, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '24px 28px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:pencil" style={{ fontSize: 22 }} />
+                <Icon icon="lucide:pencil" style={{ fontSize: 22 }} />
                 {selected.title}
               </h3>
               <button onClick={() => { setSelected(null); setEditTab('basic'); }}
@@ -543,7 +544,7 @@ export default function Positions() {
                   onClick={() => setEditTab(tab.key)}
                   className={`glass-tab ${editTab === tab.key ? 'glass-tab-active' : ''}`}
                   style={{ border: 'none', boxShadow: editTab === tab.key ? '0 1px 4px rgba(0,0,0,.15)' : 'none' }}>
-                  <span className="iconify" data-icon={tab.icon} style={{ marginRight: 4, fontSize: 14 }} />
+                  <Icon icon={tab.icon} style={{ marginRight: 4, fontSize: 14 }} />
                   {tab.label}
                 </div>
               ))}
@@ -601,19 +602,14 @@ export default function Positions() {
                         onClick={() => setDetailTab(tab.key)}
                         className={`glass-tab ${detailTab === tab.key ? 'glass-tab-active' : ''}`}
                         style={{ border: 'none', boxShadow: detailTab === tab.key ? '0 1px 4px rgba(0,0,0,.15)' : 'none' }}>
-                        <span className="iconify" data-icon={tab.icon} style={{ marginRight: 4, fontSize: 14 }} />
+                        <Icon icon={tab.icon} style={{ marginRight: 4, fontSize: 14 }} />
                         {tab.label}
                       </div>
                     ))}
                   </div>
                   <div className="glass-card" style={{ margin: 0 }}>
                     <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="iconify" data-icon={
-                        detailTab === 'summary' ? 'lucide:file-text' :
-                        detailTab === 'responsibilities' ? 'lucide:list-checks' :
-                        detailTab === 'qualifications' ? 'lucide:graduation-cap' :
-                        detailTab === 'technical' ? 'lucide:wrench' : 'lucide:sparkles'
-                      } style={{ fontSize: 16 }} />
+                      <Icon icon={ detailTab === 'summary' ? 'lucide:file-text' : detailTab === 'responsibilities' ? 'lucide:list-checks' : detailTab === 'qualifications' ? 'lucide:graduation-cap' : detailTab === 'technical' ? 'lucide:wrench' : 'lucide:sparkles' } style={{ fontSize: 16 }} />
                       <span style={{ fontWeight: 600, fontSize: 14 }}>
                         {detailTab === 'summary' && 'Job Summary'}
                         {detailTab === 'responsibilities' && 'Key Responsibilities'}
@@ -664,12 +660,12 @@ export default function Positions() {
                     <span style={{ fontWeight: 600, fontSize: 14 }}>Performance Evaluation Criteria</span>
                     <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={addCriteriaRow}
                       style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span className="iconify" data-icon="lucide:plus" style={{ fontSize: 14 }} /> Add Criterion
+                      <Icon icon="lucide:plus" style={{ fontSize: 14 }} /> Add Criterion
                     </button>
                   </div>
                   {criteria.length === 0 ? (
                     <div className="glass-empty" style={{ padding: 40 }}>
-                      <span className="iconify" data-icon="lucide:bar-chart-2" style={{ fontSize: 40, color: 'var(--text-dim)' }} />
+                      <Icon icon="lucide:bar-chart-2" style={{ fontSize: 40, color: 'var(--text-dim)' }} />
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>No criteria set</div>
                       <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>Click &quot;Add Criterion&quot; to define how this position is evaluated.</div>
                     </div>
@@ -725,7 +721,7 @@ export default function Positions() {
               {editTab === 'requirements' && (
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
-                    <span className="iconify" data-icon="lucide:target" style={{ marginRight: 6 }} /> Minimum Requirements
+                    <Icon icon="lucide:target" style={{ marginRight: 6 }} /> Minimum Requirements
                     <div style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
                       Candidates who don&apos;t meet these will be auto-rejected when applying to jobs with this title.
                     </div>
@@ -781,10 +777,10 @@ export default function Positions() {
               <button className="glass-btn glass-btn-ghost" onClick={() => { setSelected(null); setEditTab('basic'); }}>Cancel</button>
               <div style={{ flex: 1 }} />
               <button className="glass-btn glass-btn-danger" onClick={() => { setDeleteTarget(selected); setSelected(null); setEditTab('basic'); }}>
-                <span className="iconify" data-icon="lucide:trash-2" style={{ marginRight: 4 }} /> Delete
+                <Icon icon="lucide:trash-2" style={{ marginRight: 4 }} /> Delete
               </button>
               <button className="glass-btn glass-btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {saving ? <span className="spinner-sm" /> : <><span className="iconify" data-icon="lucide:save" /> {saving ? 'Saving...' : 'Save Changes'}</>}
+                {saving ? <span className="spinner-sm" /> : <><Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Changes'}</>}
               </button>
             </div>
           </div>

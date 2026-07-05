@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Register() {
@@ -102,48 +103,48 @@ export default function Register() {
 
       <div className="auth-container fade-in-up">
         <div className="auth-brand">
-          <span className="iconify" data-icon="lucide:user-plus" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
+          <Icon icon="lucide:user-plus" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
           <h1>Create Account</h1>
           <p>Register for WorkTrack</p>
         </div>
 
         {error && (
           <div className="glass-alert glass-alert-danger">
-            <span className="iconify" data-icon="lucide:alert-triangle" />
+            <Icon icon="lucide:alert-triangle" />
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:id-card" style={{ marginRight: 6, fontSize: 14 }} />Employee ID</label>
+            <label className="glass-label"><Icon icon="lucide:id-card" style={{ marginRight: 6, fontSize: 14 }} />Employee ID</label>
             <input type="text" className="glass-input" placeholder="Enter employee ID (e.g. 100)" value={form.employee_id} onChange={(e) => handleChange('employee_id', e.target.value)} autoComplete="off" />
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:user" style={{ marginRight: 6, fontSize: 14 }} />Full Name</label>
+            <label className="glass-label"><Icon icon="lucide:user" style={{ marginRight: 6, fontSize: 14 }} />Full Name</label>
             <input type="text" className="glass-input" placeholder="Enter your full name" value={form.name} onChange={(e) => handleChange('name', e.target.value)} required autoComplete="name" />
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:mail" style={{ marginRight: 6, fontSize: 14 }} />Email</label>
+            <label className="glass-label"><Icon icon="lucide:mail" style={{ marginRight: 6, fontSize: 14 }} />Email</label>
             <input type="email" className="glass-input" placeholder="Enter your email" value={form.email} onChange={(e) => handleChange('email', e.target.value)} required autoComplete="email" />
           </div>
 
           {allowedDomain && (
             <div className="glass-alert glass-alert-info" style={{ padding: '8px 12px', fontSize: '0.82rem' }}>
-              <span className="iconify" data-icon="lucide:info" style={{ marginRight: 6 }} />
+              <Icon icon="lucide:info" style={{ marginRight: 6 }} />
               Only @{allowedDomain} email addresses are allowed
             </div>
           )}
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:at-sign" style={{ marginRight: 6, fontSize: 14 }} />Username</label>
+            <label className="glass-label"><Icon icon="lucide:at-sign" style={{ marginRight: 6, fontSize: 14 }} />Username</label>
             <input type="text" className="glass-input" placeholder="Enter username" value={form.username} onChange={(e) => handleChange('username', e.target.value)} required autoComplete="username" />
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 6, fontSize: 14 }} />Department</label>
+            <label className="glass-label"><Icon icon="lucide:building-2" style={{ marginRight: 6, fontSize: 14 }} />Department</label>
             <select className="glass-select" value={form.department_id} onChange={(e) => handleChange('department_id', e.target.value)} required>
               <option value="">Select Department</option>
               {departments.map((dept) => (
@@ -153,11 +154,11 @@ export default function Register() {
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:lock" style={{ marginRight: 6, fontSize: 14 }} />Password</label>
+            <label className="glass-label"><Icon icon="lucide:lock" style={{ marginRight: 6, fontSize: 14 }} />Password</label>
             <div style={{ position: 'relative' }}>
               <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="Enter password (min 6 chars)" value={form.password} onChange={(e) => handleChange('password', e.target.value)} required autoComplete="new-password" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
-                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+                <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
               </button>
             </div>
             {form.password && (
@@ -171,17 +172,17 @@ export default function Register() {
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:shield-check" style={{ marginRight: 6, fontSize: 14 }} />Confirm Password</label>
+            <label className="glass-label"><Icon icon="lucide:shield-check" style={{ marginRight: 6, fontSize: 14 }} />Confirm Password</label>
             <div style={{ position: 'relative' }}>
               <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="Confirm password" value={form.confirm} onChange={(e) => handleChange('confirm', e.target.value)} required autoComplete="new-password" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
-                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+                <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
               </button>
             </div>
           </div>
 
           <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg" disabled={loading} style={{ width: '100%' }}>
-            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Creating account...</> : <>Register <span className="iconify" data-icon="lucide:user-plus" style={{ marginLeft: 8 }} /></>}
+            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Creating account...</> : <>Register <Icon icon="lucide:user-plus" style={{ marginLeft: 8 }} /></>}
           </button>
         </form>
 

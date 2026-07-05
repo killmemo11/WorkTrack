@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 
 export default function MyAssets() {
@@ -45,14 +46,14 @@ export default function MyAssets() {
           <p className="subtitle" style={{ color: 'var(--text-dim)' }}>Assets currently assigned to you</p>
         </div>
         <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowHistory(!showHistory)}>
-          <span className="iconify" data-icon={showHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></span>
+          <Icon icon={showHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></Icon>
           {showHistory ? 'Hide History' : 'View History'}
         </button>
       </div>
 
       {assets.length === 0 ? (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:package" style={{ fontSize: 48, opacity: 0.4 }}></span>
+          <Icon icon="lucide:package" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
           <h3>No assets assigned</h3>
           <p>No assets are currently assigned to you.</p>
         </div>
@@ -91,14 +92,14 @@ export default function MyAssets() {
         <div className="glass-card fade-in-up" style={{ marginTop: 32 }}>
           <div className="glass-card-header">
             <h3>
-              <span className="iconify" data-icon="lucide:history" style={{ marginRight: 8, fontSize: 18, color: 'var(--text-dim)' }}></span>
+              <Icon icon="lucide:history" style={{ marginRight: 8, fontSize: 18, color: 'var(--text-dim)' }}></Icon>
               Asset History
             </h3>
           </div>
           <div className="glass-card-body">
             {history.length === 0 ? (
               <div className="glass-empty">
-                <span className="iconify" data-icon="lucide:clock" style={{ fontSize: 32, opacity: 0.3 }}></span>
+                <Icon icon="lucide:clock" style={{ fontSize: 32, opacity: 0.3 }}></Icon>
                 <p>No history records.</p>
               </div>
             ) : (

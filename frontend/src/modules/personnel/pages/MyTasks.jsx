@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 
 // Toast notification component
@@ -16,7 +17,7 @@ const Toast = ({ message, type = 'error', onClose }) => {
 
   return (
     <div className={`glass-toast glass-toast-${type}`} onClick={onClose}>
-      <span className="iconify" data-icon={icons[type]} />
+      <Icon icon={icons[type]} />
       {message}
     </div>
   );
@@ -108,13 +109,13 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
           <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
             {task.due_date && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="iconify" data-icon="lucide:calendar" style={{ fontSize: 12 }}></span>
+                <Icon icon="lucide:calendar" style={{ fontSize: 12 }}></Icon>
                 Due {formatDate(task.due_date)}
               </span>
             )}
             {task.assigned_by_name && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="iconify" data-icon="lucide:user" style={{ fontSize: 12 }}></span>
+                <Icon icon="lucide:user" style={{ fontSize: 12 }}></Icon>
                 {task.assigned_by_name}
               </span>
             )}
@@ -157,7 +158,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
               onClick={() => handleStatusChange('completed')}
               disabled={isUpdating}
             >
-              <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4, fontSize: 12 }}></span>
+              <Icon icon="lucide:check" style={{ marginRight: 4, fontSize: 12 }}></Icon>
               Complete
             </button>
           )}
@@ -166,7 +167,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
             onClick={() => onViewDetails(task)}
             style={{ marginLeft: 8 }}
           >
-            <span className="iconify" data-icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></span>
+            <Icon icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></Icon>
             Details
           </button>
         </div>
@@ -210,7 +211,7 @@ const TaskDetailsModal = ({ task, onClose, onViewHistory }) => {
         <div className="glass-modal-header">
           <h2 className="glass-modal-title">{task.title}</h2>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         <div className="glass-modal-body">
@@ -272,7 +273,7 @@ const TaskDetailsModal = ({ task, onClose, onViewHistory }) => {
               onViewHistory(task);
             }}
           >
-            <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4 }} />
+            <Icon icon="lucide:clock" style={{ marginRight: 4 }} />
             View History
           </button>
           <button className="glass-btn glass-btn-secondary" onClick={onClose}>
@@ -321,7 +322,7 @@ const TaskHistoryModal = ({ task, onClose }) => {
         <div className="glass-modal-header">
           <h2 className="glass-modal-title">{task.title} - History</h2>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         <div className="glass-modal-body">
@@ -332,7 +333,7 @@ const TaskHistoryModal = ({ task, onClose }) => {
             </div>
           ) : history.length === 0 ? (
             <div className="glass-empty">
-              <span className="iconify" data-icon="lucide:clock" style={{ fontSize: 48, opacity: 0.4 }}></span>
+              <Icon icon="lucide:clock" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
               <h3>No activity yet</h3>
               <p>This task has no recorded history.</p>
             </div>
@@ -383,7 +384,7 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
         <div className="glass-modal-header">
           <h2 className="glass-modal-title">Task Templates</h2>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         <div className="glass-modal-body">
@@ -394,7 +395,7 @@ const TaskTemplateModal = ({ isOpen, onClose, onSelectTemplate }) => {
             </div>
           ) : templates.length === 0 ? (
             <div className="glass-empty">
-              <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: 48, opacity: 0.4 }}></span>
+              <Icon icon="lucide:file-text" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
               <h3>No templates found</h3>
               <p>Create your first task template to get started.</p>
             </div>
@@ -488,11 +489,11 @@ const CalendarView = ({ tasks }) => {
     <div className="calendar-view">
       <div className="calendar-header">
         <button className="calendar-nav" onClick={handlePrevMonth}>
-          <span className="iconify" data-icon="lucide:chevron-left" />
+          <Icon icon="lucide:chevron-left" />
         </button>
         <h3>{monthName}</h3>
         <button className="calendar-nav" onClick={handleNextMonth}>
-          <span className="iconify" data-icon="lucide:chevron-right" />
+          <Icon icon="lucide:chevron-right" />
         </button>
       </div>
       <div className="calendar-grid">
@@ -588,7 +589,7 @@ const CreateTaskModal = ({ isOpen, onClose, onCreate, teamMembers }) => {
         <div className="glass-modal-header">
           <h2 className="glass-modal-title">Create New Task</h2>
           <button className="glass-modal-close" onClick={onClose}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
@@ -911,7 +912,7 @@ export default function MyTasks() {
   if (error) {
     return (
       <div className="glass-error">
-        <span className="iconify" data-icon="lucide:alert-circle" style={{ fontSize: 48, opacity: 0.4 }}></span>
+        <Icon icon="lucide:alert-circle" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
         <h3>Error Loading Tasks</h3>
         <p>{error}</p>
         <button className="glass-btn glass-btn-primary" onClick={fetchTasks}>
@@ -933,7 +934,7 @@ export default function MyTasks() {
             <div className="glass-modal-header">
               <h2 className="glass-modal-title">Confirm Delete</h2>
               <button className="glass-modal-close" onClick={() => setShowDeleteConfirm(false)}>
-                <span className="iconify" data-icon="lucide:x" />
+                <Icon icon="lucide:x" />
               </button>
             </div>
             <div className="glass-modal-body">
@@ -963,7 +964,7 @@ export default function MyTasks() {
               className="glass-btn glass-btn-primary"
               onClick={() => setShowCreateModal(true)}
             >
-              <span className="iconify" data-icon="lucide:plus" style={{ marginRight: 4 }}></span>
+              <Icon icon="lucide:plus" style={{ marginRight: 4 }}></Icon>
               Create Task
             </button>
           )}
@@ -973,14 +974,14 @@ export default function MyTasks() {
               onClick={() => setViewMode('list')}
               title="List view"
             >
-              <span className="iconify" data-icon="lucide:list" />
+              <Icon icon="lucide:list" />
             </button>
             <button
               className={`glass-btn glass-btn-sm ${viewMode === 'calendar' ? 'glass-btn-primary' : 'glass-btn-secondary'}`}
               onClick={() => setViewMode('calendar')}
               title="Calendar view"
             >
-              <span className="iconify" data-icon="lucide:calendar" />
+              <Icon icon="lucide:calendar" />
             </button>
           </div>
         </div>
@@ -1021,7 +1022,7 @@ export default function MyTasks() {
             </button>
           )}
           <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setShowDeleteConfirm(true)}>
-            <span className="iconify" data-icon="lucide:trash" style={{ marginRight: 4, fontSize: 12 }}></span>
+            <Icon icon="lucide:trash" style={{ marginRight: 4, fontSize: 12 }}></Icon>
             Delete
           </button>
           <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setSelectedTasks(new Set())}>
@@ -1097,7 +1098,7 @@ export default function MyTasks() {
           </div>
           {filteredTasks.length === 0 ? (
             <div className="glass-empty">
-              <span className="iconify" data-icon="lucide:check-square" style={{ fontSize: 48, opacity: 0.4 }}></span>
+              <Icon icon="lucide:check-square" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
               <h3>No tasks found</h3>
               <p>{tasks.length === 0 ? 'No tasks assigned yet.' : 'No tasks match your current filters.'}</p>
             </div>

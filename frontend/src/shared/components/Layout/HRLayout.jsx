@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
@@ -43,7 +44,7 @@ export default function HRLayout({ children }) {
             <>
               <div className="admin-nav-section-label">PEOPLE</div>
               <Link to="/hr/people/employees" className={prefix('/hr/people')}>
-                <span className="iconify" data-icon="lucide:users" /> People
+                <Icon icon="lucide:users" /> People
               </Link>
             </>
           )}
@@ -52,36 +53,36 @@ export default function HRLayout({ children }) {
             <>
               <div className="admin-nav-section-label">RECRUITMENT</div>
               <Link to="/hr/recruitment/candidates" className={prefix('/hr/recruitment')}>
-                <span className="iconify" data-icon="lucide:target" /> Recruitment
+                <Icon icon="lucide:target" /> Recruitment
               </Link>
             </>
           )}
 
           <div className="admin-nav-section-label">TIME & ATTENDANCE</div>
           <Link to="/hr/attendance/records" className={prefix('/hr/attendance')}>
-            <span className="iconify" data-icon="lucide:clock" /> Time & Attendance
+            <Icon icon="lucide:clock" /> Time & Attendance
           </Link>
 
           <div className="admin-nav-section-label">TOOLS</div>
           <Link to="/hr/hr-settings" className={isActive('/hr/hr-settings')}>
-            <span className="iconify" data-icon="lucide:settings" /> HR Settings
+            <Icon icon="lucide:settings" /> HR Settings
           </Link>
           <Link to="/hr/audit-log" className={isActive('/hr/audit-log')}>
-            <span className="iconify" data-icon="lucide:clipboard-list" /> Balance Audit
+            <Icon icon="lucide:clipboard-list" /> Balance Audit
           </Link>
           <Link to="/hr/assets" className={isActive('/hr/assets')}>
-            <span className="iconify" data-icon="lucide:package" /> Assets
+            <Icon icon="lucide:package" /> Assets
           </Link>
         </nav>
         <div className="admin-sidebar-footer">
           <Link to="/dashboard" className="admin-nav-link">
-            <span className="iconify" data-icon="lucide:arrow-left" /> Back to App
+            <Icon icon="lucide:arrow-left" /> Back to App
           </Link>
           <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
-            <span className="iconify" data-icon="lucide:log-out" /> Logout
+            <Icon icon="lucide:log-out" /> Logout
           </button>
           <div className="admin-user">
-            <span className="iconify" data-icon="lucide:user" style={{fontSize:'0.8rem'}} />
+            <Icon icon="lucide:user" style={{fontSize:'0.8rem'}} />
             {employee?.name || employee?.username} <HrNotificationBell />
           </div>
         </div>

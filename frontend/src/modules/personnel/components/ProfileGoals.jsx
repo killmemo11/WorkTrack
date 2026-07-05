@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ProfileSection from './ProfileSection';
 import ProfileField from './ProfileField';
@@ -102,7 +103,7 @@ export default function ProfileGoals({ profile, onUpdate }) {
           {items.map((g, i) => (
             <div key={g.id} className="doc-list-item doc-stagger-enter" style={{ animationDelay: `${i * 40}ms` }}>
               <div className="doc-list-icon" style={{ background: `${g.color || '#818cf8'}15`, fontSize: 20 }}>
-                <span className="iconify" data-icon={g.icon || 'lucide:target'} style={{ color: g.color || '#818cf8' }}></span>
+                <Icon icon={g.icon || 'lucide:target'} style={{ color: g.color || '#818cf8' }}></Icon>
               </div>
               <div className="doc-list-info">
                 <div className="doc-list-name" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
 function ApprovalStage({ status, label }) {
@@ -6,7 +7,7 @@ function ApprovalStage({ status, label }) {
   const icon = status === 'approved' ? 'lucide:check-circle-2' : status === 'rejected' ? 'lucide:x-circle' : 'lucide:clock';
   return (
     <span className={`glass-badge ${colorMap[status] || 'glass-badge-secondary'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-      <span className="iconify" data-icon={icon} style={{ fontSize: 12 }} />
+      <Icon icon={icon} style={{ fontSize: 12 }} />
       {label}: {status}
     </span>
   );
@@ -108,7 +109,7 @@ export default function HeadcountRequests() {
               { label: 'Rejected', value: summary.rejected, icon: 'lucide:x-circle', class: 'gradient-red' },
             ].map(s => (
               <div key={s.label} className="glass-stat-card card-hover fade-in-up">
-                <div className="stat-icon"><span className="iconify" data-icon={s.icon} /></div>
+                <div className="stat-icon"><Icon icon={s.icon} /></div>
                 <div className="stat-number">{s.value}</div>
                 <div className="stat-label">{s.label}</div>
               </div>
@@ -128,16 +129,16 @@ export default function HeadcountRequests() {
         {loading ? <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>
         : error ? (
           <div className="glass-empty">
-            <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+            <Icon icon="lucide:alert-triangle" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
             <h3>Something went wrong</h3>
             <p style={{ color: 'var(--text-dim)' }}>{error}</p>
             <button className="glass-btn glass-btn-ghost" onClick={() => { setLoading(true); fetchRequests(); }}>
-              <span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 6 }} /> Try Again
+              <Icon icon="lucide:refresh-cw" style={{ marginRight: 6 }} /> Try Again
             </button>
           </div>
         ) : requests.length === 0 ? (
           <div className="glass-empty">
-            <span className="iconify" data-icon="lucide:inbox" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
+            <Icon icon="lucide:inbox" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
             <h3>No {filterStatus === 'all' ? '' : filterStatus} requests</h3>
             <p className="subtitle">All requests will appear here once managers submit them.</p>
           </div>
@@ -167,7 +168,7 @@ export default function HeadcountRequests() {
                     <td><span className="glass-badge glass-badge-secondary">{r.job_type}</span></td>
                     <td>
                       <span className={`glass-badge ${r.priority === 'urgent' ? 'glass-badge-danger' : 'glass-badge-secondary'}`}>
-                        <span className="iconify" data-icon={r.priority === 'urgent' ? 'lucide:alert-triangle' : 'lucide:minimize-2'} style={{ marginRight: 4, fontSize: 10 }} />
+                        <Icon icon={r.priority === 'urgent' ? 'lucide:alert-triangle' : 'lucide:minimize-2'} style={{ marginRight: 4, fontSize: 10 }} />
                         {r.priority === 'urgent' ? 'Urgent' : 'Normal'}
                       </span>
                     </td>
@@ -220,7 +221,7 @@ export default function HeadcountRequests() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => { setApproveId(null); setAutoCreateJob(true); }}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleApprove} disabled={approving}>
-                {approving ? <span className="spinner-sm" /> : <>Confirm Approve <span className="iconify" data-icon="lucide:check" /></>}
+                {approving ? <span className="spinner-sm" /> : <>Confirm Approve <Icon icon="lucide:check" /></>}
               </button>
             </div>
           </div>
@@ -248,7 +249,7 @@ export default function HeadcountRequests() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => { setRejectId(null); setRejectReason(''); }}>Cancel</button>
               <button className="glass-btn glass-btn-danger" onClick={handleReject} disabled={rejecting}>
-                {rejecting ? <span className="spinner-sm" /> : <>Confirm Reject <span className="iconify" data-icon="lucide:x" /></>}
+                {rejecting ? <span className="spinner-sm" /> : <>Confirm Reject <Icon icon="lucide:x" /></>}
               </button>
             </div>
           </div>

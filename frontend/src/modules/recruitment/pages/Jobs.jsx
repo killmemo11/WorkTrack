@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, Fragment } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
@@ -159,17 +160,17 @@ export default function Jobs() {
     <div className="page fade-in-up">
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
         <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:briefcase" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:briefcase" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Job Posts
         </h1>
         <button className="glass-btn glass-btn-primary" onClick={openCreate}>
-          <span className="iconify" data-icon="lucide:plus"></span> New Job
+          <Icon icon="lucide:plus"></Icon> New Job
         </button>
       </div>
 
       {message && (
         <div className="glass-alert glass-alert-info">
-          <span className="iconify" data-icon="lucide:info"></span> {message}
+          <Icon icon="lucide:info"></Icon> {message}
         </div>
       )}
 
@@ -190,7 +191,7 @@ export default function Jobs() {
             {jobs.length === 0 ? (
               <tr><td colSpan={7}>
                 <div className="glass-empty">
-                  <span className="iconify" data-icon="lucide:briefcase"></span>
+                  <Icon icon="lucide:briefcase"></Icon>
                   <h3>No jobs found</h3>
                 </div>
               </td></tr>
@@ -215,10 +216,10 @@ export default function Jobs() {
                 <td>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => openEdit(job)}>
-                      <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                      <Icon icon="lucide:pencil"></Icon> Edit
                     </button>
                     <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(job)}>
-                      <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                      <Icon icon="lucide:trash-2"></Icon> Delete
                     </button>
                   </div>
                 </td>
@@ -237,10 +238,10 @@ export default function Jobs() {
             {/* Header */}
             <div style={{ padding: '24px 28px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon={editing ? 'lucide:pencil' : 'lucide:plus'} style={{ color: 'var(--brand-primary)' }}></span>
+                <Icon icon={editing ? 'lucide:pencil' : 'lucide:plus'} style={{ color: 'var(--brand-primary)' }}></Icon>
                 {editing ? 'Edit Job' : 'Post a New Job'}
               </h3>
-              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><Icon icon="lucide:x" /></button>
             </div>
 
             {/* Step Indicator */}
@@ -261,9 +262,9 @@ export default function Jobs() {
                       transition: 'all .2s',
                     }}>
                       {step > s.n ? (
-                        <span className="iconify" data-icon="lucide:check"></span>
+                        <Icon icon="lucide:check"></Icon>
                       ) : (
-                        <span className="iconify" data-icon={s.icon}></span>
+                        <Icon icon={s.icon}></Icon>
                       )}
                     </div>
                     <div>
@@ -306,7 +307,7 @@ export default function Jobs() {
                   <div className="glass-form-preview" style={{ marginBottom: 20, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <div><strong>Title:</strong> {form.title}</div>
                     <div><strong>Department:</strong> {form.department}</div>
-                    <div><strong>Technical:</strong> {form.technical ? <span className="iconify" data-icon="lucide:check" style={{ color: 'var(--success)' }}></span> : '—'}</div>
+                    <div><strong>Technical:</strong> {form.technical ? <Icon icon="lucide:check" style={{ color: 'var(--success)' }}></Icon> : '—'}</div>
                   </div>
                 )}
 
@@ -320,14 +321,14 @@ export default function Jobs() {
                   return (
                     <div className="glass-card" style={{ marginBottom: 20, padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)' }}>
-                        <span className="iconify" data-icon="lucide:target"></span> Auto-Screening Minimum Requirements
+                        <Icon icon="lucide:target"></Icon> Auto-Screening Minimum Requirements
                         <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-faint)' }}>(candidates below these will be auto-rejected)</span>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {t.min_education_level && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:graduation-cap" style={{ marginRight: 2 }}></span>{eduLabel[t.min_education_level] || t.min_education_level}</span>}
-                        {t.min_experience_years != null && <span className="glass-badge glass-badge-warning"><span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 2 }}></span>{t.min_experience_years}+ years</span>}
-                        {skills.map(s => <span key={s} className="glass-badge glass-badge-info"><span className="iconify" data-icon="lucide:wrench" style={{ marginRight: 2 }}></span>{s}</span>)}
-                        {certs.map(c => <span key={c} className="glass-badge glass-badge-danger"><span className="iconify" data-icon="lucide:award" style={{ marginRight: 2 }}></span>{c}</span>)}
+                        {t.min_education_level && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:graduation-cap" style={{ marginRight: 2 }}></Icon>{eduLabel[t.min_education_level] || t.min_education_level}</span>}
+                        {t.min_experience_years != null && <span className="glass-badge glass-badge-warning"><Icon icon="lucide:calendar" style={{ marginRight: 2 }}></Icon>{t.min_experience_years}+ years</span>}
+                        {skills.map(s => <span key={s} className="glass-badge glass-badge-info"><Icon icon="lucide:wrench" style={{ marginRight: 2 }}></Icon>{s}</span>)}
+                        {certs.map(c => <span key={c} className="glass-badge glass-badge-danger"><Icon icon="lucide:award" style={{ marginRight: 2 }}></Icon>{c}</span>)}
                       </div>
                       {prefSkills.length > 0 && (
                         <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -365,7 +366,7 @@ export default function Jobs() {
             {step === 2 && (
               <div style={{ padding: '20px 28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+                  <Icon icon="lucide:file-text" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 16 }}>Job Summary</div>
                     <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Write a brief overview of the role</div>
@@ -386,7 +387,7 @@ export default function Jobs() {
             {step === 3 && (
               <div style={{ padding: '20px 28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                  <span className="iconify" data-icon="lucide:list-checks" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+                  <Icon icon="lucide:list-checks" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 16 }}>Job Details</div>
                     <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Fill in the detailed sections for the job posting</div>
@@ -397,7 +398,7 @@ export default function Jobs() {
                   {SECTIONS.map(sec => (
                     <div key={sec.key} className="glass-card" style={{ margin: 0, background: 'rgba(24,24,27,0.4)' }}>
                       <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="iconify" data-icon={sec.icon} style={{ fontSize: 16, color: 'var(--brand-primary)' }}></span>
+                        <Icon icon={sec.icon} style={{ fontSize: 16, color: 'var(--brand-primary)' }}></Icon>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{sec.label}</span>
                       </div>
                       <div style={{ padding: '14px 18px' }}>
@@ -421,17 +422,17 @@ export default function Jobs() {
             }}>
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
               <div style={{ flex: 1 }} />
-              {step > 1 && <button className="glass-btn glass-btn-ghost" onClick={prevStep}><span className="iconify" data-icon="lucide:chevron-left"></span> Back</button>}
+              {step > 1 && <button className="glass-btn glass-btn-ghost" onClick={prevStep}><Icon icon="lucide:chevron-left"></Icon> Back</button>}
               {step < 3 ? (
                 <button className="glass-btn glass-btn-primary" onClick={nextStep}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Continue <span className="iconify" data-icon="lucide:chevron-right"></span>
+                  Continue <Icon icon="lucide:chevron-right"></Icon>
                 </button>
               ) : (
                 <button className="glass-btn glass-btn-primary" onClick={handleSave} disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {saving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Saving...</> : (
-                    <>{editing ? <><span className="iconify" data-icon="lucide:pencil"></span> Update Job</> : <><span className="iconify" data-icon="lucide:rocket"></span> Publish Job</>}</>
+                    <>{editing ? <><Icon icon="lucide:pencil"></Icon> Update Job</> : <><Icon icon="lucide:rocket"></Icon> Publish Job</>}</>
                   )}
                 </button>
               )}

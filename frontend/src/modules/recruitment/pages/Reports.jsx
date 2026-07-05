@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -29,7 +30,7 @@ export default function RecruitmentReports() {
   );
   if (!stats) return (
     <div className="glass-empty">
-      <span className="iconify" data-icon="lucide:alert-triangle"></span>
+      <Icon icon="lucide:alert-triangle"></Icon>
       <h3>Failed to load stats</h3>
     </div>
   );
@@ -54,7 +55,7 @@ export default function RecruitmentReports() {
     <div className="page fade-in-up" style={{ padding: 24 }}>
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24 }}>
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:bar-chart-3" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:bar-chart-3" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Recruitment Reports
         </h1>
       </div>
@@ -91,7 +92,7 @@ export default function RecruitmentReports() {
         {/* Pipeline Pie */}
         <div className="glass-card fade-in-up delay-1">
           <h4 style={{ margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="iconify" data-icon="lucide:pie-chart" style={{ color: 'var(--brand-primary)' }}></span> Candidates by Stage
+            <Icon icon="lucide:pie-chart" style={{ color: 'var(--brand-primary)' }}></Icon> Candidates by Stage
           </h4>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
@@ -107,7 +108,7 @@ export default function RecruitmentReports() {
         {/* Offer Pie */}
         <div className="glass-card fade-in-up delay-2">
           <h4 style={{ margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="iconify" data-icon="lucide:pie-chart" style={{ color: 'var(--warning)' }}></span> Offer Status
+            <Icon icon="lucide:pie-chart" style={{ color: 'var(--warning)' }}></Icon> Offer Status
           </h4>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
@@ -125,7 +126,7 @@ export default function RecruitmentReports() {
       {stats.monthly_applications?.length > 0 && (
         <div className="glass-card fade-in-up delay-3">
           <h4 style={{ margin: '0 0 16px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="iconify" data-icon="lucide:trending-up" style={{ color: 'var(--brand-primary)' }}></span> Monthly Applications
+            <Icon icon="lucide:trending-up" style={{ color: 'var(--brand-primary)' }}></Icon> Monthly Applications
           </h4>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.monthly_applications}>

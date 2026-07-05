@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -73,11 +74,11 @@ export default function EmployeeDashboard() {
   if (error) {
     return (
       <div className="glass-alert glass-alert-danger" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 32, textAlign: 'center' }}>
-        <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: 32 }}></span>
+        <Icon icon="lucide:alert-triangle" style={{ fontSize: 32 }}></Icon>
         <h3>Error Loading Dashboard</h3>
         <p style={{ color: 'var(--text-dim)' }}>{error}</p>
         <button onClick={() => fetchDashboardData()} className="glass-btn glass-btn-primary">
-          <span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 6 }}></span>
+          <Icon icon="lucide:refresh-cw" style={{ marginRight: 6 }}></Icon>
           Try Again
         </button>
       </div>
@@ -87,7 +88,7 @@ export default function EmployeeDashboard() {
   if (!dashboardData) {
     return (
       <div className="glass-empty">
-        <span className="iconify" data-icon="lucide:bar-chart-3" style={{ fontSize: 48, opacity: 0.4 }}></span>
+        <Icon icon="lucide:bar-chart-3" style={{ fontSize: 48, opacity: 0.4 }}></Icon>
         <h3>No Data Available</h3>
         <p>Your dashboard data is still loading. Please check back later.</p>
       </div>
@@ -120,15 +121,15 @@ export default function EmployeeDashboard() {
 
       <div className="dashboard-tabs fade-in-up delay-1">
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-          <span className="iconify" data-icon="lucide:layout-dashboard" style={{ marginRight: 6, fontSize: 14 }}></span>
+          <Icon icon="lucide:layout-dashboard" style={{ marginRight: 6, fontSize: 14 }}></Icon>
           Overview
         </button>
         <button className={`tab-btn ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
-          <span className="iconify" data-icon="lucide:list-todo" style={{ marginRight: 6, fontSize: 14 }}></span>
+          <Icon icon="lucide:list-todo" style={{ marginRight: 6, fontSize: 14 }}></Icon>
           Tasks
         </button>
         <button className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`} onClick={() => setActiveTab('activity')}>
-          <span className="iconify" data-icon="lucide:activity" style={{ marginRight: 6, fontSize: 14 }}></span>
+          <Icon icon="lucide:activity" style={{ marginRight: 6, fontSize: 14 }}></Icon>
           Activity
         </button>
       </div>
@@ -144,12 +145,12 @@ export default function EmployeeDashboard() {
                 {today.attendance && (
                   <div className="stat-details">
                     <span>
-                      <span className="iconify" data-icon="lucide:log-in" style={{ marginRight: 4, fontSize: 12 }}></span>
+                      <Icon icon="lucide:log-in" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                       In: {new Date(today.attendance.sign_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {today.attendance.sign_out_time && (
                       <span>
-                        <span className="iconify" data-icon="lucide:log-out" style={{ marginRight: 4, fontSize: 12 }}></span>
+                        <Icon icon="lucide:log-out" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                         Out: {new Date(today.attendance.sign_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
@@ -219,7 +220,7 @@ export default function EmployeeDashboard() {
             <div className="goals-grid glass-card-body">
               {(!goals || goals.length === 0) ? (
                 <div className="glass-empty" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
-                  <span className="iconify" data-icon="lucide:target" style={{ fontSize: 40, opacity: 0.3 }}></span>
+                  <Icon icon="lucide:target" style={{ fontSize: 40, opacity: 0.3 }}></Icon>
                   <p>No goals set yet. Contact your HR to set personal goals.</p>
                 </div>
               ) : (
@@ -316,7 +317,7 @@ export default function EmployeeDashboard() {
           <div className="section-card-header glass-card-header">
             <h2>Upcoming Tasks</h2>
             <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate('/personnel/my-tasks')}>
-              <span className="iconify" data-icon="lucide:arrow-right" style={{ marginRight: 4, fontSize: 12 }}></span>
+              <Icon icon="lucide:arrow-right" style={{ marginRight: 4, fontSize: 12 }}></Icon>
               View All
             </button>
           </div>
@@ -333,7 +334,7 @@ export default function EmployeeDashboard() {
                     <p className="task-card-desc">{task.description}</p>
                     <div className="task-card-footer">
                       <span className="task-due" style={{ color: 'var(--text-dim)' }}>
-                        <span className="iconify" data-icon="lucide:calendar" style={{ marginRight: 4, fontSize: 11 }}></span>
+                        <Icon icon="lucide:calendar" style={{ marginRight: 4, fontSize: 11 }}></Icon>
                         Due {formatDate(task.due_date)}
                       </span>
                       <span className={`glass-badge ${task.status === 'completed' ? 'glass-badge-success' : task.status === 'in_progress' ? 'glass-badge-info' : 'glass-badge-default'}`}>{task.status}</span>
@@ -344,7 +345,7 @@ export default function EmployeeDashboard() {
             </div>
           ) : (
             <div className="glass-empty glass-card-body">
-              <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 40, opacity: 0.4 }}></span>
+              <Icon icon="lucide:check-circle" style={{ fontSize: 40, opacity: 0.4 }}></Icon>
               <p>No upcoming tasks. Great job!</p>
             </div>
           )}
@@ -365,7 +366,7 @@ export default function EmployeeDashboard() {
                     <h4>{notification.title}</h4>
                     <p>{notification.message}</p>
                     <span className="timeline-time" style={{ color: 'var(--text-dim)' }}>
-                      <span className="iconify" data-icon="lucide:clock" style={{ marginRight: 4, fontSize: 11 }}></span>
+                      <Icon icon="lucide:clock" style={{ marginRight: 4, fontSize: 11 }}></Icon>
                       {formatDate(notification.created_at)}
                     </span>
                   </div>
@@ -374,7 +375,7 @@ export default function EmployeeDashboard() {
             </div>
           ) : (
             <div className="glass-empty glass-card-body">
-              <span className="iconify" data-icon="lucide:bell" style={{ fontSize: 40, opacity: 0.3 }}></span>
+              <Icon icon="lucide:bell" style={{ fontSize: 40, opacity: 0.3 }}></Icon>
               <p>No recent notifications.</p>
             </div>
           )}

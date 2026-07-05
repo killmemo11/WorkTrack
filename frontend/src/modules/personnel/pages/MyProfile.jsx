@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import ProfileTimeline from '../components/ProfileTimeline';
 import IDCardModal from '../../../shared/components/IDCardModal';
@@ -157,12 +158,12 @@ export default function MyProfile() {
               : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-primary)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
             <input type="file" accept="image/*" id="my-avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
             <label htmlFor="my-avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1, backdropFilter: 'blur(8px)' }} title="Upload avatar">
-              {uploadingAvatar ? <div className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : <span className="iconify" data-icon="lucide:camera" style={{ fontSize: 11 }}></span>}
+              {uploadingAvatar ? <div className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : <Icon icon="lucide:camera" style={{ fontSize: 11 }}></Icon>}
             </label>
           </div>
           <h2>My Profile</h2>
           <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowIdCard(true)}>
-            <span className="iconify" data-icon="lucide:id-card" style={{ marginRight: 4, fontSize: 13 }}></span>
+            <Icon icon="lucide:id-card" style={{ marginRight: 4, fontSize: 13 }}></Icon>
             My ID Card
           </button>
         </div>
@@ -198,7 +199,7 @@ export default function MyProfile() {
         <div className="glass-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3>Contact & Emergency Info</h3>
           <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={toggleEdit}>
-            <span className="iconify" data-icon={editing ? 'lucide:x' : 'lucide:pencil'} style={{ marginRight: 4, fontSize: 13 }}></span>
+            <Icon icon={editing ? 'lucide:x' : 'lucide:pencil'} style={{ marginRight: 4, fontSize: 13 }}></Icon>
             {editing ? 'Cancel' : 'Edit'}
           </button>
         </div>
@@ -235,7 +236,7 @@ export default function MyProfile() {
                 </div>
               </div>
               <button className="glass-btn glass-btn-primary" onClick={handleSave}>
-                <span className="iconify" data-icon="lucide:check" style={{ marginRight: 4, fontSize: 14 }}></span>
+                <Icon icon="lucide:check" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Save
               </button>
             </div>
@@ -295,7 +296,7 @@ export default function MyProfile() {
           </div>
           <button className="glass-btn glass-btn-primary" disabled={pwSaving}>
             {pwSaving ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, marginRight: 6, display: 'inline-block', verticalAlign: 'middle' }} /><span>Saving...</span></> : <>
-              <span className="iconify" data-icon="lucide:key-round" style={{ marginRight: 4, fontSize: 14 }}></span>
+              <Icon icon="lucide:key-round" style={{ marginRight: 4, fontSize: 14 }}></Icon>
               Change Password
             </>}
           </button>
@@ -308,14 +309,14 @@ export default function MyProfile() {
           <div className="glass-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3>My Assets</h3>
             <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setShowAssetHistory(!showAssetHistory)}>
-              <span className="iconify" data-icon={showAssetHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></span>
+              <Icon icon={showAssetHistory ? 'lucide:eye-off' : 'lucide:history'} style={{ marginRight: 4, fontSize: 13 }}></Icon>
               {showAssetHistory ? 'Hide History' : 'View History'}
             </button>
           </div>
           <div className="glass-card-body">
             {assets.length === 0 ? (
               <div className="glass-empty">
-                <span className="iconify" data-icon="lucide:package" style={{ fontSize: 40, opacity: 0.4 }}></span>
+                <Icon icon="lucide:package" style={{ fontSize: 40, opacity: 0.4 }}></Icon>
                 <p>No assets assigned to you.</p>
               </div>
             ) : (
@@ -354,7 +355,7 @@ export default function MyProfile() {
                 <h4 style={{ marginBottom: 12 }}>Asset History</h4>
                 {assetHistory.length === 0 ? (
                   <div className="glass-empty">
-                    <span className="iconify" data-icon="lucide:history" style={{ fontSize: 32, opacity: 0.3 }}></span>
+                    <Icon icon="lucide:history" style={{ fontSize: 32, opacity: 0.3 }}></Icon>
                     <p>No history records.</p>
                   </div>
                 ) : (
@@ -393,7 +394,7 @@ export default function MyProfile() {
           <div className="glass-card-body">
             {contracts.length === 0 ? (
               <div className="glass-empty">
-                <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: 40, opacity: 0.4 }}></span>
+                <Icon icon="lucide:file-text" style={{ fontSize: 40, opacity: 0.4 }}></Icon>
                 <p>No contracts available.</p>
               </div>
             ) : (
@@ -417,17 +418,17 @@ export default function MyProfile() {
                         <td>{formatDate(c.end_date)}</td>
                         <td>{contractStatusBadge(c.status)}</td>
                         <td>
-                          {c.signed_by_employee ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                          {c.signed_by_employee ? <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></Icon> : ''}
                           {c.signed_by_employee ? 'Employee' : ''}
                           {c.signed_by_employee && c.signed_by_company ? ' & ' : ''}
-                          {c.signed_by_company ? <span className="iconify" data-icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></span> : ''}
+                          {c.signed_by_company ? <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></Icon> : ''}
                           {c.signed_by_company ? 'Company' : ''}
                           {!c.signed_by_employee && !c.signed_by_company ? '—' : ''}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openContractContent(c.id)}>
-                              <span className="iconify" data-icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></span>
+                              <Icon icon="lucide:eye" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                               View
                             </button>
                             <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={async () => {
@@ -438,7 +439,7 @@ export default function MyProfile() {
                                 document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
                               } catch (e) { console.error('Failed to download PDF:', e); }
                             }}>
-                              <span className="iconify" data-icon="lucide:download" style={{ marginRight: 4, fontSize: 12 }}></span>
+                              <Icon icon="lucide:download" style={{ marginRight: 4, fontSize: 12 }}></Icon>
                               PDF
                             </button>
                           </div>
@@ -462,11 +463,11 @@ export default function MyProfile() {
             <div className="glass-card" dangerouslySetInnerHTML={{ __html: viewContractContent }} />
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(viewContractContent); w.print(); }}>
-                <span className="iconify" data-icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></span>
+                <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>
               <button className="glass-btn glass-btn-ghost" onClick={() => setViewContractContent(null)}>
-                <span className="iconify" data-icon="lucide:x" style={{ marginRight: 4, fontSize: 14 }}></span>
+                <Icon icon="lucide:x" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Close
               </button>
             </div>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
@@ -120,16 +121,16 @@ export default function AdminChecklists() {
         {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
         <div className="glass-tabs">
-          <button className={`glass-tab ${tab === 'templates' ? 'glass-tab-active' : ''}`} onClick={() => setTab('templates')}><span className="iconify" data-icon="lucide:list-checks"/> Templates</button>
-          <button className={`glass-tab ${tab === 'employees' ? 'glass-tab-active' : ''}`} onClick={() => setTab('employees')}><span className="iconify" data-icon="lucide:users"/> Employee Progress</button>
+          <button className={`glass-tab ${tab === 'templates' ? 'glass-tab-active' : ''}`} onClick={() => setTab('templates')}><Icon icon="lucide:list-checks" /> Templates</button>
+          <button className={`glass-tab ${tab === 'employees' ? 'glass-tab-active' : ''}`} onClick={() => setTab('employees')}><Icon icon="lucide:users" /> Employee Progress</button>
         </div>
 
         {tab === 'templates' && (
           <>
-            <button className="glass-btn glass-btn-primary" style={{ marginBottom: 16 }} onClick={openCreateTemplate}><span className="iconify" data-icon="lucide:file-plus"/> New Template</button>
+            <button className="glass-btn glass-btn-primary" style={{ marginBottom: 16 }} onClick={openCreateTemplate}><Icon icon="lucide:file-plus" /> New Template</button>
 
             {templates.length === 0 ? (
-              <div className="glass-empty"><span className="iconify" data-icon="lucide:clipboard-list"/><p>No templates created yet.</p></div>
+              <div className="glass-empty"><Icon icon="lucide:clipboard-list" /><p>No templates created yet.</p></div>
             ) : templates.map((t, idx) => (
               <div key={t.id} className="glass-card card-hover fade-in-up" style={{ marginBottom: 16, animationDelay: `${idx * 60}ms` }}>
                 <div className="glass-card-header">
@@ -138,9 +139,9 @@ export default function AdminChecklists() {
                     <span className={`glass-badge glass-badge-${t.type === 'onboarding' ? 'success' : 'warning'}`} style={{ marginLeft: 8 }}>{t.type}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => { setEditTemplateId(t.id); setTemplateForm({ name: t.name, type: t.type }); setShowTemplateForm(true); }}><span className="iconify" data-icon="lucide:pencil"/></button>
-                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openAddItem(t)}><span className="iconify" data-icon="lucide:plus"/> Add Task</button>
-                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDeleteTemplate(t.id), label: `Delete "${t.name}"?` })}><span className="iconify" data-icon="lucide:trash-2"/></button>
+                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => { setEditTemplateId(t.id); setTemplateForm({ name: t.name, type: t.type }); setShowTemplateForm(true); }}><Icon icon="lucide:pencil" /></button>
+                    <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openAddItem(t)}><Icon icon="lucide:plus" /> Add Task</button>
+                    <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => setConfirm({ action: () => handleDeleteTemplate(t.id), label: `Delete "${t.name}"?` })}><Icon icon="lucide:trash-2" /></button>
                   </div>
                 </div>
                 <div className="glass-card-body">
@@ -164,12 +165,12 @@ export default function AdminChecklists() {
                             <td>{item.order_index}</td>
                             <td>{item.task_name}</td>
                             <td>{assigneeBadge(item.assigned_to)}</td>
-                            <td>{item.is_required ? <span className="iconify" data-icon="lucide:check-circle" style={{color:'var(--success)'}}/> : <span className="iconify" data-icon="lucide:minus" style={{color:'var(--text-dim)'}}/>}</td>
+                            <td>{item.is_required ? <Icon icon="lucide:check-circle" style={{color:'var(--success)'}} /> : <Icon icon="lucide:minus" style={{color:'var(--text-dim)'}} />}</td>
                             <td>{item.days_offset > 0 ? `+${item.days_offset}d` : '—'}</td>
                             <td>
                               <div style={{ display: 'flex', gap: 4 }}>
-                                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEditItem(t, item)}><span className="iconify" data-icon="lucide:pencil"/></button>
-                                <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleDeleteItem(item.id)}><span className="iconify" data-icon="lucide:trash-2"/></button>
+                                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEditItem(t, item)}><Icon icon="lucide:pencil" /></button>
+                                <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => handleDeleteItem(item.id)}><Icon icon="lucide:trash-2" /></button>
                               </div>
                             </td>
                           </tr>
@@ -188,7 +189,7 @@ export default function AdminChecklists() {
         {showTemplateForm && (
           <div className="glass-modal-overlay" onClick={() => setShowTemplateForm(false)}>
             <div className="glass-modal" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setShowTemplateForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowTemplateForm(false)}><Icon icon="lucide:x" /></button>
               <h3>{editTemplateId ? 'Edit Template' : 'New Template'}</h3>
               <div className="glass-form-group">
                 <label>Name *</label>
@@ -212,7 +213,7 @@ export default function AdminChecklists() {
         {showItemForm && (
           <div className="glass-modal-overlay" onClick={() => setShowItemForm(false)}>
             <div className="glass-modal" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setShowItemForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowItemForm(false)}><Icon icon="lucide:x" /></button>
               <h3>{editItemId ? 'Edit Task' : 'Add Task'} — {selectedTemplate?.name}</h3>
               <div className="glass-form-group">
                 <label>Task Name *</label>
@@ -338,8 +339,8 @@ function EmployeeChecklistProgress() {
               <div className="glass-card" style={{ padding: 20 }}>
                 <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No checklists started. Start one:</p>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => startChecklist(selectedEmp, 1)}><span className="iconify" data-icon="lucide:play"/> Start Onboarding</button>
-                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => startChecklist(selectedEmp, 2)}><span className="iconify" data-icon="lucide:log-out"/> Start Offboarding</button>
+                  <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => startChecklist(selectedEmp, 1)}><Icon icon="lucide:play" /> Start Onboarding</button>
+                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => startChecklist(selectedEmp, 2)}><Icon icon="lucide:log-out" /> Start Offboarding</button>
                 </div>
               </div>
             ) : (
@@ -351,7 +352,7 @@ function EmployeeChecklistProgress() {
                     <div>{statusBadge(chk.status)}</div>
                   </div>
                 ))}
-                <button className="glass-btn glass-btn-ghost glass-btn-sm" style={{ marginTop: 8 }} onClick={() => startChecklist(selectedEmp, prompt('Template ID (1=Onboarding, 2=Offboarding):') || 1)}><span className="iconify" data-icon="lucide:plus"/> Start New</button>
+                <button className="glass-btn glass-btn-ghost glass-btn-sm" style={{ marginTop: 8 }} onClick={() => startChecklist(selectedEmp, prompt('Template ID (1=Onboarding, 2=Offboarding):') || 1)}><Icon icon="lucide:plus" /> Start New</button>
               </div>
             )}
 
@@ -380,7 +381,7 @@ function EmployeeChecklistProgress() {
                           <td>{statusBadge(t.status)}</td>
                           <td>
                             {t.status !== 'completed' && (
-                              <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => completeTask(checklistDetail.checklist.id, t.id)}><span className="iconify" data-icon="lucide:check"/> Complete</button>
+                              <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => completeTask(checklistDetail.checklist.id, t.id)}><Icon icon="lucide:check" /> Complete</button>
                             )}
                             {t.status === 'completed' && t.completed_by_name && <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>by {t.completed_by_name}</span>}
                           </td>

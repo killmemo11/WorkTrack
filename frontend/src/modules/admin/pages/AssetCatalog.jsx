@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
@@ -188,7 +189,7 @@ export default function AssetCatalog() {
             <h1>Asset Catalog</h1>
             <p className="subtitle" style={{color:'var(--text-dim)'}}>Track and manage company assets (laptops, phones, badges, etc.)</p>
           </div>
-          <button className="glass-btn glass-btn-primary" onClick={openCreate}><span className="iconify" data-icon="lucide:package-plus"/> Add Asset</button>
+          <button className="glass-btn glass-btn-primary" onClick={openCreate}><Icon icon="lucide:package-plus" /> Add Asset</button>
         </div>
 
         {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
@@ -215,7 +216,7 @@ export default function AssetCatalog() {
 
         <div className="glass-table-wrapper fade-in-up">
           {data.assets.length === 0 ? (
-            <div className="glass-empty"><span className="iconify" data-icon="lucide:package-open"/><p>No assets found. Click "Add Asset" to get started.</p></div>
+            <div className="glass-empty"><Icon icon="lucide:package-open" /><p>No assets found. Click "Add Asset" to get started.</p></div>
           ) : (
             <table className="glass-table">
               <thead>
@@ -242,16 +243,16 @@ export default function AssetCatalog() {
                     ) : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(asset)}><span className="iconify" data-icon="lucide:pencil"/></button>
-                        {asset.status === 'available' && <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => openAssign(asset)}><span className="iconify" data-icon="lucide:user-plus"/> Assign</button>}
-                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openReturn(asset)}><span className="iconify" data-icon="lucide:undo-2"/> Return</button>}
-                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => handleMarkDamaged(asset)}><span className="iconify" data-icon="lucide:alert-triangle"/> Damaged</button>}
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openEdit(asset)}><Icon icon="lucide:pencil" /></button>
+                        {asset.status === 'available' && <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={() => openAssign(asset)}><Icon icon="lucide:user-plus" /> Assign</button>}
+                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openReturn(asset)}><Icon icon="lucide:undo-2" /> Return</button>}
+                        {asset.status === 'assigned' && <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => handleMarkDamaged(asset)}><Icon icon="lucide:alert-triangle" /> Damaged</button>}
                         {(asset.status === 'available' || asset.status === 'damaged') && !asset.assigned_to_id &&
                           <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => {
                             if (asset.status === 'damaged') handleDispose(asset);
                             else setConfirm({ action: () => handleDelete(asset), label: `Delete "${asset.name}"?` });
-                          }}><span className="iconify" data-icon={asset.status === 'damaged' ? 'lucide:trash-2' : 'lucide:trash-2'}/> {asset.status === 'damaged' ? 'Dispose' : 'Delete'}</button>}
-                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openHistory(asset)}><span className="iconify" data-icon="lucide:history"/></button>
+                          }}><Icon icon={asset.status === 'damaged' ? 'lucide:trash-2' : 'lucide:trash-2'} /> {asset.status === 'damaged' ? 'Dispose' : 'Delete'}</button>}
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => openHistory(asset)}><Icon icon="lucide:history" /></button>
                       </div>
                     </td>
                   </tr>
@@ -265,7 +266,7 @@ export default function AssetCatalog() {
         {showForm && (
           <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
             <div className="glass-modal" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><Icon icon="lucide:x" /></button>
               <h3>{editId ? 'Edit Asset' : 'Add Asset'}</h3>
               <div className="glass-form-group">
                 <label>Name *</label>
@@ -318,7 +319,7 @@ export default function AssetCatalog() {
         {assignModal && (
           <div className="glass-modal-overlay" onClick={() => setAssignModal(null)}>
             <div className="glass-modal" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setAssignModal(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setAssignModal(null)}><Icon icon="lucide:x" /></button>
               <h3>Assign Asset: {assignModal.name}</h3>
               <div className="glass-form-group">
                 <label>Employee *</label>
@@ -350,7 +351,7 @@ export default function AssetCatalog() {
         {returnModal && (
           <div className="glass-modal-overlay" onClick={() => setReturnModal(null)}>
             <div className="glass-modal" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setReturnModal(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setReturnModal(null)}><Icon icon="lucide:x" /></button>
               <h3>Return Asset: {returnModal.name}</h3>
               <div className="glass-form-group">
                 <label>Condition on Return</label>
@@ -371,10 +372,10 @@ export default function AssetCatalog() {
         {historyAsset && (
           <div className="glass-modal-overlay" onClick={() => setHistoryAsset(null)}>
             <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()}>
-              <button className="glass-modal-close" onClick={() => setHistoryAsset(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setHistoryAsset(null)}><Icon icon="lucide:x" /></button>
               <h3>Asset History: {historyAsset.name}</h3>
               {historyData.length === 0 ? (
-                <div className="glass-empty"><span className="iconify" data-icon="lucide:history"/><p>No history records.</p></div>
+                <div className="glass-empty"><Icon icon="lucide:history" /><p>No history records.</p></div>
               ) : (
                 <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                   <table className="glass-table">

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -227,7 +228,7 @@ export default function AdminEmployees() {
                       {emp.is_active ? 'Active' : 'Inactive'}
                     </span>
                     <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => toggleActive(emp.id, emp.is_active)} style={{ marginLeft: 4 }} title="Toggle active">
-                      <span className="iconify" data-icon={emp.is_active ? 'lucide:circle-dot' : 'lucide:circle'} />
+                      <Icon icon={emp.is_active ? 'lucide:circle-dot' : 'lucide:circle'} />
                     </button>
                   </td>
                   <td>
@@ -245,29 +246,29 @@ export default function AdminEmployees() {
                       {emp.can_wfh ? 'Yes' : 'No'}
                     </span>
                     <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => toggleCanWfh(emp.id, emp.can_wfh)} style={{ marginLeft: 4 }} title="Toggle WFH">
-                      <span className="iconify" data-icon={emp.can_wfh ? 'lucide:circle-dot' : 'lucide:circle'} />
+                      <Icon icon={emp.can_wfh ? 'lucide:circle-dot' : 'lucide:circle'} />
                     </button>
                   </td>
                   <td className="cell-mono">{emp.created_at ? new Date(emp.created_at).toLocaleDateString() : '—'}</td>
                   <td>
                     <div className="action-btns">
-                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/hr/employees/${emp.id}/profile`)}><span className="iconify" data-icon="lucide:user"/> Profile</button>
-                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(emp)}><span className="iconify" data-icon="lucide:pencil"/> Edit</button>
-                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setIdCardEmployeeId(emp.id)}><span className="iconify" data-icon="lucide:id-card"/> ID Card</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/hr/employees/${emp.id}/profile`)}><Icon icon="lucide:user" /> Profile</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(emp)}><Icon icon="lucide:pencil" /> Edit</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setIdCardEmployeeId(emp.id)}><Icon icon="lucide:id-card" /> ID Card</button>
                       {emp.role !== 'admin' && (
-                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'admin')}><span className="iconify" data-icon="lucide:shield-up"/> Promote</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'admin')}><Icon icon="lucide:shield-up" /> Promote</button>
                       )}
                       {emp.role === 'admin' && (
-                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'employee')}><span className="iconify" data-icon="lucide:shield-down"/> Demote</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'employee')}><Icon icon="lucide:shield-down" /> Demote</button>
                       )}
-                      <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setConfirm(emp)}><span className="iconify" data-icon="lucide:trash-2"/> Delete</button>
+                      <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setConfirm(emp)}><Icon icon="lucide:trash-2" /> Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {(data.employees || []).length === 0 && <div className="glass-empty"><span className="iconify" data-icon="lucide:inbox" style={{fontSize:40,opacity:0.3}}/><h3>No employees found</h3><p>No employees match your current filters.</p></div>}
+          {(data.employees || []).length === 0 && <div className="glass-empty"><Icon icon="lucide:inbox" style={{fontSize:40,opacity:0.3}} /><h3>No employees found</h3><p>No employees match your current filters.</p></div>}
           <Pagination page={data.page} totalPages={data.totalPages} onPageChange={fetchEmployees} />
         </div>
         )}
@@ -276,7 +277,7 @@ export default function AdminEmployees() {
       {editing && (
         <div className="glass-modal-overlay" onClick={() => setEditing(null)}>
           <div className="modal glass-modal" onClick={(e) => e.stopPropagation()} style={{maxWidth:520}}>
-            <button className="glass-modal-close" onClick={() => setEditing(null)}><span className="iconify" data-icon="lucide:x"/></button>
+            <button className="glass-modal-close" onClick={() => setEditing(null)}><Icon icon="lucide:x" /></button>
             <h2>Edit Employee</h2>
             <div className="modal-grid">
               <label>Name<input type="text" className="glass-input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label>
@@ -358,7 +359,7 @@ export default function AdminEmployees() {
             </div>
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="glass-btn glass-btn-primary" onClick={handleEdit}><span className="iconify" data-icon="lucide:save"/> Save</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleEdit}><Icon icon="lucide:save" /> Save</button>
             </div>
           </div>
         </div>

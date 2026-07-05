@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function ResetPassword() {
@@ -62,12 +63,12 @@ export default function ResetPassword() {
         </div>
         <div className="auth-container fade-in-up" style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 20 }}>
-            <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 56, color: 'var(--color-success)' }} />
+            <Icon icon="lucide:check-circle" style={{ fontSize: 56, color: 'var(--color-success)' }} />
           </div>
           <h1 style={{ marginBottom: 8 }}>Password Reset!</h1>
           <p style={{ color: 'var(--text-dim)', marginBottom: 24 }}>You can now login with your new password.</p>
           <Link to="/login" className="glass-btn glass-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <span className="iconify" data-icon="lucide:log-in" /> Go to Login
+            <Icon icon="lucide:log-in" /> Go to Login
           </Link>
         </div>
       </div>
@@ -85,14 +86,14 @@ export default function ResetPassword() {
 
       <div className="auth-container fade-in-up">
         <div className="auth-brand">
-          <span className="iconify" data-icon="lucide:key-round" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
+          <Icon icon="lucide:key-round" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
           <h1>Reset Password</h1>
           <p>Enter the 6-digit code and your new password</p>
         </div>
 
         {error && (
           <div className="glass-alert glass-alert-danger">
-            <span className="iconify" data-icon="lucide:alert-triangle" />
+            <Icon icon="lucide:alert-triangle" />
             {error}
           </div>
         )}
@@ -109,27 +110,27 @@ export default function ResetPassword() {
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:lock" style={{ marginRight: 6, fontSize: 14 }} />New Password</label>
+            <label className="glass-label"><Icon icon="lucide:lock" style={{ marginRight: 6, fontSize: 14 }} />New Password</label>
             <div style={{ position: 'relative' }}>
               <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="New password (min 6 chars)" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%' }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
-                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+                <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
               </button>
             </div>
           </div>
 
           <div className="glass-form-group">
-            <label className="glass-label"><span className="iconify" data-icon="lucide:shield-check" style={{ marginRight: 6, fontSize: 14 }} />Confirm New Password</label>
+            <label className="glass-label"><Icon icon="lucide:shield-check" style={{ marginRight: 6, fontSize: 14 }} />Confirm New Password</label>
             <div style={{ position: 'relative' }}>
               <input type={showPassword ? 'text' : 'password'} className="glass-input" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required style={{ width: '100%' }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}>
-                <span className="iconify" data-icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
+                <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} />
               </button>
             </div>
           </div>
 
           <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg" disabled={loading} style={{ width: '100%' }}>
-            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Resetting...</> : <>Reset Password <span className="iconify" data-icon="lucide:key-round" style={{ marginLeft: 8 }} /></>}
+            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Resetting...</> : <>Reset Password <Icon icon="lucide:key-round" style={{ marginLeft: 8 }} /></>}
           </button>
         </form>
 

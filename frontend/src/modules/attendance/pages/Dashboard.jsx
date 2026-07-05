@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 import { useAuth } from '../../../shared/context/AuthContext';
@@ -100,11 +101,11 @@ export default function Dashboard() {
   if (employee?.role === 'ceo') {
     return (
       <div className="glass-empty" style={{ paddingTop: 80 }}>
-        <span className="iconify" data-icon="lucide:bar-chart-2" style={{ fontSize: 48, opacity: 0.3 }} />
+        <Icon icon="lucide:bar-chart-2" style={{ fontSize: 48, opacity: 0.3 }} />
         <h2>You have C-Level access</h2>
         <p>Visit Company Overview to view organization-wide analytics.</p>
         <button className="glass-btn glass-btn-primary" onClick={() => navigate('/ceo')}>
-          <span className="iconify" data-icon="lucide:arrow-right" style={{ marginRight: 6 }} />
+          <Icon icon="lucide:arrow-right" style={{ marginRight: 6 }} />
           Go to Company Overview
         </button>
       </div>
@@ -329,22 +330,22 @@ export default function Dashboard() {
             {!status?.signedIn ? (
               <div className="status-not-started">
                 <div className="status-icon-badge status-pending">
-                  <span className="iconify" data-icon="lucide:clock" style={{ fontSize: 28 }} />
+                  <Icon icon="lucide:clock" style={{ fontSize: 28 }} />
                 </div>
                 <h2>Not Signed In</h2>
                 <p>Start your work day</p>
-                {signError && <div className="glass-alert glass-alert-danger"><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
-                {gpsError && <div className="glass-alert glass-alert-danger"><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {gpsError}</div>}
+                {signError && <div className="glass-alert glass-alert-danger"><Icon icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
+                {gpsError && <div className="glass-alert glass-alert-danger"><Icon icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {gpsError}</div>}
                 {hasSignInServices ? (
                   <div className="signin-buttons">
                     {services.service_wfh === '1' && canWfh && (
                       <button onClick={() => signInWithLocation('wfh')} disabled={gpsLoading} className="glass-btn glass-btn-primary glass-btn-lg">
-                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><span className="iconify" data-icon="lucide:home" style={{ marginRight: 6 }} /> Sign In (WFH)</>}
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><Icon icon="lucide:home" style={{ marginRight: 6 }} /> Sign In (WFH)</>}
                       </button>
                     )}
                     {services.service_office_attendance === '1' && (
                       <button onClick={() => signInWithLocation('office')} disabled={gpsLoading} className="glass-btn glass-btn-ghost glass-btn-lg">
-                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><span className="iconify" data-icon="lucide:building-2" style={{ marginRight: 6 }} /> Sign In (Office)</>}
+                        {gpsLoading ? <><span className="spinner" /> Getting location...</> : <><Icon icon="lucide:building-2" style={{ marginRight: 6 }} /> Sign In (Office)</>}
                       </button>
                     )}
                   </div>
@@ -356,9 +357,9 @@ export default function Dashboard() {
               </div>
             ) : !status?.signedOut ? (
               <div className="status-active">
-                {signError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
+                {signError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}><Icon icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
                 <div className="status-icon-badge status-active-badge">
-                  <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 28 }} />
+                  <Icon icon="lucide:check-circle" style={{ fontSize: 28 }} />
                 </div>
                 <h2>Signed In <span className="glass-badge glass-badge-success">
                   {(status.record.type || 'wfh').charAt(0).toUpperCase() + (status.record.type || 'wfh').slice(1)}
@@ -396,7 +397,7 @@ export default function Dashboard() {
             ) : (
               <div className="status-complete">
                 <div className="status-icon-badge status-complete-badge">
-                  <span className="iconify" data-icon="lucide:check-circle" style={{ fontSize: 28 }} />
+                  <Icon icon="lucide:check-circle" style={{ fontSize: 28 }} />
                 </div>
                 <h2>Day Complete</h2>
                 {status.record.type && (
@@ -635,7 +636,7 @@ export default function Dashboard() {
             >
               <div className="quick-action-icon">
                 <div className="quick-action-icon-bg" style={{ backgroundColor: a.color + '20' }}>
-                  <span className="iconify" data-icon={`lucide:${a.icon}`} style={{ fontSize: 24, color: a.color }} />
+                  <Icon icon={`lucide:${a.icon} `} style={{ fontSize: 24, color: a.color }} />
                 </div>
               </div>
               <div className="quick-action-content">

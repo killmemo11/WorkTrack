@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 
 
@@ -210,22 +211,22 @@ export default function AdminSettings() {
 
       <div className="glass-tabs">
         <button className={`glass-tab ${activeTab === 'smtp' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('smtp')}>
-          <span className="iconify" data-icon="lucide:mail"/> SMTP Settings
+          <Icon icon="lucide:mail" /> SMTP Settings
         </button>
         <button className={`glass-tab ${activeTab === 'office' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('office')}>
-          <span className="iconify" data-icon="lucide:map-pin"/> Office Location
+          <Icon icon="lucide:map-pin" /> Office Location
         </button>
         <button className={`glass-tab ${activeTab === 'branding' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('branding')}>
-          <span className="iconify" data-icon="lucide:palette"/> Branding
+          <Icon icon="lucide:palette" /> Branding
         </button>
         <button className={`glass-tab ${activeTab === 'services' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('services')}>
-          <span className="iconify" data-icon="lucide:layers"/> Services
+          <Icon icon="lucide:layers" /> Services
         </button>
         <button className={`glass-tab ${activeTab === 'security' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('security')}>
-          <span className="iconify" data-icon="lucide:shield"/> Security
+          <Icon icon="lucide:shield" /> Security
         </button>
         <button className={`glass-tab ${activeTab === 'meeting' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('meeting')}>
-          <span className="iconify" data-icon="lucide:video"/> Meeting Integrations
+          <Icon icon="lucide:video" /> Meeting Integrations
         </button>
       </div>
 
@@ -255,7 +256,7 @@ export default function AdminSettings() {
                 </div>
                 <div className="settings-actions">
                   <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
-                    <span className="iconify" data-icon="lucide:save"/> {saving ? 'Saving...' : 'Save Settings'}
+                    <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Settings'}
                   </button>
                 </div>
               </div>
@@ -313,7 +314,7 @@ export default function AdminSettings() {
                 <div ref={mapRef} style={{ height: 450, borderRadius: 'var(--radius-md)', marginBottom: 16, border: '1px solid var(--border-glass)', zIndex: 0 }} />
                 <div className="settings-actions">
                   <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
-                    <span className="iconify" data-icon="lucide:save"/> {saving ? 'Saving...' : 'Save Settings'}
+                    <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Settings'}
                   </button>
                 </div>
               </div>
@@ -350,7 +351,7 @@ export default function AdminSettings() {
                 </div>
                 <div className="settings-actions">
                   <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
-                    <span className="iconify" data-icon="lucide:save"/> {saving ? 'Saving...' : 'Save Logo'}
+                    <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Logo'}
                   </button>
                   {settings.logo_data && (
                     <button className="glass-btn glass-btn-ghost" onClick={() => handleSave({ logo_data: '' })} style={{ marginLeft: 8 }}>
@@ -374,7 +375,7 @@ export default function AdminSettings() {
 
                 <div className="services-modules">
                   <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><span className="iconify" data-icon="lucide:clock"/> Attendance</h3>
+                    <h3 className="service-module-title"><Icon icon="lucide:clock" /> Attendance</h3>
                     <div className="service-toggle-list">
                       <label className="service-toggle">
                         <input type="checkbox" checked={services.service_wfh === '1'}
@@ -396,7 +397,7 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><span className="iconify" data-icon="lucide:umbrella"/> Leave</h3>
+                    <h3 className="service-module-title"><Icon icon="lucide:umbrella" /> Leave</h3>
                     <div className="service-toggle-list">
                       <label className="service-toggle">
                         <input type="checkbox" checked={services.service_leaves === '1'}
@@ -410,7 +411,7 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><span className="iconify" data-icon="lucide:target"/> Recruitment (ATS)</h3>
+                    <h3 className="service-module-title"><Icon icon="lucide:target" /> Recruitment (ATS)</h3>
                     <div className="service-toggle-list">
                       <label className="service-toggle">
                         <input type="checkbox" checked={services.service_recruitment === '1'}
@@ -424,7 +425,7 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><span className="iconify" data-icon="lucide:users"/> People Management</h3>
+                    <h3 className="service-module-title"><Icon icon="lucide:users" /> People Management</h3>
                     <div className="service-toggle-list">
                       <label className="service-toggle">
                         <input type="checkbox" checked={services.service_people === '1'}
@@ -438,7 +439,7 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><span className="iconify" data-icon="lucide:clipboard-list"/> Manager Tools</h3>
+                    <h3 className="service-module-title"><Icon icon="lucide:clipboard-list" /> Manager Tools</h3>
                     <div className="service-toggle-list">
                       <label className="service-toggle">
                         <input type="checkbox" checked={services.service_manager === '1'}
@@ -461,7 +462,7 @@ export default function AdminSettings() {
                       setMessage('Failed to update services: ' + (err.response?.data?.error || err.message));
                     }
                     setTimeout(() => setMessage(''), 3000);
-                  }}><span className="iconify" data-icon="lucide:save"/> Save Service Settings</button>
+                  }}><Icon icon="lucide:save" /> Save Service Settings</button>
                 </div>
               </div>
             </div>
@@ -499,7 +500,7 @@ export default function AdminSettings() {
                       setMessage('Failed to save security settings');
                     }
                     setTimeout(() => setMessage(''), 3000);
-                  }}><span className="iconify" data-icon="lucide:save"/> Save Security Settings</button>
+                  }}><Icon icon="lucide:save" /> Save Security Settings</button>
                 </div>
               </div>
             </div>
@@ -518,7 +519,7 @@ export default function AdminSettings() {
 
                 <div style={{ display: 'grid', gap: 24 }}>
                   <div className="glass-card fade-in-up" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><span className="iconify" data-icon="lucide:globe"/> Google Meet</h3>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><Icon icon="lucide:globe" /> Google Meet</h3>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 16 }}>
                       Requires a Google Cloud Service Account with Calendar API enabled and domain-wide delegation.
                     </p>
@@ -544,20 +545,20 @@ export default function AdminSettings() {
                           try {
                             await adminApi.put('/settings', meetingSettings);
                             const res = await adminApi.post('/settings/test-meeting', { provider: 'google' });
-                            setMessage('<span className="iconify" data-icon="lucide:check-circle"/> Google Meet: ' + (res.data.message || 'Connected!'));
+                            setMessage('<Icon icon="lucide:check-circle" /> Google Meet: ' + (res.data.message || 'Connected!'));
                           } catch (err) {
-                            setMessage('<span className="iconify" data-icon="lucide:x-circle"/> Google Meet: ' + (err.response?.data?.error || err.message));
+                            setMessage('<Icon icon="lucide:x-circle" /> Google Meet: ' + (err.response?.data?.error || err.message));
                           }
                           setTestingGoogle(false);
                           setTimeout(() => setMessage(''), 5000);
                         }}>
-                        {testingGoogle ? 'Testing...' : <><span className="iconify" data-icon="lucide:test-tube"/> Test Google Connection</>}
+                        {testingGoogle ? 'Testing...' : <><Icon icon="lucide:test-tube" /> Test Google Connection</>}
                       </button>
                     </div>
                   </div>
 
                   <div className="glass-card fade-in-up" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><span className="iconify" data-icon="lucide:briefcase"/> Microsoft Teams</h3>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><Icon icon="lucide:briefcase" /> Microsoft Teams</h3>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 16 }}>
                       Requires an Azure AD app registration with <code>OnlineMeetings.ReadWrite.All</code> (Application permission) and a client secret.
                     </p>
@@ -588,14 +589,14 @@ export default function AdminSettings() {
                           try {
                             await adminApi.put('/settings', meetingSettings);
                             const res = await adminApi.post('/settings/test-meeting', { provider: 'teams' });
-                            setMessage('<span className="iconify" data-icon="lucide:check-circle"/> Microsoft Teams: ' + (res.data.message || 'Connected!'));
+                            setMessage('<Icon icon="lucide:check-circle" /> Microsoft Teams: ' + (res.data.message || 'Connected!'));
                           } catch (err) {
-                            setMessage('<span className="iconify" data-icon="lucide:x-circle"/> Microsoft Teams: ' + (err.response?.data?.error || err.message));
+                            setMessage('<Icon icon="lucide:x-circle" /> Microsoft Teams: ' + (err.response?.data?.error || err.message));
                           }
                           setTestingTeams(false);
                           setTimeout(() => setMessage(''), 5000);
                         }}>
-                        {testingTeams ? 'Testing...' : <><span className="iconify" data-icon="lucide:test-tube"/> Test Teams Connection</>}
+                        {testingTeams ? 'Testing...' : <><Icon icon="lucide:test-tube" /> Test Teams Connection</>}
                       </button>
                     </div>
                   </div>
@@ -610,7 +611,7 @@ export default function AdminSettings() {
                       setMessage('Failed to save settings');
                     }
                     setTimeout(() => setMessage(''), 3000);
-                  }}><span className="iconify" data-icon="lucide:save"/> Save Meeting Settings</button>
+                  }}><Icon icon="lucide:save" /> Save Meeting Settings</button>
                 </div>
               </div>
             </div>

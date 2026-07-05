@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -203,7 +204,7 @@ export default function Candidates() {
     <div className="page fade-in-up">
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:users" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:users" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Candidates Pipeline
         </h1>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -220,22 +221,22 @@ export default function Candidates() {
               const a = document.createElement('a'); a.href = url; a.download = 'candidates.csv'; a.click();
               window.URL.revokeObjectURL(url);
             }}>
-              <span className="iconify" data-icon="lucide:download"></span> Export CSV
+              <Icon icon="lucide:download"></Icon> Export CSV
             </button>
           )}
           <button className={`glass-btn glass-btn-sm ${boardView ? 'glass-btn-primary' : 'glass-btn-ghost'}`} onClick={() => setBoardView(v => !v)}>
-            <span className="iconify" data-icon={boardView ? 'lucide:table' : 'lucide:layout-grid'}></span>
+            <Icon icon={boardView ? 'lucide:table' : 'lucide:layout-grid'}></Icon>
             {boardView ? ' Table View' : ' Board View'}
           </button>
           <button className="glass-btn glass-btn-primary" onClick={openCreate}>
-            <span className="iconify" data-icon="lucide:user-plus"></span> Add Candidate
+            <Icon icon="lucide:user-plus"></Icon> Add Candidate
           </button>
         </div>
       </div>
 
       {message && (
         <div className="glass-alert glass-alert-info">
-          <span className="iconify" data-icon="lucide:info"></span> {message}
+          <Icon icon="lucide:info"></Icon> {message}
         </div>
       )}
 
@@ -250,7 +251,7 @@ export default function Candidates() {
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
           <input className="glass-input" placeholder="Search name, email, position..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: 260 }} />
           <button type="submit" className="glass-btn glass-btn-ghost">
-            <span className="iconify" data-icon="lucide:search"></span> Search
+            <Icon icon="lucide:search"></Icon> Search
           </button>
         </form>
       </div>
@@ -275,7 +276,7 @@ export default function Candidates() {
                     background: stageColors[stage], color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="iconify" data-icon="lucide:folder" style={{ opacity: 0.5 }}></span>
+                      <Icon icon="lucide:folder" style={{ opacity: 0.5 }}></Icon>
                       {stage}
                     </span>
                     <span style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 10, padding: '0 8px', fontSize: '0.75rem' }}>{items.length}</span>
@@ -292,7 +293,7 @@ export default function Candidates() {
                         {c.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: 2 }}>{c.email}</div>}
                         <div style={{ marginTop: 6, fontSize: '0.75rem' }}>
                           <span style={{ color: 'var(--brand-primary)', cursor: 'pointer' }}
-                            onClick={() => navigate(`/hr/candidates/${c.id}`)}>View <span className="iconify" data-icon="lucide:arrow-right" style={{ fontSize: '0.65rem' }}></span></span>
+                            onClick={() => navigate(`/hr/candidates/${c.id}`)}>View <Icon icon="lucide:arrow-right" style={{ fontSize: '0.65rem' }}></Icon></span>
                         </div>
                       </div>
                     ))}
@@ -323,7 +324,7 @@ export default function Candidates() {
             {candidates.length === 0 ? (
               <tr><td colSpan={8}>
                 <div className="glass-empty">
-                  <span className="iconify" data-icon="lucide:users"></span>
+                  <Icon icon="lucide:users"></Icon>
                   <h3>No candidates found</h3>
                 </div>
               </td></tr>
@@ -339,7 +340,7 @@ export default function Candidates() {
                 <td>{stageBadge(c.stage)}</td>
                 <td>{c.screening_status ? (
                   <span className={`glass-badge ${c.screening_status === 'most_recommended' ? 'glass-badge-success' : c.screening_status === 'recommended' ? 'glass-badge-info' : 'glass-badge-danger'}`}>
-                    <span className="iconify" data-icon={c.screening_status === 'most_recommended' ? 'lucide:star' : c.screening_status === 'recommended' ? 'lucide:thumbs-up' : 'lucide:x'} style={{ marginRight: 2, fontSize: '0.65rem' }}></span>
+                    <Icon icon={c.screening_status === 'most_recommended' ? 'lucide:star' : c.screening_status === 'recommended' ? 'lucide:thumbs-up' : 'lucide:x'} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
                     {c.screening_status === 'most_recommended' ? 'Most Rec.' : c.screening_status === 'recommended' ? 'Rec.' : 'Rej.'}
                   </span>
                 ) : <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>—</span>}</td>
@@ -352,10 +353,10 @@ export default function Candidates() {
                       {STAGES.filter(s => s !== c.stage).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <button className="glass-btn glass-btn-xs glass-btn-success" onClick={() => openHire(c)} style={{marginLeft:4}}>
-                      <span className="iconify" data-icon="lucide:user-plus"></span> Hire
+                      <Icon icon="lucide:user-plus"></Icon> Hire
                     </button>
                     <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => setConfirm(c)} style={{marginLeft:4}}>
-                      <span className="iconify" data-icon="lucide:trash-2"></span> Delete
+                      <Icon icon="lucide:trash-2"></Icon> Delete
                     </button>
                   </div>
                 </td>
@@ -381,10 +382,10 @@ export default function Candidates() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--success)' }}></span>
+                <Icon icon="lucide:user-plus" style={{ color: 'var(--success)' }}></Icon>
                 Hire: {hireTarget.name}
               </h3>
-              <button className="glass-modal-close" onClick={() => setHireTarget(null)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setHireTarget(null)}><Icon icon="lucide:x" /></button>
             </div>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 16 }}>
               Create employee record from this candidate.
@@ -419,7 +420,7 @@ export default function Candidates() {
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-ghost" onClick={() => setHireTarget(null)}>Cancel</button>
               <button className="glass-btn glass-btn-success" onClick={handleHire} disabled={hiring}>
-                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><span className="iconify" data-icon="lucide:check"></span> Confirm Hire</>}
+                {hiring ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></div> Hiring...</> : <><Icon icon="lucide:check"></Icon> Confirm Hire</>}
               </button>
             </div>
           </div>
@@ -431,9 +432,9 @@ export default function Candidates() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)' }}>
-                <span className="iconify" data-icon="lucide:party-popper"></span> Hired Successfully
+                <Icon icon="lucide:party-popper"></Icon> Hired Successfully
               </h3>
-              <button className="glass-modal-close" onClick={() => { setHireResult(null); setHireTarget(null); }}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => { setHireResult(null); setHireTarget(null); }}><Icon icon="lucide:x" /></button>
             </div>
             <div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}>
               <p style={{ marginBottom: 8 }}><strong>Employee #:</strong> {hireResult.employee_id}</p>
@@ -452,9 +453,9 @@ export default function Candidates() {
           <div className="glass-modal" onClick={e => e.stopPropagation()}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon="lucide:user-plus" style={{ color: 'var(--brand-primary)' }}></span> Add Candidate
+                <Icon icon="lucide:user-plus" style={{ color: 'var(--brand-primary)' }}></Icon> Add Candidate
               </h3>
-              <button className="glass-modal-close" onClick={() => setShowForm(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowForm(false)}><Icon icon="lucide:x" /></button>
             </div>
             <div className="glass-form-group">
               <label className="glass-label">Name *</label>
@@ -517,7 +518,7 @@ export default function Candidates() {
             </div>
             <div className="glass-modal-footer">
               <button className="glass-btn glass-btn-primary" onClick={handleCreate}>
-                <span className="iconify" data-icon="lucide:plus"></span> Create
+                <Icon icon="lucide:plus"></Icon> Create
               </button>
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
             </div>

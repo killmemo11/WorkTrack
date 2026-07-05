@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
 import Layout from '../../../shared/components/Layout/Layout';
@@ -64,12 +65,12 @@ export default function Profile() {
           </div>
         </div>
 
-        {message && <div className="glass-alert glass-alert-success"><span className="iconify" data-icon="lucide:check-circle" style={{ marginRight: 8 }} />{message}</div>}
-        {error && <div className="glass-alert glass-alert-danger"><span className="iconify" data-icon="lucide:alert-triangle" style={{ marginRight: 8 }} />{error}</div>}
+        {message && <div className="glass-alert glass-alert-success"><Icon icon="lucide:check-circle" style={{ marginRight: 8 }} />{message}</div>}
+        {error && <div className="glass-alert glass-alert-danger"><Icon icon="lucide:alert-triangle" style={{ marginRight: 8 }} />{error}</div>}
 
         <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
           <div className="glass-card-header">
-            <h3><span className="iconify" data-icon="lucide:user" style={{ marginRight: 8 }} />Account Info</h3>
+            <h3><Icon icon="lucide:user" style={{ marginRight: 8 }} />Account Info</h3>
           </div>
           <div className="glass-card-body">
             <div className="glass-detail-grid">
@@ -95,7 +96,7 @@ export default function Profile() {
 
         <div className="glass-card card-hover fade-in-up" style={{ marginBottom: 24 }}>
           <div className="glass-card-header">
-            <h3><span className="iconify" data-icon="lucide:phone" style={{ marginRight: 8 }} />Phone Number</h3>
+            <h3><Icon icon="lucide:phone" style={{ marginRight: 8 }} />Phone Number</h3>
           </div>
           <div className="glass-card-body">
             <form onSubmit={handleUpdatePhone}>
@@ -106,7 +107,7 @@ export default function Profile() {
                     onChange={(e) => setPhone(e.target.value)} placeholder="Enter your phone number" />
                 </div>
                 <button className="glass-btn glass-btn-primary" disabled={saving}>
-                  {saving ? <><span className="spinner-sm" /> Saving...</> : <><span className="iconify" data-icon="lucide:save" style={{ marginRight: 6 }} /> Update</>}
+                  {saving ? <><span className="spinner-sm" /> Saving...</> : <><Icon icon="lucide:save" style={{ marginRight: 6 }} /> Update</>}
                 </button>
               </div>
             </form>
@@ -115,7 +116,7 @@ export default function Profile() {
 
         <div className="glass-card card-hover fade-in-up">
           <div className="glass-card-header">
-            <h3><span className="iconify" data-icon="lucide:key-round" style={{ marginRight: 8 }} />Change Password</h3>
+            <h3><Icon icon="lucide:key-round" style={{ marginRight: 8 }} />Change Password</h3>
           </div>
           <div className="glass-card-body">
             <form onSubmit={handleChangePassword}>
@@ -132,7 +133,7 @@ export default function Profile() {
                 </div>
               </div>
               <button className="glass-btn glass-btn-primary" disabled={saving}>
-                {saving ? <><span className="spinner-sm" /> Saving...</> : <><span className="iconify" data-icon="lucide:key-round" style={{ marginRight: 6 }} /> Change Password</>}
+                {saving ? <><span className="spinner-sm" /> Saving...</> : <><Icon icon="lucide:key-round" style={{ marginRight: 6 }} /> Change Password</>}
               </button>
             </form>
           </div>

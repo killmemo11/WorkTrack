@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -47,7 +48,7 @@ export default function ManagerDashboard() {
     return (
       <div className="glass-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '1rem' }}>
         <div className="glass-alert glass-alert-danger">
-          <span className="iconify" data-icon="lucide:alert-triangle" style={{ fontSize: '1.5rem' }}></span>
+          <Icon icon="lucide:alert-triangle" style={{ fontSize: '1.5rem' }}></Icon>
           <div>
             <h3>Error Loading Dashboard</h3>
             <p>{error}</p>
@@ -63,7 +64,7 @@ export default function ManagerDashboard() {
   if (!dashboardData) {
     return (
       <div className="glass-empty">
-        <span className="iconify" data-icon="lucide:building-2" style={{ fontSize: '3rem', opacity: 0.5 }}></span>
+        <Icon icon="lucide:building-2" style={{ fontSize: '3rem', opacity: 0.5 }}></Icon>
         <h3>No Data Available</h3>
         <p>Your dashboard data is still loading. Please check back later.</p>
       </div>
@@ -74,7 +75,7 @@ export default function ManagerDashboard() {
   if (!summary) {
     return (
       <div className="glass-empty">
-        <span className="iconify" data-icon="lucide:users" style={{ fontSize: '3rem', opacity: 0.5 }}></span>
+        <Icon icon="lucide:users" style={{ fontSize: '3rem', opacity: 0.5 }}></Icon>
         <h3>No Team Data Available</h3>
         <p>You are not assigned to a department. Please contact your administrator.</p>
       </div>
@@ -268,7 +269,7 @@ export default function ManagerDashboard() {
                   {member.goals.slice(0, 2).map(goal => (
                     <div key={goal.id} className="glass-detail-row" style={{ gridColumn: '1 / -1' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-                        <span className="iconify" data-icon={goal.icon || 'lucide:target'} style={{ fontSize: 14, color: goal.color || '#818cf8', flexShrink: 0 }}></span>
+                        <Icon icon={goal.icon || 'lucide:target'} style={{ fontSize: 14, color: goal.color || '#818cf8', flexShrink: 0 }}></Icon>
                         <span style={{ flex: 1, fontSize: '0.8rem' }}>{goal.title}</span>
                         <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{Math.round(goal.progress_percentage)}%</span>
                       </div>
@@ -284,11 +285,11 @@ export default function ManagerDashboard() {
 
               <div className="glass-modal-footer" style={{ marginTop: '1rem', borderTop: 'none' }}>
                 <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => navigate(`/personnel/${member.id}`)}>
-                  <span className="iconify" data-icon="lucide:user"></span>
+                  <Icon icon="lucide:user"></Icon>
                   View Profile
                 </button>
                 <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/manager/leave-requests/${member.id}`)}>
-                  <span className="iconify" data-icon="lucide:calendar"></span>
+                  <Icon icon="lucide:calendar"></Icon>
                   Leave Requests
                 </button>
               </div>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useRef } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 
@@ -84,14 +85,14 @@ export default function VerifyEmail() {
 
       <div className="auth-container fade-in-up">
         <div className="auth-brand">
-          <span className="iconify" data-icon="lucide:shield-check" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
+          <Icon icon="lucide:shield-check" style={{ fontSize: 32, color: 'var(--brand-primary)' }} />
           <h1>Verify Email</h1>
           <p>Enter the 6-digit code sent to <strong>{email}</strong></p>
         </div>
 
         {error && (
           <div className="glass-alert glass-alert-danger">
-            <span className="iconify" data-icon="lucide:alert-triangle" />
+            <Icon icon="lucide:alert-triangle" />
             {error}
           </div>
         )}
@@ -114,14 +115,14 @@ export default function VerifyEmail() {
           </div>
 
           <button type="submit" className="glass-btn glass-btn-primary glass-btn-lg" disabled={loading} style={{ width: '100%' }}>
-            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Verifying...</> : <>Verify & Sign In <span className="iconify" data-icon="lucide:arrow-right" style={{ marginLeft: 8 }} /></>}
+            {loading ? <><span className="spinner" style={{ marginRight: 8 }} />Verifying...</> : <>Verify & Sign In <Icon icon="lucide:arrow-right" style={{ marginLeft: 8 }} /></>}
           </button>
         </form>
 
         <p className="auth-footer" style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
           Didn&apos;t get the code?{' '}
           <button onClick={handleResend} className="glass-btn glass-btn-ghost glass-btn-sm" disabled={resent}>
-            {resent ? <><span className="iconify" data-icon="lucide:check" style={{ marginRight: 4 }} /> Code sent!</> : <><span className="iconify" data-icon="lucide:refresh-cw" style={{ marginRight: 4 }} /> Resend code</>}
+            {resent ? <><Icon icon="lucide:check" style={{ marginRight: 4 }} /> Code sent!</> : <><Icon icon="lucide:refresh-cw" style={{ marginRight: 4 }} /> Resend code</>}
           </button>
         </p>
       </div>

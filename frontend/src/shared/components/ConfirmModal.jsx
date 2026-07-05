@@ -1,3 +1,4 @@
+import Icon from './Icon';
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
@@ -8,7 +9,7 @@ export default function ConfirmModal({ title, message, onConfirm, onCancel, conf
         <div className="glass-modal-header">
           <h3 className="glass-modal-title">{title}</h3>
           <button className="glass-modal-close" onClick={onCancel}>
-            <span className="iconify" data-icon="lucide:x" />
+            <Icon icon="lucide:x" />
           </button>
         </div>
         <div className="glass-modal-body">

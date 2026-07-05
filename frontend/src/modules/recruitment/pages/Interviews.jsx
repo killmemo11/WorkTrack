@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -121,7 +122,7 @@ export default function Interviews() {
     <div className="page fade-in-up" style={{ padding: 24 }}>
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="iconify" data-icon="lucide:video" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></span>
+          <Icon icon="lucide:video" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
           Interview Scheduling
         </h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -132,7 +133,7 @@ export default function Interviews() {
             <option value="cancelled">Cancelled</option>
           </select>
           <button className="glass-btn glass-btn-primary" onClick={openCreate}>
-            <span className="iconify" data-icon="lucide:calendar-plus"></span> Schedule Interview
+            <Icon icon="lucide:calendar-plus"></Icon> Schedule Interview
           </button>
         </div>
       </div>
@@ -148,7 +149,7 @@ export default function Interviews() {
         </div>
       ) : interviews.length === 0 ? (
         <div className="glass-empty">
-          <span className="iconify" data-icon="lucide:video-off"></span>
+          <Icon icon="lucide:video-off"></Icon>
           <h3>No interviews scheduled</h3>
         </div>
       ) : (
@@ -181,13 +182,13 @@ export default function Interviews() {
                   </td>
                   <td>
                     <span className={`glass-badge ${iv.type === 'online' ? 'glass-badge-info' : 'glass-badge-warning'}`}>
-                      <span className="iconify" data-icon={iv.type === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 2, fontSize: '0.65rem' }}></span>
+                      <Icon icon={iv.type === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
                       {iv.type === 'online' ? 'Online' : 'Offline'}
                     </span>
                     {iv.type === 'online' && iv.meeting_link && (
                       <div style={{ marginTop: 4 }}>
                         <a href={iv.meeting_link} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--brand-primary)' }}>
-                          {iv.meeting_platform || 'Link'} <span className="iconify" data-icon="lucide:external-link" style={{ fontSize: '0.6rem' }}></span>
+                          {iv.meeting_platform || 'Link'} <Icon icon="lucide:external-link" style={{ fontSize: '0.6rem' }}></Icon>
                         </a>
                       </div>
                     )}
@@ -209,21 +210,21 @@ export default function Interviews() {
                   <td>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => openEdit(iv)}>
-                        <span className="iconify" data-icon="lucide:pencil"></span> Edit
+                        <Icon icon="lucide:pencil"></Icon> Edit
                       </button>
                       {iv.type === 'online' && iv.status === 'scheduled' && (
                         <button className="glass-btn glass-btn-xs glass-btn-success"
                           onClick={() => window.open(iv.meeting_link || `https://meet.jit.si/wfh-interview-${iv.id}`, '_blank')}>
-                          <span className="iconify" data-icon="lucide:link"></span> Join
+                          <Icon icon="lucide:link"></Icon> Join
                         </button>
                       )}
                       {iv.status === 'scheduled' && (
                         <>
                           <button className="glass-btn glass-btn-xs glass-btn-success" onClick={() => handleStatus(iv.id, 'completed')}>
-                            <span className="iconify" data-icon="lucide:check"></span> Complete
+                            <Icon icon="lucide:check"></Icon> Complete
                           </button>
                           <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => handleStatus(iv.id, 'cancelled')}>
-                            <span className="iconify" data-icon="lucide:x"></span> Cancel
+                            <Icon icon="lucide:x"></Icon> Cancel
                           </button>
                         </>
                       )}
@@ -239,11 +240,11 @@ export default function Interviews() {
       {pages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
           <button disabled={page <= 1} onClick={() => fetchInterviews(page - 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            <span className="iconify" data-icon="lucide:chevron-left"></span> Prev
+            <Icon icon="lucide:chevron-left"></Icon> Prev
           </button>
           <span className="glass-badge glass-badge-neutral" style={{ padding: '6px 12px' }}>Page {page} of {pages}</span>
           <button disabled={page >= pages} onClick={() => fetchInterviews(page + 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            Next <span className="iconify" data-icon="lucide:chevron-right"></span>
+            Next <Icon icon="lucide:chevron-right"></Icon>
           </button>
         </div>
       )}
@@ -254,10 +255,10 @@ export default function Interviews() {
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="iconify" data-icon={editingId ? 'lucide:pencil' : 'lucide:calendar-plus'} style={{ color: 'var(--brand-primary)' }}></span>
+                <Icon icon={editingId ? 'lucide:pencil' : 'lucide:calendar-plus'} style={{ color: 'var(--brand-primary)' }}></Icon>
                 {editingId ? 'Edit Interview' : 'Schedule Interview'}
               </h3>
-              <button className="glass-modal-close" onClick={() => setShowModal(false)}><span className="iconify" data-icon="lucide:x"/></button>
+              <button className="glass-modal-close" onClick={() => setShowModal(false)}><Icon icon="lucide:x" /></button>
             </div>
 
             {/* Candidate */}
@@ -290,7 +291,7 @@ export default function Interviews() {
                     onClick={() => setForm({ ...form, type: t })}
                     className={`glass-btn glass-btn-sm ${form.type === t ? 'glass-btn-primary' : 'glass-btn-ghost'}`}
                     style={{ flex: 1, justifyContent: 'center' }}>
-                    <span className="iconify" data-icon={t === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 4 }}></span>
+                    <Icon icon={t === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 4 }}></Icon>
                     {t === 'online' ? 'Online' : 'Offline'}
                   </button>
                 ))}
@@ -367,7 +368,7 @@ export default function Interviews() {
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleSave}
                 disabled={!form.candidate_id || !form.interview_date || (form.type === 'offline' && !form.location_name)}>
-                {editingId ? <><span className="iconify" data-icon="lucide:check"></span> Update & Notify</> : <><span className="iconify" data-icon="lucide:send"></span> Schedule & Notify</>}
+                {editingId ? <><Icon icon="lucide:check"></Icon> Update & Notify</> : <><Icon icon="lucide:send"></Icon> Schedule & Notify</>}
               </button>
             </div>
           </div>

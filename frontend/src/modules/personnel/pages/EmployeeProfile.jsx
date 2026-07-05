@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import { useParams, useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -87,15 +88,15 @@ export default function EmployeeProfile() {
               : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-dim)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
             <input type="file" accept="image/*" id="avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
             <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', backdropFilter: 'blur(8px)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1 }} title="Upload avatar">
-              <span className="iconify" data-icon={uploading ? 'lucide:loader-2' : 'lucide:camera'} style={{ fontSize: 11 }} />
+              <Icon icon={uploading ? 'lucide:loader-2' : 'lucide:camera'} style={{ fontSize: 11 }} />
             </label>
           </div>
           <div>
             <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => navigate('/hr/employees')}>
-              <span className="iconify" data-icon="lucide:arrow-left" style={{ marginRight: 4 }} /> Back to Employees
+              <Icon icon="lucide:arrow-left" style={{ marginRight: 4 }} /> Back to Employees
             </button>
             <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ marginLeft: 8 }} onClick={() => setShowIdCard(true)}>
-              <span className="iconify" data-icon="lucide:id-card" style={{ marginRight: 4 }} /> ID Card
+              <Icon icon="lucide:id-card" style={{ marginRight: 4 }} /> ID Card
             </button>
             <h2 style={{ marginTop: 4 }}>{profile.name} <span style={{ color: 'var(--text-dim)' }}>#{profile.employee_id}</span></h2>
           </div>
@@ -105,7 +106,7 @@ export default function EmployeeProfile() {
       <div className="glass-tabs">
         {TABS.map(t => (
           <button key={t.key} className={`glass-tab ${activeTab === t.key ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab(t.key)}>
-            <span className="iconify" data-icon={t.icon} style={{ marginRight: 4, fontSize: 13 }} />{t.label}
+            <Icon icon={t.icon} style={{ marginRight: 4, fontSize: 13 }} />{t.label}
           </button>
         ))}
       </div>

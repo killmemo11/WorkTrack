@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
 import Pagination from '../../../shared/components/Pagination';
@@ -57,7 +58,7 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {data.entries.length === 0 && (
-                <tr><td colSpan={8}><div className="glass-empty"><span className="iconify" data-icon="lucide:scroll-text"/><p>No audit entries yet.</p></div></td></tr>
+                <tr><td colSpan={8}><div className="glass-empty"><Icon icon="lucide:scroll-text" /><p>No audit entries yet.</p></div></td></tr>
               )}
               {data.entries.map((e) => (
                 <tr key={e.id}>
