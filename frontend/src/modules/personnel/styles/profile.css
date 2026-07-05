@@ -950,21 +950,6 @@ select.profile-field-input option {
   border-radius: var(--radius-sm);
 }
 
-.profile-form-modal {
-  max-width: 600px;
-  max-height: 95vh;
-}
-
-.profile-form-body {
-  flex-direction: column !important;
-  gap: 16px;
-  align-items: stretch !important;
-  justify-content: flex-start !important;
-  min-height: 0;
-  padding: 24px 28px;
-  background: var(--bg-glass);
-}
-
 .doc-preview-placeholder {
   text-align: center;
   padding: 40px;

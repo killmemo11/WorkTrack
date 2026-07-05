@@ -20,17 +20,21 @@ const COLOR_OPTIONS = [
 ];
 
 export default function ProfileGoals({ profile, onUpdate }) {
-  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [form, setForm] = useState({ title: '', description: '', progress_percentage: 0, icon: 'lucide:target', color: '#818cf8', sort_order: 0 });
 
   function resetForm() { setForm({ title: '', description: '', progress_percentage: 0, icon: 'lucide:target', color: '#818cf8', sort_order: 0 }); setEditingGoal(null); }
 
+  function openCreate() { resetForm(); setEditing(true); }
+
   function openEdit(goal) {
     setForm({ title: goal.title, description: goal.description || '', progress_percentage: parseFloat(goal.progress_percentage) || 0, icon: goal.icon || 'lucide:target', color: goal.color || '#818cf8', sort_order: goal.sort_order || 0 });
     setEditingGoal(goal);
-    setShowForm(true);
+    setEditing(true);
   }
+
+  function cancel() { setEditing(false); resetForm(); }
 
   async function handleSave() {
     if (!form.title.trim()) return;
@@ -39,8 +43,7 @@ export default function ProfileGoals({ profile, onUpdate }) {
     } else {
       await hrApi.post(`/employees/${profile.id}/goals`, form);
     }
-    setShowForm(false);
-    resetForm();
+    setEditing(false);
     onUpdate();
   }
 
@@ -50,23 +53,53 @@ export default function ProfileGoals({ profile, onUpdate }) {
     onUpdate();
   }
 
+  const items = profile.goals || [];
+
   return (
     <ProfileSection
       title="Personal Goals"
       icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
-      actions={<button className="profile-btn profile-btn-primary profile-btn-sm" onClick={() => { resetForm(); setShowForm(true); }}>
+      editing={editing}
+      onEdit={items.length > 0 ? undefined : openCreate}
+      onSave={handleSave}
+      onCancel={cancel}
+      actions={!editing && <button className="profile-btn profile-btn-primary profile-btn-sm" onClick={openCreate}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Goal
       </button>}
     >
-      {(!profile.goals || profile.goals.length === 0) ? (
+      {editing ? (
+        <div className="profile-fields-grid">
+          <ProfileField label="Title *" value={form.title} editing required onChange={val => setForm(f => ({ ...f, title: val }))} />
+          <ProfileField label="Progress %" value={form.progress_percentage} type="number" editing onChange={val => setForm(f => ({ ...f, progress_percentage: Math.min(100, Math.max(0, parseInt(val) || 0)) }))} />
+          <ProfileField label="Icon" value={form.icon} type="select" editing
+            options={ICON_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+            onChange={val => setForm(f => ({ ...f, icon: val }))} />
+          <ProfileField label="Sort Order" value={form.sort_order} type="number" editing onChange={val => setForm(f => ({ ...f, sort_order: parseInt(val) || 0 }))} />
+          <ProfileField label="Description" value={form.description} type="textarea" editing onChange={val => setForm(f => ({ ...f, description: val }))} />
+          <div className="profile-field is-editing">
+            <div className="profile-field-label">
+              <span className="profile-field-icon">🎨</span>
+              <span>Color</span>
+            </div>
+            <div className="profile-field-value">
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                {COLOR_OPTIONS.map(opt => (
+                  <button key={opt.value} type="button" onClick={() => setForm(f => ({ ...f, color: opt.value }))} title={opt.label}
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: form.color === opt.value ? '3px solid white' : '2px solid transparent', background: opt.value, cursor: 'pointer', outline: form.color === opt.value ? `2px solid ${opt.value}` : 'none', transition: 'all 200ms ease' }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : items.length === 0 ? (
         <div className="doc-empty" style={{ padding: '30px 20px' }}>
           <span className="doc-empty-icon" style={{ fontSize: 40 }}>🎯</span>
           <h4>No goals set</h4>
         </div>
       ) : (
         <div className="documents-list">
-          {profile.goals?.map((g, i) => (
+          {items.map((g, i) => (
             <div key={g.id} className="doc-list-item doc-stagger-enter" style={{ animationDelay: `${i * 40}ms` }}>
               <div className="doc-list-icon" style={{ background: `${g.color || '#818cf8'}15`, fontSize: 20 }}>
                 <span className="iconify" data-icon={g.icon || 'lucide:target'} style={{ color: g.color || '#818cf8' }}></span>
@@ -87,41 +120,6 @@ export default function ProfileGoals({ profile, onUpdate }) {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {showForm && (
-        <div className="doc-preview-overlay" onClick={() => setShowForm(false)}>
-          <div className="doc-preview-modal profile-form-modal" onClick={e => e.stopPropagation()}>
-            <div className="doc-preview-header">
-              <h3 style={{ margin: 0 }}>{editingGoal ? 'Edit Goal' : 'Add Goal'}</h3>
-              <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={() => { setShowForm(false); resetForm(); }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div className="doc-preview-body profile-form-body">
-              <ProfileField label="Title *" value={form.title} editing onChange={val => setForm(f => ({ ...f, title: val }))} />
-              <ProfileField label="Description" value={form.description} type="textarea" editing onChange={val => setForm(f => ({ ...f, description: val }))} />
-              <ProfileField label="Progress %" value={form.progress_percentage} type="number" editing onChange={val => setForm(f => ({ ...f, progress_percentage: Math.min(100, Math.max(0, parseInt(val) || 0)) }))} />
-              <ProfileField label="Icon" value={form.icon} type="select" editing
-                options={ICON_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
-                onChange={val => setForm(f => ({ ...f, icon: val }))} />
-              <ProfileField label="Sort Order" value={form.sort_order} type="number" editing onChange={val => setForm(f => ({ ...f, sort_order: parseInt(val) || 0 }))} />
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 8 }}>Color</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {COLOR_OPTIONS.map(opt => (
-                    <button key={opt.value} type="button" onClick={() => setForm(f => ({ ...f, color: opt.value }))} title={opt.label}
-                      style={{ width: 30, height: 30, borderRadius: '50%', border: form.color === opt.value ? '3px solid white' : '2px solid transparent', background: opt.value, cursor: 'pointer', outline: form.color === opt.value ? `2px solid ${opt.value}` : 'none', transition: 'all 200ms ease' }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="doc-preview-footer" style={{ justifyContent: 'flex-end' }}>
-              <button className="profile-btn profile-btn-ghost" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</button>
-              <button className="profile-btn profile-btn-primary" onClick={handleSave}>{editingGoal ? 'Update' : 'Save'}</button>
-            </div>
-          </div>
         </div>
       )}
     </ProfileSection>
