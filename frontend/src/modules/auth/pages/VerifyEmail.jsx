@@ -119,12 +119,12 @@ export default function VerifyEmail() {
           </button>
         </form>
 
-        <p className="auth-footer" style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-          Didn&apos;t get the code?{' '}
-          <button onClick={handleResend} className="glass-btn glass-btn-ghost glass-btn-sm" disabled={resent}>
-            {resent ? <><Icon icon="lucide:check" style={{ marginRight: 4 }} /> Code sent!</> : <><Icon icon="lucide:refresh-cw" style={{ marginRight: 4 }} /> Resend code</>}
+        <div className="auth-footer" style={{ textAlign: 'center', marginTop: 20 }}>
+          <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Didn&apos;t get the code?</span>
+          <button onClick={handleResend} className="glass-btn glass-btn-ghost" style={{ marginLeft: 8, fontSize: '0.85rem' }} disabled={resent}>
+            {resent ? <><Icon icon="lucide:check" style={{ marginRight: 6 }} /> Code sent!</> : <><Icon icon="lucide:refresh-cw" style={{ marginRight: 6 }} /> Resend code</>}
           </button>
-        </p>
+        </div>
       </div>
     </div>
   );
