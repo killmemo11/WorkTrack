@@ -51,7 +51,7 @@ export default function HeadcountRequests() {
   const fetchRequests = () => {
     setLoading(true);
     setError('');
-    const url = filterStatus ? `/headcount-requests?status=${filterStatus}` : '/headcount-requests';
+    const url = filterStatus && filterStatus !== 'all' ? `/headcount-requests?status=${filterStatus}` : '/headcount-requests';
     hrApi.get(url).then(({ data }) => setRequests(data))
       .catch(e => { console.error(e); setError('Failed to load requests'); })
       .finally(() => setLoading(false));

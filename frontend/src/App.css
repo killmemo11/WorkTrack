@@ -380,7 +380,6 @@ body {
   cursor: pointer;
   border: none;
   background: transparent;
-  transition: all 250ms ease;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
 }
