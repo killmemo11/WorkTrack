@@ -384,6 +384,25 @@ async function publicTrack(req, res) {
     for (const a of apps) {
       a.history = byCandidate[a.id] || [];
     }
+
+    // Attach screening results
+    const [screeningRows] = await pool.query(
+      `SELECT sr.* FROM screening_results sr
+       WHERE sr.candidate_id IN (${placeholders})
+       ORDER BY sr.candidate_id, sr.created_at DESC`,
+      ids
+    );
+    const byCandidateScreening = {};
+    for (const s of screeningRows) {
+      if (!byCandidateScreening[s.candidate_id]) {
+        if (s.details && typeof s.details === 'string') s.details = JSON.parse(s.details);
+        if (s.requirement_results && typeof s.requirement_results === 'string') s.requirement_results = JSON.parse(s.requirement_results);
+        byCandidateScreening[s.candidate_id] = s;
+      }
+    }
+    for (const a of apps) {
+      a.screening = byCandidateScreening[a.id] || null;
+    }
   }
 
   const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM recruitment_candidates WHERE email=?', [email]);

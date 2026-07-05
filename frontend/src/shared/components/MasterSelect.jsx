@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from './Icon';
 import hrApi from '../api/hrApi';
+import axios from 'axios';
 
-export default function MasterSelect({ type, value = [], onChange, placeholder = 'Type to search...' }) {
+export default function MasterSelect({ type, value = [], onChange, placeholder = 'Type to search...', usePublicApi = false }) {
   const [items, setItems] = useState([]);
   const [input, setInput] = useState('');
   const [filtered, setFiltered] = useState([]);
@@ -10,10 +11,11 @@ export default function MasterSelect({ type, value = [], onChange, placeholder =
   const [loading, setLoading] = useState(true);
   const containerRef = useRef(null);
 
-  const apiPath = type === 'skills' ? '/master-skills' : '/master-certifications';
+  const api = usePublicApi ? axios : hrApi;
+  const apiPath = type === 'skills' ? '/api/master-skills' : '/api/master-certifications';
 
   useEffect(() => {
-    hrApi.get(apiPath)
+    api.get(apiPath)
       .then(res => setItems(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));

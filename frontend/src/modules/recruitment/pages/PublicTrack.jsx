@@ -1,15 +1,17 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState } from 'react';
 import Icon from '../../../shared/components/Icon';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const EDU_LABEL = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree', bachelor: "Bachelor's", master: "Master's", phd: 'PhD' };
+const EXP_LABEL = { '0-1': 'Less than 1 year', '1-2': '1–2 years', '2-3': '2–3 years', '3-5': '3–5 years', '5-7': '5–7 years', '7-10': '7–10 years', '10-15': '10–15 years', '15-20': '15–20 years', '20+': 'More than 20 years' };
 
 export default function PublicTrack() {
   const [email, setEmail] = useState('');
   const [apps, setApps] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleTrack = async (e) => {
     e.preventDefault();
@@ -29,24 +31,17 @@ export default function PublicTrack() {
 
   const stageBadge = (stage) => {
     const map = {
-      applied: 'neutral',
-      screening: 'info',
-      interview: 'primary',
-      assessment: 'warning',
-      shortlist: 'info',
-      offer: 'success',
-      hired: 'success',
-      rejected: 'danger',
+      applied: 'neutral', screening: 'info', phone: 'info',
+      first: 'primary', second: 'warning', third: 'danger',
+      interview: 'primary', assessment: 'warning',
+      shortlist: 'info', offer: 'success', hired: 'success', rejected: 'danger',
     };
     const icons = {
-      applied: 'lucide:file-text',
-      screening: 'lucide:scan-search',
-      interview: 'lucide:video',
-      assessment: 'lucide:clipboard-check',
-      shortlist: 'lucide:list',
-      offer: 'lucide:gift',
-      hired: 'lucide:party-popper',
-      rejected: 'lucide:x-circle',
+      applied: 'lucide:file-text', screening: 'lucide:scan-search', phone: 'lucide:phone',
+      first: 'lucide:user-check', second: 'lucide:user-check', third: 'lucide:user-check',
+      interview: 'lucide:video', assessment: 'lucide:clipboard-check',
+      shortlist: 'lucide:list', offer: 'lucide:gift',
+      hired: 'lucide:party-popper', rejected: 'lucide:x-circle',
     };
     return (
       <span className={`glass-badge glass-badge-${map[stage] || 'neutral'}`}>
@@ -58,18 +53,11 @@ export default function PublicTrack() {
 
   const STEPS = ['applied', 'screening', 'interview', 'offer', 'hired'];
   const stepIcons = {
-    applied: 'lucide:file-text',
-    screening: 'lucide:scan-search',
-    interview: 'lucide:video',
-    offer: 'lucide:gift',
-    hired: 'lucide:party-popper',
+    applied: 'lucide:file-text', screening: 'lucide:scan-search',
+    interview: 'lucide:video', offer: 'lucide:gift', hired: 'lucide:party-popper',
   };
   const stepLabels = {
-    applied: 'Applied',
-    screening: 'Screening',
-    interview: 'Interview',
-    offer: 'Offer',
-    hired: 'Hired',
+    applied: 'Applied', screening: 'Screening', interview: 'Interview', offer: 'Offer', hired: 'Hired',
   };
 
   const getStepStatus = (currentStage, stepIndex) => {
@@ -81,8 +69,30 @@ export default function PublicTrack() {
     return 'pending';
   };
 
+  const screeningLabel = (status) => {
+    if (status === 'most_recommended') return { text: 'Most Recommended', color: 'success', icon: 'lucide:star' };
+    if (status === 'recommended') return { text: 'Recommended', color: 'info', icon: 'lucide:thumbs-up' };
+    return { text: 'Not Met', color: 'neutral', icon: 'lucide:minus' };
+  };
+
   return (
     <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 20px' }}>
+      {/* Careers Nav */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' }} className="fade-in-up">
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers')}>
+          <Icon icon="lucide:briefcase"></Icon> Jobs
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/apply')}>
+          <Icon icon="lucide:send"></Icon> Apply
+        </button>
+        <button className="glass-btn glass-btn-primary">
+          <Icon icon="lucide:search"></Icon> Track
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/interviews')}>
+          <Icon icon="lucide:video"></Icon> Interviews
+        </button>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: 32 }} className="fade-in-up">
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
@@ -139,8 +149,8 @@ export default function PublicTrack() {
             <Icon icon="lucide:folder-open" style={{ color: 'var(--brand-primary)' }}></Icon>
             Your Applications ({apps.length})
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-            {apps.map(app => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
+            {apps.data.map(app => (
               <div key={app.id} className="glass-panel card-hover fade-in-up" style={{ borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border-glass)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div>
@@ -193,6 +203,76 @@ export default function PublicTrack() {
                     })}
                   </div>
                 </div>
+
+                {/* Screening Results */}
+                {app.screening && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <Icon icon="lucide:scan-search" style={{ color: 'var(--brand-primary)', fontSize: '1rem' }}></Icon>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Screening Result</span>
+                      <span className={`glass-badge glass-badge-${screeningLabel(app.screening.overall_status).color}`}>
+                        <Icon icon={screeningLabel(app.screening.overall_status).icon} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
+                        {screeningLabel(app.screening.overall_status).text}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 8 }}>
+                      Requirements met: {app.screening.requirements_met} / {app.screening.requirements_total}
+                    </div>
+                    {app.screening.requirement_results && (
+                      <div style={{ fontSize: '0.8rem' }}>
+                        {app.screening.requirement_results.map((r, i) => {
+                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Skills', required_certs: 'Certifications' };
+                          const isMet = r.status !== 'rejected';
+                          return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                              <Icon icon={isMet ? 'lucide:check' : 'lucide:x'} style={{ color: isMet ? 'var(--success)' : 'var(--error)', fontSize: '0.7rem' }}></Icon>
+                              <span style={{ color: 'var(--text-muted)' }}>{labelMap[r.requirement] || r.requirement}:</span>
+                              <span style={{ color: isMet ? 'var(--success)' : 'var(--error)', fontWeight: 500 }}>
+                                {r.requirement === 'education_level' ? EDU_LABEL[r.provided] || r.provided
+                                  : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
+                                  : r.provided}
+                              </span>
+                              {!isMet && r.expected && (
+                                <span style={{ color: 'var(--text-faint)' }}>
+                                  (required: {r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
+                                    : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
+                                    : r.expected})
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Candidate Details */}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)', display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                  <span><Icon icon="lucide:mail" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.email}</span>
+                  {app.phone && <span><Icon icon="lucide:phone" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.phone}</span>}
+                  <span><Icon icon="lucide:user" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.name}</span>
+                </div>
+
+                {/* History */}
+                {app.history && app.history.length > 0 && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon icon="lucide:clock" style={{ fontSize: '0.8rem' }}></Icon> Activity
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {app.history.map(h => (
+                        <div key={h.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.78rem' }}>
+                          <span style={{ color: 'var(--text-faint)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
+                            {new Date(h.created_at).toLocaleDateString()}
+                          </span>
+                          <span className={`glass-badge glass-badge-neutral`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>{h.stage}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>{h.note || '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

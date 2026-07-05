@@ -53,16 +53,14 @@ import Jobs from './modules/recruitment/pages/Jobs';
 import Offers from './modules/recruitment/pages/Offers';
 import Interviews from './modules/recruitment/pages/Interviews';
 import RecruitmentReports from './modules/recruitment/pages/Reports';
+import PublicJobs from './modules/recruitment/pages/PublicJobs';
+import PublicApply from './modules/recruitment/pages/PublicApply';
+import PublicTrack from './modules/recruitment/pages/PublicTrack';
+import PublicInterviews from './modules/recruitment/pages/PublicInterviews';
 import HeadcountRequests from './modules/hr/pages/HeadcountRequests';
 import ATSRecruitmentLayout from './shared/components/Layout/ATSRecruitmentLayout';
 import PeopleLayout from './shared/components/Layout/PeopleLayout';
 import TimeAttendanceLayout from './shared/components/Layout/TimeAttendanceLayout';
-
-
-function PortalRedirect() {
-  window.location.href = '/candidate-portal.html';
-  return null;
-}
 
 function CandidatesRedirect() {
   const { id } = useParams();
@@ -185,9 +183,11 @@ export default function App() {
           <Route path="/personnel/organization-chart" element={<ProtectedRoute><OrganizationChart /></ProtectedRoute>} />
           <Route path="/manager/dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
           <Route path="/ceo/dashboard" element={<ProtectedRoute><CEODashboard /></ProtectedRoute>} />
-          {/* Career Portal — Redirect to standalone portal */}
-          <Route path="/careers" element={<PortalRedirect />} />
-          <Route path="/careers/*" element={<PortalRedirect />} />
+          {/* Career Portal — React components */}
+          <Route path="/careers" element={<PublicJobs />} />
+          <Route path="/careers/apply" element={<PublicApply />} />
+          <Route path="/careers/track" element={<PublicTrack />} />
+          <Route path="/careers/interviews" element={<PublicInterviews />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Suspense>

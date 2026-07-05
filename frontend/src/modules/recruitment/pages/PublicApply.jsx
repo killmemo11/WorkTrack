@@ -94,7 +94,7 @@ export default function PublicApply() {
         technical,
         source: 'Portal',
         education_level: educationLevel || null,
-        experience_years: experienceYears ? parseInt(experienceYears, 10) : null,
+        experience_years: experienceYears || null,
         skills: skills.length > 0 ? skills : null,
         certifications: certifications.length > 0 ? certifications : null,
       });
@@ -151,6 +151,22 @@ export default function PublicApply() {
           <Icon icon="lucide:send" style={{ fontSize: '1.4rem', color: '#fff' }}></Icon>
         </div>
         <h1 style={{ textAlign: 'center', color: 'var(--text-primary)' }}>Apply for a Position</h1>
+      </div>
+
+      {/* Careers Nav */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' }} className="fade-in-up">
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers')}>
+          <Icon icon="lucide:briefcase"></Icon> Jobs
+        </button>
+        <button className="glass-btn glass-btn-primary">
+          <Icon icon="lucide:send"></Icon> Apply
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/track')}>
+          <Icon icon="lucide:search"></Icon> Track
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/interviews')}>
+          <Icon icon="lucide:video"></Icon> Interviews
+        </button>
       </div>
 
       <div className="glass-card fade-in-up delay-1" style={{ marginTop: 24 }}>
@@ -230,12 +246,12 @@ export default function PublicApply() {
 
               <div className="glass-form-group">
                 <label className="glass-label">Skills</label>
-                <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." />
+                <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." usePublicApi />
               </div>
 
               <div className="glass-form-group" style={{ margin: 0 }}>
                 <label className="glass-label">Certifications</label>
-                <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." />
+                <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." usePublicApi />
               </div>
             </div>
 

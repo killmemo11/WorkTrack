@@ -27,6 +27,21 @@ export default function PublicJobs() {
 
   return (
     <div style={{ maxWidth: 900, margin: '40px auto', padding: '0 20px' }}>
+      {/* Careers Nav */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' }} className="fade-in-up">
+        <button className="glass-btn glass-btn-primary">
+          <Icon icon="lucide:briefcase"></Icon> Jobs
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/apply')}>
+          <Icon icon="lucide:send"></Icon> Apply
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/track')}>
+          <Icon icon="lucide:search"></Icon> Track
+        </button>
+        <button className="glass-btn glass-btn-ghost" onClick={() => navigate('/careers/interviews')}>
+          <Icon icon="lucide:video"></Icon> Interviews
+        </button>
+      </div>
       <div style={{ textAlign: 'center', marginBottom: 40 }} className="fade-in-up">
         <div style={{
           width: 64, height: 64, borderRadius: '50%',
