@@ -39,6 +39,7 @@ export default function Positions() {
   const [addForm, setAddForm] = useState({ department_id: '', title: '', grade_id: '', description: '', technical: false, max_headcount: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editTab, setEditTab] = useState('basic');
+  const [detailTab, setDetailTab] = useState('summary');
 
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
@@ -136,6 +137,7 @@ export default function Positions() {
 
   const openEdit = async (t) => {
     setSelected(t);
+    setDetailTab('summary');
     setForm({
       title: t.title, grade_id: t.grade_id || '', description: t.description || '',
       technical: !!t.technical, job_summary: t.job_summary || '',
@@ -144,14 +146,14 @@ export default function Positions() {
       max_headcount: t.max_headcount ?? '',
       min_education_level: t.min_education_level || '',
       min_experience_years: t.min_experience_years ?? '',
-      required_skills: Array.isArray(t.required_skills) ? t.required_skills : [],
-      required_certs: Array.isArray(t.required_certs) ? t.required_certs : [],
-      preferred_skills: Array.isArray(t.preferred_skills) ? t.preferred_skills : [],
+      required_skills: Array.isArray(t.required_skills) ? t.required_skills : (typeof t.required_skills === 'string' ? JSON.parse(t.required_skills) : []),
+      required_certs: Array.isArray(t.required_certs) ? t.required_certs : (typeof t.required_certs === 'string' ? JSON.parse(t.required_certs) : []),
+      preferred_skills: Array.isArray(t.preferred_skills) ? t.preferred_skills : (typeof t.preferred_skills === 'string' ? JSON.parse(t.preferred_skills) : []),
     });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
-      setCriteria(res.data.length > 0 ? res.data : [{ criterion_name: '', weight: '' }]);
-    } catch { setCriteria([{ criterion_name: '', weight: '' }]); }
+      setCriteria(res.data.length > 0 ? res.data : []);
+    } catch { setCriteria([]); }
   };
 
   const handleCriteriaChange = (idx, field, value) => {
@@ -582,69 +584,71 @@ export default function Positions() {
               )}
 
               {editTab === 'details' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <div className="glass-tabs" style={{ marginBottom: 16, background: 'var(--bg-elevated)', borderRadius: 10, padding: 4 }}>
+                    {[
+                      { key: 'summary', label: 'Job Summary', icon: 'lucide:file-text' },
+                      { key: 'responsibilities', label: 'Key Responsibilities', icon: 'lucide:list-checks' },
+                      { key: 'qualifications', label: 'Qualifications', icon: 'lucide:graduation-cap' },
+                      { key: 'technical', label: 'Technical Skills', icon: 'lucide:wrench' },
+                      { key: 'competencies', label: 'Core Competencies', icon: 'lucide:sparkles' },
+                    ].map(tab => (
+                      <div key={tab.key}
+                        onClick={() => setDetailTab(tab.key)}
+                        className={`glass-tab ${detailTab === tab.key ? 'glass-tab-active' : ''}`}
+                        style={{ border: 'none', boxShadow: detailTab === tab.key ? '0 1px 4px rgba(0,0,0,.15)' : 'none' }}>
+                        <span className="iconify" data-icon={tab.icon} style={{ marginRight: 4, fontSize: 14 }} />
+                        {tab.label}
+                      </div>
+                    ))}
+                  </div>
                   <div className="glass-card" style={{ margin: 0 }}>
                     <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="iconify" data-icon="lucide:file-text" style={{ fontSize: 16 }} />
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>Job Summary</span>
+                      <span className="iconify" data-icon={
+                        detailTab === 'summary' ? 'lucide:file-text' :
+                        detailTab === 'responsibilities' ? 'lucide:list-checks' :
+                        detailTab === 'qualifications' ? 'lucide:graduation-cap' :
+                        detailTab === 'technical' ? 'lucide:wrench' : 'lucide:sparkles'
+                      } style={{ fontSize: 16 }} />
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>
+                        {detailTab === 'summary' && 'Job Summary'}
+                        {detailTab === 'responsibilities' && 'Key Responsibilities'}
+                        {detailTab === 'qualifications' && 'Qualifications & Skills'}
+                        {detailTab === 'technical' && 'Technical Skills & Knowledge'}
+                        {detailTab === 'competencies' && 'Core Competencies'}
+                      </span>
                     </div>
                     <div style={{ padding: '14px 18px' }}>
-                      <textarea className="glass-textarea" rows={4}
-                        value={form.job_summary}
-                        onChange={e => setForm({ ...form, job_summary: e.target.value })}
-                        placeholder="Write a compelling summary of the role..." />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div className="glass-card" style={{ margin: 0 }}>
-                      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="iconify" data-icon="lucide:list-checks" style={{ fontSize: 16 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>Key Responsibilities</span>
-                      </div>
-                      <div style={{ padding: '14px 18px' }}>
-                        <textarea className="glass-textarea" rows={5}
+                      {detailTab === 'summary' && (
+                        <textarea className="glass-textarea" rows={8}
+                          value={form.job_summary}
+                          onChange={e => setForm({ ...form, job_summary: e.target.value })}
+                          placeholder="Write a compelling summary of the role..." />
+                      )}
+                      {detailTab === 'responsibilities' && (
+                        <textarea className="glass-textarea" rows={8}
                           value={form.key_responsibilities}
                           onChange={e => setForm({ ...form, key_responsibilities: e.target.value })}
                           placeholder="List the main responsibilities..." />
-                      </div>
-                    </div>
-                    <div className="glass-card" style={{ margin: 0 }}>
-                      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="iconify" data-icon="lucide:graduation-cap" style={{ fontSize: 16 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>Qualifications & Skills</span>
-                      </div>
-                      <div style={{ padding: '14px 18px' }}>
-                        <textarea className="glass-textarea" rows={5}
+                      )}
+                      {detailTab === 'qualifications' && (
+                        <textarea className="glass-textarea" rows={8}
                           value={form.qualifications}
                           onChange={e => setForm({ ...form, qualifications: e.target.value })}
                           placeholder="Required education, certifications..." />
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div className="glass-card" style={{ margin: 0 }}>
-                      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="iconify" data-icon="lucide:wrench" style={{ fontSize: 16 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>Technical Skills & Knowledge</span>
-                      </div>
-                      <div style={{ padding: '14px 18px' }}>
-                        <textarea className="glass-textarea" rows={5}
+                      )}
+                      {detailTab === 'technical' && (
+                        <textarea className="glass-textarea" rows={8}
                           value={form.technical_skills}
                           onChange={e => setForm({ ...form, technical_skills: e.target.value })}
                           placeholder="Specific tools, technologies..." />
-                      </div>
-                    </div>
-                    <div className="glass-card" style={{ margin: 0 }}>
-                      <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="iconify" data-icon="lucide:sparkles" style={{ fontSize: 16 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>Core Competencies</span>
-                      </div>
-                      <div style={{ padding: '14px 18px' }}>
-                        <textarea className="glass-textarea" rows={5}
+                      )}
+                      {detailTab === 'competencies' && (
+                        <textarea className="glass-textarea" rows={8}
                           value={form.core_competencies}
                           onChange={e => setForm({ ...form, core_competencies: e.target.value })}
                           placeholder="Soft skills, behavioral traits..." />
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -659,7 +663,7 @@ export default function Positions() {
                       <span className="iconify" data-icon="lucide:plus" style={{ fontSize: 14 }} /> Add Criterion
                     </button>
                   </div>
-                  {criteria.length === 0 || (criteria.length === 1 && !criteria[0].criterion_name && !criteria[0].weight) ? (
+                  {criteria.length === 0 ? (
                     <div className="glass-empty" style={{ padding: 40 }}>
                       <span className="iconify" data-icon="lucide:bar-chart-2" style={{ fontSize: 40, color: 'var(--text-dim)' }} />
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>No criteria set</div>

@@ -1055,6 +1055,21 @@ async function deleteGrade(req, res) {
 }
 
 // ── Department Titles ──────────────────────────────────────────
+function parseTitleRow(row) {
+  if (!row) return row;
+  const parse = (v) => {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string') try { return JSON.parse(v); } catch { return []; }
+    return [];
+  };
+  return {
+    ...row,
+    required_skills: parse(row.required_skills),
+    required_certs: parse(row.required_certs),
+    preferred_skills: parse(row.preferred_skills),
+  };
+}
+
 async function getDepartmentTitles(req, res) {
   const departmentId = req.query.department_id || (req.hr ? null : req.employee?.department_id);
   let where = '';
@@ -1075,7 +1090,7 @@ async function getDepartmentTitles(req, res) {
      ${where}
      ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, params
   );
-  res.json(rows);
+  res.json(rows.map(parseTitleRow));
 }
 
 const DEPT_TITLE_SELECT = `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,
@@ -1106,7 +1121,7 @@ async function createDepartmentTitle(req, res) {
   await recalcDepartmentMaxHeadcount(department_id);
   const [created] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [result.insertId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_created', `Created title: ${title}`);
-  res.status(201).json(created[0]);
+  res.status(201).json(parseTitleRow(created[0]));
 }
 
 async function updateDepartmentTitle(req, res) {
@@ -1122,7 +1137,7 @@ async function updateDepartmentTitle(req, res) {
   }
   const [updated] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [id]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_updated', `Updated title #${id}`);
-  res.json(updated[0]);
+  res.json(parseTitleRow(updated[0]));
 }
 
 async function deleteDepartmentTitle(req, res) {
