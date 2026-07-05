@@ -136,8 +136,18 @@ export default function ProfileEmployment({ profile, onUpdate }) {
               onChange={val => update('work_type', val)} />
             <ProfileField label="Bank Name" value={form.bank_name} icon="🏦" editing onChange={val => update('bank_name', val)} />
             <ProfileField label="Bank Account" value={form.bank_account} icon="💳" editing onChange={val => update('bank_account', val)} />
-            <ProfileField label="Emergency Contact" value={form.emergency_contact_name} icon="📞" editing onChange={val => update('emergency_contact_name', val)} />
-            <ProfileField label="Emergency Phone" value={form.emergency_contact_phone} icon="📱" editing onChange={val => update('emergency_contact_phone', val)} />
+            <div className="profile-field is-editing">
+              <div className="profile-field-label">
+                <span className="profile-field-icon">📞</span>
+                <span>Emergency Contact</span>
+              </div>
+              <div className="profile-field-value">
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="text" className="profile-field-input" placeholder="Name" value={form.emergency_contact_name} onChange={e => update('emergency_contact_name', e.target.value)} />
+                  <input type="text" className="profile-field-input" placeholder="Phone" value={form.emergency_contact_phone} onChange={e => update('emergency_contact_phone', e.target.value)} style={{ flex: '0 0 160px' }} />
+                </div>
+              </div>
+            </div>
             <ProfileField label="Emergency Relation" value={form.emergency_contact_relation} icon="👨‍👩‍👧‍👦" editing onChange={val => update('emergency_contact_relation', val)} />
           </div>
         </>
@@ -153,8 +163,7 @@ export default function ProfileEmployment({ profile, onUpdate }) {
           <ProfileField label="Supervisor" value={profile.profile?.supervisor_id ? `#${profile.profile.supervisor_id}` : null} icon="👤" />
           <ProfileField label="Bank Name" value={profile.profile?.bank_name} icon="🏦" />
           <ProfileField label="Bank Account" value={profile.profile?.bank_account} icon="💳" />
-          <ProfileField label="Emergency Contact" value={profile.profile?.emergency_contact_name} icon="📞" />
-          <ProfileField label="Emergency Phone" value={profile.profile?.emergency_contact_phone} icon="📱" />
+          <ProfileField label="Emergency Contact" value={[profile.profile?.emergency_contact_name, profile.profile?.emergency_contact_phone].filter(Boolean).join(' — ')} icon="📞" />
           <ProfileField label="Emergency Relation" value={profile.profile?.emergency_contact_relation} icon="👨‍👩‍👧‍👦" />
         </div>
       )}
