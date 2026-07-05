@@ -51,13 +51,12 @@ export default function HeadcountRequests() {
   const fetchRequests = () => {
     setLoading(true);
     setError('');
-    const url = filterStatus && filterStatus !== 'all' ? `/headcount-requests?status=${filterStatus}` : '/headcount-requests';
-    hrApi.get(url).then(({ data }) => setRequests(data))
+    hrApi.get('/headcount-requests').then(({ data }) => setRequests(data))
       .catch(e => { console.error(e); setError('Failed to load requests'); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchRequests(); }, [filterStatus]);
+  useEffect(() => { fetchRequests(); }, []);
 
   const handleApprove = async () => {
     if (!approveId) return;
@@ -84,6 +83,8 @@ export default function HeadcountRequests() {
     } catch (e) { alert(e.response?.data?.error || 'Failed to reject'); }
     finally { setRejecting(false); }
   };
+
+  const filteredRequests = filterStatus === 'all' ? requests : requests.filter(r => r.status === filterStatus);
 
   const summary = { total: 0, pending: 0, approved: 0, rejected: 0 };
   if (!loading && !error) {
@@ -136,11 +137,11 @@ export default function HeadcountRequests() {
               <Icon icon="lucide:refresh-cw" style={{ marginRight: 6 }} /> Try Again
             </button>
           </div>
-        ) : requests.length === 0 ? (
+        ) : filteredRequests.length === 0 ? (
           <div className="glass-empty">
             <Icon icon="lucide:inbox" style={{ fontSize: 48, color: 'var(--text-dim)' }} />
             <h3>No {filterStatus === 'all' ? '' : filterStatus} requests</h3>
-            <p className="subtitle">All requests will appear here once managers submit them.</p>
+            <p className="subtitle">{filterStatus === 'all' ? 'All requests will appear here once managers submit them.' : `No requests with status "${filterStatus}".`}</p>
           </div>
         ) : (
           <div className="glass-table-wrapper">
@@ -159,7 +160,7 @@ export default function HeadcountRequests() {
                 </tr>
               </thead>
               <tbody>
-                {requests.map(r => (
+                {filteredRequests.map(r => (
                   <tr key={r.id}>
                     <td><strong>{r.requester_name}</strong></td>
                     <td>{r.department_name}</td>
