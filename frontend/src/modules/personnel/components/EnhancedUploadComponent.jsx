@@ -64,7 +64,6 @@ export default function EnhancedUploadComponent({ profile, onUploadComplete }) {
   const handleFileSelect = (file) => {
     try {
       validateFile(file);
-      fileRef.current.files = e.dataTransfer.files;
       setUploadProgress(0);
       setError(null);
     } catch (err) {

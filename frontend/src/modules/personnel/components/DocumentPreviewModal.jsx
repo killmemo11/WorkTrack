@@ -1,34 +1,11 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useRef, useEffect } from 'react';
-import hrApi from '../../../shared/api/hrApi';
+import { useState } from 'react';
 import './styles/preview-modal.css';
 
 export default function DocumentPreviewModal({ document, isOpen, onClose }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-
-  useEffect(() => {
-    if (document && isOpen) {
-      loadPreview();
-    }
-  }, [document, isOpen]);
-
-  const loadPreview = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await hrApi.get(`/my-documents/${document.id}/preview`);
-      setPreviewUrl(response.data.previewUrl);
-    } catch (err) {
-      setError('Failed to load preview');
-      console.error('Preview error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loadError, setLoadError] = useState(null);
 
   const getFileIcon = (type) => {
     const icons = {
@@ -42,7 +19,7 @@ export default function DocumentPreviewModal({ document, isOpen, onClose }) {
   };
 
   const getMimeType = (filePath) => {
-    const ext = filePath.split('.').pop().toLowerCase();
+    const ext = (filePath || '').split('.').pop().toLowerCase();
     const mimeTypes = {
       'pdf': 'application/pdf',
       'jpg': 'image/jpeg',
@@ -58,7 +35,11 @@ export default function DocumentPreviewModal({ document, isOpen, onClose }) {
     return mimeTypes[ext] || 'application/octet-stream';
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !document) return null;
+
+  const filePath = document.file_path;
+  const isImage = getMimeType(filePath).startsWith('image/');
+  const isPdf = getMimeType(filePath) === 'application/pdf';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -68,33 +49,31 @@ export default function DocumentPreviewModal({ document, isOpen, onClose }) {
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
-          {loading && <div className="loading-spinner">Loading preview...</div>}
-          {error && <div className="error-message">{error}</div>}
-          {previewUrl && (
+          {loadError ? (
+            <div className="error-message">{loadError}</div>
+          ) : isImage ? (
             <div className="preview-container">
-              {getMimeType(document.file_path).startsWith('image/') ? (
-                <img src={`/${document.file_path}`} alt={document.doc_name} className="preview-image" />
-              ) : getMimeType(document.file_path) === 'application/pdf' ? (
-                <iframe src={`/${document.file_path}`} className="preview-iframe" title={document.doc_name} />
-              ) : (
-                <div className="file-preview-placeholder">
-                  <div className="file-icon">{getFileIcon(document.doc_type)}</div>
-                  <div className="file-info">
-                    <div className="file-name">{document.doc_name}</div>
-                    <div className="file-type">{getMimeType(document.file_path)}</div>
-                  </div>
-                  <button className="download-btn" onClick={() => window.open(`/${document.file_path}`, '_blank')}>
-                    Download File
-                  </button>
-                </div>
-              )}
+              <img src={`/${filePath}`} alt={document.doc_name} className="preview-image" onError={() => setLoadError('Failed to load image')} />
+            </div>
+          ) : isPdf ? (
+            <iframe src={`/${filePath}`} className="preview-iframe" title={document.doc_name} onError={() => setLoadError('Failed to load PDF')} />
+          ) : (
+            <div className="file-preview-placeholder">
+              <div className="file-icon">{getFileIcon(document.doc_type)}</div>
+              <div className="file-info">
+                <div className="file-name">{document.doc_name}</div>
+                <div className="file-type">{getMimeType(filePath)}</div>
+              </div>
+              <a className="glass-btn glass-btn-primary" href={`/${filePath}`} target="_blank" rel="noopener noreferrer">
+                Download File
+              </a>
             </div>
           )}
         </div>
         <div className="modal-footer">
-          <button className="glass-btn glass-btn-primary" onClick={() => window.open(`/${document.file_path}`, '_blank')}>
+          <a className="glass-btn glass-btn-primary" href={`/${filePath}`} target="_blank" rel="noopener noreferrer">
             Download
-          </button>
+          </a>
           <button className="glass-btn glass-btn-ghost" onClick={onClose}>Close</button>
         </div>
       </div>

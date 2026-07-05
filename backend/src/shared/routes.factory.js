@@ -72,7 +72,15 @@ const {
   getEmployeeGoals, createEmployeeGoal, updateEmployeeGoal, deleteEmployeeGoal,
 } = require('../modules/personnel/personnel.controller');
 
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+const ALLOWED_MIMES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
 
 const memoryUpload = multer({ storage: multer.memoryStorage() });
 
@@ -85,7 +93,7 @@ const personnelUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (ALLOWED_MIMES.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP images and PDF files are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX files are allowed.'));
   },
 });
 

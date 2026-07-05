@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 import DocumentPreviewModal from './DocumentPreviewModal';
 import SearchFilterBar from './SearchFilterBar';
@@ -10,7 +10,7 @@ import EnhancedUploadComponent from './EnhancedUploadComponent';
 import '../styles/documents.css';
 
 export default function ProfileDocuments({ profile, onUpdate }) {
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState(profile.documents || []);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -18,41 +18,20 @@ export default function ProfileDocuments({ profile, onUpdate }) {
   const [previewDocument, setPreviewDocument] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  useEffect(() => {
+    setDocuments(profile.documents || []);
+  }, [profile.documents]);
+
   const handleUploadComplete = () => {
+    setLoading(true);
     onUpdate();
   };
 
   useEffect(() => {
-    // Load documents when component mounts or when search/filter changes
-    const loadDocuments = async () => {
-      setLoading(true);
-      try {
-        let url = '/my-documents';
-        const params = [];
-        
-        if (searchQuery || filterType !== 'all' || sortBy !== 'date-desc') {
-          url = '/my-documents/search';
-          if (searchQuery) params.push(`query=${encodeURIComponent(searchQuery)}`);
-          if (filterType !== 'all') params.push(`type=${filterType}`);
-          if (sortBy !== 'date-desc') {
-            const [sortField, sortOrder] = sortBy.split('-');
-            params.push(`sortBy=${sortField}`);
-            params.push(`sortOrder=${sortOrder}`);
-          }
-        }
-        
-        const response = await hrApi.get(url, params.length > 0 ? { params } : {});
-        setDocuments(response.data);
-      } catch (error) {
-        console.error('Error loading documents:', error);
-        setDocuments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDocuments();
-  }, [searchQuery, filterType, sortBy, profile.id]);
+    if (!loading) return;
+    setDocuments(profile.documents || []);
+    setLoading(false);
+  }, [profile.documents, loading]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -81,20 +60,17 @@ export default function ProfileDocuments({ profile, onUpdate }) {
   const getFilteredAndSortedDocuments = () => {
     let filtered = documents;
 
-    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(doc => 
         doc.doc_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+        (doc.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Filter by document type
     if (filterType !== 'all') {
       filtered = filtered.filter(doc => doc.doc_type === filterType);
     }
 
-    // Sort documents
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'date-desc':
