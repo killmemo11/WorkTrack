@@ -152,15 +152,19 @@ export default function Positions() {
     });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
-      setCriteria(res.data.length > 0 ? res.data : []);
-    } catch { setCriteria([]); }
+      setCriteria(res.data.length > 0 ? res.data : [{ criterion_name: '', weight: '' }]);
+    } catch { setCriteria([{ criterion_name: '', weight: '' }]); }
   };
 
   const handleCriteriaChange = (idx, field, value) => {
     setCriteria(criteria.map((c, i) => i === idx ? { ...c, [field]: value } : c));
   };
 
-  const addCriteriaRow = () => setCriteria([...criteria, { criterion_name: '', weight: '' }]);
+  const addCriteriaRow = () => {
+    const last = criteria[criteria.length - 1];
+    if (last && !last.criterion_name && last.weight === '') return;
+    setCriteria([...criteria, { criterion_name: '', weight: '' }]);
+  };
   const removeCriteriaRow = (idx) => {
     if (criteria.length <= 1) return;
     setCriteria(criteria.filter((_, i) => i !== idx));
