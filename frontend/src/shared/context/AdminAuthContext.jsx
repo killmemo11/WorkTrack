@@ -21,7 +21,6 @@ export function AdminAuthProvider({ children }) {
   const recheck = async () => {
     setLoading(true);
     const adminToken = localStorage.getItem('adminToken');
-    const empToken = localStorage.getItem('token');
 
     let data = null;
     if (adminToken) {
@@ -29,10 +28,6 @@ export function AdminAuthProvider({ children }) {
       if (!data) {
         localStorage.removeItem('adminToken');
       }
-    }
-
-    if (!data && empToken) {
-      data = await checkToken(empToken);
     }
 
     setAdmin(data);
