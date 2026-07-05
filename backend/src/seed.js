@@ -1740,6 +1740,16 @@ async function seed() {
     await pool.query("ALTER TABLE screening_results ADD COLUMN requirement_results JSON DEFAULT NULL AFTER details");
     console.log('Migration: added overall_status + requirement_results to screening_results');
   }
+
+  // --- v57: preferred_certs for department_titles ---
+  const [prefCertsCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'department_titles' AND COLUMN_NAME = 'preferred_certs'",
+    [process.env.DB_NAME]
+  );
+  if (prefCertsCol.length === 0) {
+    await pool.query("ALTER TABLE department_titles ADD COLUMN preferred_certs JSON DEFAULT NULL AFTER preferred_skills");
+    console.log('Migration: added preferred_certs to department_titles');
+  }
 }
 
 module.exports = seed;

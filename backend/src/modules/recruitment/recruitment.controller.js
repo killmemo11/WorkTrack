@@ -428,7 +428,8 @@ async function getActiveJobs(req, res) {
          'min_experience_years', dt.min_experience_years,
          'required_skills', dt.required_skills,
          'required_certs', dt.required_certs,
-         'preferred_skills', dt.preferred_skills
+         'preferred_skills', dt.preferred_skills,
+         'preferred_certs', dt.preferred_certs
        ) AS min_requirements
      FROM recruitment_jobs j
      LEFT JOIN department_titles dt ON j.title_id = dt.id
@@ -448,6 +449,7 @@ async function getActiveJobs(req, res) {
     const reqSkills = parseArr(parsed.required_skills);
     const reqCerts = parseArr(parsed.required_certs);
     const prefSkills = parseArr(parsed.preferred_skills);
+    const prefCerts = parseArr(parsed.preferred_certs);
     return {
       ...r,
       min_requirements: {
@@ -455,9 +457,11 @@ async function getActiveJobs(req, res) {
         required_skills: reqSkills,
         required_certs: reqCerts,
         preferred_skills: prefSkills,
+        preferred_certs: prefCerts,
         required_skills_display: reqSkills.map(id => skillMap[parseInt(id, 10)] || `#${id}`),
         required_certs_display: reqCerts.map(id => certMap[parseInt(id, 10)] || `#${id}`),
         preferred_skills_display: prefSkills.map(id => skillMap[parseInt(id, 10)] || `#${id}`),
+        preferred_certs_display: prefCerts.map(id => certMap[parseInt(id, 10)] || `#${id}`),
       },
     };
   });

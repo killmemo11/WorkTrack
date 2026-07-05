@@ -25,7 +25,7 @@ function statusFor(comparison) {
 
 async function autoScreen(candidateId, titleId, jobId) {
   const [titles] = await pool.query(
-    `SELECT min_education_level, min_experience_years, required_skills, required_certs, preferred_skills
+    `SELECT min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs
      FROM department_titles WHERE id = ?`, [titleId]
   );
   if (titles.length === 0) return null;
@@ -98,7 +98,9 @@ async function autoScreen(candidateId, titleId, jobId) {
     const pct = matched / requiredCerts.length;
     const candHasAll = pct >= 1;
     const candHasExtra = candCerts.length > requiredCerts.length;
-    const st = !candHasAll ? 'rejected' : (candHasExtra ? 'most_recommended' : 'recommended');
+    const preferredCerts = parseArray(t.preferred_certs);
+    const hasPreferred = preferredCerts.length > 0 && preferredCerts.some(pc => candCerts.some(cc => parseInt(cc, 10) === parseInt(pc, 10)));
+    const st = !candHasAll ? 'rejected' : (candHasExtra || hasPreferred ? 'most_recommended' : 'recommended');
     reqResults.push({ requirement: 'required_certs', expected: requiredCerts.length, provided: `${matched}/${requiredCerts.length}`, comparison: pct, status: st });
     if (st === 'rejected') hasRejected = true;
     if (st === 'most_recommended') hasMostRec = true;

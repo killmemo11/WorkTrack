@@ -33,7 +33,7 @@ export default function Positions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [criteria, setCriteria] = useState([]);
-  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '', min_education_level: '', min_experience_years: '', required_skills: [], required_certs: [], preferred_skills: [] });
+  const [form, setForm] = useState({ title: '', grade_id: '', description: '', technical: false, job_summary: '', key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '', max_headcount: '', min_education_level: '', min_experience_years: '', required_skills: [], required_certs: [], preferred_skills: [], preferred_certs: [] });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
@@ -150,6 +150,7 @@ export default function Positions() {
       required_skills: Array.isArray(t.required_skills) ? t.required_skills : (typeof t.required_skills === 'string' ? JSON.parse(t.required_skills) : []),
       required_certs: Array.isArray(t.required_certs) ? t.required_certs : (typeof t.required_certs === 'string' ? JSON.parse(t.required_certs) : []),
       preferred_skills: Array.isArray(t.preferred_skills) ? t.preferred_skills : (typeof t.preferred_skills === 'string' ? JSON.parse(t.preferred_skills) : []),
+      preferred_certs: Array.isArray(t.preferred_certs) ? t.preferred_certs : (typeof t.preferred_certs === 'string' ? JSON.parse(t.preferred_certs) : []),
     });
     try {
       const res = await hrApi.get(`/evaluation-criteria?title_id=${t.id}`);
@@ -187,6 +188,7 @@ export default function Positions() {
         required_skills: form.required_skills,
         required_certs: form.required_certs,
         preferred_skills: form.preferred_skills,
+        preferred_certs: form.preferred_certs,
       });
       await hrApi.post('/evaluation-criteria', {
         title_id: selected.id,
@@ -768,6 +770,13 @@ export default function Positions() {
                       onChange={v => setForm({ ...form, preferred_skills: v })}
                       placeholder="Type to search and add preferred skills..." />
                     <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>Preferred skills give bonus but won&apos;t auto-reject if missing</div>
+                  </div>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">Preferred Certifications</label>
+                    <MasterSelect type="certs" value={form.preferred_certs}
+                      onChange={v => setForm({ ...form, preferred_certs: v })}
+                      placeholder="Type to search and add preferred certifications..." />
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>Preferred certifications give bonus but won&apos;t auto-reject if missing</div>
                   </div>
                 </div>
               )}

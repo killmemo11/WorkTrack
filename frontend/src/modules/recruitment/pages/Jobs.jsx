@@ -313,11 +313,12 @@ export default function Jobs() {
 
                 {form.title_id && (() => {
                   const t = titles.find(x => String(x.id) === form.title_id);
-                  if (!t || (!t.min_education_level && t.min_experience_years == null && (!t.required_skills || t.required_skills.length === 0) && (!t.required_certs || t.required_certs.length === 0))) return null;
+                  if (!t || (!t.min_education_level && t.min_experience_years == null && (!t.required_skills || t.required_skills.length === 0) && (!t.required_certs || t.required_certs.length === 0) && (!t.preferred_certs || t.preferred_certs.length === 0))) return null;
                   const eduLabel = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
                   const skills = Array.isArray(t.required_skills_display) ? t.required_skills_display : [];
                   const certs = Array.isArray(t.required_certs_display) ? t.required_certs_display : [];
                   const prefSkills = Array.isArray(t.preferred_skills_display) ? t.preferred_skills_display : [];
+                  const prefCerts = Array.isArray(t.preferred_certs_display) ? t.preferred_certs_display : [];
                   return (
                     <div className="glass-card" style={{ marginBottom: 20, padding: '14px 16px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)' }}>
@@ -334,6 +335,12 @@ export default function Jobs() {
                         <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Preferred:</span>
                           {prefSkills.map(s => <span key={s} className="glass-badge glass-badge-success">{s}</span>)}
+                        </div>
+                      )}
+                      {prefCerts.length > 0 && (
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Preferred Certs:</span>
+                          {prefCerts.map(c => <span key={c} className="glass-badge glass-badge-success">{c}</span>)}
                         </div>
                       )}
                     </div>
