@@ -276,32 +276,49 @@ export default function AdminEmployees() {
 
       {editing && (
         <div className="glass-modal-overlay" onClick={() => setEditing(null)}>
-          <div className="modal glass-modal" onClick={(e) => e.stopPropagation()} style={{maxWidth:520}}>
-            <button className="glass-modal-close" onClick={() => setEditing(null)}><Icon icon="lucide:x" /></button>
-            <h2>Edit Employee</h2>
-            <div className="modal-grid">
-              <label>Name<input type="text" className="glass-input" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label>
-              <label>Email<input type="email" className="glass-input" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></label>
-              <label>Username<input type="text" className="glass-input" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} /></label>
-              <label>Employee ID<input type="number" className="glass-input" value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></label>
-              <label className="settings-full">Department
-                <select className="glass-select" value={editForm.department_id} onChange={(e) => setEditForm({ ...editForm, department_id: e.target.value })}>
+          <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{maxWidth:560}}>
+            <div className="glass-modal-header">
+              <h3 className="glass-modal-title"><Icon icon="lucide:pencil" /> Edit Employee</h3>
+              <button className="glass-modal-close" onClick={() => setEditing(null)}><Icon icon="lucide:x" /></button>
+            </div>
+            <div className="glass-modal-body" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16}}>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Name</label>
+                <input type="text" className="glass-input" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} />
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Email</label>
+                <input type="email" className="glass-input" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} />
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Username</label>
+                <input type="text" className="glass-input" value={editForm.username} onChange={(e) => setEditForm({...editForm, username: e.target.value})} />
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Employee ID</label>
+                <input type="number" className="glass-input" value={editForm.employee_id} onChange={(e) => setEditForm({...editForm, employee_id: e.target.value})} />
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0, gridColumn:'1 / -1'}}>
+                <label className="glass-label">Department</label>
+                <select className="glass-select" value={editForm.department_id} onChange={(e) => setEditForm({...editForm, department_id: e.target.value})}>
                   <option value="">None</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
-              </label>
-              <label className="settings-full">Grade
-                <select className="glass-select" value={editForm.grade_id} onChange={(e) => setEditForm({ ...editForm, grade_id: e.target.value })}>
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0, gridColumn:'1 / -1'}}>
+                <label className="glass-label">Grade</label>
+                <select className="glass-select" value={editForm.grade_id} onChange={(e) => setEditForm({...editForm, grade_id: e.target.value})}>
                   <option value="">None</option>
                   {grades.map((g) => (
                     <option key={g.id} value={g.id}>Lv.{g.grade_level} — {g.name}</option>
                   ))}
                 </select>
-              </label>
-              <label className="settings-full">Title
-                <select className="glass-select" value={editForm.title_id} onChange={(e) => setEditForm({ ...editForm, title_id: e.target.value })}>
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0, gridColumn:'1 / -1'}}>
+                <label className="glass-label">Title</label>
+                <select className="glass-select" value={editForm.title_id} onChange={(e) => setEditForm({...editForm, title_id: e.target.value})}>
                   <option value="">None</option>
                   {deptTitles
                     .filter((t) => !editForm.department_id || String(t.department_id) === String(editForm.department_id))
@@ -309,51 +326,58 @@ export default function AdminEmployees() {
                       <option key={t.id} value={t.id}>{t.title}</option>
                     ))}
                 </select>
-              </label>
-              <label className="settings-full">Role
-                <select className="glass-select" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Role</label>
+                <select className="glass-select" value={editForm.role} onChange={(e) => setEditForm({...editForm, role: e.target.value})}>
                   <option value="employee">Employee</option>
                   <option value="manager">Manager</option>
                   <option value="ceo">C-Level</option>
                   <option value="admin">Admin</option>
                 </select>
-              </label>
-              <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} className="settings-full">
-                <input type="checkbox" checked={!!editForm.can_wfh} onChange={(e) => setEditForm({ ...editForm, can_wfh: e.target.checked ? 1 : 0 })} />
-                <span>Can work from home (WFH)</span>
-              </label>
-              <label className="settings-full">Employment Status
-                <select className="glass-select" value={editForm.employment_status} onChange={(e) => setEditForm({ ...editForm, employment_status: e.target.value })}>
+              </div>
+              <div className="glass-form-group" style={{marginBottom:0}}>
+                <label className="glass-label">Employment Status</label>
+                <select className="glass-select" value={editForm.employment_status} onChange={(e) => setEditForm({...editForm, employment_status: e.target.value})}>
                   <option value="active">Active</option>
                   <option value="resigned">Resigned</option>
                 </select>
-              </label>
+              </div>
               {editForm.employment_status === 'resigned' && (
-                <label className="settings-full">Resignation Date
-                  <input type="date" className="glass-input" value={editForm.resignation_date} onChange={(e) => setEditForm({ ...editForm, resignation_date: e.target.value })} />
-                </label>
+                <div className="glass-form-group" style={{marginBottom:0, gridColumn:'1 / -1'}}>
+                  <label className="glass-label">Resignation Date</label>
+                  <input type="date" className="glass-input" value={editForm.resignation_date} onChange={(e) => setEditForm({...editForm, resignation_date: e.target.value})} />
+                </div>
               )}
-              <div className="settings-section-title" style={{ fontSize:'0.85rem', borderBottom:'none', margin: '8px 0', gridColumn: '1 / -1' }}>Leave Balances</div>
+              <label className="glass-checkbox" style={{gridColumn:'1 / -1'}}>
+                <input type="checkbox" checked={!!editForm.can_wfh} onChange={(e) => setEditForm({...editForm, can_wfh: e.target.checked ? 1 : 0})} />
+                Can work from home (WFH)
+              </label>
+              <div style={{fontSize:'0.85rem', fontWeight:600, color:'var(--text-primary)', gridColumn:'1 / -1', marginTop:8, paddingTop:12, borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                Leave Balances
+              </div>
               {leaveTypes.filter((lt) => lt.default_balance !== null).length > 0
                 ? leaveTypes.filter((lt) => lt.default_balance !== null).map((lt) => (
-                    <label key={lt.name}>{lt.label || lt.name} ({lt.name})
+                    <div className="glass-form-group" style={{marginBottom:0}} key={lt.name}>
+                      <label className="glass-label">{lt.label || lt.name}</label>
                       <input type="number" className="glass-input" value={editForm.balances?.[lt.name] ?? 0}
                         onChange={(e) => setEditForm({
                           ...editForm,
-                          balances: { ...editForm.balances, [lt.name]: e.target.value }
+                          balances: {...editForm.balances, [lt.name]: e.target.value}
                         })}
-                        step="0.5" min="0" style={{width:'100%'}} />
-                    </label>
+                        step="0.5" min="0" />
+                    </div>
                   ))
                 : ['annual', 'sick', 'casual'].map((t) => (
-                    <label key={t}>{t.charAt(0).toUpperCase() + t.slice(1)} Days
+                    <div className="glass-form-group" style={{marginBottom:0}} key={t}>
+                      <label className="glass-label">{t.charAt(0).toUpperCase() + t.slice(1)} Days</label>
                       <input type="number" className="glass-input" value={editForm.balances?.[t] ?? 0}
                         onChange={(e) => setEditForm({
                           ...editForm,
-                          balances: { ...editForm.balances, [t]: e.target.value }
+                          balances: {...editForm.balances, [t]: e.target.value}
                         })}
-                        step="0.5" min="0" style={{width:'100%'}} />
-                    </label>
+                        step="0.5" min="0" />
+                    </div>
                   ))
               }
             </div>
