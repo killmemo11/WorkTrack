@@ -12,7 +12,8 @@ export default function MasterSelect({ type, value = [], onChange, placeholder =
   const containerRef = useRef(null);
 
   const api = usePublicApi ? axios : hrApi;
-  const apiPath = type === 'skills' ? '/api/master-skills' : '/api/master-certifications';
+  const prefix = usePublicApi ? '/api' : '';
+  const apiPath = type === 'skills' ? `${prefix}/master-skills` : `${prefix}/master-certifications`;
 
   useEffect(() => {
     api.get(apiPath)
