@@ -330,14 +330,46 @@ async function uploadDocument(req, res) {
   const employeeId = req.params.id;
   const { doc_type, doc_name, notes } = req.body;
   const adminId = req.admin?.id || req.hr?.id || null;
+  
+  // File validation
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ];
+
+  if (req.file.size > maxSize) {
+    return res.status(400).json({ error: 'File size exceeds 10MB limit' });
+  }
+
+  if (!allowedTypes.includes(req.file.mimetype)) {
+    return res.status(400).json({ 
+      error: 'File type not supported. Supported types: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX, PPT, PPTX' 
+    });
+  }
+
   const filePath = 'uploads/personnel/' + req.file.filename;
 
   await pool.query(
     'INSERT INTO employee_documents (employee_id, doc_type, doc_name, file_path, notes, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
     [employeeId, doc_type || 'other', doc_name || req.file.originalname, filePath, notes || null, adminId]
   );
+  
+  // Get file size for frontend display
+  const fileSize = (req.file.size / 1024 / 1024).toFixed(2); // Convert to MB
+  
   logActivity(employeeId, adminId, 'document_uploaded', `Uploaded document: ${doc_name || req.file.originalname}`);
-  res.status(201).json({ message: 'Document uploaded' });
+  res.status(201).json({ 
+    message: 'Document uploaded',
+    fileSize: `${fileSize} MB`
+  });
 }
 
 async function deleteDocument(req, res) {
@@ -599,10 +631,55 @@ async function updateMyProfile(req, res) {
 
 async function getMyDocuments(req, res) {
   const [rows] = await pool.query(
-    'SELECT id, doc_type, doc_name, notes, created_at FROM employee_documents WHERE employee_id = ? ORDER BY created_at DESC',
+    'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ? ORDER BY created_at DESC',
     [req.employee.id]
   );
   res.json(rows);
+}
+
+async function searchDocuments(req, res) {
+  const { query, type, sortBy, sortOrder } = req.query;
+  const employeeId = req.employee.id;
+  
+  let sql = 'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ?';
+  const params = [employeeId];
+  
+  // Search query
+  if (query) {
+    sql += ' AND (doc_name LIKE ? OR notes LIKE ?)';
+    params.push(`%${query}%`, `%${query}%`);
+  }
+  
+  // Filter by type
+  if (type && type !== 'all') {
+    sql += ' AND doc_type = ?';
+    params.push(type);
+  }
+  
+  // Sort
+  if (sortBy) {
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    sql += ` ORDER BY ${sortBy} ${sortDirection}`;
+  } else {
+    sql += ' ORDER BY created_at DESC';
+  }
+  
+  const [rows] = await pool.query(sql, params);
+  res.json(rows);
+}
+
+async function getDocumentPreview(req, res) {
+  const { docId } = req.params;
+  const [doc] = await pool.query('SELECT file_path FROM employee_documents WHERE id = ? AND employee_id = ?', [docId, req.employee.id]);
+  
+  if (doc.length === 0) {
+    return res.status(404).json({ error: 'Document not found' });
+  }
+  
+  const filePath = doc[0].file_path;
+  const fileUrl = `${req.protocol}://${req.get('host')}/${filePath}`;
+  
+  res.json({ previewUrl: fileUrl });
 }
 
 async function getOrganization(req, res) {
@@ -1219,4 +1296,5 @@ module.exports = {
   getDepartmentTitles, createDepartmentTitle, updateDepartmentTitle, deleteDepartmentTitle,
   getEvaluationCriteria, saveEvaluationCriteria,
   getEmployeeGoals, createEmployeeGoal, updateEmployeeGoal, deleteEmployeeGoal, updateGoalProgress,
+  searchDocuments, getDocumentPreview,
 };

@@ -1,84 +1,171 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
+import DocumentPreviewModal from './DocumentPreviewModal';
+import SearchFilterBar from './SearchFilterBar';
+import DocumentCard from './DocumentCard';
+import EnhancedUploadComponent from './EnhancedUploadComponent';
+import '../styles/documents.css';
 
 export default function ProfileDocuments({ profile, onUpdate }) {
-  const fileRef = useRef();
-  const [uploading, setUploading] = useState(false);
-  const [docType, setDocType] = useState('contract');
-  const [docName, setDocName] = useState('');
-  const [notes, setNotes] = useState('');
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [previewDocument, setPreviewDocument] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  async function handleUpload() {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('doc_type', docType);
-    fd.append('doc_name', docName || file.name);
-    if (notes) fd.append('notes', notes);
-    await hrApi.post(`/employees/${profile.id}/documents`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-    setUploading(false);
-    fileRef.current.value = '';
-    setDocName('');
-    setNotes('');
+  const handleUploadComplete = () => {
     onUpdate();
-  }
+  };
 
-  async function handleDelete(docId) {
+  useEffect(() => {
+    // Load documents when component mounts or when search/filter changes
+    const loadDocuments = async () => {
+      setLoading(true);
+      try {
+        let url = '/my-documents';
+        const params = [];
+        
+        if (searchQuery || filterType !== 'all' || sortBy !== 'date-desc') {
+          url = '/my-documents/search';
+          if (searchQuery) params.push(`query=${encodeURIComponent(searchQuery)}`);
+          if (filterType !== 'all') params.push(`type=${filterType}`);
+          if (sortBy !== 'date-desc') {
+            const [sortField, sortOrder] = sortBy.split('-');
+            params.push(`sortBy=${sortField}`);
+            params.push(`sortOrder=${sortOrder}`);
+          }
+        }
+        
+        const response = await hrApi.get(url, params.length > 0 ? { params } : {});
+        setDocuments(response.data);
+      } catch (error) {
+        console.error('Error loading documents:', error);
+        setDocuments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDocuments();
+  }, [searchQuery, filterType, sortBy, profile.id]);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilter = (type) => {
+    setFilterType(type);
+  };
+
+  const handleSort = (sort) => {
+    setSortBy(sort);
+  };
+
+  const handlePreview = (document) => {
+    setPreviewDocument(document);
+    setIsPreviewOpen(true);
+  };
+
+  const handleDelete = async (docId) => {
     if (!confirm('Delete this document?')) return;
     await hrApi.delete(`/employees/${profile.id}/documents/${docId}`);
+    setDocuments(documents.filter(d => d.id !== docId));
     onUpdate();
-  }
+  };
 
-  const docTypes = [
-    { value: 'contract', label: 'Contract' },
-    { value: 'id_card', label: 'ID Card' },
-    { value: 'passport', label: 'Passport' },
-    { value: 'certificate', label: 'Certificate' },
-    { value: 'other', label: 'Other' },
-  ];
+  const getFilteredAndSortedDocuments = () => {
+    let filtered = documents;
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(doc => 
+        doc.doc_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by document type
+    if (filterType !== 'all') {
+      filtered = filtered.filter(doc => doc.doc_type === filterType);
+    }
+
+    // Sort documents
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.created_at) - new Date(a.created_at);
+        case 'date-asc':
+          return new Date(a.created_at) - new Date(b.created_at);
+        case 'name-asc':
+          return a.doc_name.localeCompare(b.doc_name);
+        case 'name-desc':
+          return b.doc_name.localeCompare(a.doc_name);
+        case 'type-asc':
+          return a.doc_type.localeCompare(b.doc_type);
+        case 'type-desc':
+          return b.doc_type.localeCompare(a.doc_type);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  };
+
+  const filteredDocuments = getFilteredAndSortedDocuments();
 
   return (
     <div className="glass-card">
-      <div className="glass-card-header"><h3>Documents</h3></div>
-      <div className="glass-card-body">
-        <div>
-          <h4>Upload Document</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <label>Type
-              <select className="glass-form-control" value={docType} onChange={e => setDocType(e.target.value)}>
-                {docTypes.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-              </select>
-            </label>
-            <label>File Name
-              <input className="glass-form-control" value={docName} onChange={e => setDocName(e.target.value)} placeholder="Leave empty to use original name" />
-            </label>
-            <label>Notes
-              <input className="glass-form-control" value={notes} onChange={e => setNotes(e.target.value)} />
-            </label>
-            <label>File
-              <input className="glass-form-control" type="file" ref={fileRef} />
-            </label>
-          </div>
-          <button className="glass-btn glass-btn-primary" onClick={handleUpload} disabled={uploading} style={{ marginTop: 8 }}>{uploading ? 'Uploading...' : 'Upload'}</button>
-        </div>
-
-        {profile.documents.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 20 }}>No documents.</p>}
-        {profile.documents.map(d => (
-          <div key={d.id} className="glass-detail-row">
-            <div><strong>{d.doc_name}</strong> <span className="glass-badge glass-badge-info">{d.doc_type}</span></div>
-            <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{d.notes || ''} {d.uploaded_by_name ? `| Uploaded by: ${d.uploaded_by_name}` : ''}</div>
-            <div className="">
-              <a className="glass-btn glass-btn-sm glass-btn-ghost" href={`/${d.file_path}`} target="_blank" rel="noopener noreferrer">View</a>
-              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(d.id)}>Delete</button>
-            </div>
-          </div>
-        ))}
+      <div className="glass-card-header">
+        <h3>Documents</h3>
+        <span className="document-count">{filteredDocuments.length} documents</span>
       </div>
+      <div className="glass-card-body">
+        <SearchFilterBar 
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          onSort={handleSort}
+          searchQuery={searchQuery}
+          filterType={filterType}
+          sortBy={sortBy}
+        />
+
+        <EnhancedUploadComponent profile={profile} onUploadComplete={handleUploadComplete} />
+
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner">Loading documents...</div>
+          </div>
+        ) : filteredDocuments.length === 0 ? (
+          <div className="no-documents">
+            <div className="no-documents-icon">📁</div>
+            <p>No documents found.</p>
+            {searchQuery && <p>Try adjusting your search or filters.</p>}
+          </div>
+        ) : (
+          <div className="documents-grid">
+            {filteredDocuments.map(d => (
+              <DocumentCard 
+                key={d.id} 
+                document={d} 
+                onPreview={handlePreview}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <DocumentPreviewModal 
+        document={previewDocument}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </div>
   );
 }

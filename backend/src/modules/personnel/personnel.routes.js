@@ -31,6 +31,8 @@ const {
   submitResignation,
   getEmployeeDashboard,
   updateGoalProgress,
+  searchDocuments,
+  getDocumentPreview,
 } = require('./personnel.controller');
 const {
   getMyAssets, getMyAssetHistory,
@@ -45,6 +47,8 @@ const {
 router.get('/my-profile', requireAuth, getMyProfile);
 router.put('/my-profile', requireAuth, requireReadWrite, updateMyProfile);
 router.get('/my-documents', requireAuth, getMyDocuments);
+router.get('/my-documents/search', requireAuth, searchDocuments);
+router.get('/my-documents/:docId/preview', requireAuth, getDocumentPreview);
 router.get('/organization-chart', requireAuth, getOrganization);
 router.post('/my-avatar', requireAuth, upload.single('file'), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
 router.post('/resignation', requireAuth, requireReadWrite, submitResignation);

@@ -26,4 +26,9 @@ hrApi.interceptors.response.use(
   }
 );
 
+// Document endpoints
+hrApi.get('/my-documents');
+hrApi.get('/my-documents/search', { params: { query, type, sortBy, sortOrder } });
+hrApi.get('/my-documents/:docId/preview');
+
 export default hrApi;

@@ -1,0 +1,16 @@
+/* Search Filter Bar Styles */
+.search-filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group, .sort-group {
+  min-width: 150px;
+}

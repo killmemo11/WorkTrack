@@ -1,0 +1,82 @@
+/* Document Card Styles */
+.document-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.document-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.document-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.document-icon {
+  font-size: 24px;
+}
+
+.document-title h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.document-type {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.document-meta {
+  margin-bottom: 12px;
+}
+
+.document-info {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.file-ext {
+  font-weight: 500;
+}
+
+.upload-date {
+  color: var(--text-dim);
+}
+
+.document-notes {
+  margin-top: 8px;
+}
+
+.notes-label {
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.notes-text {
+  color: var(--text-primary);
+}
+
+.uploaded-by {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
