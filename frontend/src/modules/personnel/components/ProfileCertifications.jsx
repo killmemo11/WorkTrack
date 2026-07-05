@@ -33,34 +33,34 @@ export default function ProfileCertifications({ profile, onUpdate }) {
   }
 
   return (
-    <div className="card">
-      <div className="card-header"><h3>Certifications</h3><button className="btn btn-sm btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>+ Add</button></div>
-      <div className="card-body">
-        {profile.certifications.length === 0 && <p className="text-muted">No certifications.</p>}
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Certifications</h3><button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>+ Add</button></div>
+      <div className="glass-card-body">
+        {profile.certifications.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No certifications.</p>}
         {profile.certifications.map(c => (
-          <div key={c.id} className="list-item">
+          <div key={c.id} className="glass-detail-row">
             <div><strong>{c.name}</strong></div>
-            <div className="text-muted">{c.issuing_authority || ''}{c.issue_date ? ` | Issued: ${fmtDate(c.issue_date)}` : ''}{c.expiry_date ? ` | Expires: ${fmtDate(c.expiry_date)}` : ''}</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{c.issuing_authority || ''}{c.issue_date ? ` | Issued: ${fmtDate(c.issue_date)}` : ''}{c.expiry_date ? ` | Expires: ${fmtDate(c.expiry_date)}` : ''}</div>
             {c.credential_url && <div><a href={c.credential_url} target="_blank" rel="noopener noreferrer">View Credential</a></div>}
-            <div className="list-actions">
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
+            <div className="">
+              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
             </div>
           </div>
         ))}
       </div>
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()}>
             <h2>Add Certification</h2>
-            <label>Name *<input className="form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
-            <label>Issuing Authority<input className="form-control" value={form.issuing_authority} onChange={e => setForm({ ...form, issuing_authority: e.target.value })} /></label>
-            <label>Issue Date<input className="form-control" type="date" value={form.issue_date} onChange={e => setForm({ ...form, issue_date: e.target.value })} /></label>
-            <label>Expiry Date<input className="form-control" type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} /></label>
-            <label>Credential URL<input className="form-control" type="url" value={form.credential_url} onChange={e => setForm({ ...form, credential_url: e.target.value })} /></label>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>Save</button>
+            <label>Name *<input className="glass-form-control" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+            <label>Issuing Authority<input className="glass-form-control" value={form.issuing_authority} onChange={e => setForm({ ...form, issuing_authority: e.target.value })} /></label>
+            <label>Issue Date<input className="glass-form-control" type="date" value={form.issue_date} onChange={e => setForm({ ...form, issue_date: e.target.value })} /></label>
+            <label>Expiry Date<input className="glass-form-control" type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} /></label>
+            <label>Credential URL<input className="glass-form-control" type="url" value={form.credential_url} onChange={e => setForm({ ...form, credential_url: e.target.value })} /></label>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleSave}>Save</button>
             </div>
           </div>
         </div>

@@ -43,38 +43,38 @@ export default function ProfileDocuments({ profile, onUpdate }) {
   ];
 
   return (
-    <div className="card">
-      <div className="card-header"><h3>Documents</h3></div>
-      <div className="card-body">
-        <div className="upload-section">
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Documents</h3></div>
+      <div className="glass-card-body">
+        <div>
           <h4>Upload Document</h4>
-          <div className="form-row">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label>Type
-              <select className="form-control" value={docType} onChange={e => setDocType(e.target.value)}>
+              <select className="glass-form-control" value={docType} onChange={e => setDocType(e.target.value)}>
                 {docTypes.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </label>
             <label>File Name
-              <input className="form-control" value={docName} onChange={e => setDocName(e.target.value)} placeholder="Leave empty to use original name" />
+              <input className="glass-form-control" value={docName} onChange={e => setDocName(e.target.value)} placeholder="Leave empty to use original name" />
             </label>
             <label>Notes
-              <input className="form-control" value={notes} onChange={e => setNotes(e.target.value)} />
+              <input className="glass-form-control" value={notes} onChange={e => setNotes(e.target.value)} />
             </label>
             <label>File
-              <input className="form-control" type="file" ref={fileRef} />
+              <input className="glass-form-control" type="file" ref={fileRef} />
             </label>
           </div>
-          <button className="btn btn-primary" onClick={handleUpload} disabled={uploading} style={{ marginTop: 8 }}>{uploading ? 'Uploading...' : 'Upload'}</button>
+          <button className="glass-btn glass-btn-primary" onClick={handleUpload} disabled={uploading} style={{ marginTop: 8 }}>{uploading ? 'Uploading...' : 'Upload'}</button>
         </div>
 
-        {profile.documents.length === 0 && <p className="text-muted" style={{ marginTop: 20 }}>No documents.</p>}
+        {profile.documents.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 20 }}>No documents.</p>}
         {profile.documents.map(d => (
-          <div key={d.id} className="list-item">
-            <div><strong>{d.doc_name}</strong> <span className="badge badge-info">{d.doc_type}</span></div>
-            <div className="text-muted">{d.notes || ''} {d.uploaded_by_name ? `| Uploaded by: ${d.uploaded_by_name}` : ''}</div>
-            <div className="list-actions">
-              <a className="btn btn-sm btn-outline" href={`/${d.file_path}`} target="_blank" rel="noopener noreferrer">View</a>
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(d.id)}>Delete</button>
+          <div key={d.id} className="glass-detail-row">
+            <div><strong>{d.doc_name}</strong> <span className="glass-badge glass-badge-info">{d.doc_type}</span></div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{d.notes || ''} {d.uploaded_by_name ? `| Uploaded by: ${d.uploaded_by_name}` : ''}</div>
+            <div className="">
+              <a className="glass-btn glass-btn-sm glass-btn-ghost" href={`/${d.file_path}`} target="_blank" rel="noopener noreferrer">View</a>
+              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(d.id)}>Delete</button>
             </div>
           </div>
         ))}

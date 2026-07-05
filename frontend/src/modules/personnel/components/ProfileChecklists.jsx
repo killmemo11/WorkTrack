@@ -50,26 +50,26 @@ export default function ProfileChecklists({ employeeId }) {
   };
 
   const statusBadge = (s) => {
-    const colors = { in_progress: 'tag-amber', completed: 'tag-green', cancelled: 'tag-red' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const colors = { in_progress: 'amber', completed: 'success', cancelled: 'danger' };
+    return <span className={`glass-badge glass-badge-${colors[s] || 'neutral'}`}>{s}</span>;
   };
 
   if (loading) return <p className="loading">Loading...</p>;
 
   return (
     <div>
-      {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         {templates.filter(t => t.is_active !== 0).map(t => (
-          <button key={t.id} className="btn btn-sm btn-outline" onClick={() => startChecklist(t.id)}>
+          <button key={t.id} className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => startChecklist(t.id)}>
             + Start {t.name}
           </button>
         ))}
       </div>
 
       {checklists.length === 0 ? (
-        <p className="empty-state">No checklists started.</p>
+        <p className="glass-empty">No checklists started.</p>
       ) : (
         <div style={{ display: 'flex', gap: 16 }}>
           <div style={{ flex: 1 }}>
@@ -77,7 +77,7 @@ export default function ProfileChecklists({ employeeId }) {
             {checklists.map(chk => (
               <div key={chk.id} onClick={() => loadDetail(chk.id)}
                 style={{ padding: '8px 12px', cursor: 'pointer', background: selected === chk.id ? '#eef2ff' : 'transparent', border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <div><strong>{chk.template_name}</strong> <span className={`tag ${chk.type === 'onboarding' ? 'tag-green' : 'tag-amber'}`}>{chk.type}</span></div>
+                <div><strong>{chk.template_name}</strong> <span className={`glass-badge ${chk.type === 'onboarding' ? 'glass-badge-success' : 'glass-badge-warning'}`}>{chk.type}</span></div>
                 <div>{statusBadge(chk.status)}</div>
               </div>
             ))}
@@ -86,7 +86,7 @@ export default function ProfileChecklists({ employeeId }) {
           {detail && (
             <div style={{ flex: 2 }}>
               <h4>Tasks — {detail.checklist.template_name}</h4>
-              <table className="table">
+              <table className="glass-table">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -101,11 +101,11 @@ export default function ProfileChecklists({ employeeId }) {
                     <tr key={t.id}>
                       <td>{t.order_index}</td>
                       <td>{t.task_name}</td>
-                      <td><span className={`tag ${t.assigned_to === 'it' ? 'tag-blue' : t.assigned_to === 'hr' ? 'tag-green' : t.assigned_to === 'admin' ? 'tag-amber' : 'tag-red'}`}>{t.assigned_to}</span></td>
+                      <td><span className={`glass-badge ${t.assigned_to === 'it' ? 'glass-badge-info' : t.assigned_to === 'hr' ? 'glass-badge-success' : t.assigned_to === 'admin' ? 'glass-badge-warning' : 'glass-badge-danger'}`}>{t.assigned_to}</span></td>
                       <td>{statusBadge(t.status)}</td>
                       <td>
                         {t.status !== 'completed' && (
-                          <button className="btn btn-sm btn-primary" onClick={() => completeTask(detail.checklist.id, t.id)}>Complete</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => completeTask(detail.checklist.id, t.id)}>Complete</button>
                         )}
                       </td>
                     </tr>

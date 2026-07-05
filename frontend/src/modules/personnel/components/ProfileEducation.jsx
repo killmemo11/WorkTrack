@@ -36,34 +36,34 @@ export default function ProfileEducation({ profile, onUpdate }) {
   }
 
   return (
-    <div className="card">
-      <div className="card-header"><h3>Education</h3><button className="btn btn-sm btn-primary" onClick={openCreate}>+ Add</button></div>
-      <div className="card-body">
-        {profile.education.length === 0 && <p className="text-muted">No education records.</p>}
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Education</h3><button className="glass-btn glass-btn-sm glass-btn-primary" onClick={openCreate}>+ Add</button></div>
+      <div className="glass-card-body">
+        {profile.education.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No education records.</p>}
         {profile.education.map(e => (
-          <div key={e.id} className="list-item">
-            <div><strong>{e.degree}</strong> in {e.field_of_study || '—'} <span className="text-muted">({e.graduation_year || '—'})</span></div>
-            <div className="text-muted">{e.institution}{e.grade ? ` | Grade: ${e.grade}` : ''}</div>
-            <div className="list-actions">
-              <button className="btn btn-sm btn-outline" onClick={() => openEdit(e)}>Edit</button>
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(e.id)}>Delete</button>
+          <div key={e.id} className="glass-detail-row">
+            <div><strong>{e.degree}</strong> in {e.field_of_study || '—'} <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>({e.graduation_year || '—'})</span></div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{e.institution}{e.grade ? ` | Grade: ${e.grade}` : ''}</div>
+            <div className="">
+              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(e)}>Edit</button>
+              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(e.id)}>Delete</button>
             </div>
           </div>
         ))}
       </div>
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()}>
             <h2>{editing ? 'Edit Education' : 'Add Education'}</h2>
-            <label>Degree<input className="form-control" value={form.degree} onChange={e => setForm({ ...form, degree: e.target.value })} /></label>
-            <label>Institution<input className="form-control" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} /></label>
-            <label>Field of Study<input className="form-control" value={form.field_of_study} onChange={e => setForm({ ...form, field_of_study: e.target.value })} /></label>
-            <label>Graduation Year<input className="form-control" type="number" value={form.graduation_year} onChange={e => setForm({ ...form, graduation_year: e.target.value })} /></label>
-            <label>Grade<input className="form-control" value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })} /></label>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>Save</button>
+            <label>Degree<input className="glass-form-control" value={form.degree} onChange={e => setForm({ ...form, degree: e.target.value })} /></label>
+            <label>Institution<input className="glass-form-control" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} /></label>
+            <label>Field of Study<input className="glass-form-control" value={form.field_of_study} onChange={e => setForm({ ...form, field_of_study: e.target.value })} /></label>
+            <label>Graduation Year<input className="glass-form-control" type="number" value={form.graduation_year} onChange={e => setForm({ ...form, graduation_year: e.target.value })} /></label>
+            <label>Grade<input className="glass-form-control" value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })} /></label>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleSave}>Save</button>
             </div>
           </div>
         </div>

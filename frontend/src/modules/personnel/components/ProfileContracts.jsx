@@ -42,40 +42,40 @@ export default function ProfileContracts({ employeeId, profile }) {
   };
 
   const statusBadge = (s) => {
-    const colors = { draft: 'tag-amber', signed: 'tag-green', expired: 'tag-gray', renewed: 'tag-blue' };
-    return <span className={`tag ${colors[s] || 'tag-gray'}`}>{s}</span>;
+    const colors = { draft: 'amber', signed: 'success', expired: 'neutral', renewed: 'info' };
+    return <span className={`glass-badge glass-badge-${colors[s] || 'neutral'}`}>{s}</span>;
   };
 
   if (loading) return <p className="loading">Loading...</p>;
 
   return (
     <div>
-      {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3>Contracts</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowGenerate(!showGenerate)}>+ Generate Contract</button>
+        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setShowGenerate(!showGenerate)}>+ Generate Contract</button>
       </div>
 
       {showGenerate && (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div className="form-group">
               <label>Template</label>
-              <select className="form-control" value={genForm.template_id} onChange={e => setGenForm({...genForm, template_id: e.target.value})}>
+              <select className="glass-form-control" value={genForm.template_id} onChange={e => setGenForm({...genForm, template_id: e.target.value})}>
                 <option value="">Select...</option>
                 {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.type})</option>)}
               </select>
             </div>
             <div className="form-group">
               <label>Start Date</label>
-              <input type="date" className="form-control" value={genForm.start_date} onChange={e => setGenForm({...genForm, start_date: e.target.value})} />
+              <input type="date" className="glass-form-control" value={genForm.start_date} onChange={e => setGenForm({...genForm, start_date: e.target.value})} />
             </div>
             <div className="form-group">
               <label>End Date</label>
-              <input type="date" className="form-control" value={genForm.end_date} onChange={e => setGenForm({...genForm, end_date: e.target.value})} />
+              <input type="date" className="glass-form-control" value={genForm.end_date} onChange={e => setGenForm({...genForm, end_date: e.target.value})} />
             </div>
           </div>
-          <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={generate}>Generate</button>
+          <button className="glass-btn glass-btn-primary" style={{ marginTop: 8 }} onClick={generate}>Generate</button>
           <p style={{ fontSize: '0.8rem', color: '#666', marginTop: 8 }}>
             Company info, salary components, and employee data are auto-filled.
           </p>
@@ -83,23 +83,23 @@ export default function ProfileContracts({ employeeId, profile }) {
       )}
 
       {generatedContent && (
-        <div className="modal-overlay" onClick={() => setGeneratedContent(null)}>
-          <div className="modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="glass-modal-overlay" onClick={() => setGeneratedContent(null)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <h3>Generated Contract Preview</h3>
             <div style={{ border: '1px solid #e2e8f0', padding: 24, borderRadius: 8, background: '#fff' }} dangerouslySetInnerHTML={{ __html: generatedContent }} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="btn btn-outline" onClick={() => { const w = window.open(''); w.document.write(generatedContent); w.print(); }}>Print</button>
-              <button className="btn btn-outline" onClick={() => setGeneratedContent(null)}>Close</button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(generatedContent); w.print(); }}>Print</button>
+              <button className="glass-btn glass-btn-ghost" onClick={() => setGeneratedContent(null)}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="table-wrapper">
+      <div className="glass-table-wrapper">
         {contracts.length === 0 ? (
-          <p className="empty-state">No contracts yet.</p>
+          <p className="glass-empty">No contracts yet.</p>
         ) : (
-          <table className="table">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>Template</th>
@@ -125,9 +125,9 @@ export default function ProfileContracts({ employeeId, profile }) {
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
                       {c.status === 'draft' && <>
-                        <button className="btn btn-sm btn-outline" onClick={() => sign(c.id, 'signed_by_company')}>Sign (Company)</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => sign(c.id, 'signed_by_company')}>Sign (Company)</button>
                       </>}
-                      <button className="btn btn-sm btn-outline" onClick={() => {
+                      <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => {
                         hrApi.get(`/employees/${employeeId}/contracts`).then(r => {
                           const ctr = r.data.find(x => x.id === c.id);
                           if (ctr?.content_html) {
@@ -137,7 +137,7 @@ export default function ProfileContracts({ employeeId, profile }) {
                           }
                         });
                       }}>View / Print</button>
-                      <button className="btn btn-sm btn-primary" onClick={async () => {
+                      <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={async () => {
                         try {
                           const res = await hrApi.get(`/employees/${employeeId}/contracts/${c.id}/pdf`, { responseType: 'blob' });
                           const url = window.URL.createObjectURL(new Blob([res.data]));

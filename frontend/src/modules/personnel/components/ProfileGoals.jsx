@@ -74,15 +74,15 @@ export default function ProfileGoals({ profile, onUpdate }) {
   }
 
   return (
-    <div className="card">
-      <div className="card-header">
+    <div className="glass-card">
+      <div className="glass-card-header">
         <h3>Personal Goals</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>+ Add Goal</button>
+        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>+ Add Goal</button>
       </div>
-      <div className="card-body">
-        {(!profile.goals || profile.goals.length === 0) && <p className="text-muted">No goals set.</p>}
+      <div className="glass-card-body">
+        {(!profile.goals || profile.goals.length === 0) && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No goals set.</p>}
         {profile.goals?.map(g => (
-          <div key={g.id} className="list-item" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div key={g.id} className="glass-detail-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span className="iconify" data-icon={g.icon || 'lucide:target'} style={{ fontSize: 24, color: g.color || '#818cf8', flexShrink: 0 }}></span>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -92,30 +92,30 @@ export default function ProfileGoals({ profile, onUpdate }) {
               <div style={{ height: 6, background: 'var(--bg-elevated)', borderRadius: 3, margin: '4px 0' }}>
                 <div style={{ width: `${Math.round(g.progress_percentage)}%`, height: '100%', background: g.color || '#818cf8', borderRadius: 3 }}></div>
               </div>
-              {g.description && <p className="text-muted" style={{ fontSize: '0.85rem' }}>{g.description}</p>}
+              {g.description && <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{g.description}</p>}
             </div>
-            <div className="list-actions" style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-sm btn-outline" onClick={() => openEdit(g)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Edit</button>
-              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(g.id)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Delete</button>
+            <div className="" style={{ display: 'flex', gap: 4 }}>
+              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(g)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Edit</button>
+              <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => handleDelete(g.id)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}>Delete</button>
             </div>
           </div>
         ))}
       </div>
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <div className="glass-modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
             <h2>{editingGoal ? 'Edit Goal' : 'Add Goal'}</h2>
-            <label>Title *<input className="form-control" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
-            <label>Description<textarea className="form-control" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></label>
+            <label>Title *<input className="glass-form-control" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label>
+            <label>Description<textarea className="glass-form-control" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></label>
             <label>
               Progress %
-              <input className="form-control" type="number" min={0} max={100} value={form.progress_percentage} onChange={e => setForm({ ...form, progress_percentage: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })} />
+              <input className="glass-form-control" type="number" min={0} max={100} value={form.progress_percentage} onChange={e => setForm({ ...form, progress_percentage: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })} />
             </label>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <label style={{ flex: 1 }}>
                 Icon
-                <select className="form-control" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}>
+                <select className="glass-form-control" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}>
                   {ICON_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
@@ -141,11 +141,11 @@ export default function ProfileGoals({ profile, onUpdate }) {
             </div>
             <label>
               Sort Order
-              <input className="form-control" type="number" min={0} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} />
+              <input className="glass-form-control" type="number" min={0} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} />
             </label>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>{editingGoal ? 'Update' : 'Save'}</button>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</button>
+              <button className="glass-btn glass-btn-primary" onClick={handleSave}>{editingGoal ? 'Update' : 'Save'}</button>
             </div>
           </div>
         </div>

@@ -85,45 +85,45 @@ export default function ProfileBasicInfo({ profile, onUpdate }) {
   if (!editing) {
     return (
       <>
-      <div className="card">
-        <div className="card-header"><h3>Basic Information</h3><button className="btn btn-sm btn-outline" onClick={() => { setForm(profileToForm(profile)); setEditing(true); }}>Edit</button></div>
-        <div className="card-body">
-          {message && <div className={`alert ${message.type === 'error' ? 'alert-error' : 'alert-success'}`}>{message.text}</div>}
-          <table className="table-details">
+      <div className="glass-card">
+        <div className="glass-card-header"><h3>Basic Information</h3><button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setForm(profileToForm(profile)); setEditing(true); }}>Edit</button></div>
+        <div className="glass-card-body">
+          {message && <div className={`glass-alert ${message.type === 'error' ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message.text}</div>}
+          <table className="glass-detail-table">
             <tbody>
               <tr><td>Name</td><td>{profile.name}</td></tr>
               <tr><td>Employee ID</td><td>{profile.employee_id}</td></tr>
               <tr><td>Email</td><td>{profile.email}</td></tr>
-              <tr><td>Phone</td><td>{profile.phone || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Department</td><td>{profile.department_name || <span className="text-muted">—</span>}</td></tr>
+              <tr><td>Phone</td><td>{profile.phone || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Department</td><td>{profile.department_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
               <tr><td>Role</td><td>{profile.role}</td></tr>
-              <tr><td>Nationality</td><td>{profile.profile?.nationality || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Birth Date</td><td>{fmtDate(profile.profile?.birth_date) || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Birth Place</td><td>{profile.profile?.birth_place || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Gender</td><td>{profile.profile?.gender || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Marital Status</td><td>{profile.profile?.marital_status || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Military Status</td><td>{profile.profile?.military_status || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>ID Number</td><td>{profile.profile?.id_number || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>ID Issue Place</td><td>{profile.profile?.national_id_place || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Mother Name</td><td>{profile.profile?.mother_name || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>ID Expiry</td><td>{fmtDate(profile.profile?.id_expiry) || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Passport Number</td><td>{profile.profile?.passport_number || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Passport Expiry</td><td>{fmtDate(profile.profile?.passport_expiry) || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Insurance Number</td><td>{profile.profile?.insurance_number || <span className="text-muted">—</span>}</td></tr>
-              <tr><td>Address</td><td>{profile.profile?.address || <span className="text-muted">—</span>}</td></tr>
+              <tr><td>Nationality</td><td>{profile.profile?.nationality || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Birth Date</td><td>{fmtDate(profile.profile?.birth_date) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Birth Place</td><td>{profile.profile?.birth_place || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Gender</td><td>{profile.profile?.gender || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Marital Status</td><td>{profile.profile?.marital_status || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Military Status</td><td>{profile.profile?.military_status || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>ID Number</td><td>{profile.profile?.id_number || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>ID Issue Place</td><td>{profile.profile?.national_id_place || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Mother Name</td><td>{profile.profile?.mother_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>ID Expiry</td><td>{fmtDate(profile.profile?.id_expiry) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Passport Number</td><td>{profile.profile?.passport_number || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Passport Expiry</td><td>{fmtDate(profile.profile?.passport_expiry) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Insurance Number</td><td>{profile.profile?.insurance_number || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+              <tr><td>Address</td><td>{profile.profile?.address || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
             </tbody>
           </table>
-          <hr/>
+          <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0' }} />
           <h4>Medical Insurance</h4>
-          <table className="table-details">
+          <table className="glass-detail-table">
             <tbody>
-              <tr><td>Card Number</td><td>{profile.profile?.medical_insurance_number || <span className="text-muted">—</span>}</td></tr>
+              <tr><td>Card Number</td><td>{profile.profile?.medical_insurance_number || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
               <tr><td>Card Image</td><td>
                 {profile.profile?.insurance_card_image
                   ? <img src={`/${profile.profile.insurance_card_image}`} alt="Insurance Card" style={{ maxWidth: 300, maxHeight: 200, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }} onClick={() => setPreviewCard(true)} />
-                  : <span className="text-muted">No image uploaded</span>}
+                  : <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No image uploaded</span>}
                 <div style={{ marginTop: 8 }}>
-                  <label className="btn btn-sm btn-outline" style={{ cursor: 'pointer' }}>
+                  <label className="glass-btn glass-btn-sm glass-btn-ghost" style={{ cursor: 'pointer' }}>
                     {uploadingCard ? 'Uploading...' : 'Upload Card Image'}
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadCard} disabled={uploadingCard} />
                   </label>
@@ -135,12 +135,12 @@ export default function ProfileBasicInfo({ profile, onUpdate }) {
       </div>
 
       {previewCard && (
-        <div className="modal-overlay" onClick={() => setPreviewCard(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+        <div className="glass-modal-overlay" onClick={() => setPreviewCard(false)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
             <h2>Insurance Card</h2>
             <img src={`/${profile.profile?.insurance_card_image}`} alt="Insurance Card" style={{ width: '100%', maxHeight: '80vh', objectFit: 'contain' }} />
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setPreviewCard(false)}>Close</button>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setPreviewCard(false)}>Close</button>
             </div>
           </div>
         </div>
@@ -169,30 +169,30 @@ export default function ProfileBasicInfo({ profile, onUpdate }) {
   ];
 
   return (
-    <div className="card">
-      <div className="card-header"><h3>Edit Basic Information</h3></div>
-      <div className="card-body">
-        {message && <div className={`alert ${message.type === 'error' ? 'alert-error' : 'alert-success'}`}>{message.text}</div>}
-        <div className="form-row">
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Edit Basic Information</h3></div>
+      <div className="glass-card-body">
+        {message && <div className={`glass-alert ${message.type === 'error' ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message.text}</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {fields.map(f => (
             <label key={f.key}>
               {f.label}
               {f.type === 'textarea' ? (
-                <textarea className="form-control" rows={3} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
+                <textarea className="glass-form-control" rows={3} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
               ) : f.type === 'select' ? (
-                <select className="form-control" value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })}>
+                <select className="glass-form-control" value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })}>
                   <option value="">—</option>
                   {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : (
-                <input className="form-control" type={f.type} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
+                <input className="glass-form-control" type={f.type} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
               )}
             </label>
           ))}
         </div>
-        <div className="modal-actions">
-          <button className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+        <div className="glass-modal-footer">
+          <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+          <button className="glass-btn glass-btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
         </div>
       </div>
     </div>

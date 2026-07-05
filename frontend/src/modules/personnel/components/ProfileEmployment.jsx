@@ -70,28 +70,28 @@ export default function ProfileEmployment({ profile, onUpdate }) {
   }
 
   const view = (
-    <div className="card">
-      <div className="card-header"><h3>Employment Details</h3><button className="btn btn-sm btn-outline" onClick={() => { setForm(profileToForm(profile)); setEditing(true); }}>Edit</button></div>
-      <div className="card-body">
-        <table className="table-details">
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Employment Details</h3><button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setForm(profileToForm(profile)); setEditing(true); }}>Edit</button></div>
+      <div className="glass-card-body">
+        <table className="glass-detail-table">
           <tbody>
-            <tr><td>Position</td><td>{profile.position_title || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Department</td><td>{profile.department_name || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Grade</td><td>{profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Hire Date</td><td>{fmtDate(profile.profile?.hire_date) || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Contract Type</td><td>{profile.profile?.contract_type === 'annual' ? 'Annual' : profile.profile?.contract_type || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Contract End</td><td>{fmtDate(profile.profile?.contract_end_date) || <span className="text-muted">—</span>}
+            <tr><td>Position</td><td>{profile.position_title || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Department</td><td>{profile.department_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Grade</td><td>{profile.grade_name ? `${profile.grade_name} (Lv.${profile.grade_level})` : <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Hire Date</td><td>{fmtDate(profile.profile?.hire_date) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Contract Type</td><td>{profile.profile?.contract_type === 'annual' ? 'Annual' : profile.profile?.contract_type || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Contract End</td><td>{fmtDate(profile.profile?.contract_end_date) || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}
               {profile.profile?.contract_end_date && profile.profile?.contract_type === 'annual' && (
-                <button className="btn btn-xs btn-outline" style={{ marginLeft: 8 }} onClick={handleRenew}>Renew</button>
+                <button className="glass-btn glass-btn-xs glass-btn-ghost" style={{ marginLeft: 8 }} onClick={handleRenew}>Renew</button>
               )}
             </td></tr>
-            <tr><td>Work Type</td><td>{profile.profile?.work_type || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Supervisor</td><td>{profile.profile?.supervisor_id ? `#${profile.profile.supervisor_id}` : <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Bank Name</td><td>{profile.profile?.bank_name || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Bank Account</td><td>{profile.profile?.bank_account || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Emergency Contact</td><td>{profile.profile?.emergency_contact_name || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Emergency Phone</td><td>{profile.profile?.emergency_contact_phone || <span className="text-muted">—</span>}</td></tr>
-            <tr><td>Emergency Relation</td><td>{profile.profile?.emergency_contact_relation || <span className="text-muted">—</span>}</td></tr>
+            <tr><td>Work Type</td><td>{profile.profile?.work_type || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Supervisor</td><td>{profile.profile?.supervisor_id ? `#${profile.profile.supervisor_id}` : <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Bank Name</td><td>{profile.profile?.bank_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Bank Account</td><td>{profile.profile?.bank_account || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Emergency Contact</td><td>{profile.profile?.emergency_contact_name || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Emergency Phone</td><td>{profile.profile?.emergency_contact_phone || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
+            <tr><td>Emergency Relation</td><td>{profile.profile?.emergency_contact_relation || <span style={{ color: 'var(--text-dim)', opacity: 0.7 }}>—</span>}</td></tr>
           </tbody>
         </table>
       </div>
@@ -122,17 +122,17 @@ export default function ProfileEmployment({ profile, onUpdate }) {
   ];
 
   return (
-    <div className="card">
-      <div className="card-header"><h3>Edit Employment Details</h3></div>
-      <div className="card-body">
-        <div className="form-row">
+    <div className="glass-card">
+      <div className="glass-card-header"><h3>Edit Employment Details</h3></div>
+      <div className="glass-card-body">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {fields.map(f => (
             <label key={f.key}>
               {f.label}
               {f.type === 'warning' ? (
                 gradeWarning && <div style={{ gridColumn: '1 / -1', fontSize: 13, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 10px' }}>{gradeWarning}</div>
               ) : f.type === 'select' ? (
-                <select className="form-control" value={form[f.key]} onChange={e => {
+                <select className="glass-form-control" value={form[f.key]} onChange={e => {
                   const val = e.target.value;
                   const extra = {};
                   if (f.key === 'department_id') { extra.title_id = ''; setGradeWarning(''); }
@@ -165,14 +165,14 @@ export default function ProfileEmployment({ profile, onUpdate }) {
                   })}
                 </select>
               ) : (
-                <input className="form-control" type={f.type} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
+                <input className="glass-form-control" type={f.type} value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} />
               )}
             </label>
           ))}
         </div>
-        <div className="modal-actions">
-          <button className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>Save</button>
+        <div className="glass-modal-footer">
+          <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+          <button className="glass-btn glass-btn-primary" onClick={handleSave}>Save</button>
         </div>
       </div>
     </div>

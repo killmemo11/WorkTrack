@@ -59,11 +59,11 @@ export default function ProfileSalary({ employeeId }) {
 
   return (
     <div>
-      {message && <div className={`alert ${message.includes('Failed') ? 'alert-error' : 'alert-success'}`}>{message}</div>}
+      {message && <div className={`glass-alert ${message.includes('Failed') ? 'glass-alert-danger' : 'glass-alert-success'}`}>{message}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3>Salary Components</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAdd(!showAdd)}>+ Add Component</button>
+        <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setShowAdd(!showAdd)}>+ Add Component</button>
       </div>
 
       {showAdd && (
@@ -71,26 +71,26 @@ export default function ProfileSalary({ employeeId }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div className="form-group">
               <label>Component Name</label>
-              <input className="form-control" value={addForm.component_name}
+              <input className="glass-form-control" value={addForm.component_name}
                 onChange={e => setAddForm({...addForm, component_name: e.target.value})}
                 placeholder="e.g. الراتب الأساسي" />
             </div>
             <div className="form-group">
               <label>Amount</label>
-              <input type="number" className="form-control" value={addForm.amount}
+              <input type="number" className="glass-form-control" value={addForm.amount}
                 onChange={e => setAddForm({...addForm, amount: e.target.value})}
                 placeholder="5000" step="0.01" min="0" />
             </div>
           </div>
-          <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={add}>Add</button>
+          <button className="glass-btn glass-btn-primary" style={{ marginTop: 8 }} onClick={add}>Add</button>
         </div>
       )}
 
-      <div className="table-wrapper">
+      <div className="glass-table-wrapper">
         {components.length === 0 ? (
-          <p className="empty-state">No salary components yet. Add the basic salary and allowances.</p>
+          <p className="glass-empty">No salary components yet. Add the basic salary and allowances.</p>
         ) : (
-          <table className="table">
+          <table className="glass-table">
             <thead>
               <tr>
                 <th>Component</th>
@@ -104,17 +104,17 @@ export default function ProfileSalary({ employeeId }) {
                   {editingId === c.id ? (
                     <>
                       <td>
-                        <input className="form-control" style={{width:'100%'}} value={editForm.component_name}
+                        <input className="glass-form-control" style={{width:'100%'}} value={editForm.component_name}
                           onChange={e => setEditForm({...editForm, component_name: e.target.value})} />
                       </td>
                       <td>
-                        <input type="number" className="form-control" style={{width:'100%'}} value={editForm.amount}
+                        <input type="number" className="glass-form-control" style={{width:'100%'}} value={editForm.amount}
                           onChange={e => setEditForm({...editForm, amount: e.target.value})} step="0.01" min="0" />
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn btn-sm btn-primary" onClick={() => saveEdit(c.id)}>Save</button>
-                          <button className="btn btn-sm btn-outline" onClick={() => setEditingId(null)}>Cancel</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => saveEdit(c.id)}>Save</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
                       </td>
                     </>
@@ -124,8 +124,8 @@ export default function ProfileSalary({ employeeId }) {
                       <td>{parseFloat(c.amount).toFixed(2)}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn btn-sm btn-outline" onClick={() => { setEditingId(c.id); setEditForm({ component_name: c.component_name, amount: c.amount }); }}>Edit</button>
-                          <button className="btn btn-sm btn-danger" onClick={() => remove(c.id)}>Delete</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setEditingId(c.id); setEditForm({ component_name: c.component_name, amount: c.amount }); }}>Edit</button>
+                          <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => remove(c.id)}>Delete</button>
                         </div>
                       </td>
                     </>
