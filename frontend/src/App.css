@@ -4203,8 +4203,103 @@ select.form-control { cursor: pointer; }
 .login-register-link:hover { color: #a5b4fc; }
 
 /* ───────────────────────────────────────────
-   Register Page Specific Styles
+   Auth Page (Register) Styles
    ─────────────────────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.auth-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.3;
+}
+
+.orb-1 { top: -100px; left: 10%; width: 500px; height: 500px; background: radial-gradient(circle, #4f46e5 0%, transparent 70%); }
+.orb-2 { bottom: -100px; right: 10%; width: 400px; height: 400px; background: radial-gradient(circle, #7c3aed 0%, transparent 70%); }
+.orb-3 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; background: radial-gradient(circle, #818cf8 0%, transparent 70%); opacity: 0.15; }
+
+.auth-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.auth-container {
+  position: relative;
+  z-index: 1;
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-brand h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #f4f4f5;
+  margin: 12px 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.auth-brand p {
+  font-size: 0.875rem;
+  color: #71717a;
+  margin: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 24px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.auth-footer a {
+  color: #818cf8;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+.auth-footer a:hover { color: #a5b4fc; }
+
+@media (max-width: 480px) {
+  .auth-container { padding: 32px 24px; }
+  .auth-brand h1 { font-size: 1.4rem; }
+}
+
 .login-domain-hint {
   font-size: 0.8rem;
   color: #71717a;
@@ -4213,9 +4308,6 @@ select.form-control { cursor: pointer; }
   text-align: center;
 }
 
-/* ───────────────────────────────────────────
-   Register Page Specific Styles
-   ─────────────────────────────────────────── */
 .login-field-group {
   display: flex;
   flex-direction: column;
