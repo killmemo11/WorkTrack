@@ -70,14 +70,14 @@ export default function ProfileCertifications({ profile, onUpdate }) {
 
       {showForm && (
         <div className="doc-preview-overlay" onClick={() => setShowForm(false)}>
-          <div className="doc-preview-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+          <div className="doc-preview-modal profile-form-modal" onClick={e => e.stopPropagation()}>
             <div className="doc-preview-header">
               <h3 style={{ margin: 0 }}>Add Certification</h3>
               <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={() => setShowForm(false)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div className="doc-preview-body" style={{ flexDirection: 'column', gap: 12, alignItems: 'stretch', background: 'var(--bg-glass)' }}>
+            <div className="doc-preview-body profile-form-body">
               <ProfileField label="Name *" value={form.name} editing onChange={val => setForm(f => ({ ...f, name: val }))} />
               <ProfileField label="Issuing Authority" value={form.issuing_authority} editing onChange={val => setForm(f => ({ ...f, issuing_authority: val }))} />
               <ProfileField label="Issue Date" value={form.issue_date} type="date" editing onChange={val => setForm(f => ({ ...f, issue_date: val }))} />

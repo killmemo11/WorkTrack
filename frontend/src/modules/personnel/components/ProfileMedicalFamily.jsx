@@ -93,14 +93,14 @@ export default function ProfileMedicalFamily({ profile, onUpdate }) {
 
       {showForm && (
         <div className="doc-preview-overlay" onClick={() => setShowForm(false)}>
-          <div className="doc-preview-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+          <div className="doc-preview-modal profile-form-modal" onClick={e => e.stopPropagation()}>
             <div className="doc-preview-header">
               <h3 style={{ margin: 0 }}>{editing ? 'Edit Family Member' : 'Add Family Member'}</h3>
               <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={() => setShowForm(false)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div className="doc-preview-body" style={{ flexDirection: 'column', gap: 12, alignItems: 'stretch', background: 'var(--bg-glass)' }}>
+            <div className="doc-preview-body profile-form-body">
               <ProfileField label="Name" value={form.name} editing onChange={val => setForm(f => ({ ...f, name: val }))} />
               <ProfileField label="Relation" value={form.relation} type="select" editing
                 options={[{ value: 'Spouse', label: 'Spouse' }, { value: 'Wife', label: 'Wife' }, { value: 'Husband', label: 'Husband' }, { value: 'Son', label: 'Son' }, { value: 'Daughter', label: 'Daughter' }, { value: 'Father', label: 'Father' }, { value: 'Mother', label: 'Mother' }, { value: 'Brother', label: 'Brother' }, { value: 'Sister', label: 'Sister' }, { value: 'Mother-in-law', label: 'Mother-in-law' }, { value: 'Father-in-law', label: 'Father-in-law' }, { value: 'Other', label: 'Other' }]}
