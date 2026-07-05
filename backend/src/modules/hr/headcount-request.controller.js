@@ -54,7 +54,8 @@ async function getRequests(req, res) {
   if (status) { where = 'WHERE hcr.status = ?'; params.push(status); }
 
   const [rows] = await pool.query(
-    `SELECT hcr.*, e.name AS requester_name, d.name AS department_name, dt.title AS title_name,
+    `SELECT hcr.*, e.name AS requester_name, e.role AS requester_role, e.email AS requester_email,
+            d.name AS department_name, dt.title AS title_name,
             d.manager_email, d.c_level_email
      FROM headcount_requests hcr
      JOIN employees e ON hcr.requester_id = e.id

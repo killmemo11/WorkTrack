@@ -65,6 +65,7 @@ export default function HeadcountRequests() {
       await hrApi.put(`/headcount-requests/${approveId}/approve`, { auto_create_job: autoCreateJob });
       setApproveId(null);
       setAutoCreateJob(true);
+      setFilterStatus('all');
       fetchRequests();
     } catch (e) { alert(e.response?.data?.error || 'Failed to approve'); }
     finally { setApproving(false); }
@@ -77,6 +78,7 @@ export default function HeadcountRequests() {
       await hrApi.put(`/headcount-requests/${rejectId}/reject`, { rejection_reason: rejectReason });
       setRejectId(null);
       setRejectReason('');
+      setFilterStatus('all');
       fetchRequests();
     } catch (e) { alert(e.response?.data?.error || 'Failed to reject'); }
     finally { setRejecting(false); }
