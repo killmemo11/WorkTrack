@@ -951,15 +951,17 @@ select.profile-field-input option {
 }
 
 .profile-form-modal {
-  max-width: 560px;
+  max-width: 600px;
+  max-height: 95vh;
 }
 
 .profile-form-body {
   flex-direction: column !important;
-  gap: 12px;
+  gap: 16px;
   align-items: stretch !important;
-  min-height: auto;
-  padding: 24px;
+  justify-content: flex-start !important;
+  min-height: 0;
+  padding: 24px 28px;
   background: var(--bg-glass);
 }
 
