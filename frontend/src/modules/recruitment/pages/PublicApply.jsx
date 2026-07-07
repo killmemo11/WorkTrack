@@ -107,6 +107,19 @@ export default function PublicApply() {
       if (!form.city.trim()) { setStepErrors('City is required'); return false; }
       if (!form.district.trim()) { setStepErrors('District / Area is required'); return false; }
     }
+    if (step === 2) {
+      if (!form.current_job_title.trim()) { setStepErrors('Current / Last job title is required'); return false; }
+      if (!form.last_work_place.trim()) { setStepErrors('Last work place is required'); return false; }
+      if (!form.current_salary.trim()) { setStepErrors('Current salary is required'); return false; }
+      if (!form.expected_salary.trim()) { setStepErrors('Expected salary is required'); return false; }
+      if (!form.reason_leaving.trim()) { setStepErrors('Reason for leaving is required'); return false; }
+    }
+    if (step === 3) {
+      if (!educationLevel) { setStepErrors('Education level is required'); return false; }
+      if (!experienceYears) { setStepErrors('Years of experience is required'); return false; }
+      if (!skills.length) { setStepErrors('Please select at least one skill'); return false; }
+      if (!cvFile) { setStepErrors('CV / Resume is required'); return false; }
+    }
     return true;
   };
 
@@ -351,25 +364,25 @@ export default function PublicApply() {
               </h3>
               <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Current / Last Job Title</label>
-                  <input name="current_job_title" className="glass-input" value={form.current_job_title} onChange={handleChange} placeholder="e.g. Software Engineer" />
+                  <label className="glass-label">Current / Last Job Title *</label>
+                  <input name="current_job_title" className="glass-input" value={form.current_job_title} onChange={handleChange} placeholder="e.g. Software Engineer" required />
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Last Work Place (Company)</label>
-                  <input name="last_work_place" className="glass-input" value={form.last_work_place} onChange={handleChange} placeholder="e.g. Company Name" />
+                  <label className="glass-label">Last Work Place (Company) *</label>
+                  <input name="last_work_place" className="glass-input" value={form.last_work_place} onChange={handleChange} placeholder="e.g. Company Name" required />
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Current Salary (EGP)</label>
-                  <input name="current_salary" type="number" step="0.01" className="glass-input" value={form.current_salary} onChange={handleChange} placeholder="e.g. 15000" />
+                  <label className="glass-label">Current Salary (EGP) *</label>
+                  <input name="current_salary" type="number" step="0.01" className="glass-input" value={form.current_salary} onChange={handleChange} placeholder="e.g. 15000" required />
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Expected Salary (EGP)</label>
-                  <input name="expected_salary" type="number" step="0.01" className="glass-input" value={form.expected_salary} onChange={handleChange} placeholder="e.g. 20000" />
+                  <label className="glass-label">Expected Salary (EGP) *</label>
+                  <input name="expected_salary" type="number" step="0.01" className="glass-input" value={form.expected_salary} onChange={handleChange} placeholder="e.g. 20000" required />
                 </div>
               </div>
               <div className="glass-form-group" style={{ marginTop: 12 }}>
-                <label className="glass-label">Reason for Leaving</label>
-                <textarea name="reason_leaving" className="glass-textarea" rows={2} value={form.reason_leaving} onChange={handleChange} placeholder="Briefly describe why you left your last position..." />
+                <label className="glass-label">Reason for Leaving *</label>
+                <textarea name="reason_leaving" className="glass-textarea" rows={2} value={form.reason_leaving} onChange={handleChange} placeholder="Briefly describe why you left your last position..." required />
               </div>
             </div>
           )}
@@ -382,20 +395,20 @@ export default function PublicApply() {
               </h3>
               <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Education Level</label>
-                  <select className="glass-select" value={educationLevel} onChange={e => setEducationLevel(e.target.value)}>
+                  <label className="glass-label">Education Level *</label>
+                  <select className="glass-select" value={educationLevel} onChange={e => setEducationLevel(e.target.value)} required>
                     {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
                   </select>
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Years of Experience</label>
-                  <select className="glass-select" value={experienceYears} onChange={e => setExperienceYears(e.target.value)}>
+                  <label className="glass-label">Years of Experience *</label>
+                  <select className="glass-select" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} required>
                     {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               </div>
               <div className="glass-form-group">
-                <label className="glass-label">Skills</label>
+                <label className="glass-label">Skills *</label>
                 <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." usePublicApi />
               </div>
               <div className="glass-form-group">
@@ -404,7 +417,7 @@ export default function PublicApply() {
               </div>
               <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon icon="lucide:file-text"></Icon> CV / Resume
+                  <Icon icon="lucide:file-text"></Icon> CV / Resume *
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '12px 16px', border: '2px dashed var(--border-glass)', borderRadius: 'var(--radius-md)', background: 'rgba(24,24,27,0.3)' }}>
