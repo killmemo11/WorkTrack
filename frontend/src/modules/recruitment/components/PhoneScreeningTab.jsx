@@ -135,8 +135,13 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       setLoading(true);
       const res = await hrApi.get(`/recruitment/candidates/${candidateId}/phone-screening`);
       setData(res.data);
-      if (res.data.templates?.length && !evalForm.template_id) {
-        setEvalForm(f => ({ ...f, template_id: res.data.templates[0].id }));
+      if (res.data.templates?.length) {
+        setEvalForm(f => f.template_id ? f : { ...f, template_id: res.data.templates[0].id });
+      }
+      if (res.data.latestEvaluation) {
+        setEvalResult(res.data.latestEvaluation);
+      } else {
+        setEvalResult(null);
       }
     } catch { } finally {
       setLoading(false);
@@ -193,6 +198,27 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       setActionMsg(err.response?.data?.error || 'Failed to submit evaluation');
     } finally {
       setEvaluating(false);
+    }
+  };
+
+  const handleDirectReject = async () => {
+    if (!confirm('Reject this candidate?')) return;
+    try {
+      await hrApi.post(`/recruitment/candidates/${candidateId}/move`, { stage: 'rejected', note: 'Failed phone screening — rejected by admin' });
+      setActionMsg('Candidate rejected');
+      if (onStageChange) onStageChange();
+    } catch (err) {
+      setActionMsg(err.response?.data?.error || 'Failed to reject');
+    }
+  };
+
+  const handleDirectProceed = async () => {
+    try {
+      await hrApi.post(`/recruitment/candidates/${candidateId}/move`, { stage: 'first', note: 'Proceeded to first interview despite below-threshold score' });
+      setActionMsg('Candidate moved to First Interview');
+      if (onStageChange) onStageChange();
+    } catch (err) {
+      setActionMsg(err.response?.data?.error || 'Failed to proceed');
     }
   };
 
@@ -304,6 +330,11 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                 {evalResult.passed ? 'Passed' : 'Below Threshold'}
               </strong>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{evalResult.message}</div>
+              {evalResult.template_name && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: 2 }}>
+                  Template: {evalResult.template_name} | By: {evalResult.evaluated_by}
+                </div>
+              )}
             </div>
             <div style={{ marginLeft: 'auto', textAlign: 'center' }}>
               <div style={{ fontSize: '2rem', fontWeight: 700, color: evalResult.passed ? 'var(--success)' : 'var(--warning)' }}>
@@ -322,21 +353,59 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
             }} />
           </div>
 
-          {evalResult.passed && (
-            <button className="glass-btn glass-btn-success" onClick={handleOpenInterviewModal}>
-              <Icon icon="lucide:calendar-plus" /> Schedule First Interview
+          {/* Saved evaluation details */}
+          {evalResult.answers?.length > 0 && (
+            <details style={{ marginBottom: 12, fontSize: '0.85rem' }}>
+              <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', marginBottom: 8, userSelect: 'none' }}>
+                <Icon icon="lucide:list" style={{ marginRight: 4 }} />
+                View evaluation details ({evalResult.answers.length} questions)
+              </summary>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                {evalResult.answers.map((a, i) => (
+                  <div key={a.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)',
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500 }}>{i + 1}. {a.question}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
+                        weight: {a.weight} | max: {a.max_rating}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: '3px 10px', borderRadius: 4, fontWeight: 600, fontSize: '0.85rem',
+                      background: a.rating >= 4 ? 'rgba(34,197,94,0.2)' : a.rating >= 3 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)',
+                      color: a.rating >= 4 ? 'var(--success)' : a.rating >= 3 ? 'var(--warning)' : 'var(--error)',
+                    }}>
+                      {a.rating}/{a.max_rating}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {evalResult.passed && (
+              <button className="glass-btn glass-btn-success" onClick={handleOpenInterviewModal}>
+                <Icon icon="lucide:calendar-plus" /> Schedule First Interview
+              </button>
+            )}
+            {!evalResult.passed && (
+              <>
+                <button className="glass-btn glass-btn-danger" onClick={handleDirectReject} disabled={evaluating}>
+                  <Icon icon="lucide:x-circle" /> Reject Candidate
+                </button>
+                <button className="glass-btn" onClick={handleDirectProceed} disabled={evaluating}>
+                  <Icon icon="lucide:arrow-right" /> Proceed Anyway
+                </button>
+              </>
+            )}
+            <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => { setShowEval(true); setEvalResult(null); }}
+              style={{ marginLeft: 'auto' }}>
+              <Icon icon="lucide:refresh-cw" /> Re-evaluate
             </button>
-          )}
-          {!evalResult.passed && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="glass-btn glass-btn-danger" onClick={() => handleEvaluate('reject')} disabled={evaluating}>
-                <Icon icon="lucide:x-circle" /> Reject Candidate
-              </button>
-              <button className="glass-btn" onClick={() => handleEvaluate('proceed')} disabled={evaluating}>
-                <Icon icon="lucide:arrow-right" /> Proceed Anyway
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -351,9 +420,16 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
               </span>
             )}
           </h4>
-          <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setShowLogCall(true)}>
-            <Icon icon="lucide:phone-call" /> Log Call
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {data?.callLog?.some(l => l.outcome === 'reached') && !evalResult && (
+              <button className="glass-btn glass-btn-sm glass-btn-success" onClick={() => setShowEval(true)}>
+                <Icon icon="lucide:clipboard-check" /> Evaluate
+              </button>
+            )}
+            <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={() => setShowLogCall(true)}>
+              <Icon icon="lucide:phone-call" /> Log Call
+            </button>
+          </div>
         </div>
         {data?.callLog?.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

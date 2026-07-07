@@ -35,7 +35,36 @@ async function getPhoneScreening(req, res) {
     }
   }
 
-  res.json({ candidate, callLog, evaluations, templates, autoRejectStatus });
+  // Get latest evaluation with answers for display
+  let latestEvaluation = null;
+  if (evaluations.length > 0) {
+    const ev = evaluations[0];
+    const [answers] = await pool.query(
+      `SELECT a.*, q.question, q.weight, q.max_rating, q.category
+       FROM phone_screening_evaluation_answers a
+       JOIN phone_screening_questions q ON q.id = a.question_id
+       WHERE a.evaluation_id = ?`,
+      [ev.id]
+    );
+    latestEvaluation = {
+      evaluationId: ev.id,
+      totalScore: ev.total_score,
+      maxScore: ev.max_score,
+      percentage: ev.percentage,
+      decision: ev.decision,
+      passed: ev.decision === 'pass',
+      message: ev.decision === 'pass'
+        ? `Candidate passed with ${ev.percentage}%. You can now schedule the first interview.`
+        : `Score ${ev.percentage}% is below the ${PASS_THRESHOLD}% threshold.`,
+      notes: ev.notes,
+      evaluated_by: ev.evaluated_by,
+      created_at: ev.created_at,
+      template_name: ev.template_name,
+      answers,
+    };
+  }
+
+  res.json({ candidate, callLog, evaluations, templates, autoRejectStatus, latestEvaluation });
 }
 
 // ── Log a call attempt ──
