@@ -434,6 +434,7 @@ async function getActiveJobs(req, res) {
 
   const [rows] = await pool.query(
     `SELECT j.id, j.title, j.department, j.type, j.technical, j.description, j.created_at,
+       j.key_responsibilities, j.qualifications, j.technical_skills, j.core_competencies,
        JSON_OBJECT(
          'min_education_level', dt.min_education_level,
          'min_experience_years', dt.min_experience_years,
