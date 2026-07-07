@@ -62,6 +62,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   const [hrStaff, setHrStaff] = useState([]);
   const [companyInfo, setCompanyInfo] = useState(null);
   const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
 
   function generateMeetingLink(platform) {
     const chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -85,6 +86,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
     setInterviewNotes(''); setInterviewer('');
     setInterviewDate(''); setInterviewTime('');
     setInterviewDuration(60);
+    setScheduleError('');
     try {
       const res = await hrApi.get('/recruitment/hr-staff');
       setHrStaff(res.data);
@@ -100,15 +102,19 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
 
   const handleScheduleInterview = async () => {
     if (!interviewDate || !interviewTime || !interviewer) {
-      setActionMsg('Please fill in date, time, and interviewer');
+      setScheduleError('Please fill in date, time, and interviewer');
       return;
     }
+    setScheduleError('');
     setScheduling(true);
     try {
       const dateTime = new Date(`${interviewDate}T${interviewTime}`);
+      const pad = n => String(n).padStart(2, '0');
+      const interviewDateFormatted =
+        `${dateTime.getFullYear()}-${pad(dateTime.getMonth() + 1)}-${pad(dateTime.getDate())} ${pad(dateTime.getHours())}:${pad(dateTime.getMinutes())}:00`;
       const payload = {
         candidate_id: candidateId,
-        interview_date: dateTime.toISOString(),
+        interview_date: interviewDateFormatted,
         duration: interviewDuration,
         type: interviewType,
         meeting_platform: interviewType === 'online' ? meetingPlatform : '',
@@ -127,7 +133,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       setEvalResult(null);
       if (onStageChange) onStageChange();
     } catch (err) {
-      setActionMsg(err.response?.data?.error || 'Failed to schedule interview');
+      setScheduleError(err.response?.data?.error || err.message || 'Failed to schedule interview');
     } finally {
       setScheduling(false);
     }
@@ -743,6 +749,13 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                 <Icon icon="lucide:info" style={{ marginRight: 6 }} />
                 Candidate will be moved to <strong>First Interview</strong> stage and an email with a calendar invite will be sent automatically.
               </div>
+
+              {scheduleError && (
+                <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: 'var(--error)' }}>
+                  <Icon icon="lucide:alert-circle" style={{ marginRight: 6 }} />
+                  {scheduleError}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="glass-btn glass-btn-sm" onClick={() => setShowInterviewModal(false)}>Cancel</button>
