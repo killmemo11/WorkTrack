@@ -1,7 +1,21 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const stagger = {
+  initial: {},
+  animate: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
+const cardAnim = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+};
+const stepperAnim = {
+  initial: { scale: 0 },
+  animate: (i) => ({ scale: 1, transition: { type: 'spring', stiffness: 400, damping: 15, delay: i * 0.06 } }),
+};
 
 const REJECTION_REASONS = {
   education_level: 'Your education level does not meet the minimum requirements for this position',
@@ -148,9 +162,12 @@ export default function PublicTrack() {
             <Icon icon="lucide:folder-open" style={{ color: 'var(--brand-primary)' }}></Icon>
             Your Applications ({apps.data.length})
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
+          <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }} variants={stagger} initial="initial" animate="animate">
             {apps.data.map(app => (
-              <div key={app.id} className="glass-panel card-hover fade-in-up" style={{ borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border-glass)' }}>
+              <motion.div key={app.id} variants={cardAnim}
+                whileHover={{ y: -3, borderColor: 'rgba(99,102,241,0.2)', transition: { duration: 0.2 } }}
+                className="glass-panel"
+                style={{ borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border-glass)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div>
                     <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}>
@@ -177,16 +194,20 @@ export default function PublicTrack() {
                       const isActive = status === 'active';
                       const isRejected = status === 'rejected';
                       return (
-                        <div key={step} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: '50%',
-                            background: isCompleted ? 'var(--success)' : isActive ? 'var(--brand-primary)' : isRejected ? 'var(--error)' : 'rgba(255,255,255,0.06)',
-                            border: isCompleted || isActive ? 'none' : '1px solid var(--border-glass)',
-                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 1, marginBottom: 6,
-                          }}>
+                        <motion.div key={step} custom={i} variants={stepperAnim}
+                          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+                          <motion.div
+                            animate={isActive ? { scale: [1, 1.15, 1], borderColor: ['rgba(99,102,241,0.3)', 'rgba(99,102,241,0.6)', 'rgba(99,102,241,0.3)'] } : {}}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              background: isCompleted ? 'var(--success)' : isActive ? 'var(--brand-primary)' : isRejected ? 'var(--error)' : 'rgba(255,255,255,0.06)',
+                              border: isCompleted || isActive ? 'none' : '1px solid var(--border-glass)',
+                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              zIndex: 1, marginBottom: 6,
+                            }}>
                             <Icon icon={ isCompleted ? 'lucide:check' : isRejected ? 'lucide:x' : stepIcons[step] } style={{ fontSize: '0.75rem' }}></Icon>
-                          </div>
+                          </motion.div>
                           <span style={{ fontSize: '0.65rem', color: isActive ? 'var(--brand-primary)' : isCompleted ? 'var(--success)' : isRejected ? 'var(--error)' : 'var(--text-faint)', textAlign: 'center' }}>
                             {stepLabels[step]}
                           </span>
@@ -197,7 +218,7 @@ export default function PublicTrack() {
                               zIndex: 0,
                             }} />
                           )}
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
@@ -278,9 +299,9 @@ export default function PublicTrack() {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

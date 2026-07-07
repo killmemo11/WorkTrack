@@ -2,9 +2,24 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const staggerContainer = {
+  initial: {},
+  animate: { transition: { staggerChildren: 0.05, delayChildren: 0.08 } },
+};
+const cardItem = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+};
+const detailsVariants = {
+  initial: { opacity: 0, height: 0 },
+  animate: { opacity: 1, height: 'auto', transition: { type: 'spring', stiffness: 200, damping: 25 } },
+  exit: { opacity: 0, height: 0, transition: { duration: 0.2 } },
+};
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -108,15 +123,17 @@ export default function PublicJobs() {
           </button>
         </div></div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} variants={staggerContainer} initial="initial" animate="animate">
           {filtered.map((job, idx) => {
             const req = job.min_requirements;
 
             return (
-              <div key={job.id} className={`glass-panel card-hover fade-in-up`}
-                style={{ animationDelay: `${idx * 0.06}s`, borderRadius: 'var(--radius-lg)',
+              <motion.div key={job.id} variants={cardItem}
+                whileHover={{ y: -4, borderColor: 'rgba(99,102,241,0.3)', transition: { duration: 0.2 } }}
+                className="glass-panel"
+                style={{ borderRadius: 'var(--radius-lg)',
                   border: expandedId === job.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--border-glass)',
-                  overflow: 'hidden', transition: 'all 0.3s' }}>
+                  overflow: 'hidden' }}>
                 <div style={{ padding: 20, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === job.id ? null : job.id)}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
@@ -143,15 +160,17 @@ export default function PublicJobs() {
                         </p>
                       )}
                     </div>
-                    <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0, marginTop: 0 }}
+                    <motion.button className="glass-btn glass-btn-primary glass-btn-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0, marginTop: 0 }}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={e => { e.stopPropagation(); navigate(`/careers/apply?job=${job.id}`); }}>
                       <Icon icon="lucide:send" style={{ marginRight: 4 }}></Icon> Apply Now
-                    </button>
+                    </motion.button>
                   </div>
 
                   <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon icon={expandedId === job.id ? 'lucide:chevron-up' : 'lucide:chevron-down'}
-                      style={{ fontSize: 14, color: 'var(--text-faint)' }}></Icon>
+                    <motion.div animate={{ rotate: expandedId === job.id ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <Icon icon="lucide:chevron-down" style={{ fontSize: 14, color: 'var(--text-faint)' }}></Icon>
+                    </motion.div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-faint)' }}>
                       {expandedId === job.id ? 'Hide details' : 'View details'}
                     </span>
@@ -159,52 +178,57 @@ export default function PublicJobs() {
                 </div>
 
                 {/* Expanded Details */}
-                {expandedId === job.id && (
-                  <div style={{ borderTop: '1px solid var(--border-glass)', padding: '16px 20px', background: 'rgba(24,24,27,0.3)' }}>
-                    {job.key_responsibilities && (
-                      <div style={{ marginBottom: 16 }}>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Icon icon="lucide:list-todo" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Key Responsibilities
-                        </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.key_responsibilities}</p>
-                      </div>
-                    )}
-                    {job.qualifications && (
-                      <div style={{ marginBottom: 16 }}>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Icon icon="lucide:graduation-cap" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Qualifications
-                        </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.qualifications}</p>
-                      </div>
-                    )}
+                <AnimatePresence>
+                  {expandedId === job.id && (
+                    <motion.div key="details" variants={detailsVariants} initial="initial" animate="animate" exit="exit"
+                      style={{ borderTop: '1px solid var(--border-glass)', padding: '16px 20px', background: 'rgba(24,24,27,0.3)' }}>
+                      {job.key_responsibilities && (
+                        <div style={{ marginBottom: 16 }}>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon icon="lucide:list-todo" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Key Responsibilities
+                          </h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.key_responsibilities}</p>
+                        </div>
+                      )}
+                      {job.qualifications && (
+                        <div style={{ marginBottom: 16 }}>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon icon="lucide:graduation-cap" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Qualifications
+                          </h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.qualifications}</p>
+                        </div>
+                      )}
 
-                    {job.technical_skills && (
-                      <div style={{ marginBottom: 16 }}>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Icon icon="lucide:terminal" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Technical Skills
-                        </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.technical_skills}</p>
-                      </div>
-                    )}
-                    {job.core_competencies && (
-                      <div>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Icon icon="lucide:target" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Core Competencies
-                        </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.core_competencies}</p>
-                      </div>
-                    )}
-                    <div style={{ marginTop: 16, textAlign: 'right' }}>
-                      <button className="glass-btn glass-btn-primary" onClick={() => navigate(`/careers/apply?job=${job.id}`)}>
-                        <Icon icon="lucide:send" style={{ marginRight: 4 }}></Icon> Apply for this position
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                      {job.technical_skills && (
+                        <div style={{ marginBottom: 16 }}>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon icon="lucide:terminal" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Technical Skills
+                          </h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.technical_skills}</p>
+                        </div>
+                      )}
+                      {job.core_competencies && (
+                        <div>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon icon="lucide:target" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Core Competencies
+                          </h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.core_competencies}</p>
+                        </div>
+                      )}
+                      <motion.div style={{ marginTop: 16, textAlign: 'right' }}
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                        <motion.button className="glass-btn glass-btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/careers/apply?job=${job.id}`)}>
+                          <Icon icon="lucide:send" style={{ marginRight: 4 }}></Icon> Apply for this position
+                        </motion.button>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       <footer style={{ textAlign: 'center', marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--border-glass)', color: 'var(--text-faint)', fontSize: '0.8rem' }}>

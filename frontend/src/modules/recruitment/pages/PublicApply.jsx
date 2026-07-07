@@ -2,10 +2,22 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MasterSelect from '../../../shared/components/MasterSelect';
+
+const slideVariants = {
+  enter: (d) => ({ x: d > 0 ? 40 : -40, opacity: 0 }),
+  center: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+  exit: (d) => ({ x: d < 0 ? 40 : -40, opacity: 0, transition: { duration: 0.2 } }),
+};
+
+const successVariants = {
+  initial: { opacity: 0, scale: 0.9, y: 20 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 20, delay: 0.1 } },
+};
 
 const EDU_LEVELS = [
   { value: '', label: '— Select —' },
@@ -46,6 +58,7 @@ export default function PublicApply() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(0);
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(jobId || '');
   const [jobTitle, setJobTitle] = useState('');
@@ -126,12 +139,14 @@ export default function PublicApply() {
   const nextStep = () => {
     if (!validateStep()) return;
     setError('');
+    setDirection(1);
     setStep(s => Math.min(s + 1, STEPS.length - 1));
   };
 
   const prevStep = () => {
     setError('');
     setStepErrors('');
+    setDirection(-1);
     setStep(s => Math.max(s - 1, 0));
   };
 
@@ -192,26 +207,41 @@ export default function PublicApply() {
   );
 
   if (success) {
+    setTimeout(() => {
+      const c = document.getElementById('apply-confetti');
+      if (c) for (let i = 0; i < 30; i++) { const e = document.createElement('div'); e.className = 'confetti-piece'; e.style.left = Math.random() * 100 + '%'; e.style.animationDelay = Math.random() * 0.5 + 's'; e.style.background = ['#6366f1', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'][Math.floor(Math.random() * 6)]; c.appendChild(e); setTimeout(() => e.remove(), 2000); }
+    }, 100);
     return (
-      <div style={{ maxWidth: 600, margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
-        <div className="glass-card fade-in-up"><div className="glass-card-body" style={{ padding: 40 }}>
-          <div style={{
+      <motion.div variants={successVariants} initial="initial" animate="animate" style={{ maxWidth: 600, margin: '60px auto', padding: '0 20px', textAlign: 'center', position: 'relative' }} id="apply-confetti">
+        <motion.div className="glass-card"><motion.div className="glass-card-body" style={{ padding: 40 }}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <motion.div style={{
             width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
-          }}>
-            <Icon icon="lucide:check-circle" style={{ fontSize: '2rem', color: 'var(--success)' }}></Icon>
-          </div>
-          <h2 style={{ color: 'var(--text-primary)' }}>Application Submitted!</h2>
-          <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>
+          }}
+            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.3 }}>
+            <motion.div initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay: 0.5 }}>
+              <Icon icon="lucide:check-circle" style={{ fontSize: '2rem', color: 'var(--success)' }}></Icon>
+            </motion.div>
+          </motion.div>
+          <motion.h2 style={{ color: 'var(--text-primary)' }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            Application Submitted!
+          </motion.h2>
+          <motion.p style={{ color: 'var(--text-dim)', marginTop: 8 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             Thank you for applying to <strong style={{ color: 'var(--brand-primary)' }}>{jobTitle}</strong>.
-          </p>
-          <p>Your reference number is <strong className="glass-badge glass-badge-success">{success.ref}</strong></p>
-          {success.email_sent && <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}><Icon icon="lucide:mail" style={{ marginRight: 4 }}></Icon>A confirmation email has been sent to {form.email}.</p>}
-          <button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/careers')}>
+          </motion.p>
+          <motion.p initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }}>
+            Your reference number is <strong className="glass-badge glass-badge-success">{success.ref}</strong>
+          </motion.p>
+          {success.email_sent && <motion.p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}><Icon icon="lucide:mail" style={{ marginRight: 4 }}></Icon>A confirmation email has been sent to {form.email}.</motion.p>}
+          <motion.button className="glass-btn glass-btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/careers')}
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Icon icon="lucide:arrow-left"></Icon> Back to Jobs
-          </button>
-        </div></div>
-      </div>
+          </motion.button>
+        </motion.div></motion.div>
+      </motion.div>
     );
   }
 
@@ -290,216 +320,233 @@ export default function PublicApply() {
             </div>
           )}
 
-          {/* ═══ Step 0: Position & Contact ═══ */}
-          {step === 0 && (
-            <div>
-              <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:briefcase" style={{ color: 'var(--brand-primary)' }}></Icon> Position & Contact
-              </h3>
-              <div className="glass-form-group">
-                <label className="glass-label">Position *</label>
-                {jobsLoading ? (
-                  <div className="glass-input" style={{ color: 'var(--text-faint)' }}>
-                    <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, display: 'inline-block', verticalAlign: 'middle', marginRight: 8 }}></div>
-                    Loading positions...
+          {/* Steps with animated transitions */}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div key={step} custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" style={{ minHeight: 200 }}>
+              {/* ═══ Step 0: Position & Contact ═══ */}
+              {step === 0 && (
+                <div>
+                  <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                      <Icon icon="lucide:briefcase" style={{ color: 'var(--brand-primary)' }}></Icon>
+                    </motion.div> Position & Contact
+                  </h3>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Position *</label>
+                    {jobsLoading ? (
+                      <div className="glass-input" style={{ color: 'var(--text-faint)' }}>
+                        <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, display: 'inline-block', verticalAlign: 'middle', marginRight: 8 }}></div>
+                        Loading positions...
+                      </div>
+                    ) : (
+                      <select className="glass-select" value={selectedJobId} onChange={handleJobChange} required>
+                        <option value="">— Select a position —</option>
+                        {jobs.map(j => (
+                          <option key={j.id} value={j.id}>{j.title} — {j.department}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                ) : (
-                  <select className="glass-select" value={selectedJobId} onChange={handleJobChange} required>
-                    <option value="">— Select a position —</option>
-                    {jobs.map(j => (
-                      <option key={j.id} value={j.id}>{j.title} — {j.department}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="glass-form-group">
-                <label className="glass-label">Full Name *</label>
-                <input name="name" className="glass-input" value={form.name} onChange={handleChange} required placeholder="Your full name" />
-              </div>
-              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Email *</label>
-                  <input name="email" type="email" className="glass-input" value={form.email} onChange={handleChange} required placeholder="your@email.com" />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Phone</label>
-                  <input name="phone" type="tel" className="glass-input" value={form.phone} onChange={handleChange} placeholder="+20 100 000 0000" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 1: Personal Details ═══ */}
-          {step === 1 && (
-            <div>
-              <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:user" style={{ color: 'var(--brand-primary)' }}></Icon> Personal Details
-              </h3>
-              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Nationality *</label>
-                  <input name="nationality" className="glass-input" value={form.nationality} onChange={handleChange} placeholder="e.g. Egyptian" required />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Birth Date *</label>
-                  <input name="birth_date" type="date" className="glass-input" value={form.birth_date} onChange={handleChange} required />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">National ID *</label>
-                  <input name="national_id" className="glass-input" value={form.national_id} onChange={handleChange} placeholder="National ID number" required />
-                </div>
-              </div>
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon icon="lucide:map-pin"></Icon> Current Address
-                </div>
-                <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">Governorate *</label>
-                    <input name="governorate" className="glass-input" value={form.governorate} onChange={handleChange} placeholder="e.g. Cairo" required />
+                  <div className="glass-form-group">
+                    <label className="glass-label">Full Name *</label>
+                    <input name="name" className="glass-input" value={form.name} onChange={handleChange} required placeholder="Your full name" />
                   </div>
-                  <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">City *</label>
-                    <input name="city" className="glass-input" value={form.city} onChange={handleChange} placeholder="e.g. Nasr City" required />
-                  </div>
-                  <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">District / Area *</label>
-                    <input name="district" className="glass-input" value={form.district} onChange={handleChange} placeholder="e.g. El Nozha" required />
+                  <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Email *</label>
+                      <input name="email" type="email" className="glass-input" value={form.email} onChange={handleChange} required placeholder="your@email.com" />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Phone</label>
+                      <input name="phone" type="tel" className="glass-input" value={form.phone} onChange={handleChange} placeholder="+20 100 000 0000" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 2: Career & Salary ═══ */}
-          {step === 2 && (
-            <div>
-              <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:dollar-sign" style={{ color: 'var(--brand-primary)' }}></Icon> Career & Financial
-              </h3>
-              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Current / Last Job Title *</label>
-                  <input name="current_job_title" className="glass-input" value={form.current_job_title} onChange={handleChange} placeholder="e.g. Software Engineer" required />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Last Work Place (Company) *</label>
-                  <input name="last_work_place" className="glass-input" value={form.last_work_place} onChange={handleChange} placeholder="e.g. Company Name" required />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Current Salary (EGP) *</label>
-                  <input name="current_salary" type="number" step="0.01" className="glass-input" value={form.current_salary} onChange={handleChange} placeholder="e.g. 15000" required />
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Expected Salary (EGP) *</label>
-                  <input name="expected_salary" type="number" step="0.01" className="glass-input" value={form.expected_salary} onChange={handleChange} placeholder="e.g. 20000" required />
-                </div>
-              </div>
-              <div className="glass-form-group" style={{ marginTop: 12 }}>
-                <label className="glass-label">Reason for Leaving *</label>
-                <textarea name="reason_leaving" className="glass-textarea" rows={2} value={form.reason_leaving} onChange={handleChange} placeholder="Briefly describe why you left your last position..." required />
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 3: Qualifications & Docs ═══ */}
-          {step === 3 && (
-            <div>
-              <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:award" style={{ color: 'var(--brand-primary)' }}></Icon> Qualifications & Documents
-              </h3>
-              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Education Level *</label>
-                  <select className="glass-select" value={educationLevel} onChange={e => setEducationLevel(e.target.value)} required>
-                    {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
-                  </select>
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Years of Experience *</label>
-                  <select className="glass-select" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} required>
-                    {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="glass-form-group">
-                <label className="glass-label">Skills *</label>
-                <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." usePublicApi />
-              </div>
-              <div className="glass-form-group">
-                <label className="glass-label">Certifications</label>
-                <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." usePublicApi />
-              </div>
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon icon="lucide:file-text"></Icon> CV / Resume *
-                </div>
-                <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '12px 16px', border: '2px dashed var(--border-glass)', borderRadius: 'var(--radius-md)', background: 'rgba(24,24,27,0.3)' }}>
-                    <Icon icon="lucide:upload" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}></Icon>
-                    <span style={{ color: cvFile ? 'var(--text-primary)' : 'var(--text-dim)' }}>
-                      {cvFile ? cvFile.name : 'Upload your CV (Word or PDF only)'}
-                    </span>
-                    <input type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }}
-                      onChange={e => setCvFile(e.target.files[0])} />
-                  </label>
-                </div>
-              </div>
-              <div className="glass-form-group" style={{ marginTop: 16 }}>
-                <label className="glass-label">Cover Note</label>
-                <textarea name="cover" className="glass-textarea" rows={3} value={form.cover} onChange={handleChange} placeholder="Tell us why you're a great fit for this role..." />
-              </div>
-            </div>
-          )}
-
-          {/* ═══ Step 4: Review & Submit ═══ */}
-          {step === 4 && (
-            <div>
-              <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:check-circle" style={{ color: 'var(--brand-primary)' }}></Icon> Review & Submit
-              </h3>
-              <div className="glass-card" style={{ background: 'rgba(24,24,27,0.3)', borderRadius: 'var(--radius-md)', padding: 20, marginBottom: 16 }}>
-                <Section icon="lucide:briefcase" title="Position & Contact">
-                  <Row label="Position">{jobTitle}</Row>
-                  <Row label="Name">{form.name}</Row>
-                  <Row label="Email">{form.email}</Row>
-                  <Row label="Phone">{form.phone || '—'}</Row>
-                </Section>
-                <Section icon="lucide:user" title="Personal Details">
-                  <Row label="Nationality">{form.nationality}</Row>
-                  <Row label="Birth Date">{form.birth_date}</Row>
-                  <Row label="National ID">{form.national_id}</Row>
-                  <Row label="Address">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ')}</Row>
-                </Section>
-                <Section icon="lucide:dollar-sign" title="Career & Financial">
-                  <Row label="Job Title">{form.current_job_title}</Row>
-                  <Row label="Last Place">{form.last_work_place}</Row>
-                  <Row label="Salary">{form.current_salary ? `EGP ${Number(form.current_salary).toLocaleString()}` : '—'} → {form.expected_salary ? `EGP ${Number(form.expected_salary).toLocaleString()}` : '—'}</Row>
-                  {form.reason_leaving && <Row label="Reason">{form.reason_leaving}</Row>}
-                </Section>
-                <Section icon="lucide:award" title="Qualifications & Docs">
-                  <Row label="Education">{EDU_LEVELS.find(e => e.value === educationLevel)?.label || '—'}</Row>
-                  <Row label="Experience">{EXP_OPTIONS.find(e => e.value === experienceYears)?.label || '—'}</Row>
-                  <Row label="Skills">{skills.length} selected</Row>
-                  <Row label="CV">{cvFile ? cvFile.name : '—'}</Row>
-                </Section>
-                {form.cover && (
-                  <Section icon="lucide:file-text" title="Cover Note">
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>{form.cover}</p>
-                  </Section>
-                )}
-              </div>
-              {loading ? (
-                <button className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" disabled style={{ marginTop: 8 }}>
-                  <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div> Submitting...
-                </button>
-              ) : (
-                <button className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" onClick={handleSubmit} style={{ marginTop: 8 }}>
-                  <Icon icon="lucide:send"></Icon> Submit Application
-                </button>
               )}
-            </div>
-          )}
+
+              {/* ═══ Step 1: Personal Details ═══ */}
+              {step === 1 && (
+                <div>
+                  <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                      <Icon icon="lucide:user" style={{ color: 'var(--brand-primary)' }}></Icon>
+                    </motion.div> Personal Details
+                  </h3>
+                  <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Nationality *</label>
+                      <input name="nationality" className="glass-input" value={form.nationality} onChange={handleChange} placeholder="e.g. Egyptian" required />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Birth Date *</label>
+                      <input name="birth_date" type="date" className="glass-input" value={form.birth_date} onChange={handleChange} required />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">National ID *</label>
+                      <input name="national_id" className="glass-input" value={form.national_id} onChange={handleChange} placeholder="National ID number" required />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon icon="lucide:map-pin"></Icon> Current Address
+                    </div>
+                    <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      <div className="glass-form-group" style={{ margin: 0 }}>
+                        <label className="glass-label">Governorate *</label>
+                        <input name="governorate" className="glass-input" value={form.governorate} onChange={handleChange} placeholder="e.g. Cairo" required />
+                      </div>
+                      <div className="glass-form-group" style={{ margin: 0 }}>
+                        <label className="glass-label">City *</label>
+                        <input name="city" className="glass-input" value={form.city} onChange={handleChange} placeholder="e.g. Nasr City" required />
+                      </div>
+                      <div className="glass-form-group" style={{ margin: 0 }}>
+                        <label className="glass-label">District / Area *</label>
+                        <input name="district" className="glass-input" value={form.district} onChange={handleChange} placeholder="e.g. El Nozha" required />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ Step 2: Career & Salary ═══ */}
+              {step === 2 && (
+                <div>
+                  <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                      <Icon icon="lucide:dollar-sign" style={{ color: 'var(--brand-primary)' }}></Icon>
+                    </motion.div> Career & Financial
+                  </h3>
+                  <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Current / Last Job Title *</label>
+                      <input name="current_job_title" className="glass-input" value={form.current_job_title} onChange={handleChange} placeholder="e.g. Software Engineer" required />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Last Work Place (Company) *</label>
+                      <input name="last_work_place" className="glass-input" value={form.last_work_place} onChange={handleChange} placeholder="e.g. Company Name" required />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Current Salary (EGP) *</label>
+                      <input name="current_salary" type="number" step="0.01" className="glass-input" value={form.current_salary} onChange={handleChange} placeholder="e.g. 15000" required />
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Expected Salary (EGP) *</label>
+                      <input name="expected_salary" type="number" step="0.01" className="glass-input" value={form.expected_salary} onChange={handleChange} placeholder="e.g. 20000" required />
+                    </div>
+                  </div>
+                  <div className="glass-form-group" style={{ marginTop: 12 }}>
+                    <label className="glass-label">Reason for Leaving *</label>
+                    <textarea name="reason_leaving" className="glass-textarea" rows={2} value={form.reason_leaving} onChange={handleChange} placeholder="Briefly describe why you left your last position..." required />
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ Step 3: Qualifications & Docs ═══ */}
+              {step === 3 && (
+                <div>
+                  <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                      <Icon icon="lucide:award" style={{ color: 'var(--brand-primary)' }}></Icon>
+                    </motion.div> Qualifications & Documents
+                  </h3>
+                  <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Education Level *</label>
+                      <select className="glass-select" value={educationLevel} onChange={e => setEducationLevel(e.target.value)} required>
+                        {EDU_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label className="glass-label">Years of Experience *</label>
+                      <select className="glass-select" value={experienceYears} onChange={e => setExperienceYears(e.target.value)} required>
+                        {EXP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Skills *</label>
+                    <MasterSelect type="skills" value={skills} onChange={setSkills} placeholder="Search and select your skills..." usePublicApi />
+                  </div>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Certifications</label>
+                    <MasterSelect type="certs" value={certifications} onChange={setCertifications} placeholder="Search and select your certifications..." usePublicApi />
+                  </div>
+                  <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon icon="lucide:file-text"></Icon> CV / Resume *
+                    </div>
+                    <div className="glass-form-group" style={{ margin: 0 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '12px 16px', border: '2px dashed var(--border-glass)', borderRadius: 'var(--radius-md)', background: 'rgba(24,24,27,0.3)' }}>
+                        <Icon icon="lucide:upload" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}></Icon>
+                        <span style={{ color: cvFile ? 'var(--text-primary)' : 'var(--text-dim)' }}>
+                          {cvFile ? cvFile.name : 'Upload your CV (Word or PDF only)'}
+                        </span>
+                        <input type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }}
+                          onChange={e => setCvFile(e.target.files[0])} />
+                      </label>
+                    </div>
+                  </div>
+                  <div className="glass-form-group" style={{ marginTop: 16 }}>
+                    <label className="glass-label">Cover Note</label>
+                    <textarea name="cover" className="glass-textarea" rows={3} value={form.cover} onChange={handleChange} placeholder="Tell us why you're a great fit for this role..." />
+                  </div>
+                </div>
+              )}
+
+              {/* ═══ Step 4: Review & Submit ═══ */}
+              {step === 4 && (
+                <div>
+                  <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                      <Icon icon="lucide:check-circle" style={{ color: 'var(--brand-primary)' }}></Icon>
+                    </motion.div> Review & Submit
+                  </h3>
+                  <div className="glass-card" style={{ background: 'rgba(24,24,27,0.3)', borderRadius: 'var(--radius-md)', padding: 20, marginBottom: 16 }}>
+                    <Section icon="lucide:briefcase" title="Position & Contact">
+                      <Row label="Position">{jobTitle}</Row>
+                      <Row label="Name">{form.name}</Row>
+                      <Row label="Email">{form.email}</Row>
+                      <Row label="Phone">{form.phone || '—'}</Row>
+                    </Section>
+                    <Section icon="lucide:user" title="Personal Details">
+                      <Row label="Nationality">{form.nationality}</Row>
+                      <Row label="Birth Date">{form.birth_date}</Row>
+                      <Row label="National ID">{form.national_id}</Row>
+                      <Row label="Address">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ')}</Row>
+                    </Section>
+                    <Section icon="lucide:dollar-sign" title="Career & Financial">
+                      <Row label="Job Title">{form.current_job_title}</Row>
+                      <Row label="Last Place">{form.last_work_place}</Row>
+                      <Row label="Salary">{form.current_salary ? `EGP ${Number(form.current_salary).toLocaleString()}` : '—'} → {form.expected_salary ? `EGP ${Number(form.expected_salary).toLocaleString()}` : '—'}</Row>
+                      {form.reason_leaving && <Row label="Reason">{form.reason_leaving}</Row>}
+                    </Section>
+                    <Section icon="lucide:award" title="Qualifications & Docs">
+                      <Row label="Education">{EDU_LEVELS.find(e => e.value === educationLevel)?.label || '—'}</Row>
+                      <Row label="Experience">{EXP_OPTIONS.find(e => e.value === experienceYears)?.label || '—'}</Row>
+                      <Row label="Skills">{skills.length} selected</Row>
+                      <Row label="CV">{cvFile ? cvFile.name : '—'}</Row>
+                    </Section>
+                    {form.cover && (
+                      <Section icon="lucide:file-text" title="Cover Note">
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>{form.cover}</p>
+                      </Section>
+                    )}
+                  </div>
+                  {loading ? (
+                    <motion.button className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" disabled style={{ marginTop: 8 }}
+                      initial={{ scale: 1 }} animate={{ scale: [1, 1.02, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                      <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }}></div> Submitting...
+                    </motion.button>
+                  ) : (
+                    <motion.button className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" onClick={handleSubmit} style={{ marginTop: 8 }}
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                      <Icon icon="lucide:send"></Icon> Submit Application
+                    </motion.button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Navigation Buttons */}
           {step < 4 && (

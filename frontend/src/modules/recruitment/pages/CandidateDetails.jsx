@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useParams, useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
@@ -197,18 +198,22 @@ export default function CandidateDetails() {
         </div>
       )}
 
-      <div className="glass-tabs" style={{ marginBottom: 20 }}>
+      <LayoutGroup>
+      <motion.div className="glass-tabs" style={{ marginBottom: 20 }} layout>
         {['info', 'screening', 'history', 'scorecards', 'offers'].map(tab => (
-          <button key={tab} className={`glass-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+          <motion.button key={tab} layout
+            className={`glass-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Icon icon={ tab === 'info' ? 'lucide:user' : tab === 'screening' ? 'lucide:scan-search' : tab === 'history' ? 'lucide:clock' : tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift' } style={{ marginRight: 4 }}></Icon>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Info Tab */}
-      {activeTab === 'info' && (
-        <div className="glass-card fade-in-up">
+      <AnimatePresence mode="wait">
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+        {activeTab === 'info' && (
+        <div className="glass-card">
           <div className="glass-card-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="glass-detail-row"><span className="glass-detail-label">Email</span><span className="glass-detail-value">{candidate.email}</span></div>
@@ -552,6 +557,9 @@ export default function CandidateDetails() {
           </div>
         </div>
       )}
+        </motion.div>
+      </AnimatePresence>
+      </LayoutGroup>
 
       {showHire && !hireResult && (
         <div className="glass-modal-overlay" onClick={() => setShowHire(false)}>
@@ -603,24 +611,35 @@ export default function CandidateDetails() {
       )}
 
       {hireResult && (
-        <div className="glass-modal-overlay" onClick={() => { setHireResult(null); setShowHire(false); }}>
-          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <div className="glass-modal-header">
+        <motion.div className="glass-modal-overlay" onClick={() => { setHireResult(null); setShowHire(false); }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          {setTimeout(() => {
+            const c = document.getElementById('hire-confetti');
+            if (c) for (let i = 0; i < 40; i++) { const e = document.createElement('div'); e.className = 'confetti-piece'; e.style.left = Math.random() * 100 + '%'; e.style.animationDelay = Math.random() * 0.5 + 's'; e.style.background = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 6)]; c.appendChild(e); setTimeout(() => e.remove(), 2000); }
+          }, 100)}
+          <motion.div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}
+            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} id="hire-confetti">
+            <motion.div className="glass-modal-header"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)' }}>
                 <Icon icon="lucide:party-popper"></Icon> Hired Successfully
               </h3>
               <button className="glass-modal-close" onClick={() => { setHireResult(null); setShowHire(false); }}><Icon icon="lucide:x" /></button>
-            </div>
-            <div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}>
+            </motion.div>
+            <motion.div className="glass-card" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: 16, margin: '12px 0' }}
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
               <p style={{ marginBottom: 8 }}><strong>Employee #:</strong> {hireResult.employee_id}</p>
               <p><strong>Temporary Password:</strong> <code style={{ background: 'rgba(24,24,27,0.6)', padding: '2px 8px', borderRadius: 4, fontSize: '1rem', color: 'var(--success)' }}>{hireResult.temp_password}</code></p>
-            </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Share these credentials with the new employee. They can change their password after first login.</p>
-            <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-primary" onClick={() => { setHireResult(null); setShowHire(false); }}>Done</button>
-            </div>
-          </div>
-        </div>
+            </motion.div>
+            <motion.p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+              Share these credentials with the new employee. They can change their password after first login.
+            </motion.p>
+            <motion.div className="glass-modal-footer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+              <motion.button className="glass-btn glass-btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => { setHireResult(null); setShowHire(false); }}>Done</motion.button>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
@@ -251,8 +252,11 @@ export default function Interviews() {
 
       {/* Schedule / Edit Modal */}
       {showModal && (
-        <div className="glass-modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+        <motion.div className="glass-modal-overlay" onClick={() => setShowModal(false)}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}
+            initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon icon={editingId ? 'lucide:pencil' : 'lucide:calendar-plus'} style={{ color: 'var(--brand-primary)' }}></Icon>
@@ -371,8 +375,8 @@ export default function Interviews() {
                 {editingId ? <><Icon icon="lucide:check"></Icon> Update & Notify</> : <><Icon icon="lucide:send"></Icon> Schedule & Notify</>}
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );

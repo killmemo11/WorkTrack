@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import hrApi from '../../../shared/api/hrApi';
@@ -61,32 +62,33 @@ export default function RecruitmentReports() {
       </div>
 
       {/* Summary cards */}
-      <div className="glass-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: 24 }}>
-        <div className="glass-stat-card fade-in-up delay-1">
-          <div className="glass-stat-number">{stats.candidates.total || 0}</div>
+      <motion.div className="glass-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: 24 }}
+        initial="initial" animate="animate" variants={{ initial: {}, animate: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } } }}>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}>{stats.candidates.total || 0}</motion.div>
           <div className="glass-stat-label">Total Candidates</div>
-        </div>
-        <div className="glass-stat-card fade-in-up delay-2">
-          <div className="glass-stat-number">{stats.jobs.active || 0}</div>
+        </motion.div>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.2 }}>{stats.jobs.active || 0}</motion.div>
           <div className="glass-stat-label">Active Jobs</div>
-        </div>
-        <div className="glass-stat-card fade-in-up delay-3">
-          <div className="glass-stat-number">{stats.jobs.closed || 0}</div>
+        </motion.div>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.25 }}>{stats.jobs.closed || 0}</motion.div>
           <div className="glass-stat-label">Closed Jobs</div>
-        </div>
-        <div className="glass-stat-card fade-in-up delay-4">
-          <div className="glass-stat-number" style={{ color: 'var(--success)' }}>{stats.candidates.hired || 0}</div>
+        </motion.div>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" style={{ color: 'var(--success)' }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.3 }}>{stats.candidates.hired || 0}</motion.div>
           <div className="glass-stat-label">Hired</div>
-        </div>
-        <div className="glass-stat-card fade-in-up delay-5">
-          <div className="glass-stat-number" style={{ color: 'var(--error)' }}>{stats.candidates.rejected || 0}</div>
+        </motion.div>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" style={{ color: 'var(--error)' }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.35 }}>{stats.candidates.rejected || 0}</motion.div>
           <div className="glass-stat-label">Rejected</div>
-        </div>
-        <div className="glass-stat-card fade-in-up delay-6">
-          <div className="glass-stat-number">{stats.offers.total || 0}</div>
+        </motion.div>
+        <motion.div className="glass-stat-card" variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } } }}>
+          <motion.div className="glass-stat-number" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.4 }}>{stats.offers.total || 0}</motion.div>
           <div className="glass-stat-label">Total Offers</div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="glass-grid glass-grid-2" style={{ marginBottom: 24 }}>
         {/* Pipeline Pie */}

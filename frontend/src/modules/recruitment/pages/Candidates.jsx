@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
@@ -9,6 +10,15 @@ import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
 import MasterSelect from '../../../shared/components/MasterSelect';
+
+const rowAnim = {
+  initial: { opacity: 0, x: -10 },
+  animate: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+};
+const cardAnim = {
+  initial: { opacity: 0, y: 15 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } },
+};
 
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
@@ -283,11 +293,16 @@ export default function Candidates() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {items.map(c => (
-                      <div key={c.id} draggable onDragStart={() => handleDragStart(c)}
-                        className="glass-panel card-hover"
-                        style={{ borderRadius: 'var(--radius-sm)', padding: '10px 12px', cursor: 'grab' }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.12)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                      <motion.div key={c.id} layout
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        drag whileDrag={{ scale: 1.03, boxShadow: '0 12px 40px rgba(99,102,241,0.2)' }}
+                        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                        dragElastic={0.3}
+                        onDragStart={() => handleDragStart(c)}
+                        className="glass-panel"
+                        style={{ borderRadius: 'var(--radius-sm)', padding: '10px 12px', touchAction: 'none' }}
+                        whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(99,102,241,0.12)' }}>
                         <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{c.name}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 2 }}>{c.job_title}</div>
                         {c.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: 2 }}>{c.email}</div>}
@@ -295,7 +310,7 @@ export default function Candidates() {
                           <span style={{ color: 'var(--brand-primary)', cursor: 'pointer' }}
                             onClick={() => navigate(`/hr/candidates/${c.id}`)}>View <Icon icon="lucide:arrow-right" style={{ fontSize: '0.65rem' }}></Icon></span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -321,6 +336,7 @@ export default function Candidates() {
             </tr>
           </thead>
           <tbody>
+            <AnimatePresence>
             {candidates.length === 0 ? (
               <tr><td colSpan={8}>
                 <div className="glass-empty">
@@ -328,8 +344,9 @@ export default function Candidates() {
                   <h3>No candidates found</h3>
                 </div>
               </td></tr>
-            ) : candidates.map(c => (
-              <tr key={c.id}>
+            ) : candidates.map((c, idx) => (
+              <motion.tr key={c.id} variants={rowAnim} initial="initial" animate="animate" custom={idx}
+                whileHover={{ background: 'rgba(99,102,241,0.04)' }}>
                 <td>
                   <a href="#" onClick={e => { e.preventDefault(); navigate(`/hr/candidates/${c.id}`); }} style={{ color: 'var(--brand-primary)', textDecoration: 'none', fontWeight: 600 }}>
                     {c.name}
@@ -360,8 +377,9 @@ export default function Candidates() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
+            </AnimatePresence>
           </tbody>
         </table>
       </div>
