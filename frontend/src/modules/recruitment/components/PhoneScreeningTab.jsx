@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
@@ -560,53 +561,57 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       )}
 
       {/* Log Call Modal */}
-      <AnimatePresence>
-        {showLogCall && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
-            onClick={() => setShowLogCall(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ padding: 24, maxWidth: 420, width: '90%', margin: 'auto' }}
-              onClick={e => e.stopPropagation()}>
-              <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon icon="lucide:phone-call" /> Log Call Attempt
-              </h4>
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Outcome</label>
-                <select className="glass-select" value={logForm.outcome}
-                  onChange={e => setLogForm(f => ({ ...f, outcome: e.target.value }))}>
-                  {Object.entries(OUTCOME_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Notes</label>
-                <textarea className="glass-input" rows={2} value={logForm.notes}
-                  onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))}
-                  style={{ width: '100%', resize: 'vertical' }}
-                  placeholder={logForm.outcome === 'wrong_number' ? 'Enter correct number if available' : 'Optional notes...'} />
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className="glass-btn glass-btn-sm" onClick={() => setShowLogCall(false)}>Cancel</button>
-                <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleLogCall} disabled={logging}>
-                  {logging ? 'Saving...' : 'Save'}
-                </button>
-              </div>
+      {createPortal(
+        <AnimatePresence>
+          {showLogCall && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
+              onClick={() => setShowLogCall(false)}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="glass-card" style={{ padding: 24, maxWidth: 420, width: '90%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto' }}
+                onClick={e => e.stopPropagation()}>
+                <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon icon="lucide:phone-call" /> Log Call Attempt
+                </h4>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Outcome</label>
+                  <select className="glass-select" value={logForm.outcome}
+                    onChange={e => setLogForm(f => ({ ...f, outcome: e.target.value }))}>
+                    {Object.entries(OUTCOME_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Notes</label>
+                  <textarea className="glass-input" rows={2} value={logForm.notes}
+                    onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))}
+                    style={{ width: '100%', resize: 'vertical' }}
+                    placeholder={logForm.outcome === 'wrong_number' ? 'Enter correct number if available' : 'Optional notes...'} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button className="glass-btn glass-btn-sm" onClick={() => setShowLogCall(false)}>Cancel</button>
+                  <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleLogCall} disabled={logging}>
+                    {logging ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Schedule First Interview Modal */}
-      <AnimatePresence>
-        {showInterviewModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
-            onClick={() => setShowInterviewModal(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ padding: 24, maxWidth: 520, width: '90%', margin: 'auto' }}
-              onClick={e => e.stopPropagation()}>
+      {createPortal(
+        <AnimatePresence>
+          {showInterviewModal && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
+              onClick={() => setShowInterviewModal(false)}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="glass-card" style={{ padding: 24, maxWidth: 520, width: '90%', margin: '0 auto', maxHeight: '90vh', overflowY: 'auto' }}
+                onClick={e => e.stopPropagation()}>
               <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon icon="lucide:calendar-plus" /> Schedule First Interview
               </h4>
@@ -745,8 +750,10 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
               </div>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 }
