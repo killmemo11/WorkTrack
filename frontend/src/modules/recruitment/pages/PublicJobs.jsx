@@ -6,16 +6,6 @@ import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const EDU_LABEL = {
-  high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree',
-  bachelor: "Bachelor's", master: "Master's", phd: 'PhD',
-};
-const EXP_LABEL = {
-  '0-1': '<1 year', '1-2': '1–2 years', '2-3': '2–3 years', '3-5': '3–5 years',
-  '5-7': '5–7 years', '7-10': '7–10 years', '10-15': '10–15 years',
-  '15-20': '15–20 years', '20+': '20+ years',
-};
-
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
@@ -207,31 +197,7 @@ export default function PublicJobs() {
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{job.qualifications}</p>
                       </div>
                     )}
-                    {req && (req.min_education_level || req.min_experience_years || req.preferred_skills_display?.length > 0 || req.preferred_certs_display?.length > 0) && (
-                      <div style={{ marginBottom: 16 }}>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Icon icon="lucide:clipboard-check" style={{ color: 'var(--brand-primary)', fontSize: 14 }}></Icon> Minimum Requirements
-                        </h4>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                          {req.min_education_level && <span>🎓 {EDU_LABEL[req.min_education_level] || req.min_education_level}</span>}
-                          {req.min_experience_years && <span>⏳ {EXP_LABEL[req.min_experience_years] || req.min_experience_years}</span>}
-                        </div>
-                        {req.preferred_skills_display?.length > 0 && (
-                          <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {req.preferred_skills_display.map((s, si) => (
-                              <span key={si} style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.73rem', background: 'rgba(34,197,94,0.1)', color: 'var(--success)', border: '1px solid rgba(34,197,94,0.15)' }}>{s}</span>
-                            ))}
-                          </div>
-                        )}
-                        {req.preferred_certs_display?.length > 0 && (
-                          <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {req.preferred_certs_display.map((c, ci) => (
-                              <span key={ci} style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.73rem', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.15)' }}>{c}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+
                     {job.technical_skills && (
                       <div style={{ marginBottom: 16 }}>
                         <h4 style={{ fontSize: '0.85rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
