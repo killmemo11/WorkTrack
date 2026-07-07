@@ -242,10 +242,13 @@ async function deleteCandidate(req, res) {
 }
 
 // ── Stage Move ────────────────────────────────────────────────
+const ALLOWED_STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+
 async function moveCandidate(req, res) {
   const { id } = req.params;
   const { stage, note } = req.body;
   if (!stage) return res.status(400).json({ error: 'stage is required' });
+  if (!ALLOWED_STAGES.includes(stage)) return res.status(400).json({ error: `Invalid stage. Must be one of: ${ALLOWED_STAGES.join(', ')}` });
 
   const adminName = req.admin?.username || req.admin?.name || 'HR';
   await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', [stage, id]);
@@ -790,9 +793,10 @@ async function getRecruitmentStats(req, res) {
     `SELECT
        COUNT(*) AS total,
        SUM(stage='applied') AS applied,
-       SUM(stage='phone_screen') AS phone_screen,
-       SUM(stage='interview') AS interview,
-       SUM(stage='assessment') AS assessment,
+       SUM(stage='phone') AS phone,
+       SUM(stage='first') AS first,
+       SUM(stage='second') AS second,
+       SUM(stage='third') AS third,
        SUM(stage='offer') AS offer,
        SUM(stage='hired') AS hired,
        SUM(stage='rejected') AS rejected
@@ -873,8 +877,8 @@ async function respondToInterview(req, res) {
   await pool.query('UPDATE recruitment_interviews SET candidate_status = ? WHERE id = ?', [status, interview_id]);
 
   if (status === 'accepted') {
-    await pool.query("UPDATE recruitment_candidates SET stage = 'interview' WHERE id = ?", [interview.candidate_id]);
-    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'interview','Candidate accepted interview invitation')", [interview.candidate_id]);
+    await pool.query("UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?", [interview.candidate_id]);
+    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'first','Candidate accepted interview invitation')", [interview.candidate_id]);
   } else {
     await pool.query("UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ?", [interview.candidate_id]);
     await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'rejected','Candidate declined interview invitation')", [interview.candidate_id]);

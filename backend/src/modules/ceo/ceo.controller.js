@@ -187,8 +187,8 @@ async function getCeoDashboard(req, res) {
       const [recruitment] = await pool.query(
         `SELECT 
            COUNT(*) as total,
-           SUM(CASE WHEN status = 'hired' THEN 1 ELSE 0 END) as hired,
-           SUM(CASE WHEN status IN ('pending', 'interview') THEN 1 ELSE 0 END) as pending
+           SUM(CASE WHEN stage = 'hired' THEN 1 ELSE 0 END) as hired,
+           SUM(CASE WHEN stage IN ('applied', 'phone', 'first', 'second', 'third') THEN 1 ELSE 0 END) as pending
          FROM recruitment_candidates`,
         []
       );

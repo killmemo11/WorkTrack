@@ -38,9 +38,10 @@ export default function RecruitmentReports() {
 
   const stageData = [
     { name: 'Applied', value: Number(stats.candidates.applied || 0) },
-    { name: 'Phone', value: Number(stats.candidates.phone_screen || 0) },
-    { name: 'Interview', value: Number(stats.candidates.interview || 0) },
-    { name: 'Assessment', value: Number(stats.candidates.assessment || 0) },
+    { name: 'Phone', value: Number(stats.candidates.phone || 0) },
+    { name: '1st Interview', value: Number(stats.candidates.first || 0) },
+    { name: '2nd Interview', value: Number(stats.candidates.second || 0) },
+    { name: '3rd Interview', value: Number(stats.candidates.third || 0) },
     { name: 'Offer', value: Number(stats.candidates.offer || 0) },
     { name: 'Hired', value: Number(stats.candidates.hired || 0) },
     { name: 'Rejected', value: Number(stats.candidates.rejected || 0) },

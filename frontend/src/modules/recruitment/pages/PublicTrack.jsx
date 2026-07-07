@@ -80,11 +80,13 @@ export default function PublicTrack() {
   };
 
   const getStepStatus = (currentStage, stepIndex) => {
-    const stepName = STEPS[stepIndex];
-    const currentIndex = STEPS.indexOf(currentStage);
-    if (currentIndex > stepIndex) return 'completed';
-    if (currentIndex === stepIndex) return 'active';
-    if (currentStage === 'rejected') return stepIndex <= STEPS.indexOf(currentStage) ? 'rejected' : 'pending';
+    const stageRank = { applied: 0, phone: 1, first: 2, second: 3, third: 4, offer: 5, hired: 6, rejected: -1 };
+    const simplifiedRank = { applied: 0, phone: 1, first: 1, second: 1, third: 1, offer: 2, hired: 3, rejected: -1 };
+    const rank = simplifiedRank[currentStage];
+    if (rank === undefined) return 'pending';
+    if (currentStage === 'rejected') return stepIndex <= rank ? 'rejected' : 'pending';
+    if (stepIndex < rank) return 'completed';
+    if (stepIndex === rank) return 'active';
     return 'pending';
   };
 
