@@ -119,6 +119,10 @@ async function autoScreen(candidateId, titleId, jobId) {
 
   if (overallStatus === 'rejected') {
     await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['rejected', candidateId]);
+    await pool.query(
+      'INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)',
+      [candidateId, 'rejected', 'Application did not meet minimum requirements']
+    );
   } else if (reqsMet > 0) {
     await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['phone', candidateId]);
   }

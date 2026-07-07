@@ -234,7 +234,7 @@ async function moveCandidate(req, res) {
         await emailService.sendEmail(
           c.email,
           `Update on Your Application — ${c.job_title}`,
-          `Dear ${c.name},<br><br>Thank you for your interest in the <strong>${c.job_title}</strong> position. After careful consideration, we have decided to move forward with other candidates.<br><br>We wish you the best in your career journey.`
+          `Dear ${c.name},<br><br>Thank you for your interest in the <strong>${c.job_title}</strong> position. After careful consideration, we have decided to move forward with other candidates.<br><br>Please note that you may re-apply for this or similar positions after <strong>3 months</strong> from this notice.<br><br>We wish you the best in your career journey.`
         );
       } catch (e) { console.error('Rejection email error:', e); }
     }
@@ -322,8 +322,20 @@ async function publicApply(req, res) {
   const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email || !job_title) return res.status(400).json({ error: 'name, email, and job_title are required' });
 
-  const [existing] = await pool.query('SELECT id FROM recruitment_candidates WHERE email=? AND job_title=?', [email, job_title]);
-  if (existing.length > 0) return res.status(400).json({ error: 'You have already applied for this position' });
+  const [existing] = await pool.query('SELECT id, stage, created_at FROM recruitment_candidates WHERE email=? AND job_title=? ORDER BY created_at DESC LIMIT 1', [email, job_title]);
+  if (existing.length > 0) {
+    const rec = existing[0];
+    if (rec.stage !== 'rejected') {
+      return res.status(400).json({ error: 'You have already applied for this position' });
+    }
+    const monthsPassed = (Date.now() - new Date(rec.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
+    if (monthsPassed < 3) {
+      const remaining = Math.ceil(3 - monthsPassed);
+      return res.status(400).json({
+        error: `You previously applied for this position and were not selected. You can re-apply after ${remaining} more month${remaining > 1 ? 's' : ''}.`
+      });
+    }
+  }
 
   let cvFilename = null, cvPath = null;
   if (req.file) {
@@ -353,17 +365,29 @@ async function publicApply(req, res) {
     }
   } catch (e) { console.error('Auto-screening error:', e); }
 
+  // Check if candidate was auto-rejected
+  const [[current]] = await pool.query('SELECT stage FROM recruitment_candidates WHERE id = ?', [result.insertId]);
+  const isRejected = current?.stage === 'rejected';
+
   const ref = `APP-${new Date().getFullYear()}-${String(result.insertId).padStart(3, '0')}`;
   let emailSent = false;
   try {
     const emailService = require('../../shared/services/email.service');
-    await emailService.sendEmail(
-      email,
-      `Application Received — ${job_title}`,
-      `Dear ${name},<br><br>Your application for <strong>${job_title}</strong> has been received.<br><br><strong>Reference Number:</strong> ${ref}<br><br>Our HR team will review your profile and contact you within 3 business days.`
-    );
+    if (isRejected) {
+      await emailService.sendEmail(
+        email,
+        `Update on Your Application — ${job_title}`,
+        `Dear ${name},<br><br>Thank you for your interest in the <strong>${job_title}</strong> position. After reviewing your application against our minimum requirements, we regret to inform you that your profile does not match the criteria for this role at this time.<br><br>Please note that you may re-apply for this or similar positions after <strong>3 months</strong> from this notice.<br><br>We wish you the best in your career journey.<br><br><strong>Reference Number:</strong> ${ref}`
+      );
+    } else {
+      await emailService.sendEmail(
+        email,
+        `Application Received — ${job_title}`,
+        `Dear ${name},<br><br>Your application for <strong>${job_title}</strong> has been received.<br><br><strong>Reference Number:</strong> ${ref}<br><br>Our HR team will review your profile and contact you within 3 business days.`
+      );
+    }
     emailSent = true;
-  } catch (e) { console.error('Confirmation email error:', e); }
+  } catch (e) { console.error('Confirmation/rejection email error:', e); }
 
   res.status(201).json({ id: result.insertId, ref, email_sent: emailSent });
 }

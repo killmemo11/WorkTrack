@@ -254,6 +254,26 @@ export default function PublicTrack() {
                   <span><Icon icon="lucide:user" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.name}</span>
                 </div>
 
+                {/* Re-apply Info for Rejected */}
+                {app.stage === 'rejected' && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                      <Icon icon="lucide:clock" style={{ color: 'var(--warning)', fontSize: '1rem' }}></Icon>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Re-apply Eligibility</span>
+                    </div>
+                    <p style={{ marginTop: 6, fontSize: '0.82rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                      You may re-apply for this or similar positions after <strong style={{ color: 'var(--text-primary)' }}>3 months</strong> from your application date.
+                    </p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Re-apply eligible from: <strong>{(() => {
+                        const d = new Date(app.created_at);
+                        d.setMonth(d.getMonth() + 3);
+                        return d.toLocaleDateString();
+                      })()}</strong>
+                    </p>
+                  </div>
+                )}
+
                 {/* History */}
                 {app.history && app.history.length > 0 && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
