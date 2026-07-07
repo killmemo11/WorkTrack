@@ -379,7 +379,7 @@ async function sendEmail(to, subject, html, attachments) {
 }
 
 async function sendInterviewInvitation(candidateEmail, candidateName, interview) {
-  const ical = require('ical-generator');
+  const ical = require('ical-generator').default;
   const cal = ical({ name: 'Interview Invitation' });
   cal.createEvent({
     start: new Date(interview.interview_date),
@@ -420,7 +420,7 @@ async function sendInterviewInvitation(candidateEmail, candidateName, interview)
       </div>
       <p style="color:#6b7280;font-size:0.9rem;">Please confirm your attendance through the candidate portal.</p>
       <p style="margin-top:20px;text-align:center;">
-        <a href="${process.env.PORTAL_URL || 'http://localhost:5173/careers/interviews'}" style="display:inline-block;padding:10px 24px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Go to Portal</a>
+        <a href="${process.env.PORTAL_URL || 'https://worktrack.ddns.net/careers/interviews'}" style="display:inline-block;padding:10px 24px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Go to Portal</a>
       </p>
       <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0" />
       <p style="color:#9ca3af;font-size:0.8rem;">An invitation has been attached to your calendar. WorkTrack</p>
