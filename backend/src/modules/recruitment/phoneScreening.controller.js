@@ -1,4 +1,4 @@
-const pool = require('../../shared/db/pool');
+const pool = require('../../shared/config/database');
 
 const PASS_THRESHOLD = 75;
 
