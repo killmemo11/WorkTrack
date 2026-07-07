@@ -33,7 +33,7 @@ const EXP_OPTIONS = [
 const STEPS = [
   { icon: 'lucide:briefcase', label: 'Position & Contact' },
   { icon: 'lucide:user', label: 'Personal Details' },
-  { icon: 'lucide:dollar-sign', label: 'Career & Salary' },
+  { icon: 'lucide:dollar-sign', label: 'Career & Financial' },
   { icon: 'lucide:award', label: 'Qualifications & Docs' },
   { icon: 'lucide:check-circle', label: 'Review & Submit' },
 ];
@@ -98,6 +98,14 @@ export default function PublicApply() {
       if (!form.name.trim()) { setStepErrors('Full name is required'); return false; }
       if (!form.email.trim()) { setStepErrors('Email is required'); return false; }
       if (form.email && !/\S+@\S+\.\S+/.test(form.email)) { setStepErrors('Email is invalid'); return false; }
+    }
+    if (step === 1) {
+      if (!form.nationality.trim()) { setStepErrors('Nationality is required'); return false; }
+      if (!form.birth_date) { setStepErrors('Birth date is required'); return false; }
+      if (!form.national_id.trim()) { setStepErrors('National ID is required'); return false; }
+      if (!form.governorate.trim()) { setStepErrors('Governorate is required'); return false; }
+      if (!form.city.trim()) { setStepErrors('City is required'); return false; }
+      if (!form.district.trim()) { setStepErrors('District / Area is required'); return false; }
     }
     return true;
   };
@@ -301,34 +309,34 @@ export default function PublicApply() {
               </h3>
               <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Nationality</label>
-                  <input name="nationality" className="glass-input" value={form.nationality} onChange={handleChange} placeholder="e.g. Egyptian" />
+                  <label className="glass-label">Nationality *</label>
+                  <input name="nationality" className="glass-input" value={form.nationality} onChange={handleChange} placeholder="e.g. Egyptian" required />
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">Birth Date</label>
-                  <input name="birth_date" type="date" className="glass-input" value={form.birth_date} onChange={handleChange} />
+                  <label className="glass-label">Birth Date *</label>
+                  <input name="birth_date" type="date" className="glass-input" value={form.birth_date} onChange={handleChange} required />
                 </div>
                 <div className="glass-form-group" style={{ margin: 0 }}>
-                  <label className="glass-label">National ID</label>
-                  <input name="national_id" className="glass-input" value={form.national_id} onChange={handleChange} placeholder="National ID number" />
+                  <label className="glass-label">National ID *</label>
+                  <input name="national_id" className="glass-input" value={form.national_id} onChange={handleChange} placeholder="National ID number" required />
                 </div>
               </div>
               <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border-glass)' }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon icon="lucide:map-pin"></Icon> Address
+                  <Icon icon="lucide:map-pin"></Icon> Current Address
                 </div>
                 <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">Governorate</label>
-                    <input name="governorate" className="glass-input" value={form.governorate} onChange={handleChange} placeholder="e.g. Cairo" />
+                    <label className="glass-label">Governorate *</label>
+                    <input name="governorate" className="glass-input" value={form.governorate} onChange={handleChange} placeholder="e.g. Cairo" required />
                   </div>
                   <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">City</label>
-                    <input name="city" className="glass-input" value={form.city} onChange={handleChange} placeholder="e.g. Nasr City" />
+                    <label className="glass-label">City *</label>
+                    <input name="city" className="glass-input" value={form.city} onChange={handleChange} placeholder="e.g. Nasr City" required />
                   </div>
                   <div className="glass-form-group" style={{ margin: 0 }}>
-                    <label className="glass-label">District / Area</label>
-                    <input name="district" className="glass-input" value={form.district} onChange={handleChange} placeholder="e.g. El Nozha" />
+                    <label className="glass-label">District / Area *</label>
+                    <input name="district" className="glass-input" value={form.district} onChange={handleChange} placeholder="e.g. El Nozha" required />
                   </div>
                 </div>
               </div>
@@ -339,7 +347,7 @@ export default function PublicApply() {
           {step === 2 && (
             <div>
               <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon="lucide:dollar-sign" style={{ color: 'var(--brand-primary)' }}></Icon> Career & Salary
+                <Icon icon="lucide:dollar-sign" style={{ color: 'var(--brand-primary)' }}></Icon> Career & Financial
               </h3>
               <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="glass-form-group" style={{ margin: 0 }}>
@@ -402,9 +410,9 @@ export default function PublicApply() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '12px 16px', border: '2px dashed var(--border-glass)', borderRadius: 'var(--radius-md)', background: 'rgba(24,24,27,0.3)' }}>
                     <Icon icon="lucide:upload" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}></Icon>
                     <span style={{ color: cvFile ? 'var(--text-primary)' : 'var(--text-dim)' }}>
-                      {cvFile ? cvFile.name : 'Upload your CV (PDF, DOC, DOCX)'}
+                      {cvFile ? cvFile.name : 'Upload your CV (Word or PDF only)'}
                     </span>
-                    <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
+                    <input type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }}
                       onChange={e => setCvFile(e.target.files[0])} />
                   </label>
                 </div>
@@ -431,7 +439,7 @@ export default function PublicApply() {
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Nationality</span><span className="glass-detail-value">{form.nationality || '—'}</span></div>
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Birth Date</span><span className="glass-detail-value">{form.birth_date || '—'}</span></div>
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>National ID</span><span className="glass-detail-value">{form.national_id || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Address</span><span className="glass-detail-value">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ') || '—'}</span></div>
+                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Current Address</span><span className="glass-detail-value">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ') || '—'}</span></div>
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Job Title</span><span className="glass-detail-value">{form.current_job_title || '—'}</span></div>
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Last Work Place</span><span className="glass-detail-value">{form.last_work_place || '—'}</span></div>
                   <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Current Salary</span><span className="glass-detail-value">{form.current_salary ? `EGP ${Number(form.current_salary).toLocaleString()}` : '—'}</span></div>
