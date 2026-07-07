@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
