@@ -7,6 +7,7 @@ import Icon from '../../../shared/components/Icon';
 import { useParams, useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 import { formatDate, formatDateTime } from '../../../shared/utils/date';
+import PhoneScreeningTab from '../components/PhoneScreeningTab';
 
 
 const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
@@ -200,12 +201,12 @@ export default function CandidateDetails() {
 
       <LayoutGroup>
       <motion.div className="glass-tabs" style={{ marginBottom: 20 }} layout>
-        {['info', 'screening', 'history', 'scorecards', 'offers'].map(tab => (
+        {['info', ...(candidate?.stage === 'phone' ? ['phone'] : []), 'screening', 'history', 'scorecards', 'offers'].map(tab => (
           <motion.button key={tab} layout
             className={`glass-tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Icon icon={ tab === 'info' ? 'lucide:user' : tab === 'screening' ? 'lucide:scan-search' : tab === 'history' ? 'lucide:clock' : tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift' } style={{ marginRight: 4 }}></Icon>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            <Icon icon={ tab === 'info' ? 'lucide:user' : tab === 'phone' ? 'lucide:phone' : tab === 'screening' ? 'lucide:scan-search' : tab === 'history' ? 'lucide:clock' : tab === 'scorecards' ? 'lucide:clipboard-list' : 'lucide:gift' } style={{ marginRight: 4 }}></Icon>
+            {tab === 'phone' ? 'Phone Screening' : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </motion.button>
         ))}
       </motion.div>
@@ -309,11 +310,20 @@ export default function CandidateDetails() {
                 <Icon icon="lucide:user-plus"></Icon> Hire
               </button>
             </div>
-          </div>
-        </div>
-      )}
+           </div>
+         </div>
+       )}
 
-       {/* Screening Tab */}
+       {/* Phone Screening Tab */}
+       {activeTab === 'phone' && (
+         <PhoneScreeningTab
+           candidateId={candidate.id}
+           candidateStage={candidate.stage}
+           onStageChange={fetchCandidate}
+         />
+       )}
+
+        {/* Screening Tab */}
        {activeTab === 'screening' && (
          <div className="glass-card fade-in-up">
            <div className="glass-card-body">

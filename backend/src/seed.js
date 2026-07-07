@@ -1775,6 +1775,133 @@ async function seed() {
     );
     console.log('Migration: added extended fields (salary, personal info, address) to recruitment_candidates');
   }
+
+  // --- phone screening tables ---
+  const [psCallLogTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'phone_screening_call_log'",
+    [process.env.DB_NAME]
+  );
+  if (psCallLogTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE phone_screening_call_log (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        attempted_by VARCHAR(255) NOT NULL DEFAULT '',
+        attempted_at DATETIME NOT NULL,
+        outcome ENUM('no_answer','reached','wrong_number','busy','voicemail') NOT NULL DEFAULT 'no_answer',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await pool.query('CREATE INDEX idx_pscl_candidate ON phone_screening_call_log(candidate_id)');
+    await pool.query('CREATE INDEX idx_pscl_attempted ON phone_screening_call_log(attempted_at)');
+    console.log('Migration: created phone_screening_call_log table');
+  }
+
+  const [psTemplatesTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'phone_screening_templates'",
+    [process.env.DB_NAME]
+  );
+  if (psTemplatesTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE phone_screening_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        is_default TINYINT(1) NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('Migration: created phone_screening_templates table');
+  }
+
+  const [psQuestionsTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'phone_screening_questions'",
+    [process.env.DB_NAME]
+  );
+  if (psQuestionsTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE phone_screening_questions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        template_id INT NOT NULL,
+        question TEXT NOT NULL,
+        weight DECIMAL(5,2) NOT NULL DEFAULT 1.00,
+        max_rating INT NOT NULL DEFAULT 5,
+        category ENUM('communication','technical','experience','culture','general') NOT NULL DEFAULT 'general',
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (template_id) REFERENCES phone_screening_templates(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await pool.query('CREATE INDEX idx_psq_template ON phone_screening_questions(template_id)');
+    console.log('Migration: created phone_screening_questions table');
+  }
+
+  const [psEvalsTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'phone_screening_evaluations'",
+    [process.env.DB_NAME]
+  );
+  if (psEvalsTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE phone_screening_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        template_id INT DEFAULT NULL,
+        evaluated_by VARCHAR(255) NOT NULL DEFAULT '',
+        total_score DECIMAL(10,2) NOT NULL DEFAULT 0,
+        max_score DECIMAL(10,2) NOT NULL DEFAULT 0,
+        percentage DECIMAL(5,2) NOT NULL DEFAULT 0,
+        decision ENUM('pass','fail') NOT NULL DEFAULT 'fail',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (template_id) REFERENCES phone_screening_templates(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await pool.query('CREATE INDEX idx_pse_candidate ON phone_screening_evaluations(candidate_id)');
+    console.log('Migration: created phone_screening_evaluations table');
+  }
+
+  const [psAnswersTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'phone_screening_evaluation_answers'",
+    [process.env.DB_NAME]
+  );
+  if (psAnswersTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE phone_screening_evaluation_answers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        evaluation_id INT NOT NULL,
+        question_id INT NOT NULL,
+        rating INT NOT NULL DEFAULT 0,
+        notes TEXT,
+        FOREIGN KEY (evaluation_id) REFERENCES phone_screening_evaluations(id) ON DELETE CASCADE,
+        FOREIGN KEY (question_id) REFERENCES phone_screening_questions(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await pool.query('CREATE INDEX idx_psea_evaluation ON phone_screening_evaluation_answers(evaluation_id)');
+    console.log('Migration: created phone_screening_evaluation_answers table');
+  }
+
+  // Seed default template if none exists
+  const [existingTemplates] = await pool.query('SELECT COUNT(*) AS cnt FROM phone_screening_templates');
+  if (existingTemplates[0].cnt === 0) {
+    const [tmpl] = await pool.query(
+      "INSERT INTO phone_screening_templates (name, description, is_default, is_active) VALUES ('General Phone Screening', 'Default phone screening questionnaire covering communication, experience, technical skills, and culture fit.', 1, 1)"
+    );
+    await pool.query(
+      `INSERT INTO phone_screening_questions (template_id, question, weight, max_rating, category, sort_order) VALUES
+       (?, 'How would you rate the candidate''s communication skills?', 1.50, 5, 'communication', 1),
+       (?, 'How relevant is the candidate''s experience to this role?', 1.50, 5, 'experience', 2),
+       (?, 'How would you rate the candidate''s technical knowledge?', 2.00, 5, 'technical', 3),
+       (?, 'How well does the candidate fit the company culture?', 1.00, 5, 'culture', 4),
+       (?, 'How clear is the candidate about their career goals?', 1.00, 5, 'general', 5)`,
+      [tmpl.insertId, tmpl.insertId, tmpl.insertId, tmpl.insertId, tmpl.insertId]
+    );
+    console.log('Seed: created default phone screening template');
+  }
 }
 
 module.exports = seed;

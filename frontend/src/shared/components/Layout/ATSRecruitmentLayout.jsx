@@ -13,6 +13,7 @@ const NAV = [
   { path: '/hr/recruitment/offers', label: 'Offers', icon: 'lucide:mail-check' },
   { path: '/hr/recruitment/headcount-requests', label: 'Headcount Requests', icon: 'lucide:clipboard-list' },
   { path: '/hr/recruitment/reports', label: 'Reports', icon: 'lucide:bar-chart-3' },
+  { path: '/hr/recruitment/phone-templates', label: 'Phone Templates', icon: 'lucide:file-question' },
 ];
 
 export default function ATSRecruitmentLayout() {

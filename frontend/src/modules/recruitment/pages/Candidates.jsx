@@ -354,7 +354,12 @@ export default function Candidates() {
                 </td>
                 <td>{c.email}</td>
                 <td>{c.job_title}</td>
-                <td>{stageBadge(c.stage)}</td>
+                <td>{stageBadge(c.stage)}{c.stage === 'phone' && (
+                  <a href={`/hr/candidates/${c.id}`} onClick={e => { e.preventDefault(); navigate(`/hr/candidates/${c.id}`); }}
+                    style={{ marginLeft: 4, color: 'var(--brand-primary)', fontSize: '0.7rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    <Icon icon="lucide:phone" style={{ fontSize: '0.65rem' }} /> Screen
+                  </a>
+                )}</td>
                 <td>{c.screening_status ? (
                   <span className={`glass-badge ${c.screening_status === 'most_recommended' ? 'glass-badge-success' : c.screening_status === 'recommended' ? 'glass-badge-info' : 'glass-badge-danger'}`}>
                     <Icon icon={c.screening_status === 'most_recommended' ? 'lucide:star' : c.screening_status === 'recommended' ? 'lucide:thumbs-up' : 'lucide:x'} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>

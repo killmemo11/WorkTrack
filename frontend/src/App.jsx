@@ -57,6 +57,7 @@ import PublicJobs from './modules/recruitment/pages/PublicJobs';
 import PublicApply from './modules/recruitment/pages/PublicApply';
 import PublicTrack from './modules/recruitment/pages/PublicTrack';
 import PublicInterviews from './modules/recruitment/pages/PublicInterviews';
+import PhoneTemplates from './modules/recruitment/pages/PhoneTemplates';
 import HeadcountRequests from './modules/hr/pages/HeadcountRequests';
 import ATSRecruitmentLayout from './shared/components/Layout/ATSRecruitmentLayout';
 import PeopleLayout from './shared/components/Layout/PeopleLayout';
@@ -171,6 +172,7 @@ export default function App() {
             <Route path="offers" element={<Offers />} />
             <Route path="headcount-requests" element={<HeadcountRequests />} />
             <Route path="reports" element={<RecruitmentReports />} />
+            <Route path="phone-templates" element={<PhoneTemplates />} />
           </Route>
           {/* Old routes — redirect to new ATS */}
           <Route path="/hr/candidates" element={<Navigate to="/hr/recruitment/candidates" />} />
