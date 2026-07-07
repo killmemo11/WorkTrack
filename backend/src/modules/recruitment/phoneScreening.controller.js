@@ -79,6 +79,13 @@ async function logCallAttempt(req, res) {
   res.json({ callLog: logs, autoRejectStatus });
 }
 
+// ── Delete a call log entry ──
+async function deleteCallLogEntry(req, res) {
+  const { id } = req.params;
+  await pool.query('DELETE FROM phone_screening_call_log WHERE id = ?', [id]);
+  res.json({ message: 'Call log deleted' });
+}
+
 // ── Evaluate phone screening ──
 async function submitEvaluation(req, res) {
   const { id } = req.params;
@@ -298,4 +305,5 @@ module.exports = {
   addQuestion,
   updateQuestion,
   deleteQuestion,
+  deleteCallLogEntry,
 };

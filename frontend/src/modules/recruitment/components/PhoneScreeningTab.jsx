@@ -40,6 +40,8 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   const [evalResult, setEvalResult] = useState(null);
   const [evaluating, setEvaluating] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!candidateId) return;
@@ -56,6 +58,18 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   }, [candidateId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (!evalForm.template_id) { setSelectedTemplate(null); return; }
+    const fetchTemplate = async () => {
+      try {
+        setLoadingQuestions(true);
+        const res = await hrApi.get(`/recruitment/phone-screening/templates/${evalForm.template_id}`);
+        setSelectedTemplate(res.data);
+      } catch { } finally { setLoadingQuestions(false); }
+    };
+    fetchTemplate();
+  }, [evalForm.template_id]);
 
   const handleLogCall = async () => {
     if (!logForm.outcome) return;
@@ -289,6 +303,17 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                 <span style={{ color: 'var(--text-faint)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                   {new Date(log.attempted_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </span>
+                <button onClick={async () => {
+                  if (!confirm('Delete this call log entry?')) return;
+                  try {
+                    await hrApi.delete(`/recruitment/phone-screening/call-log/${log.id}`);
+                    setData(d => ({ ...d, callLog: d.callLog.filter(l => l.id !== log.id) }));
+                  } catch { }
+                }} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: 4, fontSize: '0.75rem', opacity: 0.5 }}
+                  onMouseEnter={e => e.target.style.opacity = 1}
+                  onMouseLeave={e => e.target.style.opacity = 0.5}>
+                  <Icon icon="lucide:trash-2" />
+                </button>
               </div>
             ))}
           </div>
@@ -318,11 +343,11 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
           </div>
 
           {evalForm.template_id && (() => {
-            const tmpl = data.templates.find(t => t.id === evalForm.template_id);
-            if (!tmpl?.questions) return <p style={{ fontSize: '0.85rem', color: 'var(--text-faint)' }}>Loading questions...</p>;
+            if (loadingQuestions) return <p style={{ fontSize: '0.85rem', color: 'var(--text-faint)' }}>Loading questions...</p>;
+            if (!selectedTemplate?.questions) return <p style={{ fontSize: '0.85rem', color: 'var(--text-faint)' }}>No questions found for this template</p>;
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {tmpl.questions.map((q, i) => (
+                {selectedTemplate.questions.map((q, i) => (
                   <div key={q.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 4 }}>
                       <span>{i + 1}. {q.question}</span>

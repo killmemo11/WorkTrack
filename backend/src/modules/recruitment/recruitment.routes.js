@@ -22,7 +22,7 @@ const {
 const {
   getPhoneScreening, logCallAttempt, submitEvaluation, checkAutoReject,
   listTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate,
-  addQuestion, updateQuestion, deleteQuestion,
+  addQuestion, updateQuestion, deleteQuestion, deleteCallLogEntry,
 } = require('./phoneScreening.controller');
 
 const adminRouter = Router();
@@ -71,6 +71,7 @@ adminRouter.delete('/phone-screening/templates/:id', deleteTemplate);
 adminRouter.post('/phone-screening/templates/:id/questions', addQuestion);
 adminRouter.put('/phone-screening/questions/:id', updateQuestion);
 adminRouter.delete('/phone-screening/questions/:id', deleteQuestion);
+adminRouter.delete('/phone-screening/call-log/:id', deleteCallLogEntry);
 
 // ── HR routes (mirror admin) ───────────────────────────────────
 hrRouter.get('/jobs', listJobs);
@@ -112,5 +113,6 @@ hrRouter.delete('/phone-screening/templates/:id', deleteTemplate);
 hrRouter.post('/phone-screening/templates/:id/questions', addQuestion);
 hrRouter.put('/phone-screening/questions/:id', updateQuestion);
 hrRouter.delete('/phone-screening/questions/:id', deleteQuestion);
+hrRouter.delete('/phone-screening/call-log/:id', deleteCallLogEntry);
 
 module.exports = { adminRouter, hrRouter };
