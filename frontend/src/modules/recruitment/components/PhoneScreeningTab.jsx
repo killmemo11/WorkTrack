@@ -563,10 +563,10 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       <AnimatePresence>
         {showLogCall && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
             onClick={() => setShowLogCall(false)}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ padding: 24, maxWidth: 420, width: '90%' }}
+              className="glass-card" style={{ padding: 24, maxWidth: 420, width: '90%', margin: 'auto' }}
               onClick={e => e.stopPropagation()}>
               <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon icon="lucide:phone-call" /> Log Call Attempt
@@ -602,10 +602,10 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       <AnimatePresence>
         {showInterviewModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '20px 0' }}
             onClick={() => setShowInterviewModal(false)}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card" style={{ padding: 24, maxWidth: 520, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
+              className="glass-card" style={{ padding: 24, maxWidth: 520, width: '90%', margin: 'auto' }}
               onClick={e => e.stopPropagation()}>
               <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon icon="lucide:calendar-plus" /> Schedule First Interview
