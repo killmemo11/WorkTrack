@@ -1667,6 +1667,8 @@ async function seed() {
         details JSON DEFAULT NULL,
         requirement_results JSON DEFAULT NULL,
         automated TINYINT(1) DEFAULT 1,
+        most_recommended_count INT DEFAULT 0,
+        superstar TINYINT(1) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
         FOREIGN KEY (title_id) REFERENCES department_titles(id) ON DELETE SET NULL,

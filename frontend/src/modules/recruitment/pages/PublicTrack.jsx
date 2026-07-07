@@ -69,8 +69,13 @@ export default function PublicTrack() {
     return 'pending';
   };
 
-  const screeningLabel = (status) => {
-    if (status === 'most_recommended') return { text: 'Most Recommended', color: 'success', icon: 'lucide:star' };
+  const screeningLabel = (status, mostRecCount, total) => {
+    if (status === 'most_recommended') {
+      const pct = total > 0 ? mostRecCount / total : 0;
+      const stars = pct >= 1 ? '👑' : pct >= 0.75 ? '⭐⭐⭐' : pct >= 0.5 ? '⭐⭐' : '⭐';
+      const text = pct >= 1 ? 'SuperStar Candidate' : `${stars} Most Recommended`;
+      return { text, color: pct >= 1 ? 'success' : 'warning', icon: pct >= 1 ? 'lucide:crown' : 'lucide:star' };
+    }
     if (status === 'recommended') return { text: 'Recommended', color: 'info', icon: 'lucide:thumbs-up' };
     return { text: 'Not Met', color: 'neutral', icon: 'lucide:minus' };
   };
@@ -210,18 +215,18 @@ export default function PublicTrack() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <Icon icon="lucide:scan-search" style={{ color: 'var(--brand-primary)', fontSize: '1rem' }}></Icon>
                       <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Screening Result</span>
-                      <span className={`glass-badge glass-badge-${screeningLabel(app.screening.overall_status).color}`}>
-                        <Icon icon={screeningLabel(app.screening.overall_status).icon} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
-                        {screeningLabel(app.screening.overall_status).text}
+                      <span className={`glass-badge glass-badge-${screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).color}`}>
+                        <Icon icon={screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).icon} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
+                        {screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).text}
                       </span>
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 8 }}>
-                      Requirements met: {app.screening.requirements_met} / {app.screening.requirements_total}
+                      {app.screening.superstar ? 'All criteria met at highest level' : `Requirements met: ${app.screening.requirements_met} / ${app.screening.requirements_total}`}
                     </div>
                     {app.screening.requirement_results && (
                       <div style={{ fontSize: '0.8rem' }}>
                         {app.screening.requirement_results.map((r, i) => {
-                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Skills', required_certs: 'Certifications' };
+                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Skills', required_certs: 'Certifications', expected_salary: 'Salary' };
                           const isMet = r.status !== 'rejected';
                           return (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>

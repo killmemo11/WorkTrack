@@ -10,6 +10,8 @@ const EXP_LEVELS = {
   '5-7': 5, '7-10': 6, '10-15': 7, '15-20': 8, '20+': 9,
 };
 
+const POINTS = { rejected: 0, recommended: 1, most_recommended: 2 };
+
 function parseArray(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val;
@@ -25,14 +27,14 @@ function statusFor(comparison) {
 
 async function autoScreen(candidateId, titleId, jobId) {
   const [titles] = await pool.query(
-    `SELECT min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs
+    `SELECT min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs, grade_id
      FROM department_titles WHERE id = ?`, [titleId]
   );
   if (titles.length === 0) return null;
   const t = titles[0];
 
   const [cands] = await pool.query(
-    `SELECT education_level, experience_years, skills, certifications
+    `SELECT education_level, experience_years, skills, certifications, expected_salary
      FROM recruitment_candidates WHERE id = ?`, [candidateId]
   );
   if (cands.length === 0) return null;
@@ -69,11 +71,9 @@ async function autoScreen(candidateId, titleId, jobId) {
   const candSkills = parseArray(c.skills);
   if (requiredSkills.length > 0) {
     let matched = 0;
-    const skillDetails = requiredSkills.map(sId => {
+    requiredSkills.forEach(sId => {
       const sIdNum = parseInt(sId, 10);
-      const found = candSkills.some(cs => parseInt(cs, 10) === sIdNum);
-      if (found) matched++;
-      return { skill_id: sIdNum, matched: found };
+      if (candSkills.some(cs => parseInt(cs, 10) === sIdNum)) matched++;
     });
     const pct = matched / requiredSkills.length;
     const candHasAll = pct >= 1;
@@ -106,15 +106,35 @@ async function autoScreen(candidateId, titleId, jobId) {
     if (st === 'most_recommended') hasMostRec = true;
   }
 
+  // ── Expected Salary vs Grade Max Salary ──────────────────────
+  if (t.grade_id && c.expected_salary !== null && c.expected_salary !== undefined && c.expected_salary !== '') {
+    const [[grade]] = await pool.query('SELECT max_salary FROM grades WHERE id = ?', [t.grade_id]);
+    if (grade && grade.max_salary !== null) {
+      const maxSal = parseFloat(grade.max_salary);
+      const expSal = parseFloat(c.expected_salary);
+      const cmp = maxSal - expSal;
+      if (cmp > 0) {
+        const st = 'most_recommended';
+        reqResults.push({ requirement: 'expected_salary', expected: maxSal, provided: expSal, comparison: cmp, status: st });
+        hasMostRec = true;
+      }
+      // If cmp <= 0, skip — does not affect result
+    }
+  }
+
+  const mostRecCount = reqResults.filter(r => r.status === 'most_recommended').length;
+  const totalChecked = reqResults.length;
+  const isSuperstar = !hasRejected && totalChecked > 0 && mostRecCount === totalChecked;
+
   const overallStatus = hasRejected ? 'rejected' : (hasMostRec ? 'most_recommended' : 'recommended');
   const simpleStatus = overallStatus === 'rejected' ? 'rejected' : 'passed';
   const reqsMet = reqResults.filter(r => r.status !== 'rejected').length;
   const reqsTotal = reqResults.length;
 
   await pool.query(
-    `INSERT INTO screening_results (candidate_id, title_id, job_id, status, overall_status, requirements_met, requirements_total, details, requirement_results, automated)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [candidateId, titleId, jobId || null, simpleStatus, overallStatus, reqsMet, reqsTotal, JSON.stringify(reqResults), JSON.stringify(reqResults)]
+    `INSERT INTO screening_results (candidate_id, title_id, job_id, status, overall_status, requirements_met, requirements_total, details, requirement_results, automated, most_recommended_count, superstar)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+    [candidateId, titleId, jobId || null, simpleStatus, overallStatus, reqsMet, reqsTotal, JSON.stringify(reqResults), JSON.stringify(reqResults), mostRecCount, isSuperstar ? 1 : 0]
   );
 
   if (overallStatus === 'rejected') {
@@ -127,7 +147,7 @@ async function autoScreen(candidateId, titleId, jobId) {
     await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['phone', candidateId]);
   }
 
-  return { status: overallStatus, details: reqResults, met: reqsMet, total: reqsTotal };
+  return { status: overallStatus, details: reqResults, met: reqsMet, total: reqsTotal, most_recommended_count: mostRecCount, superstar: isSuperstar };
 }
 
 module.exports = { autoScreen };

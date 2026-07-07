@@ -49,6 +49,20 @@ async function listJobs(req, res) {
 async function createJob(req, res) {
   const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
+  if (status === 'active') {
+    if (!description) return res.status(400).json({ error: 'Job Summary is required before publishing' });
+    if (!key_responsibilities) return res.status(400).json({ error: 'Key Responsibilities is required before publishing' });
+    if (!qualifications) return res.status(400).json({ error: 'Qualifications & Skills is required before publishing' });
+    if (!title_id) return res.status(400).json({ error: 'Position title is required before publishing' });
+    const [[titleData]] = await pool.query(
+      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?',
+      [title_id]
+    );
+    if (!titleData) return res.status(400).json({ error: 'Position title not found' });
+    if (!titleData.grade_id) return res.status(400).json({ error: 'Grade (salary scale) is required for this position before publishing' });
+    if (!titleData.min_education_level) return res.status(400).json({ error: 'Minimum Education Level is required for this position before publishing' });
+    if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
+  }
   const [result] = await pool.query(
     'INSERT INTO recruitment_jobs (position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     [position_id || null, title_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
@@ -61,6 +75,20 @@ async function createJob(req, res) {
 async function updateJob(req, res) {
   const { id } = req.params;
   const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
+  if (status === 'active') {
+    if (!description) return res.status(400).json({ error: 'Job Summary is required before publishing' });
+    if (!key_responsibilities) return res.status(400).json({ error: 'Key Responsibilities is required before publishing' });
+    if (!qualifications) return res.status(400).json({ error: 'Qualifications & Skills is required before publishing' });
+    if (!title_id) return res.status(400).json({ error: 'Position title is required before publishing' });
+    const [[titleData]] = await pool.query(
+      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?',
+      [title_id]
+    );
+    if (!titleData) return res.status(400).json({ error: 'Position title not found' });
+    if (!titleData.grade_id) return res.status(400).json({ error: 'Grade (salary scale) is required for this position before publishing' });
+    if (!titleData.min_education_level) return res.status(400).json({ error: 'Minimum Education Level is required for this position before publishing' });
+    if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
+  }
   await pool.query(
     'UPDATE recruitment_jobs SET position_id=?, title_id=?, title=?, department=?, type=?, technical=?, status=?, description=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=? WHERE id=?',
     [position_id || null, title_id || null, title, department, type, technical ? 1 : 0, status, description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, id]

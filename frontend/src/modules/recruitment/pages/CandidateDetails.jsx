@@ -319,33 +319,45 @@ export default function CandidateDetails() {
                </div>
              ) : (
                <>
-                 <div style={{ marginBottom: '24px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                   <span style={{ fontSize: '48px' }}>
-                     {candidate.screening.overall_status === 'most_recommended' ? <Icon icon="lucide:star" style={{ color: 'var(--success)' }}></Icon> : candidate.screening.overall_status === 'recommended' ? <Icon icon="lucide:thumbs-up" style={{ color: '#3b82f6' }}></Icon> : <Icon icon="lucide:x" style={{ color: 'var(--error)' }}></Icon>}
-                   </span>
-                   <div>
-                     <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
-                       {candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
-                         : candidate.screening.overall_status === 'recommended' ? 'Recommended'
-                         : 'Rejected'}
-                     </div>
-                     <div style={{ fontSize: '14px', color: 'var(--text-dim)' }}>{formatDateTime(candidate.screening.created_at)}</div>
-                   </div>
-                 </div>
+                  <div style={{ marginBottom: '24px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <span style={{ fontSize: '48px' }}>
+                      {candidate.screening.superstar ? <Icon icon="lucide:crown" style={{ color: '#fbbf24' }}></Icon>
+                        : candidate.screening.overall_status === 'most_recommended' ? <Icon icon="lucide:star" style={{ color: 'var(--success)' }}></Icon>
+                        : candidate.screening.overall_status === 'recommended' ? <Icon icon="lucide:thumbs-up" style={{ color: '#3b82f6' }}></Icon>
+                        : <Icon icon="lucide:x" style={{ color: 'var(--error)' }}></Icon>}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: '700', textTransform: 'capitalize' }}>
+                        {candidate.screening.superstar ? 'SuperStar Candidate'
+                          : candidate.screening.overall_status === 'most_recommended' ? 'Most Recommended'
+                          : candidate.screening.overall_status === 'recommended' ? 'Recommended'
+                          : 'Rejected'}
+                      </div>
+                      <div style={{ fontSize: '14px', color: 'var(--text-dim)' }}>{formatDateTime(candidate.screening.created_at)}</div>
+                      {candidate.screening.most_recommended_count !== undefined && candidate.screening.requirements_total > 0 && (
+                        <div style={{ fontSize: '13px', color: 'var(--text-dim)', marginTop: 4 }}>
+                          {candidate.screening.most_recommended_count} / {candidate.screening.requirements_total} criteria at highest level
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                 <div className={`glass-card ${candidate.screening.overall_status === 'most_recommended' ? 'glass-border-success' : candidate.screening.overall_status === 'recommended' ? 'glass-border-info' : 'glass-border-danger'}`}
-                   style={{
-                     padding: '16px', borderRadius: 'var(--radius-lg)', marginBottom: '24px',
-                     background: candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.08)'
-                       : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.08)'
-                       : 'rgba(239, 68, 68, 0.08)',
-                     border: `1px solid ${candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.25)'
-                       : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.25)'
-                       : 'rgba(239, 68, 68, 0.25)'}`,
-                     color: candidate.screening.overall_status === 'most_recommended' ? 'var(--success)'
-                       : candidate.screening.overall_status === 'recommended' ? '#3b82f6'
-                       : 'var(--error)',
-                   }}>
+                  <div className={`glass-card ${candidate.screening.superstar ? 'glass-border-warning' : candidate.screening.overall_status === 'most_recommended' ? 'glass-border-success' : candidate.screening.overall_status === 'recommended' ? 'glass-border-info' : 'glass-border-danger'}`}
+                    style={{
+                      padding: '16px', borderRadius: 'var(--radius-lg)', marginBottom: '24px',
+                      background: candidate.screening.superstar ? 'rgba(251, 191, 36, 0.08)'
+                        : candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.08)'
+                        : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.08)'
+                        : 'rgba(239, 68, 68, 0.08)',
+                      border: `1px solid ${candidate.screening.superstar ? 'rgba(251, 191, 36, 0.25)'
+                        : candidate.screening.overall_status === 'most_recommended' ? 'rgba(34, 197, 94, 0.25)'
+                        : candidate.screening.overall_status === 'recommended' ? 'rgba(59, 130, 246, 0.25)'
+                        : 'rgba(239, 68, 68, 0.25)'}`,
+                      color: candidate.screening.superstar ? '#fbbf24'
+                        : candidate.screening.overall_status === 'most_recommended' ? 'var(--success)'
+                        : candidate.screening.overall_status === 'recommended' ? '#3b82f6'
+                        : 'var(--error)',
+                    }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                      <div>
                        <strong style={{ fontSize: '16px' }}>Screening Result</strong>
@@ -376,7 +388,7 @@ export default function CandidateDetails() {
                          </thead>
                          <tbody>
                            {(candidate.screening.requirement_results || []).map((r, i) => {
-                             const labelMap = { education_level: 'Education Level', experience_years: 'Experience Years', required_skills: 'Required Skills', required_certs: 'Required Certifications' };
+                             const labelMap = { education_level: 'Education Level', experience_years: 'Experience Years', required_skills: 'Required Skills', required_certs: 'Required Certifications', expected_salary: 'Salary vs Grade' };
                              const expectedStr = r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
                                : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
                                : Array.isArray(r.expected) ? r.expected.join(', ') : r.expected;
