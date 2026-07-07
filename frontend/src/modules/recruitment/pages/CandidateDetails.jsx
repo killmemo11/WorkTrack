@@ -42,6 +42,11 @@ export default function CandidateDetails() {
       setEditForm({
         name: res.data.name, email: res.data.email, phone: res.data.phone || '',
         job_title: res.data.job_title || '', notes: res.data.notes || '',
+        current_salary: res.data.current_salary || '', expected_salary: res.data.expected_salary || '',
+        nationality: res.data.nationality || '', birth_date: res.data.birth_date || '', national_id: res.data.national_id || '',
+        current_job_title: res.data.current_job_title || '', last_work_place: res.data.last_work_place || '',
+        reason_leaving: res.data.reason_leaving || '',
+        governorate: res.data.governorate || '', city: res.data.city || '', district: res.data.district || '',
       });
     } catch (err) {
       setMessage('Failed to load candidate');
@@ -216,6 +221,15 @@ export default function CandidateDetails() {
               {candidate.experience_years && <div className="glass-detail-row"><span className="glass-detail-label">Experience</span><span className="glass-detail-value">{EXP_LABEL[candidate.experience_years] || candidate.experience_years}</span></div>}
               {candidate.skills_display?.length > 0 && <div className="glass-detail-row"><span className="glass-detail-label">Skills</span><span className="glass-detail-value">{candidate.skills_display.join(', ')}</span></div>}
               {candidate.certs_display?.length > 0 && <div className="glass-detail-row"><span className="glass-detail-label">Certs</span><span className="glass-detail-value">{candidate.certs_display.join(', ')}</span></div>}
+              {candidate.current_job_title && <div className="glass-detail-row"><span className="glass-detail-label">Current Job Title</span><span className="glass-detail-value">{candidate.current_job_title}</span></div>}
+              {candidate.last_work_place && <div className="glass-detail-row"><span className="glass-detail-label">Last Work Place</span><span className="glass-detail-value">{candidate.last_work_place}</span></div>}
+              {candidate.current_salary && <div className="glass-detail-row"><span className="glass-detail-label">Current Salary</span><span className="glass-detail-value">EGP {Number(candidate.current_salary).toLocaleString()}</span></div>}
+              {candidate.expected_salary && <div className="glass-detail-row"><span className="glass-detail-label">Expected Salary</span><span className="glass-detail-value">EGP {Number(candidate.expected_salary).toLocaleString()}</span></div>}
+              {candidate.reason_leaving && <div className="glass-detail-row"><span className="glass-detail-label">Reason for Leaving</span><span className="glass-detail-value">{candidate.reason_leaving}</span></div>}
+              {candidate.nationality && <div className="glass-detail-row"><span className="glass-detail-label">Nationality</span><span className="glass-detail-value">{candidate.nationality}</span></div>}
+              {candidate.birth_date && <div className="glass-detail-row"><span className="glass-detail-label">Birth Date</span><span className="glass-detail-value">{formatDate(candidate.birth_date)}</span></div>}
+              {candidate.national_id && <div className="glass-detail-row"><span className="glass-detail-label">National ID</span><span className="glass-detail-value">{candidate.national_id}</span></div>}
+              {candidate.governorate && <div className="glass-detail-row"><span className="glass-detail-label">Address</span><span className="glass-detail-value">{[candidate.governorate, candidate.city, candidate.district].filter(Boolean).join(' — ')}</span></div>}
               <div className="glass-detail-row">
                 <span className="glass-detail-label">CV</span>
                 <span className="glass-detail-value">
@@ -249,6 +263,19 @@ export default function CandidateDetails() {
                 <div className="glass-form-group"><label className="glass-label">Phone</label><input className="glass-input" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
                 <div className="glass-form-group"><label className="glass-label">Position</label><input className="glass-input" value={editForm.job_title} onChange={e => setEditForm({ ...editForm, job_title: e.target.value })} /></div>
                 <div className="glass-form-group"><label className="glass-label">Notes</label><textarea className="glass-textarea" rows={3} value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Current Salary</label><input className="glass-input" type="number" value={editForm.current_salary} onChange={e => setEditForm({ ...editForm, current_salary: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Expected Salary</label><input className="glass-input" type="number" value={editForm.expected_salary} onChange={e => setEditForm({ ...editForm, expected_salary: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Current Job Title</label><input className="glass-input" value={editForm.current_job_title} onChange={e => setEditForm({ ...editForm, current_job_title: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Last Work Place</label><input className="glass-input" value={editForm.last_work_place} onChange={e => setEditForm({ ...editForm, last_work_place: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Reason for Leaving</label><input className="glass-input" value={editForm.reason_leaving} onChange={e => setEditForm({ ...editForm, reason_leaving: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Nationality</label><input className="glass-input" value={editForm.nationality} onChange={e => setEditForm({ ...editForm, nationality: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Birth Date</label><input className="glass-input" type="date" value={editForm.birth_date} onChange={e => setEditForm({ ...editForm, birth_date: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">National ID</label><input className="glass-input" value={editForm.national_id} onChange={e => setEditForm({ ...editForm, national_id: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">Governorate</label><input className="glass-input" value={editForm.governorate} onChange={e => setEditForm({ ...editForm, governorate: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">City</label><input className="glass-input" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
+                  <div className="glass-form-group" style={{ margin: 0 }}><label className="glass-label">District</label><input className="glass-input" value={editForm.district} onChange={e => setEditForm({ ...editForm, district: e.target.value })} /></div>
+                </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <button className="glass-btn glass-btn-primary" onClick={handleUpdate}><Icon icon="lucide:check"></Icon> Save</button>
                   <button className="glass-btn glass-btn-ghost" onClick={() => setEditing(false)}>Cancel</button>

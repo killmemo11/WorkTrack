@@ -159,13 +159,14 @@ async function getCandidate(req, res) {
 }
 
 async function createCandidate(req, res) {
-  const { name, email, phone, job_id, job_title, stage, technical, notes, source, education_level, experience_years, skills, certifications } = req.body;
+  const { name, email, phone, job_id, job_title, stage, technical, notes, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
   const [result] = await pool.query(
-    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
+    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null,
+     current_salary || null, expected_salary || null, nationality || null, birth_date || null, national_id || null, current_job_title || null, last_work_place || null, reason_leaving || null, governorate || null, city || null, district || null]
   );
   await pool.query(
     'INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)',
@@ -189,7 +190,7 @@ async function createCandidate(req, res) {
 
 async function updateCandidate(req, res) {
   const { id } = req.params;
-  const allowed = ['name', 'email', 'phone', 'job_id', 'job_title', 'stage', 'notes', 'score_comm', 'score_tech', 'score_fit', 'test_done', 'education_level', 'experience_years', 'skills', 'certifications'];
+  const allowed = ['name', 'email', 'phone', 'job_id', 'job_title', 'stage', 'notes', 'score_comm', 'score_tech', 'score_fit', 'test_done', 'education_level', 'experience_years', 'skills', 'certifications', 'current_salary', 'expected_salary', 'nationality', 'birth_date', 'national_id', 'current_job_title', 'last_work_place', 'reason_leaving', 'governorate', 'city', 'district'];
   const updates = [];
   const args = [];
   for (const col of allowed) {
@@ -318,16 +319,26 @@ async function createOffer(req, res) {
 
 // ── Public: Apply ──────────────────────────────────────────────
 async function publicApply(req, res) {
-  const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications } = req.body;
+  const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email || !job_title) return res.status(400).json({ error: 'name, email, and job_title are required' });
 
   const [existing] = await pool.query('SELECT id FROM recruitment_candidates WHERE email=? AND job_title=?', [email, job_title]);
   if (existing.length > 0) return res.status(400).json({ error: 'You have already applied for this position' });
 
+  let cvFilename = null, cvPath = null;
+  if (req.file) {
+    if (!allowedFile(req.file.originalname)) return res.status(400).json({ error: 'Invalid file type. Allowed: PDF, DOC, DOCX' });
+    cvFilename = `${Date.now()}_${req.file.originalname}`;
+    const fpath = path.join(UPLOAD_FOLDER, cvFilename);
+    fs.writeFileSync(fpath, req.file.buffer);
+    cvPath = `/uploads/recruitment/${cvFilename}`;
+  }
+
   const [result] = await pool.query(
-    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null]
+    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district,cv_filename,cv_path)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years || null, skills ? JSON.stringify(skills) : null, certifications ? JSON.stringify(certifications) : null,
+     current_salary || null, expected_salary || null, nationality || null, birth_date || null, national_id || null, current_job_title || null, last_work_place || null, reason_leaving || null, governorate || null, city || null, district || null, cvFilename, cvPath]
   );
   await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
     [result.insertId, 'applied', 'Application submitted via candidate portal']);

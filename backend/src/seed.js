@@ -1746,9 +1746,32 @@ async function seed() {
     "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'department_titles' AND COLUMN_NAME = 'preferred_certs'",
     [process.env.DB_NAME]
   );
-  if (prefCertsCol.length === 0) {
+   if (prefCertsCol.length === 0) {
     await pool.query("ALTER TABLE department_titles ADD COLUMN preferred_certs JSON DEFAULT NULL AFTER preferred_skills");
     console.log('Migration: added preferred_certs to department_titles');
+  }
+
+  // --- v58: extended candidate fields (salary, personal info, address) ---
+  const [candCurSalary] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'current_salary'",
+    [process.env.DB_NAME]
+  );
+  if (candCurSalary.length === 0) {
+    await pool.query(
+      `ALTER TABLE recruitment_candidates
+       ADD COLUMN current_salary DECIMAL(12,2) DEFAULT NULL AFTER certifications,
+       ADD COLUMN expected_salary DECIMAL(12,2) DEFAULT NULL AFTER current_salary,
+       ADD COLUMN nationality VARCHAR(100) DEFAULT NULL AFTER expected_salary,
+       ADD COLUMN birth_date DATE DEFAULT NULL AFTER nationality,
+       ADD COLUMN national_id VARCHAR(50) DEFAULT NULL AFTER birth_date,
+       ADD COLUMN current_job_title VARCHAR(255) DEFAULT NULL AFTER national_id,
+       ADD COLUMN last_work_place VARCHAR(255) DEFAULT NULL AFTER current_job_title,
+       ADD COLUMN reason_leaving TEXT DEFAULT NULL AFTER last_work_place,
+       ADD COLUMN governorate VARCHAR(100) DEFAULT NULL AFTER reason_leaving,
+       ADD COLUMN city VARCHAR(100) DEFAULT NULL AFTER governorate,
+       ADD COLUMN district VARCHAR(100) DEFAULT NULL AFTER city`
+    );
+    console.log('Migration: added extended fields (salary, personal info, address) to recruitment_candidates');
   }
 }
 

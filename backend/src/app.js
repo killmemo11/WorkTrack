@@ -25,6 +25,16 @@ const { requireHR } = require('./shared/middleware/hr.middleware');
 const { requireITAuth } = require('./shared/middleware/it-auth.middleware');
 const { requireService } = require('./shared/middleware/service.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
+const multer = require('multer');
+const cvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = require('path').extname(file.originalname).toLowerCase();
+    if (['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'].includes(ext)) return cb(null, true);
+    cb(new Error('Invalid file type. Allowed: PDF, DOC, DOCX, PNG, JPG'));
+  },
+});
 const { adminRouter: recAdminRouter, hrRouter: recHrRouter } = require('./modules/recruitment/recruitment.routes');
 const { publicApply, publicTrack, getActiveJobs, listPublicInterviews, respondToInterview } = require('./modules/recruitment/recruitment.controller');
 const { listSkills, createSkill, updateSkill, deleteSkill, listCertifications, createCertification, updateCertification, deleteCertification } = require('./modules/admin/master-lists.controller');
@@ -264,7 +274,7 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Public recruitment routes
-app.post('/api/apply', publicApply);
+app.post('/api/apply', cvUpload.single('cv'), publicApply);
 app.get('/api/track/:email', publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
 app.get('/api/interviews/:email', listPublicInterviews);

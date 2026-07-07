@@ -40,11 +40,12 @@ export default function PublicApply() {
   const [jobTitle, setJobTitle] = useState('');
   const [technical, setTechnical] = useState(false);
   const [jobMinReqs, setJobMinReqs] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', cover: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', cover: '', current_salary: '', expected_salary: '', nationality: '', birth_date: '', national_id: '', current_job_title: '', last_work_place: '', reason_leaving: '', governorate: '', city: '', district: '' });
   const [educationLevel, setEducationLevel] = useState('');
   const [experienceYears, setExperienceYears] = useState('');
   const [skills, setSkills] = useState([]);
   const [certifications, setCertifications] = useState([]);
+  const [cvFile, setCvFile] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -87,23 +88,42 @@ export default function PublicApply() {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('/api/apply', {
-        ...form,
-        job_id: selectedJobId || null,
-        job_title: jobTitle,
-        technical,
-        source: 'Portal',
-        education_level: educationLevel || null,
-        experience_years: experienceYears || null,
-        skills: skills.length > 0 ? skills : null,
-        certifications: certifications.length > 0 ? certifications : null,
+      const fd = new FormData();
+      fd.append('name', form.name);
+      fd.append('email', form.email);
+      fd.append('phone', form.phone);
+      fd.append('job_id', selectedJobId || '');
+      fd.append('job_title', jobTitle);
+      fd.append('technical', technical ? '1' : '0');
+      fd.append('cover', form.cover);
+      fd.append('source', 'Portal');
+      fd.append('education_level', educationLevel || '');
+      fd.append('experience_years', experienceYears || '');
+      fd.append('current_salary', form.current_salary || '');
+      fd.append('expected_salary', form.expected_salary || '');
+      fd.append('nationality', form.nationality || '');
+      fd.append('birth_date', form.birth_date || '');
+      fd.append('national_id', form.national_id || '');
+      fd.append('current_job_title', form.current_job_title || '');
+      fd.append('last_work_place', form.last_work_place || '');
+      fd.append('reason_leaving', form.reason_leaving || '');
+      fd.append('governorate', form.governorate || '');
+      fd.append('city', form.city || '');
+      fd.append('district', form.district || '');
+      if (skills.length > 0) fd.append('skills', JSON.stringify(skills));
+      if (certifications.length > 0) fd.append('certifications', JSON.stringify(certifications));
+      if (cvFile) fd.append('cv', cvFile);
+
+      const res = await axios.post('/api/apply', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSuccess(res.data);
-      setForm({ name: '', email: '', phone: '', cover: '' });
+      setForm({ name: '', email: '', phone: '', cover: '', current_salary: '', expected_salary: '', nationality: '', birth_date: '', national_id: '', current_job_title: '', last_work_place: '', reason_leaving: '', governorate: '', city: '', district: '' });
       setEducationLevel('');
       setExperienceYears('');
       setSkills([]);
       setCertifications([]);
+      setCvFile(null);
       setSelectedJobId('');
       setJobTitle('');
       setTechnical(false);
@@ -140,7 +160,7 @@ export default function PublicApply() {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', padding: '0 20px' }}>
+    <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 24 }} className="fade-in-up">
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
@@ -210,6 +230,95 @@ export default function PublicApply() {
               <input name="phone" type="tel" className="glass-input" value={form.phone} onChange={handleChange} />
             </div>
 
+            {/* ── CV Upload ── */}
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon icon="lucide:file-text"></Icon> CV / Resume
+              </div>
+              <div className="glass-form-group" style={{ margin: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '12px 16px', border: '2px dashed var(--border-glass)', borderRadius: 'var(--radius-md)', background: 'rgba(24,24,27,0.3)' }}>
+                  <Icon icon="lucide:upload" style={{ fontSize: '1.2rem', color: 'var(--brand-primary)' }}></Icon>
+                  <span style={{ color: cvFile ? 'var(--text-primary)' : 'var(--text-dim)' }}>
+                    {cvFile ? cvFile.name : 'Upload your CV (PDF, DOC, DOCX)'}
+                  </span>
+                  <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style={{ display: 'none' }}
+                    onChange={e => setCvFile(e.target.files[0])} />
+                </label>
+              </div>
+            </div>
+
+            {/* ── Personal Information ── */}
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon icon="lucide:user"></Icon> Personal Information
+              </div>
+              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Nationality</label>
+                  <input name="nationality" className="glass-input" value={form.nationality} onChange={handleChange} />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Birth Date</label>
+                  <input name="birth_date" type="date" className="glass-input" value={form.birth_date} onChange={handleChange} />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">National ID</label>
+                  <input name="national_id" className="glass-input" value={form.national_id} onChange={handleChange} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Address ── */}
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon icon="lucide:map-pin"></Icon> Address
+              </div>
+              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Governorate</label>
+                  <input name="governorate" className="glass-input" value={form.governorate} onChange={handleChange} placeholder="e.g. Cairo" />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">City</label>
+                  <input name="city" className="glass-input" value={form.city} onChange={handleChange} placeholder="e.g. Nasr City" />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">District / Area</label>
+                  <input name="district" className="glass-input" value={form.district} onChange={handleChange} placeholder="e.g. El Nozha" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Current / Last Job ── */}
+            <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon icon="lucide:briefcase"></Icon> Current / Last Job
+              </div>
+              <div className="glass-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Current / Last Job Title</label>
+                  <input name="current_job_title" className="glass-input" value={form.current_job_title} onChange={handleChange} />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Last Work Place (Company)</label>
+                  <input name="last_work_place" className="glass-input" value={form.last_work_place} onChange={handleChange} />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Current Salary (EGP)</label>
+                  <input name="current_salary" type="number" step="0.01" className="glass-input" value={form.current_salary} onChange={handleChange} />
+                </div>
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Expected Salary (EGP)</label>
+                  <input name="expected_salary" type="number" step="0.01" className="glass-input" value={form.expected_salary} onChange={handleChange} />
+                </div>
+              </div>
+              <div className="glass-form-group" style={{ margin: '12px 0 0' }}>
+                <label className="glass-label">Reason for Leaving</label>
+                <textarea name="reason_leaving" className="glass-textarea" rows={2} value={form.reason_leaving} onChange={handleChange} />
+              </div>
+            </div>
+
+            {/* ── Qualifications ── */}
             <div className="glass-card" style={{ background: 'rgba(24,24,27,0.4)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon icon="lucide:award"></Icon> Qualifications
