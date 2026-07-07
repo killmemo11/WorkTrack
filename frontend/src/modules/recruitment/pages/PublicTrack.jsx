@@ -134,7 +134,7 @@ export default function PublicTrack() {
         </div>
       </div>
 
-      {apps && apps.length === 0 && (
+      {apps && apps.data.length === 0 && (
         <div className="glass-card fade-in-up" style={{ marginTop: 16 }}>
           <div className="glass-card-body" style={{ textAlign: 'center', padding: 32 }}>
             <Icon icon="lucide:inbox" style={{ fontSize: '1.6rem', color: 'var(--text-faint)' }}></Icon>
@@ -143,11 +143,11 @@ export default function PublicTrack() {
         </div>
       )}
 
-      {apps && apps.length > 0 && (
+      {apps && apps.data.length > 0 && (
         <div style={{ marginTop: 24 }}>
           <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}>
             <Icon icon="lucide:folder-open" style={{ color: 'var(--brand-primary)' }}></Icon>
-            Your Applications ({apps.length})
+            Your Applications ({apps.data.length})
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
             {apps.data.map(app => (
