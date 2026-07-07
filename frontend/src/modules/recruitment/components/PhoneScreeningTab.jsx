@@ -270,7 +270,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   const lastLog = data?.callLog?.[0];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       {actionMsg && (
         <div style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
           <Icon icon="lucide:info" style={{ color: 'var(--brand-primary)' }} />
