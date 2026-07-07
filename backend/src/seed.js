@@ -1013,7 +1013,7 @@ async function seed() {
   const companyKeys = [
     'company_name', 'company_address', 'company_representative',
     'company_representative_title', 'company_phone', 'company_fax',
-    'company_commercial_register', 'company_tax_card',
+    'company_commercial_register', 'company_tax_card', 'company_location_url',
   ];
   for (const key of companyKeys) {
     const [existing] = await pool.query("SELECT * FROM settings WHERE `key` = ?", [key]);

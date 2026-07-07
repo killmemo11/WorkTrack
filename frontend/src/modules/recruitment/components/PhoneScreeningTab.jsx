@@ -43,6 +43,92 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
+  // Interview scheduling state
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewType, setInterviewType] = useState('online');
+  const [meetingPlatform, setMeetingPlatform] = useState('Google Meet');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [locationAddress, setLocationAddress] = useState('');
+  const [locationUrl, setLocationUrl] = useState('');
+  const [dressCode, setDressCode] = useState('');
+  const [whatToBring, setWhatToBring] = useState('');
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('');
+  const [interviewDuration, setInterviewDuration] = useState(60);
+  const [interviewer, setInterviewer] = useState('');
+  const [interviewNotes, setInterviewNotes] = useState('');
+  const [hrStaff, setHrStaff] = useState([]);
+  const [companyInfo, setCompanyInfo] = useState(null);
+  const [scheduling, setScheduling] = useState(false);
+
+  function generateMeetingLink(platform) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz';
+    if (platform === 'Google Meet') {
+      const rand = (len) => Array.from({ length: len }, () => chars[Math.floor(Math.random() * 26)]).join('');
+      return `https://meet.google.com/${rand(3)}-${rand(4)}-${rand(3)}`;
+    }
+    const hex = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return `https://teams.microsoft.com/l/meetup-join/19:meeting_${hex.replace(/-/g, '')}@thread.v2`;
+  }
+
+  const handleOpenInterviewModal = async () => {
+    setShowInterviewModal(true);
+    setInterviewType('online');
+    setMeetingPlatform('Google Meet');
+    setMeetingLink(generateMeetingLink('Google Meet'));
+    setDressCode(''); setWhatToBring('');
+    setInterviewNotes(''); setInterviewer('');
+    setInterviewDate(''); setInterviewTime('');
+    setInterviewDuration(60);
+    try {
+      const res = await hrApi.get('/recruitment/hr-staff');
+      setHrStaff(res.data);
+    } catch {}
+    try {
+      const res = await hrApi.get('/settings/company');
+      setCompanyInfo(res.data);
+      setLocationName(res.data.company_name || '');
+      setLocationAddress(res.data.company_address || '');
+      setLocationUrl(res.data.company_location_url || '');
+    } catch {}
+  };
+
+  const handleScheduleInterview = async () => {
+    if (!interviewDate || !interviewTime || !interviewer) return;
+    setScheduling(true);
+    try {
+      const dateTime = new Date(`${interviewDate}T${interviewTime}`);
+      const payload = {
+        candidate_id: candidateId,
+        interview_date: dateTime.toISOString(),
+        duration: interviewDuration,
+        type: interviewType,
+        meeting_platform: interviewType === 'online' ? meetingPlatform : '',
+        meeting_link: interviewType === 'online' ? meetingLink : '',
+        location_name: interviewType === 'offline' ? locationName : '',
+        location_address: interviewType === 'offline' ? locationAddress : '',
+        map_link: interviewType === 'offline' ? locationUrl : '',
+        dress_code: interviewType === 'offline' ? dressCode : '',
+        what_to_bring: interviewType === 'offline' ? whatToBring : '',
+        interviewer,
+        notes: interviewNotes,
+      };
+      await hrApi.post('/recruitment/interviews', payload);
+      setActionMsg('Interview scheduled! Candidate moved to First Interview stage. Email sent with calendar invite.');
+      setShowInterviewModal(false);
+      setEvalResult(null);
+      if (onStageChange) onStageChange();
+    } catch (err) {
+      setActionMsg(err.response?.data?.error || 'Failed to schedule interview');
+    } finally {
+      setScheduling(false);
+    }
+  };
+
   const fetchData = useCallback(async () => {
     if (!candidateId) return;
     try {
@@ -237,7 +323,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
           </div>
 
           {evalResult.passed && (
-            <button className="glass-btn glass-btn-success" onClick={() => {/* Schedule interview — use existing interview modal */ }}>
+            <button className="glass-btn glass-btn-success" onClick={handleOpenInterviewModal}>
               <Icon icon="lucide:calendar-plus" /> Schedule First Interview
             </button>
           )}
@@ -429,6 +515,156 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                 <button className="glass-btn glass-btn-sm" onClick={() => setShowLogCall(false)}>Cancel</button>
                 <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleLogCall} disabled={logging}>
                   {logging ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Schedule First Interview Modal */}
+      <AnimatePresence>
+        {showInterviewModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setShowInterviewModal(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="glass-card" style={{ padding: 24, maxWidth: 520, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
+              onClick={e => e.stopPropagation()}>
+              <h4 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon icon="lucide:calendar-plus" /> Schedule First Interview
+              </h4>
+
+              {/* Type toggle */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 4 }}>
+                <button onClick={() => {
+                  setInterviewType('online');
+                  setMeetingLink(generateMeetingLink(meetingPlatform));
+                }} style={{
+                  flex: 1, padding: '8px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                  background: interviewType === 'online' ? 'rgba(99,102,241,0.2)' : 'transparent',
+                  color: interviewType === 'online' ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                  fontWeight: interviewType === 'online' ? 600 : 400,
+                }}>
+                  <Icon icon="lucide:video" style={{ marginRight: 4 }} /> Online
+                </button>
+                <button onClick={() => setInterviewType('offline')} style={{
+                  flex: 1, padding: '8px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                  background: interviewType === 'offline' ? 'rgba(99,102,241,0.2)' : 'transparent',
+                  color: interviewType === 'offline' ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                  fontWeight: interviewType === 'offline' ? 600 : 400,
+                }}>
+                  <Icon icon="lucide:map-pin" style={{ marginRight: 4 }} /> Offline
+                </button>
+              </div>
+
+              {/* Online fields */}
+              {interviewType === 'online' && (
+                <>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">Platform</label>
+                    <select className="glass-select" value={meetingPlatform}
+                      onChange={e => { setMeetingPlatform(e.target.value); setMeetingLink(generateMeetingLink(e.target.value)); }}>
+                      <option value="Google Meet">Google Meet</option>
+                      <option value="Microsoft Teams">Microsoft Teams</option>
+                    </select>
+                  </div>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">
+                      Meeting Link
+                      <button onClick={() => setMeetingLink(generateMeetingLink(meetingPlatform))}
+                        style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>
+                        Regenerate
+                      </button>
+                    </label>
+                    <input className="glass-input" value={meetingLink}
+                      onChange={e => setMeetingLink(e.target.value)} placeholder="https://meet.google.com/..." />
+                  </div>
+                </>
+              )}
+
+              {/* Offline fields */}
+              {interviewType === 'offline' && (
+                <>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">Location Name</label>
+                    <input className="glass-input" value={locationName}
+                      onChange={e => setLocationName(e.target.value)} placeholder="Company HQ" />
+                  </div>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">Address</label>
+                    <textarea className="glass-input" rows={2} value={locationAddress}
+                      onChange={e => setLocationAddress(e.target.value)} style={{ width: '100%', resize: 'vertical' }} />
+                  </div>
+                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                    <label className="glass-label">Location URL (Google Maps)</label>
+                    <input className="glass-input" value={locationUrl}
+                      onChange={e => setLocationUrl(e.target.value)} placeholder="https://maps.google.com/?q=..." />
+                  </div>
+                  <div className="glass-detail-grid" style={{ marginBottom: 12 }}>
+                    <div className="glass-form-group">
+                      <label className="glass-label">Dress Code</label>
+                      <input className="glass-input" value={dressCode}
+                        onChange={e => setDressCode(e.target.value)} placeholder="e.g. Formal" />
+                    </div>
+                    <div className="glass-form-group">
+                      <label className="glass-label">What to Bring</label>
+                      <input className="glass-input" value={whatToBring}
+                        onChange={e => setWhatToBring(e.target.value)} placeholder="e.g. CV, ID" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Common fields */}
+              <div style={{ borderTop: '1px solid var(--border-glass)', margin: '16px 0', paddingTop: 16 }}>
+                <div className="glass-detail-grid" style={{ marginBottom: 12 }}>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Date</label>
+                    <input type="date" className="glass-input" value={interviewDate}
+                      onChange={e => setInterviewDate(e.target.value)} />
+                  </div>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Time</label>
+                    <input type="time" className="glass-input" value={interviewTime}
+                      onChange={e => setInterviewTime(e.target.value)} />
+                  </div>
+                </div>
+                <div className="glass-detail-grid" style={{ marginBottom: 12 }}>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Duration (min)</label>
+                    <select className="glass-select" value={interviewDuration}
+                      onChange={e => setInterviewDuration(parseInt(e.target.value))}>
+                      {[15, 30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
+                    </select>
+                  </div>
+                  <div className="glass-form-group">
+                    <label className="glass-label">Interviewer</label>
+                    <select className="glass-select" value={interviewer}
+                      onChange={e => setInterviewer(e.target.value)}>
+                      <option value="">Select interviewer</option>
+                      {hrStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                  <label className="glass-label">Notes</label>
+                  <textarea className="glass-input" rows={2} value={interviewNotes}
+                    onChange={e => setInterviewNotes(e.target.value)} style={{ width: '100%', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              {/* Info box */}
+              <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <Icon icon="lucide:info" style={{ marginRight: 6 }} />
+                Candidate will be moved to <strong>First Interview</strong> stage and an email with a calendar invite will be sent automatically.
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="glass-btn glass-btn-sm" onClick={() => setShowInterviewModal(false)}>Cancel</button>
+                <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleScheduleInterview}
+                  disabled={scheduling || !interviewDate || !interviewTime || !interviewer}>
+                  {scheduling ? 'Scheduling...' : <><Icon icon="lucide:send" style={{ marginRight: 4 }} /> Schedule & Notify</>}
                 </button>
               </div>
             </motion.div>

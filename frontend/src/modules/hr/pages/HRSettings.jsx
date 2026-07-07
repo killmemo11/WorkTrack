@@ -50,7 +50,7 @@ export default function HRSettings() {
 
   const [company, setCompany] = useState({
     company_name: '', company_address: '', company_representative: '', company_representative_title: '',
-    company_phone: '', company_fax: '', company_commercial_register: '', company_tax_card: '',
+    company_phone: '', company_fax: '', company_commercial_register: '', company_tax_card: '', company_location_url: '',
   });
   const [companySaving, setCompanySaving] = useState(false);
 
@@ -360,6 +360,11 @@ export default function HRSettings() {
                     <label className="glass-label">Company Address</label>
                     <textarea className="glass-textarea" rows={3} value={company.company_address}
                       onChange={e => setCompany({...company, company_address: e.target.value})} placeholder="عنوان الشركة" />
+                  </div>
+                  <div className="glass-form-group" style={{ marginTop: 16 }}>
+                    <label className="glass-label">Location URL (Google Maps link)</label>
+                    <input className="glass-input" value={company.company_location_url}
+                      onChange={e => setCompany({...company, company_location_url: e.target.value})} placeholder="https://maps.google.com/?q=..." />
                   </div>
                   <div style={{ marginTop: 16 }}>
                     <button className="glass-btn glass-btn-primary" disabled={companySaving} onClick={async () => {

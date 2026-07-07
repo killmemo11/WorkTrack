@@ -123,7 +123,7 @@ app.get('/api/hr/settings/work-week', requireHR, async (req, res) => {
 });
 
 app.get('/api/hr/settings/company', requireHR, async (req, res) => {
-  const keys = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card'];
+  const keys = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const placeholders = keys.map(() => '?').join(',');
   const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
   const settings = {};
@@ -132,7 +132,7 @@ app.get('/api/hr/settings/company', requireHR, async (req, res) => {
 });
 
 app.put('/api/hr/settings/company', requireHR, async (req, res) => {
-  const allowed = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card'];
+  const allowed = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const entries = Object.entries(req.body).filter(([key]) => allowed.includes(key));
   if (entries.length > 0) {
     const values = entries.map(() => '(?, ?)').join(',');

@@ -17,6 +17,7 @@ const {
   listOffers, updateOffer,
   listInterviews, createInterview, updateInterview,
   getRecruitmentStats,
+  listHRStaff,
 } = require('./recruitment.controller');
 
 const {
@@ -55,6 +56,7 @@ adminRouter.get('/interviews', listInterviews);
 adminRouter.post('/interviews', createInterview);
 adminRouter.put('/interviews/:id', updateInterview);
 
+adminRouter.get('/hr-staff', listHRStaff);
 adminRouter.post('/upload/cv', memoryUpload.single('file'), uploadCv);
 adminRouter.get('/stats', getRecruitmentStats);
 
@@ -92,6 +94,7 @@ hrRouter.post('/candidates/:id/offer', createOffer);
 hrRouter.post('/candidates/:id/hire', hireCandidate);
 hrRouter.get('/candidates/export', exportCandidates);
 
+hrRouter.get('/hr-staff', listHRStaff);
 hrRouter.post('/upload/cv', memoryUpload.single('file'), uploadCv);
 hrRouter.get('/stats', getRecruitmentStats);
 hrRouter.get('/offers', listOffers);

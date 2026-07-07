@@ -739,21 +739,28 @@ async function createInterview(req, res) {
     ]
   );
 
-  const [[candidate]] = await pool.query('SELECT name, email FROM recruitment_candidates WHERE id = ?', [candidate_id]);
+  // Auto-move candidate to first stage
+  await pool.query("UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?", [candidate_id]);
+  await pool.query(
+    "INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,'first','Interview scheduled — moved to first stage',?)",
+    [candidate_id, req.admin?.username || req.hr?.username || 'HR']
+  );
+
+  const [[candidate]] = await pool.query('SELECT name, email, job_title FROM recruitment_candidates WHERE id = ?', [candidate_id]);
   if (candidate) {
     try {
       const { sendInterviewInvitation } = require('../../shared/services/email.service');
       const interview = {
         interview_date, duration: duration || 60, type: type || 'online',
         location_name, location_address, dress_code, what_to_bring, map_link,
-        meeting_link, interviewer, notes,
-        job_title: req.body.job_title || '',
+        meeting_link: generatedLink, interviewer, notes,
+        job_title: candidate.job_title || req.body.job_title || '',
       };
       await sendInterviewInvitation(candidate.email, candidate.name, interview);
     } catch (e) { console.error('Interview email error:', e); }
   }
 
-  res.status(201).json({ id: result.insertId });
+  res.status(201).json({ id: result.insertId, stage: 'first' });
 }
 
 async function updateInterview(req, res) {
@@ -887,6 +894,20 @@ async function respondToInterview(req, res) {
   res.json({ message: `Interview ${status}` });
 }
 
+// ── HR Staff (for interviewer dropdown) ────────────────────
+async function listHRStaff(req, res) {
+  const [rows] = await pool.query(
+    `SELECT e.id, e.name, e.email
+     FROM employees e
+     LEFT JOIN departments d ON e.department_id = d.id
+     WHERE (e.role = 'admin' OR LOWER(d.name) IN ('hr', 'human resources'))
+     AND (e.is_system IS NULL OR e.is_system = 0)
+     AND e.is_active = 1
+     ORDER BY e.name ASC`
+  );
+  res.json(rows);
+}
+
 module.exports = {
   listJobs, createJob, updateJob, deleteJob,
   listCandidates, getCandidate, createCandidate, updateCandidate, deleteCandidate,
@@ -898,4 +919,5 @@ module.exports = {
   listInterviews, createInterview, updateInterview,
   getRecruitmentStats,
   listPublicInterviews, respondToInterview,
+  listHRStaff,
 };
