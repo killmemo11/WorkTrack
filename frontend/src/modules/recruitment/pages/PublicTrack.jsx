@@ -3,8 +3,13 @@ import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const EDU_LABEL = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree', bachelor: "Bachelor's", master: "Master's", phd: 'PhD' };
-const EXP_LABEL = { '0-1': 'Less than 1 year', '1-2': '1–2 years', '2-3': '2–3 years', '3-5': '3–5 years', '5-7': '5–7 years', '7-10': '7–10 years', '10-15': '10–15 years', '15-20': '15–20 years', '20+': 'More than 20 years' };
+const REJECTION_REASONS = {
+  education_level: 'Your education level does not meet the minimum requirements for this position',
+  experience_years: 'Your years of experience do not meet the minimum requirements for this position',
+  required_skills: 'Some required skills are missing from your profile',
+  required_certs: 'Some required certifications are missing from your profile',
+  expected_salary: 'Your salary expectations exceed the budget for this position',
+};
 
 export default function PublicTrack() {
   const [email, setEmail] = useState('');
@@ -67,17 +72,6 @@ export default function PublicTrack() {
     if (currentIndex === stepIndex) return 'active';
     if (currentStage === 'rejected') return stepIndex <= STEPS.indexOf(currentStage) ? 'rejected' : 'pending';
     return 'pending';
-  };
-
-  const screeningLabel = (status, mostRecCount, total) => {
-    if (status === 'most_recommended') {
-      const pct = total > 0 ? mostRecCount / total : 0;
-      const stars = pct >= 1 ? '👑' : pct >= 0.75 ? '⭐⭐⭐' : pct >= 0.5 ? '⭐⭐' : '⭐';
-      const text = pct >= 1 ? 'SuperStar Candidate' : `${stars} Most Recommended`;
-      return { text, color: pct >= 1 ? 'success' : 'warning', icon: pct >= 1 ? 'lucide:crown' : 'lucide:star' };
-    }
-    if (status === 'recommended') return { text: 'Recommended', color: 'info', icon: 'lucide:thumbs-up' };
-    return { text: 'Not Met', color: 'neutral', icon: 'lucide:minus' };
   };
 
   return (
@@ -209,73 +203,59 @@ export default function PublicTrack() {
                   </div>
                 </div>
 
-                {/* Screening Results */}
-                {app.screening && (
+                {/* Screening + Re-apply */}
+                {app.screening && app.screening.overall_status === 'rejected' && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <Icon icon="lucide:scan-search" style={{ color: 'var(--brand-primary)', fontSize: '1rem' }}></Icon>
-                      <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>Screening Result</span>
-                      <span className={`glass-badge glass-badge-${screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).color}`}>
-                        <Icon icon={screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).icon} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
-                        {screeningLabel(app.screening.overall_status, app.screening.most_recommended_count, app.screening.requirements_total).text}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 8 }}>
-                      {app.screening.superstar ? 'All criteria met at highest level' : `Requirements met: ${app.screening.requirements_met} / ${app.screening.requirements_total}`}
-                    </div>
-                    {app.screening.requirement_results && (
-                      <div style={{ fontSize: '0.8rem' }}>
-                        {app.screening.requirement_results.map((r, i) => {
-                          const labelMap = { education_level: 'Education', experience_years: 'Experience', required_skills: 'Skills', required_certs: 'Certifications', expected_salary: 'Salary' };
-                          const isMet = r.status !== 'rejected';
-                          return (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                              <Icon icon={isMet ? 'lucide:check' : 'lucide:x'} style={{ color: isMet ? 'var(--success)' : 'var(--error)', fontSize: '0.7rem' }}></Icon>
-                              <span style={{ color: 'var(--text-muted)' }}>{labelMap[r.requirement] || r.requirement}:</span>
-                              <span style={{ color: isMet ? 'var(--success)' : 'var(--error)', fontWeight: 500 }}>
-                                {r.requirement === 'education_level' ? EDU_LABEL[r.provided] || r.provided
-                                  : r.requirement === 'experience_years' ? EXP_LABEL[r.provided] || r.provided
-                                  : r.provided}
-                              </span>
-                              {!isMet && r.expected && (
-                                <span style={{ color: 'var(--text-faint)' }}>
-                                  (required: {r.requirement === 'education_level' ? EDU_LABEL[r.expected] || r.expected
-                                    : r.requirement === 'experience_years' ? EXP_LABEL[r.expected] || r.expected
-                                    : r.expected})
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <Icon icon="lucide:x-circle" style={{ color: 'var(--error)', fontSize: '1.1rem', marginTop: 2, flexShrink: 0 }}></Icon>
+                      <div>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.5, margin: 0 }}>
+                          Unfortunately, your application did not meet all the requirements for this position.
+                        </p>
+                        {app.screening.requirement_results && (
+                          <div style={{ marginTop: 8 }}>
+                            {app.screening.requirement_results
+                              .filter(r => r.status === 'rejected')
+                              .map((r, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: '0.82rem' }}>
+                                  <Icon icon="lucide:alert-circle" style={{ color: 'var(--error)', fontSize: '0.75rem', flexShrink: 0 }}></Icon>
+                                  <span style={{ color: 'var(--text-muted)' }}>
+                                    {REJECTION_REASONS[r.requirement] || `Requirement not met: ${r.requirement}`}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                        <Icon icon="lucide:clock" style={{ color: 'var(--warning)', fontSize: '1rem' }}></Icon>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Re-apply Eligibility</span>
+                      </div>
+                      <p style={{ marginTop: 6, fontSize: '0.82rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                        You may re-apply for this or similar positions after <strong style={{ color: 'var(--text-primary)' }}>3 months</strong> from your application date.
+                      </p>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        Re-apply eligible from: <strong>{(() => {
+                          const d = new Date(app.created_at);
+                          d.setMonth(d.getMonth() + 3);
+                          return d.toLocaleDateString();
+                        })()}</strong>
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                {/* Candidate Details */}
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)', display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                  <span><Icon icon="lucide:mail" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.email}</span>
-                  {app.phone && <span><Icon icon="lucide:phone" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.phone}</span>}
-                  <span><Icon icon="lucide:user" style={{ marginRight: 4, fontSize: '0.65rem' }}></Icon>{app.name}</span>
-                </div>
-
-                {/* Re-apply Info for Rejected */}
-                {app.stage === 'rejected' && (
+                {app.screening && app.screening.overall_status && app.screening.overall_status !== 'rejected' && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-glass)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
-                      <Icon icon="lucide:clock" style={{ color: 'var(--warning)', fontSize: '1rem' }}></Icon>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Re-apply Eligibility</span>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', fontSize: '1.1rem', marginTop: 2, flexShrink: 0 }}></Icon>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 1.5, margin: 0 }}>
+                        Your application has passed initial screening.<br />
+                        You are now in the <strong style={{ color: 'var(--text-primary)' }}>phone interview</strong> stage.
+                      </p>
                     </div>
-                    <p style={{ marginTop: 6, fontSize: '0.82rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                      You may re-apply for this or similar positions after <strong style={{ color: 'var(--text-primary)' }}>3 months</strong> from your application date.
-                    </p>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      Re-apply eligible from: <strong>{(() => {
-                        const d = new Date(app.created_at);
-                        d.setMonth(d.getMonth() + 3);
-                        return d.toLocaleDateString();
-                      })()}</strong>
-                    </p>
                   </div>
                 )}
 
