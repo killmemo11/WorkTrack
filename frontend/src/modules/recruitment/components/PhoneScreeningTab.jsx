@@ -99,7 +99,10 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   };
 
   const handleScheduleInterview = async () => {
-    if (!interviewDate || !interviewTime || !interviewer) return;
+    if (!interviewDate || !interviewTime || !interviewer) {
+      setActionMsg('Please fill in date, time, and interviewer');
+      return;
+    }
     setScheduling(true);
     try {
       const dateTime = new Date(`${interviewDate}T${interviewTime}`);
@@ -744,7 +747,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="glass-btn glass-btn-sm" onClick={() => setShowInterviewModal(false)}>Cancel</button>
                 <button className="glass-btn glass-btn-sm glass-btn-primary" onClick={handleScheduleInterview}
-                  disabled={scheduling || !interviewDate || !interviewTime || !interviewer}>
+                  disabled={scheduling}>
                   {scheduling ? 'Scheduling...' : <><Icon icon="lucide:send" style={{ marginRight: 4 }} /> Schedule & Notify</>}
                 </button>
               </div>
