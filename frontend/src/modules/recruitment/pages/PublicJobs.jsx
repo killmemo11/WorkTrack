@@ -111,12 +111,6 @@ export default function PublicJobs() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((job, idx) => {
             const req = job.min_requirements;
-            const allSkills = [
-              ...(req?.required_skills_display || []),
-              ...(req?.preferred_skills_display || []),
-            ];
-            const displayedSkills = allSkills.slice(0, 5);
-            const extraCount = allSkills.length - 5;
 
             return (
               <div key={job.id} className={`glass-panel card-hover fade-in-up`}
@@ -144,23 +138,9 @@ export default function PublicJobs() {
                         )}
                       </p>
                       {job.description && (
-                        <p style={{ margin: '6px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <p style={{ margin: '6px 0 0', color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5 }}>
                           {job.description}
                         </p>
-                      )}
-                      {allSkills.length > 0 && (
-                        <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {displayedSkills.map((skill, si) => (
-                            <span key={si} style={{
-                              padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem',
-                              background: 'rgba(99,102,241,0.1)', color: 'var(--brand-primary)',
-                              border: '1px solid rgba(99,102,241,0.15)',
-                            }}>{skill}</span>
-                          ))}
-                          {extraCount > 0 && (
-                            <span style={{ color: 'var(--text-faint)', fontSize: '0.75rem' }}>+{extraCount} more</span>
-                          )}
-                        </div>
                       )}
                     </div>
                     <button className="glass-btn glass-btn-primary glass-btn-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0, marginTop: 0 }}
