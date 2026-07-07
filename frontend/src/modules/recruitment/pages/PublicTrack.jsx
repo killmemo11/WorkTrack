@@ -159,7 +159,7 @@ export default function PublicTrack() {
                     </h4>
                     <p style={{ margin: '4px 0', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
                       <Icon icon="lucide:calendar" style={{ marginRight: 4, fontSize: '0.7rem' }}></Icon>
-                      Applied: {new Date(app.created_at).toLocaleDateString()}
+                      Applied: {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                       {app.job_id ? ` \u00b7 Job #${app.job_id}` : ''}
                     </p>
                   </div>
@@ -240,7 +240,7 @@ export default function PublicTrack() {
                         Re-apply eligible from: <strong>{(() => {
                           const d = new Date(app.created_at);
                           d.setMonth(d.getMonth() + 3);
-                          return d.toLocaleDateString();
+                          return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                         })()}</strong>
                       </p>
                     </div>
@@ -269,7 +269,7 @@ export default function PublicTrack() {
                       {app.history.map(h => (
                         <div key={h.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.78rem' }}>
                           <span style={{ color: 'var(--text-faint)', whiteSpace: 'nowrap', fontFamily: 'var(--mono)' }}>
-                            {new Date(h.created_at).toLocaleDateString()}
+                            {new Date(h.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </span>
                           <span className={`glass-badge glass-badge-neutral`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>{h.stage}</span>
                           <span style={{ color: 'var(--text-dim)' }}>{h.note || '—'}</span>
