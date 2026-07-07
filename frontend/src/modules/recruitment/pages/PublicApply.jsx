@@ -176,6 +176,21 @@ export default function PublicApply() {
     }
   };
 
+  const Row = ({ label, children }) => (
+    <div style={{ display: 'flex', gap: 8, padding: '3px 0', fontSize: '0.85rem' }}>
+      <span style={{ color: 'var(--text-dim)', minWidth: 80, flexShrink: 0 }}>{label}</span>
+      <span style={{ color: 'var(--text-primary)' }}>{children}</span>
+    </div>
+  );
+  const Section = ({ icon, title, children }) => (
+    <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-glass)' }}>
+      <h4 style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--brand-primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Icon icon={icon} style={{ fontSize: 12 }}></Icon> {title}
+      </h4>
+      {children}
+    </div>
+  );
+
   if (success) {
     return (
       <div style={{ maxWidth: 600, margin: '60px auto', padding: '0 20px', textAlign: 'center' }}>
@@ -443,24 +458,36 @@ export default function PublicApply() {
               <h3 style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon icon="lucide:check-circle" style={{ color: 'var(--brand-primary)' }}></Icon> Review & Submit
               </h3>
-              <div className="glass-card" style={{ background: 'rgba(24,24,27,0.3)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 16 }}>
-                <div className="glass-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Position</span><span className="glass-detail-value">{jobTitle}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Name</span><span className="glass-detail-value">{form.name}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Email</span><span className="glass-detail-value">{form.email}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Phone</span><span className="glass-detail-value">{form.phone || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Nationality</span><span className="glass-detail-value">{form.nationality || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Birth Date</span><span className="glass-detail-value">{form.birth_date || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>National ID</span><span className="glass-detail-value">{form.national_id || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Current Address</span><span className="glass-detail-value">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ') || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Job Title</span><span className="glass-detail-value">{form.current_job_title || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Last Work Place</span><span className="glass-detail-value">{form.last_work_place || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Current Salary</span><span className="glass-detail-value">{form.current_salary ? `EGP ${Number(form.current_salary).toLocaleString()}` : '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Expected Salary</span><span className="glass-detail-value">{form.expected_salary ? `EGP ${Number(form.expected_salary).toLocaleString()}` : '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Education</span><span className="glass-detail-value">{EDU_LEVELS.find(e => e.value === educationLevel)?.label || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>Experience</span><span className="glass-detail-value">{EXP_OPTIONS.find(e => e.value === experienceYears)?.label || '—'}</span></div>
-                  <div className="glass-detail-row" style={{ padding: '6px 0' }}><span className="glass-detail-label" style={{ fontSize: 12 }}>CV</span><span className="glass-detail-value">{cvFile ? cvFile.name : '—'}</span></div>
-                </div>
+              <div className="glass-card" style={{ background: 'rgba(24,24,27,0.3)', borderRadius: 'var(--radius-md)', padding: 20, marginBottom: 16 }}>
+                <Section icon="lucide:briefcase" title="Position & Contact">
+                  <Row label="Position">{jobTitle}</Row>
+                  <Row label="Name">{form.name}</Row>
+                  <Row label="Email">{form.email}</Row>
+                  <Row label="Phone">{form.phone || '—'}</Row>
+                </Section>
+                <Section icon="lucide:user" title="Personal Details">
+                  <Row label="Nationality">{form.nationality}</Row>
+                  <Row label="Birth Date">{form.birth_date}</Row>
+                  <Row label="National ID">{form.national_id}</Row>
+                  <Row label="Address">{[form.governorate, form.city, form.district].filter(Boolean).join(' — ')}</Row>
+                </Section>
+                <Section icon="lucide:dollar-sign" title="Career & Financial">
+                  <Row label="Job Title">{form.current_job_title}</Row>
+                  <Row label="Last Place">{form.last_work_place}</Row>
+                  <Row label="Salary">{form.current_salary ? `EGP ${Number(form.current_salary).toLocaleString()}` : '—'} → {form.expected_salary ? `EGP ${Number(form.expected_salary).toLocaleString()}` : '—'}</Row>
+                  {form.reason_leaving && <Row label="Reason">{form.reason_leaving}</Row>}
+                </Section>
+                <Section icon="lucide:award" title="Qualifications & Docs">
+                  <Row label="Education">{EDU_LEVELS.find(e => e.value === educationLevel)?.label || '—'}</Row>
+                  <Row label="Experience">{EXP_OPTIONS.find(e => e.value === experienceYears)?.label || '—'}</Row>
+                  <Row label="Skills">{skills.length} selected</Row>
+                  <Row label="CV">{cvFile ? cvFile.name : '—'}</Row>
+                </Section>
+                {form.cover && (
+                  <Section icon="lucide:file-text" title="Cover Note">
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>{form.cover}</p>
+                  </Section>
+                )}
               </div>
               {loading ? (
                 <button className="glass-btn glass-btn-primary glass-btn-lg glass-btn-full" disabled style={{ marginTop: 8 }}>
