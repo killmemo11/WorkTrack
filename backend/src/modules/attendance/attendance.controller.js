@@ -117,7 +117,7 @@ async function signOut(req, res) {
   const employeeId = req.employee.id;
 
   const today = getTodayDateString();
-  const { notes } = req.body || {};
+  const { notes, latitude, longitude } = req.body || {};
 
   const [records] = await pool.query(
     'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ? AND sign_out_time IS NULL',
@@ -128,25 +128,53 @@ async function signOut(req, res) {
     return res.status(400).json({ error: 'No active session found. Have you signed in today?' });
   }
 
+  const record = records[0];
+
+  if (record.type === 'office') {
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ error: 'Location is required for office sign-out' });
+    }
+
+    const [settingsRows] = await pool.query(
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('office_lat', 'office_lng', 'office_radius_meters')"
+    );
+    const officeSettings = {};
+    for (const row of settingsRows) officeSettings[row.key] = row.value;
+
+    const olat = parseFloat(officeSettings.office_lat) || 30.0444;
+    const olng = parseFloat(officeSettings.office_lng) || 31.2357;
+    const radius = parseFloat(officeSettings.office_radius_meters) || 200;
+
+    const distance = getDistanceFromLatLonInMeters(latitude, longitude, olat, olng);
+
+    if (distance > radius) {
+      return res.status(403).json({
+        error: `You are outside the office area (${Math.round(distance)}m away, max ${radius}m). Move to the office location to sign out.`,
+        distance: Math.round(distance),
+        maxRadius: radius,
+      });
+    }
+  }
+
   const now = new Date();
   await pool.query(
     'UPDATE attendance_records SET sign_out_time = ?, notes = CONCAT(COALESCE(notes, ""), ?) WHERE id = ?',
     [now, notes ? ` | ${notes}` : '', records[0].id]
   );
 
-  const record = {
-    ...records[0],
+  const responseRecord = {
+    ...record,
     date: records[0].date instanceof Date ? formatDateCairo(records[0].date) : records[0].date,
     sign_out_time: now,
     notes: records[0].notes || notes || '',
   };
 
-  try { await sendSignOutEmail(req.employee, record); } catch (e) { console.error('Email error:', e); }
-  const diffMs = new Date(now) - new Date(record.sign_in_time);
+  try { await sendSignOutEmail(req.employee, responseRecord); } catch (e) { console.error('Email error:', e); }
+  const diffMs = new Date(now) - new Date(responseRecord.sign_in_time);
   const totalHours = (diffMs / (1000 * 60 * 60)).toFixed(1);
   await createNotification(employeeId, 'Sign-Out Successful', `You signed out at ${new Date(now).toLocaleTimeString()}. Total: ${totalHours}h.`, 'success');
 
-  res.json(record);
+  res.json(responseRecord);
 }
 
 async function status(req, res) {

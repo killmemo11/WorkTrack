@@ -179,14 +179,40 @@ export default function Dashboard() {
     }
   };
 
-  const signOut = async () => {
+  const signOutWithLocation = async () => {
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError('');
     try {
-      await api.post('/attendance/sign-out', { notes });
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 30000, maximumAge: 60000 });
+      });
+
+      await api.post('/attendance/sign-out', {
+        notes,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
       await fetchData();
       setNotes('');
       setSignError('');
+      setGpsError('');
     } catch (err) {
-      setSignError(err.response?.data?.error || 'Failed to sign out');
+      const data = err.response?.data;
+      if (data?.distance) {
+        setGpsError(`You are ${data.distance}m away from the office (max ${data.maxRadius}m). Move closer to sign out.`);
+      } else if (err.code === 1) {
+        setGpsError('Location access denied. Please enable GPS to sign out.');
+      } else if (err.code === 2 || err.code === 3) {
+        setGpsError('Could not get your location. Please try again or move to an open area.');
+      } else {
+        setSignError(data?.error || 'Failed to sign out');
+      }
+    } finally {
+      setGpsLoading(false);
     }
   };
 
@@ -358,6 +384,7 @@ export default function Dashboard() {
             ) : !status?.signedOut ? (
               <div className="status-active">
                 {signError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}><Icon icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {signError}</div>}
+                {gpsError && <div className="glass-alert glass-alert-danger" style={{ marginBottom: 16 }}><Icon icon="lucide:alert-triangle" style={{ marginRight: 6 }} /> {gpsError}</div>}
                 <div className="status-icon-badge status-active-badge">
                   <Icon icon="lucide:check-circle" style={{ fontSize: 28 }} />
                 </div>
@@ -379,17 +406,8 @@ export default function Dashboard() {
                   />
                   <div className="signout-footer">
                     <span className="char-count">{notes.length}/500</span>
-                    <button onClick={async () => {
-                      try {
-                        await api.post('/attendance/sign-out', { notes });
-                        await fetchData();
-                        setNotes('');
-                        setSignError('');
-                      } catch (err) {
-                        setSignError(err.response?.data?.error || 'Failed to sign out');
-                      }
-                    }} className="glass-btn glass-btn-danger glass-btn-lg">
-                      Sign Out
+                    <button onClick={signOutWithLocation} disabled={gpsLoading} className="glass-btn glass-btn-danger glass-btn-lg">
+                      {gpsLoading ? 'Getting location...' : 'Sign Out'}
                     </button>
                   </div>
                 </div>
