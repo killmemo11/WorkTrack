@@ -2243,64 +2243,69 @@ async function seed() {
       [wtId]
     );
 
-    // ── Seed: is_archived on candidates & jobs ──────────────────
-    const [archCandCol] = await pool.query(
-      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'is_archived'",
-      [process.env.DB_NAME]
-    );
-    if (archCandCol.length === 0) {
-      await pool.query("ALTER TABLE recruitment_candidates ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER stage");
-      await pool.query("ALTER TABLE recruitment_candidates ADD INDEX idx_rc_archived (is_archived)");
-    }
-
-    const [archJobCol] = await pool.query(
-      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'is_archived'",
-      [process.env.DB_NAME]
-    );
-    if (archJobCol.length === 0) {
-      await pool.query("ALTER TABLE recruitment_jobs ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER status");
-      await pool.query("ALTER TABLE recruitment_jobs ADD INDEX idx_rj_archived (is_archived)");
-    }
-
-    // ── Seed: workflow_template_id on jobs ──────────────────────
-    const [rjWfCol] = await pool.query(
-      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'workflow_template_id'",
-      [process.env.DB_NAME]
-    );
-    if (rjWfCol.length === 0) {
-      await pool.query(
-        "ALTER TABLE recruitment_jobs ADD COLUMN workflow_template_id INT DEFAULT NULL AFTER headcount_request_id, ADD FOREIGN KEY (workflow_template_id) REFERENCES workflow_templates(id) ON DELETE SET NULL"
-      );
-      await pool.query("UPDATE recruitment_jobs SET workflow_template_id = ? WHERE workflow_template_id IS NULL", [wtId]);
-    }
-
-    // ── Seed: composite index on recruitment_history ────────────
-    const [rhIdx] = await pool.query(
-      "SELECT * FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_history' AND INDEX_NAME = 'idx_rh_candidate_created'",
-      [process.env.DB_NAME]
-    );
-    if (rhIdx.length === 0) {
-      await pool.query("CREATE INDEX idx_rh_candidate_created ON recruitment_history(candidate_id, created_at)");
-    }
-
-    // ── Phase 5: Workflow versioning columns ───────────────────
-    const [wtVerCol] = await pool.query(
-      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'workflow_templates' AND COLUMN_NAME = 'version'",
-      [process.env.DB_NAME]
-    );
-    if (wtVerCol.length === 0) {
-      await pool.query("ALTER TABLE workflow_templates ADD COLUMN version INT DEFAULT 1 AFTER description");
-    }
-
-    const [cwsVerCol] = await pool.query(
-      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'candidate_workflow_state' AND COLUMN_NAME = 'template_version'",
-      [process.env.DB_NAME]
-    );
-    if (cwsVerCol.length === 0) {
-      await pool.query("ALTER TABLE candidate_workflow_state ADD COLUMN template_version INT DEFAULT 1 AFTER workflow_template_id");
-    }
-
     console.log('Phase 1: Created 11 workflow tables with seeds');
+  }
+
+  // ── Always-run migrations (independent of deptTable check) ──────
+
+  // ── is_archived on candidates & jobs ──────────────────────────
+  const [archCandCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'is_archived'",
+    [process.env.DB_NAME]
+  );
+  if (archCandCol.length === 0) {
+    await pool.query("ALTER TABLE recruitment_candidates ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER stage");
+    await pool.query("ALTER TABLE recruitment_candidates ADD INDEX idx_rc_archived (is_archived)");
+  }
+
+  const [archJobCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'is_archived'",
+    [process.env.DB_NAME]
+  );
+  if (archJobCol.length === 0) {
+    await pool.query("ALTER TABLE recruitment_jobs ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER status");
+    await pool.query("ALTER TABLE recruitment_jobs ADD INDEX idx_rj_archived (is_archived)");
+  }
+
+  // ── workflow_template_id on jobs ──────────────────────────────
+  const [rjWfCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'workflow_template_id'",
+    [process.env.DB_NAME]
+  );
+  if (rjWfCol.length === 0) {
+    await pool.query(
+      "ALTER TABLE recruitment_jobs ADD COLUMN workflow_template_id INT DEFAULT NULL AFTER headcount_request_id, ADD FOREIGN KEY (workflow_template_id) REFERENCES workflow_templates(id) ON DELETE SET NULL"
+    );
+    const [[defaultWf]] = await pool.query('SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1');
+    if (defaultWf) {
+      await pool.query("UPDATE recruitment_jobs SET workflow_template_id = ? WHERE workflow_template_id IS NULL", [defaultWf.id]);
+    }
+  }
+
+  // ── Composite index on recruitment_history ────────────────────
+  const [rhIdx] = await pool.query(
+    "SELECT * FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_history' AND INDEX_NAME = 'idx_rh_candidate_created'",
+    [process.env.DB_NAME]
+  );
+  if (rhIdx.length === 0) {
+    await pool.query("CREATE INDEX idx_rh_candidate_created ON recruitment_history(candidate_id, created_at)");
+  }
+
+  // ── Phase 5: Workflow versioning columns ─────────────────────
+  const [wtVerCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'workflow_templates' AND COLUMN_NAME = 'version'",
+    [process.env.DB_NAME]
+  );
+  if (wtVerCol.length === 0) {
+    await pool.query("ALTER TABLE workflow_templates ADD COLUMN version INT DEFAULT 1 AFTER description");
+  }
+
+  const [cwsVerCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'candidate_workflow_state' AND COLUMN_NAME = 'template_version'",
+    [process.env.DB_NAME]
+  );
+  if (cwsVerCol.length === 0) {
+    await pool.query("ALTER TABLE candidate_workflow_state ADD COLUMN template_version INT DEFAULT 1 AFTER workflow_template_id");
   }
 };
 
