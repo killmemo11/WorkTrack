@@ -2249,7 +2249,8 @@ async function seed() {
       [process.env.DB_NAME]
     );
     if (archCandCol.length === 0) {
-      await pool.query("ALTER TABLE recruitment_candidates ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER stage, INDEX idx_rc_archived (is_archived)");
+      await pool.query("ALTER TABLE recruitment_candidates ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER stage");
+      await pool.query("ALTER TABLE recruitment_candidates ADD INDEX idx_rc_archived (is_archived)");
     }
 
     const [archJobCol] = await pool.query(
@@ -2257,7 +2258,8 @@ async function seed() {
       [process.env.DB_NAME]
     );
     if (archJobCol.length === 0) {
-      await pool.query("ALTER TABLE recruitment_jobs ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER status, INDEX idx_rj_archived (is_archived)");
+      await pool.query("ALTER TABLE recruitment_jobs ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER status");
+      await pool.query("ALTER TABLE recruitment_jobs ADD INDEX idx_rj_archived (is_archived)");
     }
 
     // ── Seed: workflow_template_id on jobs ──────────────────────
