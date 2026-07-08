@@ -196,7 +196,7 @@ export default function Requests() {
                       const rejectionReason = getRejectionReason(r.id);
                       return (
                         <tr key={r.id}>
-                          <td>{r.date}</td>
+                          <td>{formatDate(r.date)}</td>
                           <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
                           <td>{diff}h</td>
                           <td>
