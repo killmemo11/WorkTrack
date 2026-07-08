@@ -908,6 +908,18 @@ async function listHRStaff(req, res) {
   res.json(rows);
 }
 
+async function getMeetingStatus(req, res) {
+  const [rows] = await pool.query(
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('meeting_google_service_email','meeting_google_private_key','meeting_teams_tenant_id','meeting_teams_client_id','meeting_teams_client_secret')"
+  );
+  const s = {};
+  for (const r of rows) s[r.key] = r.value;
+  res.json({
+    google: !!(s.meeting_google_service_email && s.meeting_google_private_key),
+    teams: !!(s.meeting_teams_tenant_id && s.meeting_teams_client_id && s.meeting_teams_client_secret),
+  });
+}
+
 module.exports = {
   listJobs, createJob, updateJob, deleteJob,
   listCandidates, getCandidate, createCandidate, updateCandidate, deleteCandidate,
@@ -919,5 +931,5 @@ module.exports = {
   listInterviews, createInterview, updateInterview,
   getRecruitmentStats,
   listPublicInterviews, respondToInterview,
-  listHRStaff,
+  listHRStaff, getMeetingStatus,
 };

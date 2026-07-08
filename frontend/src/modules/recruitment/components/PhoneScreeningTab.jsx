@@ -61,6 +61,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
   const [interviewNotes, setInterviewNotes] = useState('');
   const [hrStaff, setHrStaff] = useState([]);
   const [companyInfo, setCompanyInfo] = useState(null);
+  const [meetingStatus, setMeetingStatus] = useState(null);
   const [scheduling, setScheduling] = useState(false);
   const [scheduleError, setScheduleError] = useState('');
 
@@ -81,15 +82,20 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
     setShowInterviewModal(true);
     setInterviewType('online');
     setMeetingPlatform('Google Meet');
-    setMeetingLink(generateMeetingLink('Google Meet'));
+    setMeetingLink('');
     setDressCode(''); setWhatToBring('');
     setInterviewNotes(''); setInterviewer('');
     setInterviewDate(''); setInterviewTime('');
     setInterviewDuration(60);
     setScheduleError('');
+    setMeetingStatus(null);
     try {
-      const res = await hrApi.get('/recruitment/hr-staff');
-      setHrStaff(res.data);
+      const [staffRes, companyRes] = await Promise.all([
+        hrApi.get('/recruitment/hr-staff'),
+        hrApi.get('/recruitment/meeting-status'),
+      ]);
+      setHrStaff(staffRes.data);
+      setMeetingStatus(companyRes.data);
     } catch {}
     try {
       const res = await hrApi.get('/settings/company');
@@ -105,6 +111,20 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       setScheduleError('Please fill in date, time, and interviewer');
       return;
     }
+
+    const meetingConfigured = meetingPlatform === 'Google Meet'
+      ? meetingStatus?.google : meetingStatus?.teams;
+
+    if (interviewType === 'online' && !meetingLink && !meetingConfigured) {
+      setScheduleError('No meeting link provided. Configure Google/Teams integration in Admin → Settings → Meeting Integrations, or enter a link manually.');
+      return;
+    }
+
+    if (interviewType === 'offline' && (!locationName || !locationAddress)) {
+      setScheduleError('Company location not configured. Fill in location details or configure in HR Settings.');
+      return;
+    }
+
     setScheduleError('');
     setScheduling(true);
     try {
@@ -627,10 +647,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
 
               {/* Type toggle */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 4 }}>
-                <button onClick={() => {
-                  setInterviewType('online');
-                  setMeetingLink(generateMeetingLink(meetingPlatform));
-                }} style={{
+                <button onClick={() => { setInterviewType('online'); setMeetingLink(''); }} style={{
                   flex: 1, padding: '8px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
                   background: interviewType === 'online' ? 'rgba(99,102,241,0.2)' : 'transparent',
                   color: interviewType === 'online' ? 'var(--brand-primary)' : 'var(--text-secondary)',
@@ -654,22 +671,43 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                   <div className="glass-form-group" style={{ marginBottom: 12 }}>
                     <label className="glass-label">Platform</label>
                     <select className="glass-select" value={meetingPlatform}
-                      onChange={e => { setMeetingPlatform(e.target.value); setMeetingLink(generateMeetingLink(e.target.value)); }}>
+                      onChange={e => { setMeetingPlatform(e.target.value); setMeetingLink(''); }}>
                       <option value="Google Meet">Google Meet</option>
                       <option value="Microsoft Teams">Microsoft Teams</option>
                     </select>
                   </div>
-                  <div className="glass-form-group" style={{ marginBottom: 12 }}>
-                    <label className="glass-label">
-                      Meeting Link
-                      <button onClick={() => setMeetingLink(generateMeetingLink(meetingPlatform))}
-                        style={{ marginLeft: 8, background: 'none', border: 'none', color: 'var(--brand-primary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>
-                        Regenerate
-                      </button>
-                    </label>
-                    <input className="glass-input" value={meetingLink}
-                      onChange={e => setMeetingLink(e.target.value)} placeholder="https://meet.google.com/..." />
-                  </div>
+                  {(() => {
+                    const configured = meetingPlatform === 'Google Meet' ? meetingStatus?.google : meetingStatus?.teams;
+                    if (configured) {
+                      return (
+                        <div style={{
+                          background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+                          borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.85rem',
+                          display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)'
+                        }}>
+                          <Icon icon="lucide:check-circle" />
+                          Meeting link will be auto-generated using {meetingPlatform} integration.
+                        </div>
+                      );
+                    }
+                    return (
+                      <>
+                        <div className="glass-form-group" style={{ marginBottom: 12 }}>
+                          <label className="glass-label">Meeting Link</label>
+                          <input className="glass-input" value={meetingLink}
+                            onChange={e => setMeetingLink(e.target.value)} placeholder="Enter meeting link..." />
+                        </div>
+                        <div style={{
+                          background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+                          borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.85rem',
+                          display: 'flex', alignItems: 'center', gap: 8, color: 'var(--warning)'
+                        }}>
+                          <Icon icon="lucide:alert-triangle" />
+                          No {meetingPlatform} integration configured. Enter a manual link or configure in Admin → Settings → Meeting Integrations.
+                        </div>
+                      </>
+                    );
+                  })()}
                 </>
               )}
 
