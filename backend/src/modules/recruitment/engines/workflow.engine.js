@@ -120,7 +120,29 @@ async function transition(candidateId, toStageKey, options = {}) {
 
   fireAsyncAutomation(candidateId, 'stage_transition', { to_stage: toStageKey, workflow_stage_id: toStage.id });
 
+  // Auto-trigger CV screening when candidate enters screening stage
+  if (toStageKey === 'screening') {
+    fireAsyncScreening(candidateId);
+  }
+
   return getCandidateState(candidateId);
+}
+
+async function fireAsyncScreening(candidateId) {
+  setImmediate(async () => {
+    try {
+      const [cands] = await pool.query('SELECT job_id FROM recruitment_candidates WHERE id = ?', [candidateId]);
+      if (!cands.length) return;
+      const jobId = cands[0].job_id;
+      if (!jobId) return;
+      const [[job]] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [jobId]);
+      if (!job || !job.title_id) return;
+      const { autoScreen } = require('../../shared/services/screening.service');
+      await autoScreen(candidateId, job.title_id, jobId);
+    } catch (e) {
+      console.error('Auto-screening error:', e);
+    }
+  });
 }
 
 function fireAsyncAutomation(candidateId, eventType, eventData) {

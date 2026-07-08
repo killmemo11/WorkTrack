@@ -20,7 +20,7 @@ const cardAnim = {
   animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } },
 };
 
-const LEGACY_STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+const UNIVERSAL_STAGES = ['rejected'];
 
 const EDU_LEVELS = [
   { value: '', label: '— Select —' },
@@ -200,17 +200,23 @@ export default function Candidates() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const allStages = [...new Set([...LEGACY_STAGES, ...workflowStages.map(ws => ws.stage_key)])];
+  const allStages = [...new Set([...workflowStages.map(ws => ws.stage_key), ...UNIVERSAL_STAGES])];
   const stageKeyToName = {};
   workflowStages.forEach(ws => { stageKeyToName[ws.stage_key] = ws.display_name; });
+  UNIVERSAL_STAGES.forEach(s => { if (!stageKeyToName[s]) stageKeyToName[s] = s.charAt(0).toUpperCase() + s.slice(1); });
 
   const stageBadge = (stage) => {
-    const colors = { applied: 'neutral', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
+    const palette = ['neutral', 'info', 'primary', 'warning', 'danger', 'success'];
+    const colors = { applied: 'neutral', offer: 'success', hired: 'success', rejected: 'danger' };
     const label = stageKeyToName[stage] || stage;
-    return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{label}</span>;
+    return <span className={`glass-badge glass-badge-${colors[stage] || palette[stage.length % palette.length]}`}>{label}</span>;
   };
 
-  const stageColors = { applied: 'rgba(255,255,255,0.06)', phone: 'rgba(59,130,246,0.12)', first: 'rgba(99,102,241,0.12)', second: 'rgba(245,158,11,0.12)', third: 'rgba(239,68,68,0.12)', offer: 'rgba(34,197,94,0.12)', hired: 'rgba(34,197,94,0.18)', rejected: 'rgba(239,68,68,0.12)' };
+  const palette = ['rgba(255,255,255,0.06)', 'rgba(59,130,246,0.12)', 'rgba(99,102,241,0.12)', 'rgba(245,158,11,0.12)', 'rgba(239,68,68,0.12)', 'rgba(34,197,94,0.12)'];
+  const stageColors = {};
+  allStages.forEach(s => { stageColors[s] = palette[s.length % palette.length]; });
+  stageColors.hired = 'rgba(34,197,94,0.18)';
+  stageColors.rejected = 'rgba(239,68,68,0.12)';
   const displayStages = allStages;
 
   if (loading && !boardView) return (
@@ -297,7 +303,7 @@ export default function Candidates() {
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Icon icon="lucide:folder" style={{ opacity: 0.5 }}></Icon>
-                      {stage}
+                      {stageKeyToName[stage] || stage}
                     </span>
                     <span style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 10, padding: '0 8px', fontSize: '0.75rem' }}>{items.length}</span>
                   </div>

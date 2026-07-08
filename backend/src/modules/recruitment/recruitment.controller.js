@@ -212,20 +212,19 @@ async function createCandidate(req, res) {
   const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [result.insertId]);
 
   try {
-    const { autoScreen } = require('../../shared/services/screening.service');
     if (job_id) {
       const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
-      if (jobs.length > 0 && jobs[0].title_id) {
-        await autoScreen(result.insertId, jobs[0].title_id, job_id);
-      }
-      // Initialize workflow state if job has a workflow template
       if (jobs.length > 0 && jobs[0].workflow_template_id) {
-        const { initCandidateState, publishEvent } = require('./engines/workflow.engine');
+        const { initCandidateState, publishEvent, transition } = require('./engines/workflow.engine');
         await initCandidateState(result.insertId, jobs[0].workflow_template_id);
         await publishEvent(result.insertId, 'candidate_created', {
           stage: stage || 'applied',
           created_by: req.admin?.username || req.hr?.username || 'HR',
         }, null, req.admin?.username || req.hr?.username || 'HR');
+        // Move to screening stage (auto-screening will fire asynchronously)
+        if (jobs[0].title_id) {
+          await transition(result.insertId, 'screening', { note: 'New candidate — entering screening', createdBy: 'system' });
+        }
       }
     }
   } catch (e) { console.error('Auto-screening error:', e); }
@@ -451,13 +450,8 @@ async function publicApply(req, res) {
     [result.insertId, 'applied', 'Application submitted via candidate portal']);
 
   try {
-    const { autoScreen } = require('../../shared/services/screening.service');
     if (job_id) {
       const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
-      if (jobs.length > 0 && jobs[0].title_id) {
-        await autoScreen(result.insertId, jobs[0].title_id, job_id);
-      }
-      // Initialize workflow state if job has a workflow template
       if (jobs.length > 0 && jobs[0].workflow_template_id) {
         const { initCandidateState, publishEvent } = require('./engines/workflow.engine');
         await initCandidateState(result.insertId, jobs[0].workflow_template_id);
@@ -465,6 +459,10 @@ async function publicApply(req, res) {
           stage: 'applied',
           source: 'Portal',
         }, null, 'portal');
+      }
+      if (jobs.length > 0 && jobs[0].title_id) {
+        const { autoScreen } = require('../../shared/services/screening.service');
+        await autoScreen(result.insertId, jobs[0].title_id, job_id);
       }
     }
   } catch (e) { console.error('Auto-screening error:', e); }
@@ -922,18 +920,12 @@ async function updateInterview(req, res) {
 
 // ── Reports ────────────────────────────────────────────────────
 async function getRecruitmentStats(req, res) {
-  const [[stageCounts]] = await pool.query(
-    `SELECT
-       COUNT(*) AS total,
-       SUM(stage='applied') AS applied,
-       SUM(stage='phone') AS phone,
-       SUM(stage='first') AS first,
-       SUM(stage='second') AS second,
-       SUM(stage='third') AS third,
-       SUM(stage='offer') AS offer,
-       SUM(stage='hired') AS hired,
-       SUM(stage='rejected') AS rejected
-     FROM recruitment_candidates`
+  const [[totalCount]] = await pool.query(
+    'SELECT COUNT(*) AS total FROM recruitment_candidates'
+  );
+
+  const [stageCounts] = await pool.query(
+    'SELECT stage, COUNT(*) AS count FROM recruitment_candidates GROUP BY stage'
   );
 
   const [[offerStats]] = await pool.query(
@@ -982,8 +974,16 @@ async function getRecruitmentStats(req, res) {
      ORDER BY ws.stage_order`
   );
 
+  const hiredCount = stageCounts.find(s => s.stage === 'hired')?.count || 0;
+  const rejectedCount = stageCounts.find(s => s.stage === 'rejected')?.count || 0;
+
   res.json({
-    candidates: stageCounts,
+    candidates: {
+      total: totalCount.total,
+      stage_counts: stageCounts,
+      hired: hiredCount,
+      rejected: rejectedCount,
+    },
     offers: offerStats,
     jobs: jobStats,
     monthly_applications: monthlyApps,

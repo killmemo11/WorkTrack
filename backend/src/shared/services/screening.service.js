@@ -25,7 +25,8 @@ function statusFor(comparison) {
   return 'most_recommended';
 }
 
-async function autoScreen(candidateId, titleId, jobId) {
+async function autoScreen(candidateId, titleId, jobId, options = {}) {
+  const { useWorkflowTransitions = true } = options;
   const [titles] = await pool.query(
     `SELECT min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs, grade_id
      FROM department_titles WHERE id = ?`, [titleId]
@@ -137,14 +138,27 @@ async function autoScreen(candidateId, titleId, jobId) {
     [candidateId, titleId, jobId || null, simpleStatus, overallStatus, reqsMet, reqsTotal, JSON.stringify(reqResults), JSON.stringify(reqResults), mostRecCount, isSuperstar ? 1 : 0]
   );
 
-  if (overallStatus === 'rejected') {
-    await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['rejected', candidateId]);
-    await pool.query(
-      'INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)',
-      [candidateId, 'rejected', 'Application did not meet minimum requirements']
-    );
-  } else if (reqsMet > 0) {
-    await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['phone', candidateId]);
+  if (useWorkflowTransitions) {
+    const { getCandidateState, transition } = require('../../modules/recruitment/engines/workflow.engine');
+    const state = await getCandidateState(candidateId);
+    if (state) {
+      if (overallStatus === 'rejected') {
+        await transition(candidateId, 'rejected', { note: 'Application did not meet minimum requirements', createdBy: 'system' });
+      } else if (reqsMet > 0) {
+        await transition(candidateId, 'phone_screening', { note: 'Auto-screened — passed minimum requirements', createdBy: 'system' });
+      }
+    }
+  } else {
+    // Legacy fallback for candidates without workflow state
+    if (overallStatus === 'rejected') {
+      await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['rejected', candidateId]);
+      await pool.query(
+        'INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)',
+        [candidateId, 'rejected', 'Application did not meet minimum requirements']
+      );
+    } else if (reqsMet > 0) {
+      await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', ['phone', candidateId]);
+    }
   }
 
   return { status: overallStatus, details: reqResults, met: reqsMet, total: reqsTotal, most_recommended_count: mostRecCount, superstar: isSuperstar };

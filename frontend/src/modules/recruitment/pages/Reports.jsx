@@ -36,16 +36,16 @@ export default function RecruitmentReports() {
     </div>
   );
 
-  const stageData = [
-    { name: 'Applied', value: Number(stats.candidates.applied || 0) },
-    { name: 'Phone', value: Number(stats.candidates.phone || 0) },
-    { name: '1st Interview', value: Number(stats.candidates.first || 0) },
-    { name: '2nd Interview', value: Number(stats.candidates.second || 0) },
-    { name: '3rd Interview', value: Number(stats.candidates.third || 0) },
-    { name: 'Offer', value: Number(stats.candidates.offer || 0) },
-    { name: 'Hired', value: Number(stats.candidates.hired || 0) },
-    { name: 'Rejected', value: Number(stats.candidates.rejected || 0) },
-  ];
+  const stageKeyToName = {
+    applied: 'Applied', screening: 'CV Screening', phone_screening: 'Phone Screening',
+    hr_interview: 'HR Interview', technical_interview: 'Technical Interview',
+    ceo_interview: 'CEO Interview', offer: 'Offer', hired: 'Hired', rejected: 'Rejected',
+    phone: 'Phone', first: '1st Interview', second: '2nd Interview', third: '3rd Interview',
+  };
+  const stageData = (stats.candidates.stage_counts || []).map(s => ({
+    name: stageKeyToName[s.stage] || s.stage,
+    value: Number(s.count),
+  }));
 
   const offerData = [
     { name: 'Sent', value: Number(stats.offers.sent || 0) },

@@ -2217,7 +2217,7 @@ async function seed() {
 
     const defaultStages = [
       { key: 'applied',            name: 'Application Received',     type: 'check',     role: null,       order: 1, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
-      { key: 'screening',          name: 'CV Screening',             type: 'check',     role: 'hr',        order: 2, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
+      { key: 'screening',          name: 'CV Screening',             type: 'check',     role: 'hr',        order: 2, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 1 },
       { key: 'phone_screening',    name: 'Phone Screening',          type: 'interview', role: 'hr',        order: 3, confirm: 1, attend: 0, eval: 1, optional: 0, skip: 0, auto: 0 },
       { key: 'hr_interview',       name: 'HR Interview',             type: 'interview', role: 'hr',        order: 4, confirm: 1, attend: 1, eval: 1, optional: 0, skip: 0, auto: 0 },
       { key: 'technical_interview',name: 'Technical Interview',      type: 'interview', role: 'technical', order: 5, confirm: 1, attend: 1, eval: 1, optional: 0, skip: 0, auto: 0 },
