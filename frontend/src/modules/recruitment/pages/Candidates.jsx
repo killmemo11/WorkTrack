@@ -20,7 +20,7 @@ const cardAnim = {
   animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 20 } },
 };
 
-const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+const LEGACY_STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
 const EDU_LEVELS = [
   { value: '', label: '— Select —' },
@@ -63,6 +63,7 @@ export default function Candidates() {
   const [hireResult, setHireResult] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [message, setMessage] = useState('');
+  const [workflowStages, setWorkflowStages] = useState([]);
   const [form, setForm] = useState({ name: '', email: '', phone: '', job_title: '', stage: 'applied', technical: false, notes: '', source: 'Manual', education_level: '', experience_years: '', skills: [], certifications: [] });
   const [boardView, setBoardView] = useState(false);
   const [boardCandidates, setBoardCandidates] = useState([]);
@@ -88,6 +89,10 @@ export default function Candidates() {
   };
 
   useEffect(() => { fetchCandidates(1); }, [stageFilter]);
+
+  useEffect(() => {
+    hrApi.get('/recruitment/workflow-stages').then(r => setWorkflowStages(r.data)).catch(() => {});
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -195,13 +200,18 @@ export default function Candidates() {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const allStages = [...new Set([...LEGACY_STAGES, ...workflowStages.map(ws => ws.stage_key)])];
+  const stageKeyToName = {};
+  workflowStages.forEach(ws => { stageKeyToName[ws.stage_key] = ws.display_name; });
+
   const stageBadge = (stage) => {
     const colors = { applied: 'neutral', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
-    return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{stage}</span>;
+    const label = stageKeyToName[stage] || stage;
+    return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{label}</span>;
   };
 
   const stageColors = { applied: 'rgba(255,255,255,0.06)', phone: 'rgba(59,130,246,0.12)', first: 'rgba(99,102,241,0.12)', second: 'rgba(245,158,11,0.12)', third: 'rgba(239,68,68,0.12)', offer: 'rgba(34,197,94,0.12)', hired: 'rgba(34,197,94,0.18)', rejected: 'rgba(239,68,68,0.12)' };
-  const displayStages = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+  const displayStages = allStages;
 
   if (loading && !boardView) return (
     <div className="glass-loading">
@@ -254,8 +264,8 @@ export default function Candidates() {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <div className="glass-tabs">
           <button className={`glass-tab ${stageFilter === 'all' ? 'active' : ''}`} onClick={() => setStageFilter('all')}>All</button>
-          {STAGES.map(s => (
-            <button key={s} className={`glass-tab ${stageFilter === s ? 'active' : ''}`} onClick={() => setStageFilter(s)}>{s}</button>
+          {allStages.map(s => (
+            <button key={s} className={`glass-tab ${stageFilter === s ? 'active' : ''}`} onClick={() => setStageFilter(s)}>{stageKeyToName[s] || s}</button>
           ))}
         </div>
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
@@ -370,9 +380,9 @@ export default function Candidates() {
                 <td><span className="glass-badge glass-badge-neutral">{c.score_comm || 0}/{c.score_tech || 0}/{c.score_fit || 0}</span></td>
                 <td>
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    <select className="glass-select glass-select" style={{ width: 120, display: 'inline-block', padding: '4px 10px', fontSize: '0.75rem' }} value="" onChange={e => { if (e.target.value) setMoveTarget({ id: c.id, stage: e.target.value }); }}>
+                    <select className="glass-select glass-select" style={{ width: 140, display: 'inline-block', padding: '4px 10px', fontSize: '0.75rem' }} value="" onChange={e => { if (e.target.value) setMoveTarget({ id: c.id, stage: e.target.value }); }}>
                       <option value="">Move to...</option>
-                      {STAGES.filter(s => s !== c.stage).map(s => <option key={s} value={s}>{s}</option>)}
+                      {allStages.filter(s => s !== c.stage).map(s => <option key={s} value={s}>{stageKeyToName[s] || s}</option>)}
                     </select>
                     <button className="glass-btn glass-btn-xs glass-btn-success" onClick={() => openHire(c)} style={{marginLeft:4}}>
                       <Icon icon="lucide:user-plus"></Icon> Hire

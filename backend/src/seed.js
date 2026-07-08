@@ -1902,6 +1902,404 @@ async function seed() {
     );
     console.log('Seed: created default phone screening template');
   }
-}
+
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 1 — Workflow Engine Foundation (11 new tables)
+  // ═══════════════════════════════════════════════════════════════
+
+  const [messageTemplatesTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'message_templates'",
+    [process.env.DB_NAME]
+  );
+  if (messageTemplatesTable.length === 0) {
+    // 1. message_templates
+    await pool.query(`
+      CREATE TABLE message_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        template_key VARCHAR(100) NOT NULL UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        channel VARCHAR(50) NOT NULL DEFAULT 'email',
+        subject VARCHAR(500) DEFAULT NULL,
+        body_template TEXT NOT NULL,
+        placeholders JSON DEFAULT NULL,
+        is_system TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_mt_channel (channel)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 2. workflow_templates
+    await pool.query(`
+      CREATE TABLE workflow_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 3. workflow_stages
+    await pool.query(`
+      CREATE TABLE workflow_stages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        template_id INT NOT NULL,
+        stage_order INT NOT NULL,
+        stage_key VARCHAR(100) NOT NULL,
+        display_name VARCHAR(255) NOT NULL,
+        stage_type VARCHAR(100) DEFAULT 'interview',
+        responsible_role VARCHAR(100) DEFAULT NULL,
+        requires_confirmation TINYINT(1) DEFAULT 1,
+        requires_attendance TINYINT(1) DEFAULT 1,
+        requires_evaluation TINYINT(1) DEFAULT 1,
+        is_optional TINYINT(1) DEFAULT 0,
+        allow_skip TINYINT(1) DEFAULT 0,
+        auto_advance TINYINT(1) DEFAULT 0,
+        form_config JSON DEFAULT NULL,
+        notification_channels JSON DEFAULT NULL,
+        message_template_id INT DEFAULT NULL,
+        sla_duration INT DEFAULT NULL,
+        sla_reminder_after INT DEFAULT NULL,
+        sla_escalation_after INT DEFAULT NULL,
+        sla_max_delay INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (template_id) REFERENCES workflow_templates(id) ON DELETE CASCADE,
+        FOREIGN KEY (message_template_id) REFERENCES message_templates(id) ON DELETE SET NULL,
+        INDEX idx_ws_template (template_id),
+        INDEX idx_ws_order (template_id, stage_order)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 4. workflow_rules
+    await pool.query(`
+      CREATE TABLE workflow_rules (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        workflow_template_id INT NOT NULL,
+        rule_name VARCHAR(255) NOT NULL,
+        trigger_event VARCHAR(100) NOT NULL,
+        condition_field VARCHAR(255) NOT NULL,
+        condition_operator ENUM('>','<','>=','<=','==','!=','in','not_in','contains','is_empty','always') NOT NULL DEFAULT '==',
+        condition_value VARCHAR(500) NOT NULL,
+        action_type VARCHAR(100) NOT NULL,
+        action_params JSON NOT NULL,
+        priority INT DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (workflow_template_id) REFERENCES workflow_templates(id) ON DELETE CASCADE,
+        INDEX idx_wr_template (workflow_template_id),
+        INDEX idx_wr_event (trigger_event),
+        INDEX idx_wr_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 5. stage_document_definitions
+    await pool.query(`
+      CREATE TABLE stage_document_definitions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        workflow_stage_id INT NOT NULL,
+        document_key VARCHAR(100) NOT NULL,
+        document_label VARCHAR(255) NOT NULL,
+        is_required TINYINT(1) DEFAULT 1,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (workflow_stage_id) REFERENCES workflow_stages(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_sdd_stage_key (workflow_stage_id, document_key)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 6. candidate_documents
+    await pool.query(`
+      CREATE TABLE candidate_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        document_definition_id INT NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_name VARCHAR(255) DEFAULT NULL,
+        file_size INT DEFAULT NULL,
+        status ENUM('pending','verified','rejected') DEFAULT 'pending',
+        reviewed_by INT DEFAULT NULL,
+        reviewed_at DATETIME DEFAULT NULL,
+        rejection_reason TEXT DEFAULT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (document_definition_id) REFERENCES stage_document_definitions(id) ON DELETE CASCADE,
+        INDEX idx_cd_candidate (candidate_id),
+        INDEX idx_cd_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 7. candidate_workflow_state
+    await pool.query(`
+      CREATE TABLE candidate_workflow_state (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL UNIQUE,
+        workflow_template_id INT DEFAULT NULL,
+        current_stage_id INT DEFAULT NULL,
+        stage_entered_at DATETIME DEFAULT NULL,
+        previous_stage_id INT DEFAULT NULL,
+        previous_stage_exited_at DATETIME DEFAULT NULL,
+        is_completed TINYINT(1) DEFAULT 0,
+        is_archived TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (workflow_template_id) REFERENCES workflow_templates(id) ON DELETE SET NULL,
+        FOREIGN KEY (current_stage_id) REFERENCES workflow_stages(id) ON DELETE SET NULL,
+        FOREIGN KEY (previous_stage_id) REFERENCES workflow_stages(id) ON DELETE SET NULL,
+        INDEX idx_cws_candidate (candidate_id),
+        INDEX idx_cws_current_stage (current_stage_id),
+        INDEX idx_cws_entered_at (stage_entered_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 8. workflow_events
+    await pool.query(`
+      CREATE TABLE workflow_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        event_type VARCHAR(100) NOT NULL,
+        event_data JSON DEFAULT NULL,
+        workflow_stage_id INT DEFAULT NULL,
+        created_by VARCHAR(255) DEFAULT 'system',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (workflow_stage_id) REFERENCES workflow_stages(id) ON DELETE SET NULL,
+        INDEX idx_we_candidate (candidate_id),
+        INDEX idx_we_event_type (event_type),
+        INDEX idx_we_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 9. interview_stages
+    await pool.query(`
+      CREATE TABLE interview_stages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        candidate_id INT NOT NULL,
+        workflow_stage_id INT DEFAULT NULL,
+        interview_date DATETIME NOT NULL,
+        duration INT DEFAULT 60,
+        mode VARCHAR(50) DEFAULT 'video',
+        interviewer VARCHAR(255) DEFAULT '',
+        location_or_link VARCHAR(500) DEFAULT '',
+        status VARCHAR(50) DEFAULT 'scheduled',
+        type ENUM('online','offline') NOT NULL DEFAULT 'online',
+        location_name VARCHAR(255) DEFAULT '',
+        location_address TEXT,
+        dress_code VARCHAR(100) DEFAULT '',
+        what_to_bring TEXT,
+        map_link VARCHAR(500) DEFAULT '',
+        meeting_platform VARCHAR(50) DEFAULT '',
+        meeting_link VARCHAR(500) DEFAULT '',
+        candidate_status ENUM('pending','accepted','declined','rescheduled') DEFAULT 'pending',
+        attendance ENUM('pending','attended','absent') DEFAULT 'pending',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        FOREIGN KEY (workflow_stage_id) REFERENCES workflow_stages(id) ON DELETE SET NULL,
+        INDEX idx_is_candidate (candidate_id),
+        INDEX idx_is_workflow_stage (workflow_stage_id),
+        INDEX idx_is_date (interview_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 10. interview_evaluations
+    await pool.query(`
+      CREATE TABLE interview_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        interview_stage_id INT NOT NULL,
+        candidate_id INT NOT NULL,
+        evaluated_by VARCHAR(255) DEFAULT '',
+        evaluated_by_id INT DEFAULT NULL,
+        decision ENUM('pass','reject','hold') NOT NULL DEFAULT 'hold',
+        communication_score INT DEFAULT 0,
+        technical_score INT DEFAULT 0,
+        cultural_fit_score INT DEFAULT 0,
+        overall_score INT DEFAULT 0,
+        form_responses JSON DEFAULT NULL,
+        notes TEXT,
+        evaluated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (interview_stage_id) REFERENCES interview_stages(id) ON DELETE CASCADE,
+        FOREIGN KEY (candidate_id) REFERENCES recruitment_candidates(id) ON DELETE CASCADE,
+        INDEX idx_ie_interview (interview_stage_id),
+        INDEX idx_ie_candidate (candidate_id),
+        INDEX idx_ie_evaluated_by (evaluated_by_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // 11. manager_availability
+    await pool.query(`
+      CREATE TABLE manager_availability (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id INT NOT NULL,
+        slot_type ENUM('weekly','blocked') NOT NULL DEFAULT 'weekly',
+        day_of_week TINYINT DEFAULT NULL,
+        start_time TIME DEFAULT NULL,
+        end_time TIME DEFAULT NULL,
+        blocked_date DATE DEFAULT NULL,
+        reason VARCHAR(255) DEFAULT NULL,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_avail_weekly (employee_id, day_of_week, start_time, end_time),
+        UNIQUE KEY uq_avail_blocked (employee_id, blocked_date),
+        INDEX idx_ma_employee (employee_id),
+        INDEX idx_ma_blocked_date (blocked_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // ── Seed: System message templates ─────────────────────────
+    const systemTemplates = [
+      ['applied_confirmation', 'Application Received', 'email',
+        'Application Received — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>Your application for <strong>{{job_title}}</strong> has been received.<br><br><strong>Reference Number:</strong> {{reference_number}}<br><br>Our HR team will review your profile and contact you within 3 business days.',
+        '{"candidate_name":"","job_title":"","reference_number":""}', 1],
+      ['rejection', 'Application Not Selected', 'email',
+        'Update on Your Application — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>Thank you for your interest in the <strong>{{job_title}}</strong> position. After careful consideration, we have decided to move forward with other candidates.<br><br>Please note that you may re-apply for this or similar positions after <strong>3 months</strong> from this notice.<br><br>We wish you the best in your career journey.',
+        '{"candidate_name":"","job_title":""}', 1],
+      ['interview_invitation', 'Interview Invitation', 'email',
+        'Interview Invitation — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>You have been invited for an interview for <strong>{{job_title}}</strong>.<br><br><strong>Date:</strong> {{interview_date}}<br><strong>Time:</strong> {{interview_time}}<br><strong>Duration:</strong> {{duration}} minutes<br><strong>Type:</strong> {{interview_type}}<br><br>{{meeting_details}}<br><br>Please confirm your attendance through the candidate portal.<br><br>{{portal_link}}',
+        '{"candidate_name":"","job_title":"","interview_date":"","interview_time":"","duration":"","interview_type":"","meeting_details":"","portal_link":""}', 1],
+      ['interview_accepted', 'Interview Accepted', 'email',
+        'Interview Confirmed — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>Thank you for confirming your interview for <strong>{{job_title}}</strong>.<br><br>We look forward to speaking with you on <strong>{{interview_date}}</strong> at <strong>{{interview_time}}</strong>.<br><br>If you need to reschedule, please use the candidate portal.',
+        '{"candidate_name":"","job_title":"","interview_date":"","interview_time":""}', 1],
+      ['interview_declined', 'Interview Declined', 'email',
+        'Interview Declined — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>We have received your notice declining the interview for <strong>{{job_title}}</strong>.<br><br>If you change your mind in the future, you may re-apply for future openings.<br><br>We wish you the best.',
+        '{"candidate_name":"","job_title":""}', 1],
+      ['interview_reminder', 'Interview Reminder', 'email',
+        'Reminder: Interview Tomorrow — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>This is a friendly reminder that your interview for <strong>{{job_title}}</strong> is scheduled for tomorrow.<br><br><strong>Date:</strong> {{interview_date}}<br><strong>Time:</strong> {{interview_time}}<br><strong>Location:</strong> {{meeting_details}}<br><br>Please arrive 10 minutes before your scheduled time.',
+        '{"candidate_name":"","job_title":"","interview_date":"","interview_time":"","meeting_details":""}', 1],
+      ['interview_absent', 'Interview Missed', 'email',
+        'Interview Missed — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>We noticed you missed your scheduled interview for <strong>{{job_title}}</strong>.<br><br>Please contact us if you wish to reschedule.',
+        '{"candidate_name":"","job_title":""}', 1],
+      ['stage_passed', 'Stage Completed', 'email',
+        'Application Update — {{job_title}}',
+        'Dear {{candidate_name}},<br><br>Great news! You have successfully completed the <strong>{{stage_name}}</strong> stage for <strong>{{job_title}}</strong>.<br><br>We will contact you with next steps shortly.',
+        '{"candidate_name":"","job_title":"","stage_name":""}', 1],
+      ['offer_sent', 'Job Offer', 'email',
+        'Job Offer — {{position}}',
+        'Dear {{candidate_name}},<br><br>We are delighted to offer you the position of <strong>{{position}}</strong>.<br><br><strong>Start Date:</strong> {{start_date}}<br><strong>Department:</strong> {{department}}<br><strong>Monthly Salary:</strong> {{salary}}<br><br>Please confirm your acceptance within 5 business days.<br><br>{{offer_details}}',
+        '{"candidate_name":"","position":"","start_date":"","department":"","salary":"","offer_details":""}', 1],
+      ['offer_accepted', 'Offer Accepted', 'email',
+        'Offer Accepted — {{position}}',
+        'Dear {{candidate_name}},<br><br>Thank you for accepting our offer for the <strong>{{position}}</strong> position.<br><br>We will be in touch with onboarding details shortly.<br><br>Welcome to the team!',
+        '{"candidate_name":"","position":""}', 1],
+      ['offer_rejected', 'Offer Declined', 'email',
+        'Offer Declined — {{position}}',
+        'Dear {{candidate_name}},<br><br>We have received your notice declining our offer for the <strong>{{position}}</strong> position.<br><br>We wish you the very best in your future endeavors.',
+        '{"candidate_name":"","position":""}', 1],
+      ['candidate_hired', 'Welcome Aboard', 'email',
+        'Welcome to {{company_name}}!',
+        'Dear {{candidate_name}},<br><br>Congratulations and welcome to <strong>{{company_name}}</strong>!<br><br>Your employee profile has been created.<br><br><strong>Employee ID:</strong> {{employee_id}}<br><strong>Start Date:</strong> {{start_date}}<br><br>You will receive onboarding instructions shortly.',
+        '{"candidate_name":"","company_name":"","employee_id":"","start_date":""}', 1],
+    ];
+
+    for (const tpl of systemTemplates) {
+      await pool.query(
+        'INSERT INTO message_templates (template_key, name, channel, subject, body_template, placeholders, is_system) VALUES (?,?,?,?,?,?,?)',
+        tpl
+      );
+    }
+
+    // ── Seed: Default workflow template ─────────────────────────
+    const [wtResult] = await pool.query(
+      "INSERT INTO workflow_templates (name, description, is_active) VALUES ('Standard Recruitment', 'Standard workflow: Screening → HR → Technical → CEO → Offer', 1)"
+    );
+    const wtId = wtResult.insertId;
+
+    const defaultStages = [
+      { key: 'applied',            name: 'Application Received',     type: 'check',     role: null,       order: 1, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
+      { key: 'screening',          name: 'CV Screening',             type: 'check',     role: 'hr',        order: 2, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
+      { key: 'phone_screening',    name: 'Phone Screening',          type: 'interview', role: 'hr',        order: 3, confirm: 1, attend: 0, eval: 1, optional: 0, skip: 0, auto: 0 },
+      { key: 'hr_interview',       name: 'HR Interview',             type: 'interview', role: 'hr',        order: 4, confirm: 1, attend: 1, eval: 1, optional: 0, skip: 0, auto: 0 },
+      { key: 'technical_interview',name: 'Technical Interview',      type: 'interview', role: 'technical', order: 5, confirm: 1, attend: 1, eval: 1, optional: 0, skip: 0, auto: 0 },
+      { key: 'ceo_interview',      name: 'CEO Interview',            type: 'interview', role: 'ceo',       order: 6, confirm: 1, attend: 1, eval: 1, optional: 1, skip: 1, auto: 0 },
+      { key: 'offer',              name: 'Offer Stage',              type: 'offer',     role: 'hr',        order: 7, confirm: 1, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
+      { key: 'hired',              name: 'Hired',                    type: 'offer',     role: 'hr',        order: 8, confirm: 0, attend: 0, eval: 0, optional: 0, skip: 0, auto: 0 },
+    ];
+
+    for (const s of defaultStages) {
+      await pool.query(
+        `INSERT INTO workflow_stages (template_id, stage_order, stage_key, display_name, stage_type, responsible_role,
+         requires_confirmation, requires_attendance, requires_evaluation, is_optional, allow_skip, auto_advance)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [wtId, s.order, s.key, s.name, s.type, s.role,
+         s.confirm, s.attend, s.eval, s.optional, s.skip, s.auto]
+      );
+    }
+
+    // ── Seed: Default workflow rules ────────────────────────────
+    await pool.query(
+      `INSERT INTO workflow_rules (workflow_template_id, rule_name, trigger_event, condition_field, condition_operator, condition_value, action_type, action_params, priority, is_active)
+       VALUES (?, 'High Score Skips HR Interview', 'evaluation_submitted', 'evaluation.overall_score', '>=', '90', 'skip_stage', '{"stage_key":"hr_interview"}', 1, 1)`,
+      [wtId]
+    );
+
+    // ── Seed: is_archived on candidates & jobs ──────────────────
+    const [archCandCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_candidates' AND COLUMN_NAME = 'is_archived'",
+      [process.env.DB_NAME]
+    );
+    if (archCandCol.length === 0) {
+      await pool.query("ALTER TABLE recruitment_candidates ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER stage, INDEX idx_rc_archived (is_archived)");
+    }
+
+    const [archJobCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'is_archived'",
+      [process.env.DB_NAME]
+    );
+    if (archJobCol.length === 0) {
+      await pool.query("ALTER TABLE recruitment_jobs ADD COLUMN is_archived TINYINT(1) DEFAULT 0 AFTER status, INDEX idx_rj_archived (is_archived)");
+    }
+
+    // ── Seed: workflow_template_id on jobs ──────────────────────
+    const [rjWfCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_jobs' AND COLUMN_NAME = 'workflow_template_id'",
+      [process.env.DB_NAME]
+    );
+    if (rjWfCol.length === 0) {
+      await pool.query(
+        "ALTER TABLE recruitment_jobs ADD COLUMN workflow_template_id INT DEFAULT NULL AFTER headcount_request_id, ADD FOREIGN KEY (workflow_template_id) REFERENCES workflow_templates(id) ON DELETE SET NULL"
+      );
+      await pool.query("UPDATE recruitment_jobs SET workflow_template_id = ? WHERE workflow_template_id IS NULL", [wtId]);
+    }
+
+    // ── Seed: composite index on recruitment_history ────────────
+    const [rhIdx] = await pool.query(
+      "SELECT * FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recruitment_history' AND INDEX_NAME = 'idx_rh_candidate_created'",
+      [process.env.DB_NAME]
+    );
+    if (rhIdx.length === 0) {
+      await pool.query("CREATE INDEX idx_rh_candidate_created ON recruitment_history(candidate_id, created_at)");
+    }
+
+    // ── Phase 5: Workflow versioning columns ───────────────────
+    const [wtVerCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'workflow_templates' AND COLUMN_NAME = 'version'",
+      [process.env.DB_NAME]
+    );
+    if (wtVerCol.length === 0) {
+      await pool.query("ALTER TABLE workflow_templates ADD COLUMN version INT DEFAULT 1 AFTER description");
+    }
+
+    const [cwsVerCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'candidate_workflow_state' AND COLUMN_NAME = 'template_version'",
+      [process.env.DB_NAME]
+    );
+    if (cwsVerCol.length === 0) {
+      await pool.query("ALTER TABLE candidate_workflow_state ADD COLUMN template_version INT DEFAULT 1 AFTER workflow_template_id");
+    }
+
+    console.log('Phase 1: Created 11 workflow tables with seeds');
+  }
+};
 
 module.exports = seed;

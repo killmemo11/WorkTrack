@@ -10,7 +10,7 @@ import { formatDate, formatDateTime } from '../../../shared/utils/date';
 import PhoneScreeningTab from '../components/PhoneScreeningTab';
 
 
-const STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
+const LEGACY_STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
 const EDU_LABEL = { high_school: 'High School', diploma: 'Diploma', associate: 'Associate Degree', bachelor: 'Bachelor\'s', master: 'Master\'s', phd: 'PhD' };
 const EXP_LABEL = { '0-1': 'Less than 1 year', '1-2': '1–2 years', '2-3': '2–3 years', '3-5': '3–5 years', '5-7': '5–7 years', '7-10': '7–10 years', '10-15': '10–15 years', '15-20': '15–20 years', '20+': 'More than 20 years' };
@@ -32,6 +32,7 @@ export default function CandidateDetails() {
   const [moveNote, setMoveNote] = useState('');
   const [scoreForm, setScoreForm] = useState({ interview: '1st Interview', comm: 0, technical: 0, fit: 0, overall: 0, notes: '', decision: 'pending' });
   const [offerForm, setOfferForm] = useState({ position: '', department: '', salary: '', start_date: '', reports_to: '', benefits: '' });
+  const [workflowStages, setWorkflowStages] = useState([]);
   const [editForm, setEditForm] = useState({});
   const [editing, setEditing] = useState(false);
   const [cvUploading, setCvUploading] = useState(false);
@@ -57,7 +58,10 @@ export default function CandidateDetails() {
     }
   };
 
-  useEffect(() => { fetchCandidate(); }, [id]);
+  useEffect(() => {
+    fetchCandidate();
+    hrApi.get('/recruitment/workflow-stages').then(r => setWorkflowStages(r.data)).catch(() => {});
+  }, [id]);
 
   const handleMove = async () => {
     if (!moveStage) return;
@@ -164,6 +168,10 @@ export default function CandidateDetails() {
 
   const deptTitles = titles.filter(t => !hireForm.department_id || t.department_id === parseInt(hireForm.department_id));
 
+  const stageKeyToName = {};
+  workflowStages.forEach(ws => { stageKeyToName[ws.stage_key] = ws.display_name; });
+  const allStages = [...new Set([...LEGACY_STAGES, ...workflowStages.map(ws => ws.stage_key)])];
+
   if (loading) return (
     <div className="glass-loading">
       <div className="spinner"></div>
@@ -220,7 +228,7 @@ export default function CandidateDetails() {
               <div className="glass-detail-row"><span className="glass-detail-label">Email</span><span className="glass-detail-value">{candidate.email}</span></div>
               <div className="glass-detail-row"><span className="glass-detail-label">Phone</span><span className="glass-detail-value">{candidate.phone || '—'}</span></div>
               <div className="glass-detail-row"><span className="glass-detail-label">Position</span><span className="glass-detail-value">{candidate.job_title || '—'}</span></div>
-              <div className="glass-detail-row"><span className="glass-detail-label">Stage</span><span className="glass-detail-value">{stageBadge(candidate.stage)}</span></div>
+              <div className="glass-detail-row"><span className="glass-detail-label">Stage</span><span className="glass-detail-value">{stageBadge(candidate.stage, stageKeyToName)}</span></div>
               <div className="glass-detail-row"><span className="glass-detail-label">Source</span><span className="glass-detail-value">{candidate.source || '—'}</span></div>
               <div className="glass-detail-row"><span className="glass-detail-label">Scores</span><span className="glass-detail-value">C:{candidate.score_comm || 0} T:{candidate.score_tech || 0} F:{candidate.score_fit || 0}</span></div>
               {candidate.education_level && <div className="glass-detail-row"><span className="glass-detail-label">Education</span><span className="glass-detail-value">{EDU_LABEL[candidate.education_level] || candidate.education_level}</span></div>}
@@ -298,9 +306,9 @@ export default function CandidateDetails() {
               <Icon icon="lucide:arrow-right-left" style={{ color: 'var(--brand-primary)' }}></Icon> Move Stage
             </h4>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select className="glass-select" style={{ width: 160 }} value={moveStage} onChange={e => setMoveStage(e.target.value)}>
+              <select className="glass-select" style={{ width: 200 }} value={moveStage} onChange={e => setMoveStage(e.target.value)}>
                 <option value="">Select stage...</option>
-                {STAGES.filter(s => s !== candidate.stage).map(s => <option key={s} value={s}>{s}</option>)}
+                {allStages.filter(s => s !== candidate.stage).map(s => <option key={s} value={s}>{stageKeyToName[s] || s}</option>)}
               </select>
               <input className="glass-input" style={{ width: 200 }} placeholder="Note (optional)" value={moveNote} onChange={e => setMoveNote(e.target.value)} />
               <button className="glass-btn glass-btn-primary" onClick={handleMove} disabled={!moveStage}>
@@ -442,32 +450,100 @@ export default function CandidateDetails() {
          </div>
        )}
 
-      {/* History Tab */}
+      {/* History Tab — primary source: workflow_events, fallback: history */}
       {activeTab === 'history' && (
         <div className="glass-card fade-in-up">
           <div className="glass-card-body">
-            {(!candidate.history || candidate.history.length === 0) ? (
-              <div className="glass-empty">
-                <Icon icon="lucide:clock"></Icon>
-                <h3>No history</h3>
-              </div>
-            ) : (
-              <div className="glass-table-wrapper">
-                <table className="glass-table">
-                  <thead><tr><th>Date</th><th>Stage</th><th>Note</th><th>By</th></tr></thead>
-                  <tbody>
-                    {candidate.history.map(h => (
-                      <tr key={h.id}>
-                        <td>{formatDateTime(h.created_at)}</td>
-                        <td><span className="glass-badge glass-badge-neutral">{h.stage}</span></td>
-                        <td>{h.note || '—'}</td>
-                        <td style={{ color: 'var(--text-dim)' }}>{h.created_by || 'system'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {(() => {
+              const events = candidate.workflow_events || [];
+              const legacyHistory = candidate.history || [];
+              const hasEvents = events.length > 0;
+              const items = hasEvents
+                ? events.map(e => ({
+                    id: `we_${e.id}`,
+                    date: e.created_at,
+                    type: e.event_type,
+                    stage: e.stage_name || e.event_data?.to_stage_name || e.event_data?.to_stage || '',
+                    note: e.event_data?.note || '',
+                    by: e.created_by || 'system',
+                    data: e.event_data,
+                  }))
+                : legacyHistory.map(h => ({
+                    id: `h_${h.id}`,
+                    date: h.created_at,
+                    type: 'stage_transition',
+                    stage: h.stage,
+                    note: h.note || '',
+                    by: h.created_by || 'system',
+                    data: null,
+                  }));
+              if (items.length === 0) return (
+                <div className="glass-empty">
+                  <Icon icon="lucide:clock"></Icon>
+                  <h3>No history</h3>
+                </div>
+              );
+              const eventIcon = (type) => {
+                const icons = {
+                  'candidate_created': 'lucide:user-plus',
+                  'stage_transition': 'lucide:arrow-right-left',
+                  'interview_scheduled': 'lucide:calendar-plus',
+                  'interview_cancelled': 'lucide:calendar-x',
+                  'evaluation_submitted': 'lucide:clipboard-check',
+                  'offer_sent': 'lucide:gift',
+                  'offer_accepted': 'lucide:check-circle',
+                  'offer_rejected': 'lucide:x-circle',
+                  'offer_withdrawn': 'lucide:undo-2',
+                  'offer_expired': 'lucide:clock',
+                };
+                return icons[type] || 'lucide:circle';
+              };
+              const eventColor = (type) => {
+                const colors = {
+                  'candidate_created': 'var(--info)',
+                  'stage_transition': 'var(--brand-primary)',
+                  'interview_scheduled': 'var(--warning)',
+                  'interview_cancelled': 'var(--error)',
+                  'evaluation_submitted': 'var(--success)',
+                  'offer_sent': 'var(--warning)',
+                  'offer_accepted': 'var(--success)',
+                  'offer_rejected': 'var(--error)',
+                  'offer_withdrawn': 'var(--text-dim)',
+                  'offer_expired': 'var(--error)',
+                };
+                return colors[type] || 'var(--text-dim)';
+              };
+              const formatType = (type) => type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              return (
+                <div className="glass-timeline">
+                  {items.map((item, idx) => (
+                    <div key={item.id} style={{ display: 'flex', gap: 12, padding: '8px 0', borderLeft: idx < items.length - 1 ? '2px solid var(--border-glass)' : 'none', marginLeft: 12, paddingLeft: 24, position: 'relative' }}>
+                      <div style={{ position: 'absolute', left: -11, top: 10, background: 'var(--bg-card)', borderRadius: '50%', padding: 2 }}>
+                        <Icon icon={eventIcon(item.type)} style={{ color: eventColor(item.type), fontSize: '1.1rem' }}></Icon>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{formatType(item.type)}</span>
+                          <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>{formatDateTime(item.date)}</span>
+                        </div>
+                        {item.stage && <div style={{ marginTop: 2 }}><span className="glass-badge glass-badge-neutral" style={{ fontSize: '0.75rem' }}>{item.stage}</span></div>}
+                        {item.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 4 }}>{item.note}</div>}
+                        {item.data && item.data.position && <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginTop: 2 }}>Position: {item.data.position}</div>}
+                        {item.data && item.data.salary && <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>Salary: {item.data.salary}</div>}
+                        {item.data && item.data.interviewer && <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>Interviewer: {item.data.interviewer}</div>}
+                        {item.data && item.data.interview_date && <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>Date: {formatDateTime(item.data.interview_date)}</div>}
+                        <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem', marginTop: 2 }}>by {item.by}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {!hasEvents && legacyHistory.length > 0 && (
+                    <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>
+                      Showing legacy history — run workflow migration for full event timeline
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -655,7 +731,8 @@ export default function CandidateDetails() {
   );
 }
 
-function stageBadge(stage) {
+function stageBadge(stage, stageMap) {
   const colors = { applied: 'neutral', phone: 'info', first: 'primary', second: 'warning', third: 'danger', offer: 'success', hired: 'success', rejected: 'danger' };
-  return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{stage}</span>;
+  const label = (stageMap && stageMap[stage]) || stage;
+  return <span className={`glass-badge glass-badge-${colors[stage] || 'neutral'}`}>{label}</span>;
 }

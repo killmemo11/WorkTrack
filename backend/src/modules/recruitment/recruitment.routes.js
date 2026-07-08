@@ -22,9 +22,31 @@ const {
 
 const {
   getPhoneScreening, logCallAttempt, submitEvaluation, checkAutoReject,
-  listTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate,
+  listTemplates: listPSTemplates, getTemplate: getPSTemplate,
+  createTemplate: createPSTemplate, updateTemplate: updatePSTemplate, deleteTemplate: deletePSTemplate,
   addQuestion, updateQuestion, deleteQuestion, deleteCallLogEntry,
 } = require('./phoneScreening.controller');
+
+const {
+  listTemplates: listWfTemplates, getTemplate: getWfTemplate,
+  createTemplate: createWfTemplate, updateTemplate: updateWfTemplate, deleteTemplate: deleteWfTemplate,
+  listStages, createStage, updateStage, deleteStage,
+  listRules, createRule, updateRule, deleteRule,
+  listEvents,
+  getAvailability, upsertWeeklySlot, deleteWeeklySlot, blockDate, unblockDate,
+} = require('./workflow.controller');
+
+const {
+  listTemplates: listMsgTemplates, getTemplate: getMsgTemplate,
+  createTemplate: createMsgTemplate, updateTemplate: updateMsgTemplate, deleteTemplate: deleteMsgTemplate,
+  renderPreview,
+} = require('./message-template.controller');
+
+const {
+  listInterviewStages, getInterviewStage, createInterviewStage, updateInterviewStage, deleteInterviewStage,
+  listEvaluations, createEvaluation, updateEvaluation, deleteEvaluation,
+  migrateInterviews, migrateCandidateWorkflows,
+} = require('./interview-stages.controller');
 
 const adminRouter = Router();
 adminRouter.use(requireITAuth);
@@ -66,15 +88,67 @@ adminRouter.get('/candidates/:id/phone-screening', getPhoneScreening);
 adminRouter.post('/candidates/:id/phone-screening/log', logCallAttempt);
 adminRouter.post('/candidates/:id/phone-screening/evaluate', submitEvaluation);
 adminRouter.get('/candidates/:id/phone-screening/auto-reject', checkAutoReject);
-adminRouter.get('/phone-screening/templates', listTemplates);
-adminRouter.get('/phone-screening/templates/:id', getTemplate);
-adminRouter.post('/phone-screening/templates', createTemplate);
-adminRouter.put('/phone-screening/templates/:id', updateTemplate);
-adminRouter.delete('/phone-screening/templates/:id', deleteTemplate);
+adminRouter.get('/phone-screening/templates', listPSTemplates);
+adminRouter.get('/phone-screening/templates/:id', getPSTemplate);
+adminRouter.post('/phone-screening/templates', createPSTemplate);
+adminRouter.put('/phone-screening/templates/:id', updatePSTemplate);
+adminRouter.delete('/phone-screening/templates/:id', deletePSTemplate);
 adminRouter.post('/phone-screening/templates/:id/questions', addQuestion);
 adminRouter.put('/phone-screening/questions/:id', updateQuestion);
 adminRouter.delete('/phone-screening/questions/:id', deleteQuestion);
 adminRouter.delete('/phone-screening/call-log/:id', deleteCallLogEntry);
+
+// ── Interview Stages routes (admin) ─────────────────────────
+adminRouter.get('/interview-stages', listInterviewStages);
+adminRouter.get('/interview-stages/:id', getInterviewStage);
+adminRouter.post('/interview-stages', createInterviewStage);
+adminRouter.put('/interview-stages/:id', updateInterviewStage);
+adminRouter.delete('/interview-stages/:id', deleteInterviewStage);
+adminRouter.get('/interview-stages/:interview_stage_id/evaluations', listEvaluations);
+adminRouter.post('/interview-stages/:interview_stage_id/evaluations', createEvaluation);
+adminRouter.put('/evaluations/:id', updateEvaluation);
+adminRouter.delete('/evaluations/:id', deleteEvaluation);
+
+// ── Interview Migration (admin) ──────────────────────────────
+adminRouter.post('/interview-stages/migrate', migrateInterviews);
+adminRouter.post('/interview-stages/migrate-workflows', migrateCandidateWorkflows);
+
+// ── Workflow Template routes (admin) ─────────────────────────
+adminRouter.get('/workflows', listWfTemplates);
+adminRouter.get('/workflows/:id', getWfTemplate);
+adminRouter.post('/workflows', createWfTemplate);
+adminRouter.put('/workflows/:id', updateWfTemplate);
+adminRouter.delete('/workflows/:id', deleteWfTemplate);
+
+// ── Workflow Stage routes (admin) ────────────────────────────
+adminRouter.get('/workflow-stages', listStages);
+adminRouter.post('/workflow-stages', createStage);
+adminRouter.put('/workflow-stages/:id', updateStage);
+adminRouter.delete('/workflow-stages/:id', deleteStage);
+
+// ── Workflow Rule routes (admin) ─────────────────────────────
+adminRouter.get('/workflow-rules', listRules);
+adminRouter.post('/workflow-rules', createRule);
+adminRouter.put('/workflow-rules/:id', updateRule);
+adminRouter.delete('/workflow-rules/:id', deleteRule);
+
+// ── Workflow Events (admin) ──────────────────────────────────
+adminRouter.get('/workflow-events', listEvents);
+
+// ── Message Template routes (admin) ──────────────────────────
+adminRouter.get('/message-templates', listMsgTemplates);
+adminRouter.get('/message-templates/:id', getMsgTemplate);
+adminRouter.post('/message-templates', createMsgTemplate);
+adminRouter.put('/message-templates/:id', updateMsgTemplate);
+adminRouter.delete('/message-templates/:id', deleteMsgTemplate);
+adminRouter.post('/message-templates/:id/preview', renderPreview);
+
+// ── Manager Availability routes (admin) ──────────────────────
+adminRouter.get('/availability/:employee_id', getAvailability);
+adminRouter.post('/availability/:employee_id/weekly', upsertWeeklySlot);
+adminRouter.delete('/availability/:employee_id/weekly/:slot_id', deleteWeeklySlot);
+adminRouter.post('/availability/:employee_id/block', blockDate);
+adminRouter.post('/availability/:employee_id/unblock', unblockDate);
 
 // ── HR routes (mirror admin) ───────────────────────────────────
 hrRouter.get('/jobs', listJobs);
@@ -110,14 +184,66 @@ hrRouter.get('/candidates/:id/phone-screening', getPhoneScreening);
 hrRouter.post('/candidates/:id/phone-screening/log', logCallAttempt);
 hrRouter.post('/candidates/:id/phone-screening/evaluate', submitEvaluation);
 hrRouter.get('/candidates/:id/phone-screening/auto-reject', checkAutoReject);
-hrRouter.get('/phone-screening/templates', listTemplates);
-hrRouter.get('/phone-screening/templates/:id', getTemplate);
-hrRouter.post('/phone-screening/templates', createTemplate);
-hrRouter.put('/phone-screening/templates/:id', updateTemplate);
-hrRouter.delete('/phone-screening/templates/:id', deleteTemplate);
+hrRouter.get('/phone-screening/templates', listPSTemplates);
+hrRouter.get('/phone-screening/templates/:id', getPSTemplate);
+hrRouter.post('/phone-screening/templates', createPSTemplate);
+hrRouter.put('/phone-screening/templates/:id', updatePSTemplate);
+hrRouter.delete('/phone-screening/templates/:id', deletePSTemplate);
 hrRouter.post('/phone-screening/templates/:id/questions', addQuestion);
 hrRouter.put('/phone-screening/questions/:id', updateQuestion);
 hrRouter.delete('/phone-screening/questions/:id', deleteQuestion);
 hrRouter.delete('/phone-screening/call-log/:id', deleteCallLogEntry);
+
+// ── Interview Stages routes (hr) ─────────────────────────
+hrRouter.get('/interview-stages', listInterviewStages);
+hrRouter.get('/interview-stages/:id', getInterviewStage);
+hrRouter.post('/interview-stages', createInterviewStage);
+hrRouter.put('/interview-stages/:id', updateInterviewStage);
+hrRouter.delete('/interview-stages/:id', deleteInterviewStage);
+hrRouter.get('/interview-stages/:interview_stage_id/evaluations', listEvaluations);
+hrRouter.post('/interview-stages/:interview_stage_id/evaluations', createEvaluation);
+hrRouter.put('/evaluations/:id', updateEvaluation);
+hrRouter.delete('/evaluations/:id', deleteEvaluation);
+
+// ── Interview Migration (hr) ──────────────────────────────
+hrRouter.post('/interview-stages/migrate', migrateInterviews);
+hrRouter.post('/interview-stages/migrate-workflows', migrateCandidateWorkflows);
+
+// ── Workflow Templates (hr) ──────────────────────────────────
+hrRouter.get('/workflows', listWfTemplates);
+hrRouter.get('/workflows/:id', getWfTemplate);
+hrRouter.post('/workflows', createWfTemplate);
+hrRouter.put('/workflows/:id', updateWfTemplate);
+hrRouter.delete('/workflows/:id', deleteWfTemplate);
+
+// ── Workflow Stages (hr) ─────────────────────────────────────
+hrRouter.get('/workflow-stages', listStages);
+hrRouter.post('/workflow-stages', createStage);
+hrRouter.put('/workflow-stages/:id', updateStage);
+hrRouter.delete('/workflow-stages/:id', deleteStage);
+
+// ── Workflow Rules (hr) ──────────────────────────────────────
+hrRouter.get('/workflow-rules', listRules);
+hrRouter.post('/workflow-rules', createRule);
+hrRouter.put('/workflow-rules/:id', updateRule);
+hrRouter.delete('/workflow-rules/:id', deleteRule);
+
+// ── Message Templates (hr) ───────────────────────────────────
+hrRouter.get('/message-templates', listMsgTemplates);
+hrRouter.get('/message-templates/:id', getMsgTemplate);
+hrRouter.post('/message-templates', createMsgTemplate);
+hrRouter.put('/message-templates/:id', updateMsgTemplate);
+hrRouter.delete('/message-templates/:id', deleteMsgTemplate);
+hrRouter.post('/message-templates/:id/preview', renderPreview);
+
+// ── Workflow Events (hr — read-only) ─────────────────────────
+hrRouter.get('/workflow-events', listEvents);
+
+// ── Manager Availability routes (hr) ─────────────────────────
+hrRouter.get('/availability/:employee_id', getAvailability);
+hrRouter.post('/availability/:employee_id/weekly', upsertWeeklySlot);
+hrRouter.delete('/availability/:employee_id/weekly/:slot_id', deleteWeeklySlot);
+hrRouter.post('/availability/:employee_id/block', blockDate);
+hrRouter.post('/availability/:employee_id/unblock', unblockDate);
 
 module.exports = { adminRouter, hrRouter };

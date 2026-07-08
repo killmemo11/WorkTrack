@@ -58,6 +58,9 @@ import PublicApply from './modules/recruitment/pages/PublicApply';
 import PublicTrack from './modules/recruitment/pages/PublicTrack';
 import PublicInterviews from './modules/recruitment/pages/PublicInterviews';
 import PhoneTemplates from './modules/recruitment/pages/PhoneTemplates';
+import WorkflowTemplates from './modules/recruitment/pages/WorkflowTemplates';
+import MessageTemplates from './modules/recruitment/pages/MessageTemplates';
+import AvailabilityCalendar from './modules/recruitment/pages/AvailabilityCalendar';
 import HeadcountRequests from './modules/hr/pages/HeadcountRequests';
 import ATSRecruitmentLayout from './shared/components/Layout/ATSRecruitmentLayout';
 import PeopleLayout from './shared/components/Layout/PeopleLayout';
@@ -173,6 +176,9 @@ export default function App() {
             <Route path="headcount-requests" element={<HeadcountRequests />} />
             <Route path="reports" element={<RecruitmentReports />} />
             <Route path="phone-templates" element={<PhoneTemplates />} />
+            <Route path="workflows" element={<WorkflowTemplates />} />
+            <Route path="message-templates" element={<MessageTemplates />} />
+            <Route path="availability" element={<AvailabilityCalendar />} />
           </Route>
           {/* Old routes — redirect to new ATS */}
           <Route path="/hr/candidates" element={<Navigate to="/hr/recruitment/candidates" />} />

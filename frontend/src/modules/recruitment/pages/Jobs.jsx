@@ -12,6 +12,7 @@ const INIT_FORM = {
   department_id: '', title_id: '', title: '', department: '', type: 'Full-Time',
   technical: false, status: 'active', description: '',
   key_responsibilities: '', qualifications: '', technical_skills: '', core_competencies: '',
+  workflow_template_id: '',
 };
 
 const SECTIONS = [
@@ -35,6 +36,7 @@ export default function Jobs() {
   const [form, setForm] = useState(INIT_FORM);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [workflowTemplates, setWorkflowTemplates] = useState([]);
 
   const fetchJobs = async (p = 1) => {
     setLoading(true);
@@ -54,6 +56,7 @@ export default function Jobs() {
     fetchJobs(1);
     hrApi.get('/department-titles').then(r => setTitles(r.data)).catch(() => {});
     hrApi.get('/departments').then(r => setDepartments(r.data)).catch(() => {});
+    hrApi.get('/recruitment/workflows').then(r => setWorkflowTemplates(r.data)).catch(() => {});
   }, []);
 
   const filteredTitles = titles.filter(t =>
@@ -83,6 +86,7 @@ export default function Jobs() {
       qualifications: job.qualifications || '',
       technical_skills: job.technical_skills || '',
       core_competencies: job.core_competencies || '',
+      workflow_template_id: job.workflow_template_id || '',
     });
     setStep(1);
     setShowForm(true);
@@ -346,6 +350,18 @@ export default function Jobs() {
                     </div>
                   );
                 })()}
+
+                <div className="glass-form-group" style={{ margin: 0 }}>
+                  <label className="glass-label">Workflow Template</label>
+                  <select className="glass-select" value={form.workflow_template_id}
+                    onChange={e => setForm({ ...form, workflow_template_id: e.target.value })}
+                    style={{ width: '100%' }}>
+                    <option value="">— Default —</option>
+                    {workflowTemplates.filter(t => t.is_active).map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.stages_count || 0} stages)</option>
+                    ))}
+                  </select>
+                </div>
 
                 <div className="glass-form-group" style={{ margin: 0 }}>
                   <label className="glass-label">Employment Type</label>

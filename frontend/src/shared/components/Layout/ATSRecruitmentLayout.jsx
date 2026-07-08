@@ -14,6 +14,9 @@ const NAV = [
   { path: '/hr/recruitment/headcount-requests', label: 'Headcount Requests', icon: 'lucide:clipboard-list' },
   { path: '/hr/recruitment/reports', label: 'Reports', icon: 'lucide:bar-chart-3' },
   { path: '/hr/recruitment/phone-templates', label: 'Phone Templates', icon: 'lucide:file-question' },
+  { path: '/hr/recruitment/workflows', label: 'Workflows', icon: 'lucide:workflow' },
+  { path: '/hr/recruitment/message-templates', label: 'Messages', icon: 'lucide:mail' },
+  { path: '/hr/recruitment/availability', label: 'Availability', icon: 'lucide:calendar-clock' },
 ];
 
 export default function ATSRecruitmentLayout() {

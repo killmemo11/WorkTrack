@@ -183,7 +183,16 @@ async function getCandidate(req, res) {
     }
   }
 
-  res.json({ ...candidate, history, scorecards, offers, screening: screeningResult });
+  const [workflowEvents] = await pool.query(
+    `SELECT we.*, ws.display_name AS stage_name
+     FROM workflow_events we
+     LEFT JOIN workflow_stages ws ON ws.id = we.workflow_stage_id
+     WHERE we.candidate_id = ?
+     ORDER BY we.created_at ASC`,
+    [id]
+  );
+
+  res.json({ ...candidate, history, workflow_events: workflowEvents, scorecards, offers, screening: screeningResult });
 }
 
 async function createCandidate(req, res) {
@@ -205,9 +214,18 @@ async function createCandidate(req, res) {
   try {
     const { autoScreen } = require('../../shared/services/screening.service');
     if (job_id) {
-      const [jobs] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
       if (jobs.length > 0 && jobs[0].title_id) {
         await autoScreen(result.insertId, jobs[0].title_id, job_id);
+      }
+      // Initialize workflow state if job has a workflow template
+      if (jobs.length > 0 && jobs[0].workflow_template_id) {
+        const { initCandidateState, publishEvent } = require('./engines/workflow.engine');
+        await initCandidateState(result.insertId, jobs[0].workflow_template_id);
+        await publishEvent(result.insertId, 'candidate_created', {
+          stage: stage || 'applied',
+          created_by: req.admin?.username || req.hr?.username || 'HR',
+        }, null, req.admin?.username || req.hr?.username || 'HR');
       }
     }
   } catch (e) { console.error('Auto-screening error:', e); }
@@ -242,37 +260,55 @@ async function deleteCandidate(req, res) {
 }
 
 // ── Stage Move ────────────────────────────────────────────────
-const ALLOWED_STAGES = ['applied', 'phone', 'first', 'second', 'third', 'offer', 'hired', 'rejected'];
 
 async function moveCandidate(req, res) {
   const { id } = req.params;
   const { stage, note } = req.body;
   if (!stage) return res.status(400).json({ error: 'stage is required' });
-  if (!ALLOWED_STAGES.includes(stage)) return res.status(400).json({ error: `Invalid stage. Must be one of: ${ALLOWED_STAGES.join(', ')}` });
 
-  const adminName = req.admin?.username || req.admin?.name || 'HR';
-  await pool.query('UPDATE recruitment_candidates SET stage = ? WHERE id = ?', [stage, id]);
-  await pool.query(
-    'INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)',
-    [id, stage, note || `Moved to ${stage}`, adminName]
+  const adminName = req.admin?.username || req.hr?.username || req.admin?.name || 'HR';
+
+  const [[candidate]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?',
+    [id]
   );
+  if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+  // Ensure workflow state exists (auto-init for legacy candidates)
+  const { getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
+  let state = await getCandidateState(id);
+  if (!state) {
+    const [[defaultTpl]] = await pool.query(
+      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+    );
+    if (defaultTpl) {
+      state = await initCandidateState(id, defaultTpl.id);
+    }
+  }
+  if (!state) {
+    return res.status(400).json({ error: 'No workflow state or template available for this candidate' });
+  }
+
+  const { renderEmail } = require('./engines/template.engine');
+  const emailService = require('../../shared/services/email.service');
+
+  const newState = await transition(id, stage, {
+    note: note || undefined,
+    createdBy: adminName,
+  });
 
   if (stage === 'rejected') {
-    const [[c]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
-    if (c) {
-      try {
-        const emailService = require('../../shared/services/email.service');
-        await emailService.sendEmail(
-          c.email,
-          `Update on Your Application — ${c.job_title}`,
-          `Dear ${c.name},<br><br>Thank you for your interest in the <strong>${c.job_title}</strong> position. After careful consideration, we have decided to move forward with other candidates.<br><br>Please note that you may re-apply for this or similar positions after <strong>3 months</strong> from this notice.<br><br>We wish you the best in your career journey.`
-        );
-      } catch (e) { console.error('Rejection email error:', e); }
-    }
+    try {
+      const result = await renderEmail('rejection', {
+        candidate_name: candidate.name,
+        job_title: candidate.job_title,
+      });
+      await emailService.sendEmail(candidate.email, result.subject, result.html);
+    } catch (e) { console.error('Rejection email error:', e); }
   }
 
   logActivity(null, req.admin?.id || req.hr?.id || null, 'candidate_moved', `Moved candidate #${id} to ${stage}`);
-  res.json({ stage });
+  res.json({ stage, workflow_state: newState });
 }
 
 // ── CV Upload ─────────────────────────────────────────────────
@@ -329,19 +365,47 @@ async function createOffer(req, res) {
     'INSERT INTO recruitment_offers (candidate_id,position,department,salary,start_date,reports_to,benefits,status) VALUES (?,?,?,?,?,?,?,?)',
     [id, position || '', department || '', salary || '', start_date || '', reports_to || '', benefits || '', 'sent']
   );
-  await pool.query("UPDATE recruitment_candidates SET stage='offer' WHERE id=?", [id]);
-  await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
-    [id, 'offer', 'Job offer generated and sent']);
+
+  // Advance candidate via workflow engine
+  const { getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
+  let state = await getCandidateState(id);
+  if (!state) {
+    const [[defaultTpl]] = await pool.query(
+      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+    );
+    if (defaultTpl) state = await initCandidateState(id, defaultTpl.id);
+  }
+  if (state) {
+    await transition(id, 'offer', {
+      note: 'Job offer generated and sent',
+      createdBy: req.admin?.username || req.hr?.username || 'HR',
+    });
+  } else {
+    await pool.query("UPDATE recruitment_candidates SET stage='offer' WHERE id=?", [id]);
+    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
+      [id, 'offer', 'Job offer generated and sent']);
+  }
 
   const [[c]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
   if (c) {
+    // Publish offer_sent workflow event
+    const { publishEvent } = require('./engines/workflow.engine');
+    await publishEvent(id, 'offer_sent', {
+      offer_id: result.insertId, position, department, salary, start_date,
+    }, null, req.admin?.username || req.hr?.username || 'HR');
+
     try {
       const emailService = require('../../shared/services/email.service');
-      await emailService.sendEmail(
-        c.email,
-        `Job Offer — ${position}`,
-        `Dear ${c.name},<br><br>We are delighted to offer you the position of <strong>${position}</strong>.<br><br><strong>Start Date:</strong> ${start_date || 'TBD'}<br><strong>Department:</strong> ${department || '—'}<br><strong>Monthly Salary:</strong> EGP ${salary || '—'}<br><br>Please confirm your acceptance within 5 business days.`
-      );
+      const { renderEmail } = require('./engines/template.engine');
+      const result2 = await renderEmail('offer_sent', {
+        candidate_name: c.name,
+        position: position,
+        start_date: start_date || 'TBD',
+        department: department || '—',
+        salary: salary || '—',
+        offer_details: '',
+      });
+      await emailService.sendEmail(c.email, result2.subject, result2.html);
     } catch (e) { console.error('Offer email error:', e); }
   }
   logActivity(null, req.admin?.id || req.hr?.id || null, 'offer_created', `Created offer for candidate #${id}`);
@@ -389,9 +453,18 @@ async function publicApply(req, res) {
   try {
     const { autoScreen } = require('../../shared/services/screening.service');
     if (job_id) {
-      const [jobs] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
       if (jobs.length > 0 && jobs[0].title_id) {
         await autoScreen(result.insertId, jobs[0].title_id, job_id);
+      }
+      // Initialize workflow state if job has a workflow template
+      if (jobs.length > 0 && jobs[0].workflow_template_id) {
+        const { initCandidateState, publishEvent } = require('./engines/workflow.engine');
+        await initCandidateState(result.insertId, jobs[0].workflow_template_id);
+        await publishEvent(result.insertId, 'candidate_created', {
+          stage: 'applied',
+          source: 'Portal',
+        }, null, 'portal');
       }
     }
   } catch (e) { console.error('Auto-screening error:', e); }
@@ -404,18 +477,21 @@ async function publicApply(req, res) {
   let emailSent = false;
   try {
     const emailService = require('../../shared/services/email.service');
+    const { renderEmail } = require('./engines/template.engine');
     if (isRejected) {
-      await emailService.sendEmail(
-        email,
-        `Update on Your Application — ${job_title}`,
-        `Dear ${name},<br><br>Thank you for your interest in the <strong>${job_title}</strong> position. After reviewing your application against our minimum requirements, we regret to inform you that your profile does not match the criteria for this role at this time.<br><br>Please note that you may re-apply for this or similar positions after <strong>3 months</strong> from this notice.<br><br>We wish you the best in your career journey.<br><br><strong>Reference Number:</strong> ${ref}`
-      );
+      const result2 = await renderEmail('rejection', {
+        candidate_name: name,
+        job_title: job_title,
+        reference_number: ref,
+      });
+      await emailService.sendEmail(email, result2.subject, result2.html);
     } else {
-      await emailService.sendEmail(
-        email,
-        `Application Received — ${job_title}`,
-        `Dear ${name},<br><br>Your application for <strong>${job_title}</strong> has been received.<br><br><strong>Reference Number:</strong> ${ref}<br><br>Our HR team will review your profile and contact you within 3 business days.`
-      );
+      const result2 = await renderEmail('applied_confirmation', {
+        candidate_name: name,
+        job_title: job_title,
+        reference_number: ref,
+      });
+      await emailService.sendEmail(email, result2.subject, result2.html);
     }
     emailSent = true;
   } catch (e) { console.error('Confirmation/rejection email error:', e); }
@@ -468,6 +544,40 @@ async function publicTrack(req, res) {
     }
     for (const a of apps) {
       a.screening = byCandidateScreening[a.id] || null;
+    }
+
+    // Attach workflow state and stage definitions for portal progress display
+    const [workflowStates] = await pool.query(
+      `SELECT cws.candidate_id, ws.stage_key, ws.display_name, ws.stage_order,
+              ws.stage_type, cws.stage_entered_at, cws.is_completed
+       FROM candidate_workflow_state cws
+       JOIN workflow_stages ws ON ws.id = cws.current_stage_id
+       WHERE cws.candidate_id IN (${placeholders})`,
+      ids
+    );
+    const byCandidateWf = {};
+    for (const wf of workflowStates) {
+      byCandidateWf[wf.candidate_id] = wf;
+    }
+
+    // Get all workflow stages for each candidate's template for the progress bar
+    const [workflowStageTemplates] = await pool.query(
+      `SELECT cws.candidate_id, ws.stage_key, ws.display_name, ws.stage_order, ws.stage_type
+       FROM candidate_workflow_state cws
+       JOIN workflow_stages ws ON ws.template_id = cws.workflow_template_id
+       WHERE cws.candidate_id IN (${placeholders})
+       ORDER BY cws.candidate_id, ws.stage_order`,
+      ids
+    );
+    const byCandidateWfStages = {};
+    for (const stage of workflowStageTemplates) {
+      if (!byCandidateWfStages[stage.candidate_id]) byCandidateWfStages[stage.candidate_id] = [];
+      byCandidateWfStages[stage.candidate_id].push({ stage_key: stage.stage_key, display_name: stage.display_name, stage_order: stage.stage_order, stage_type: stage.stage_type });
+    }
+
+    for (const a of apps) {
+      a.workflow_state = byCandidateWf[a.id] || null;
+      a.workflow_stages = byCandidateWfStages[a.id] || [];
     }
   }
 
@@ -588,9 +698,25 @@ async function hireCandidate(req, res) {
     }
   }
 
-  await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [id]);
-  await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)",
-    [id, 'hired', 'Candidate hired and converted to employee', req.admin?.username || 'HR']);
+  // Advance candidate via workflow engine
+  const { getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
+  let state = await getCandidateState(id);
+  if (!state) {
+    const [[defaultTpl]] = await pool.query(
+      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+    );
+    if (defaultTpl) state = await initCandidateState(id, defaultTpl.id);
+  }
+  if (state) {
+    await transition(id, 'hired', {
+      note: 'Candidate hired and converted to employee',
+      createdBy: req.admin?.username || req.hr?.username || 'HR',
+    });
+  } else {
+    await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [id]);
+    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)",
+      [id, 'hired', 'Candidate hired and converted to employee', req.admin?.username || 'HR']);
+  }
 
   if (employee_id) {
     const [empRows] = await pool.query('SELECT id FROM employees WHERE employee_id = ?', [String(employee_id)]);
@@ -815,7 +941,9 @@ async function getRecruitmentStats(req, res) {
        COUNT(*) AS total,
        SUM(status='sent') AS sent,
        SUM(status='accepted') AS accepted,
-       SUM(status='rejected') AS rejected
+       SUM(status='rejected') AS rejected,
+       SUM(status='withdrawn') AS withdrawn,
+       SUM(status='expired') AS expired
      FROM recruitment_offers`
   );
 
@@ -835,21 +963,95 @@ async function getRecruitmentStats(req, res) {
      LIMIT 12`
   );
 
+  // Workflow-driven KPIs
+  const [workflowStageCounts] = await pool.query(
+    `SELECT ws.display_name, ws.stage_key, COUNT(cws.candidate_id) AS count
+     FROM candidate_workflow_state cws
+     JOIN workflow_stages ws ON ws.id = cws.current_stage_id
+     WHERE cws.is_completed = 0
+     GROUP BY ws.id, ws.display_name, ws.stage_key
+     ORDER BY ws.stage_order`
+  );
+
+  const [avgDaysPerStage] = await pool.query(
+    `SELECT ws.display_name, ws.stage_key,
+       ROUND(AVG(TIMESTAMPDIFF(HOUR, cws.stage_entered_at, COALESCE(cws.previous_stage_exited_at, NOW()))) / 24, 1) AS avg_days
+     FROM candidate_workflow_state cws
+     JOIN workflow_stages ws ON ws.id = cws.current_stage_id
+     GROUP BY ws.id, ws.display_name, ws.stage_key
+     ORDER BY ws.stage_order`
+  );
+
   res.json({
     candidates: stageCounts,
     offers: offerStats,
     jobs: jobStats,
     monthly_applications: monthlyApps,
+    workflow_stages: workflowStageCounts,
+    avg_days_per_stage: avgDaysPerStage,
   });
 }
 
 async function updateOffer(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  if (!['sent', 'accepted', 'rejected'].includes(status)) {
-    return res.status(400).json({ error: 'Status must be sent, accepted, or rejected' });
+  if (!['sent', 'accepted', 'rejected', 'withdrawn', 'expired'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be sent, accepted, rejected, withdrawn, or expired' });
   }
+
+  const [[offer]] = await pool.query(
+    `SELECT o.*, c.id AS candidate_id, c.name AS candidate_name, c.email, c.job_title
+     FROM recruitment_offers o
+     JOIN recruitment_candidates c ON c.id = o.candidate_id
+     WHERE o.id = ?`,
+    [id]
+  );
+  if (!offer) return res.status(404).json({ error: 'Offer not found' });
+
   await pool.query('UPDATE recruitment_offers SET status = ? WHERE id = ?', [status, id]);
+
+  const { publishEvent, getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
+  const emailService = require('../../shared/services/email.service');
+  const { renderEmail } = require('./engines/template.engine');
+
+  const cid = offer.candidate_id;
+
+  switch (status) {
+    case 'accepted': {
+      await publishEvent(cid, 'offer_accepted', { offer_id: parseInt(id), position: offer.position }, null, req.admin?.username || 'HR');
+      let state = await getCandidateState(cid);
+      if (!state) {
+        const [[defaultTpl]] = await pool.query('SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1');
+        if (defaultTpl) state = await initCandidateState(cid, defaultTpl.id);
+      }
+      if (state) {
+        await transition(cid, 'hired', { note: 'Offer accepted by candidate', createdBy: req.admin?.username || 'HR' });
+      } else {
+        await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [cid]);
+      }
+      try {
+        const result = await renderEmail('offer_accepted', { candidate_name: offer.candidate_name, position: offer.position });
+        await emailService.sendEmail(offer.email, result.subject, result.html);
+      } catch (e) { console.error('Offer accepted email error:', e); }
+      break;
+    }
+    case 'rejected': {
+      await publishEvent(cid, 'offer_rejected', { offer_id: parseInt(id), position: offer.position }, null, req.admin?.username || 'HR');
+      try {
+        const result = await renderEmail('offer_rejected', { candidate_name: offer.candidate_name, position: offer.position });
+        await emailService.sendEmail(offer.email, result.subject, result.html);
+      } catch (e) { console.error('Offer rejected email error:', e); }
+      break;
+    }
+    case 'withdrawn':
+      await publishEvent(cid, 'offer_withdrawn', { offer_id: parseInt(id), position: offer.position }, null, req.admin?.username || 'HR');
+      break;
+    case 'expired':
+      await publishEvent(cid, 'offer_expired', { offer_id: parseInt(id), position: offer.position }, null, req.admin?.username || 'HR');
+      break;
+  }
+
+  logActivity(null, req.admin?.id || req.hr?.id || null, 'offer_updated', `Offer #${id} status: ${status}`);
   res.json({ message: 'Offer updated' });
 }
 
@@ -858,11 +1060,12 @@ async function listPublicInterviews(req, res) {
   const { email } = req.params;
   if (!email) return res.status(400).json({ error: 'Email is required' });
   const [rows] = await pool.query(
-    `SELECT i.*, c.name AS candidate_name, c.job_title
-     FROM recruitment_interviews i
-     JOIN recruitment_candidates c ON c.id = i.candidate_id
+    `SELECT is2.*, c.name AS candidate_name, c.job_title, ws.display_name AS stage_name
+     FROM interview_stages is2
+     JOIN recruitment_candidates c ON c.id = is2.candidate_id
+     LEFT JOIN workflow_stages ws ON ws.id = is2.workflow_stage_id
      WHERE c.email = ?
-     ORDER BY i.interview_date DESC`,
+     ORDER BY is2.interview_date DESC`,
     [email]
   );
   res.json(rows);
@@ -874,22 +1077,37 @@ async function respondToInterview(req, res) {
     return res.status(400).json({ error: 'interview_id, email, and status (accepted/declined) are required' });
   }
   const [[interview]] = await pool.query(
-    `SELECT i.id, i.candidate_id FROM recruitment_interviews i
+    `SELECT i.id, i.candidate_id
+     FROM interview_stages i
      JOIN recruitment_candidates c ON c.id = i.candidate_id
      WHERE i.id = ? AND c.email = ?`,
     [interview_id, email]
   );
   if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
-  await pool.query('UPDATE recruitment_interviews SET candidate_status = ? WHERE id = ?', [status, interview_id]);
+  await pool.query('UPDATE interview_stages SET candidate_status = ? WHERE id = ?', [status, interview_id]);
 
-  if (status === 'accepted') {
-    await pool.query("UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?", [interview.candidate_id]);
-    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'first','Candidate accepted interview invitation')", [interview.candidate_id]);
-  } else {
-    await pool.query("UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ?", [interview.candidate_id]);
-    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'rejected','Candidate declined interview invitation')", [interview.candidate_id]);
+  if (status === 'declined') {
+    // Ensure workflow state exists, then reject via workflow engine
+    const { getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
+    let state = await getCandidateState(interview.candidate_id);
+    if (!state) {
+      const [[defaultTpl]] = await pool.query(
+        'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+      );
+      if (defaultTpl) state = await initCandidateState(interview.candidate_id, defaultTpl.id);
+    }
+    if (state) {
+      await transition(interview.candidate_id, 'rejected', {
+        note: 'Candidate declined interview invitation',
+        createdBy: 'portal',
+      });
+    } else {
+      await pool.query("UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ?", [interview.candidate_id]);
+      await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,'rejected','Candidate declined interview invitation')", [interview.candidate_id]);
+    }
   }
+  // Acceptance does not auto-advance stage; the admin moves them forward when the interview is completed.
 
   res.json({ message: `Interview ${status}` });
 }

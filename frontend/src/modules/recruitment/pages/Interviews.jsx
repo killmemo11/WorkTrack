@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
@@ -8,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 
 const defaultForm = {
-  candidate_id: '', interview_date: '', duration: 60, mode: 'video', interviewer: '', location_or_link: '', notes: '',
+  candidate_id: '', workflow_stage_id: '', interview_date: '', duration: 60, mode: 'video',
+  interviewer: '', location_or_link: '', notes: '',
   type: 'online', location_name: '', location_address: '', dress_code: '', what_to_bring: '', map_link: '',
   meeting_platform: '', meeting_link: '',
 };
@@ -23,6 +21,7 @@ export default function Interviews() {
   const navigate = useNavigate();
   const [interviews, setInterviews] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [workflowStages, setWorkflowStages] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -31,18 +30,19 @@ export default function Interviews() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...defaultForm });
+  const [msg, setMsg] = useState('');
 
   const fetchInterviews = async (p = page) => {
     setLoading(true);
     try {
       const params = { page: p, per_page: 15 };
       if (statusFilter) params.status = statusFilter;
-      const res = await hrApi.get('/recruitment/interviews', { params });
+      const res = await hrApi.get('/recruitment/interview-stages', { params });
       setInterviews(res.data.data);
       setPage(res.data.pagination.page);
       setPages(res.data.pagination.pages);
       setTotal(res.data.pagination.total);
-    } catch (err) { console.error(err); }
+    } catch { setMsg('Failed to load interviews'); }
     setLoading(false);
   };
 
@@ -50,11 +50,18 @@ export default function Interviews() {
     try {
       const res = await hrApi.get('/recruitment/candidates', { params: { per_page: 200 } });
       setCandidates(res.data.data);
-    } catch (err) { console.error(err); }
+    } catch {}
+  };
+
+  const fetchWorkflowStages = async () => {
+    try {
+      const res = await hrApi.get('/recruitment/workflow-stages');
+      setWorkflowStages(res.data);
+    } catch {}
   };
 
   useEffect(() => { fetchInterviews(1); }, [statusFilter]);
-  useEffect(() => { fetchCandidates(); }, []);
+  useEffect(() => { fetchCandidates(); fetchWorkflowStages(); }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -66,6 +73,7 @@ export default function Interviews() {
     setEditingId(iv.id);
     setForm({
       candidate_id: iv.candidate_id,
+      workflow_stage_id: iv.workflow_stage_id || '',
       interview_date: iv.interview_date?.slice(0, 16) || '',
       duration: iv.duration || 60,
       mode: iv.mode || 'video',
@@ -87,43 +95,45 @@ export default function Interviews() {
   const handleSave = async () => {
     try {
       const payload = { ...form };
+      if (payload.workflow_stage_id === '') payload.workflow_stage_id = null;
       if (payload.type === 'online') {
-        payload.location_name = '';
-        payload.location_address = '';
-        payload.dress_code = '';
-        payload.what_to_bring = '';
-        payload.map_link = '';
+        payload.location_name = ''; payload.location_address = ''; payload.dress_code = '';
+        payload.what_to_bring = ''; payload.map_link = '';
       } else {
-        payload.meeting_platform = '';
-        payload.meeting_link = '';
-        payload.mode = 'in-person';
+        payload.meeting_platform = ''; payload.meeting_link = ''; payload.mode = 'in-person';
       }
       if (editingId) {
-        await hrApi.put(`/recruitment/interviews/${editingId}`, payload);
+        await hrApi.put(`/recruitment/interview-stages/${editingId}`, payload);
       } else {
-        await hrApi.post('/recruitment/interviews', payload);
+        await hrApi.post('/recruitment/interview-stages', payload);
       }
       setShowModal(false);
       fetchInterviews();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save interview');
+      setMsg(err.response?.data?.error || 'Failed to save interview');
     }
   };
 
   const handleStatus = async (id, status) => {
     try {
-      await hrApi.put(`/recruitment/interviews/${id}`, { status });
+      await hrApi.put(`/recruitment/interview-stages/${id}`, { status });
       fetchInterviews();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update');
-    }
+    } catch { setMsg('Failed to update status'); }
+  };
+
+  const handleAttendance = async (id, attendance) => {
+    try {
+      await hrApi.put(`/recruitment/interview-stages/${id}`, { attendance });
+      if (attendance === 'attended') handleStatus(id, 'completed');
+      fetchInterviews();
+    } catch { setMsg('Failed to update attendance'); }
   };
 
   return (
     <div className="page fade-in-up" style={{ padding: 24 }}>
       <div className="glass-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid var(--border-glass)', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Icon icon="lucide:video" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }}></Icon>
+          <Icon icon="lucide:video" style={{ fontSize: '1.4rem', color: 'var(--brand-primary)' }} />
           Interview Scheduling
         </h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -134,10 +144,17 @@ export default function Interviews() {
             <option value="cancelled">Cancelled</option>
           </select>
           <button className="glass-btn glass-btn-primary" onClick={openCreate}>
-            <Icon icon="lucide:calendar-plus"></Icon> Schedule Interview
+            <Icon icon="lucide:calendar-plus" /> Schedule Interview
           </button>
         </div>
       </div>
+
+      {msg && (
+        <div className="glass-alert glass-alert-info" style={{ marginBottom: 16 }}>
+          <Icon icon="lucide:info" /> {msg}
+          <button onClick={() => setMsg('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
 
       <p style={{ color: 'var(--text-dim)', marginTop: -8, marginBottom: 16, fontSize: '0.9rem' }}>
         {total} interview{total !== 1 ? 's' : ''}
@@ -159,11 +176,12 @@ export default function Interviews() {
             <thead>
               <tr>
                 <th>Candidate</th>
+                <th>Stage</th>
                 <th>Date & Time</th>
                 <th>Type</th>
                 <th>Interviewer</th>
                 <th>Status</th>
-                <th>Candidate Status</th>
+                <th>Attendance</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -178,18 +196,25 @@ export default function Interviews() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: 2 }}>{iv.job_title}</div>
                   </td>
                   <td>
+                    {iv.stage_name ? (
+                      <span className="glass-badge glass-badge-primary">{iv.stage_name}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>—</span>
+                    )}
+                  </td>
+                  <td>
                     {new Date(iv.interview_date).toLocaleDateString()} {new Date(iv.interview_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     <br /><span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>{iv.duration} min</span>
                   </td>
                   <td>
                     <span className={`glass-badge ${iv.type === 'online' ? 'glass-badge-info' : 'glass-badge-warning'}`}>
-                      <Icon icon={iv.type === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 2, fontSize: '0.65rem' }}></Icon>
+                      <Icon icon={iv.type === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 2, fontSize: '0.65rem' }} />
                       {iv.type === 'online' ? 'Online' : 'Offline'}
                     </span>
                     {iv.type === 'online' && iv.meeting_link && (
                       <div style={{ marginTop: 4 }}>
                         <a href={iv.meeting_link} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--brand-primary)' }}>
-                          {iv.meeting_platform || 'Link'} <Icon icon="lucide:external-link" style={{ fontSize: '0.6rem' }}></Icon>
+                          {iv.meeting_platform || 'Link'} <Icon icon="lucide:external-link" style={{ fontSize: '0.6rem' }} />
                         </a>
                       </div>
                     )}
@@ -204,28 +229,32 @@ export default function Interviews() {
                     </span>
                   </td>
                   <td>
-                    <span className={`glass-badge ${iv.candidate_status === 'accepted' ? 'glass-badge-success' : iv.candidate_status === 'declined' ? 'glass-badge-danger' : 'glass-badge-neutral'}`}>
-                      {iv.candidate_status || 'pending'}
-                    </span>
+                    <select className="glass-select" style={{ width: 110, padding: '4px 8px', fontSize: '0.75rem' }}
+                      value={iv.attendance || 'pending'}
+                      onChange={e => handleAttendance(iv.id, e.target.value)}>
+                      <option value="pending">Pending</option>
+                      <option value="attended">Attended</option>
+                      <option value="absent">Absent</option>
+                    </select>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => openEdit(iv)}>
-                        <Icon icon="lucide:pencil"></Icon> Edit
+                        <Icon icon="lucide:pencil" /> Edit
                       </button>
                       {iv.type === 'online' && iv.status === 'scheduled' && (
                         <button className="glass-btn glass-btn-xs glass-btn-success"
                           onClick={() => window.open(iv.meeting_link || `https://meet.jit.si/wfh-interview-${iv.id}`, '_blank')}>
-                          <Icon icon="lucide:link"></Icon> Join
+                          <Icon icon="lucide:link" /> Join
                         </button>
                       )}
                       {iv.status === 'scheduled' && (
                         <>
                           <button className="glass-btn glass-btn-xs glass-btn-success" onClick={() => handleStatus(iv.id, 'completed')}>
-                            <Icon icon="lucide:check"></Icon> Complete
+                            <Icon icon="lucide:check" /> Complete
                           </button>
                           <button className="glass-btn glass-btn-xs glass-btn-danger" onClick={() => handleStatus(iv.id, 'cancelled')}>
-                            <Icon icon="lucide:x"></Icon> Cancel
+                            <Icon icon="lucide:x" /> Cancel
                           </button>
                         </>
                       )}
@@ -241,16 +270,15 @@ export default function Interviews() {
       {pages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
           <button disabled={page <= 1} onClick={() => fetchInterviews(page - 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            <Icon icon="lucide:chevron-left"></Icon> Prev
+            <Icon icon="lucide:chevron-left" /> Prev
           </button>
           <span className="glass-badge glass-badge-neutral" style={{ padding: '6px 12px' }}>Page {page} of {pages}</span>
           <button disabled={page >= pages} onClick={() => fetchInterviews(page + 1)} className="glass-btn glass-btn-sm glass-btn-ghost">
-            Next <Icon icon="lucide:chevron-right"></Icon>
+            Next <Icon icon="lucide:chevron-right" />
           </button>
         </div>
       )}
 
-      {/* Schedule / Edit Modal */}
       {showModal && (
         <motion.div className="glass-modal-overlay" onClick={() => setShowModal(false)}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -259,13 +287,12 @@ export default function Interviews() {
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
             <div className="glass-modal-header">
               <h3 className="glass-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon icon={editingId ? 'lucide:pencil' : 'lucide:calendar-plus'} style={{ color: 'var(--brand-primary)' }}></Icon>
+                <Icon icon={editingId ? 'lucide:pencil' : 'lucide:calendar-plus'} style={{ color: 'var(--brand-primary)' }} />
                 {editingId ? 'Edit Interview' : 'Schedule Interview'}
               </h3>
               <button className="glass-modal-close" onClick={() => setShowModal(false)}><Icon icon="lucide:x" /></button>
             </div>
 
-            {/* Candidate */}
             <div className="glass-form-group">
               <label className="glass-label">Candidate *</label>
               <select value={form.candidate_id} onChange={e => setForm({ ...form, candidate_id: e.target.value })} className="glass-select">
@@ -274,7 +301,16 @@ export default function Interviews() {
               </select>
             </div>
 
-            {/* Date & Duration */}
+            <div className="glass-form-group">
+              <label className="glass-label">Workflow Stage</label>
+              <select value={form.workflow_stage_id} onChange={e => setForm({ ...form, workflow_stage_id: e.target.value })} className="glass-select">
+                <option value="">— No stage —</option>
+                {workflowStages.map(ws => (
+                  <option key={ws.id} value={ws.id}>{ws.display_name}</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ display: 'flex', gap: 12 }}>
               <div className="glass-form-group" style={{ flex: 2, margin: 0 }}>
                 <label className="glass-label">Date & Time *</label>
@@ -286,7 +322,6 @@ export default function Interviews() {
               </div>
             </div>
 
-            {/* Type: Online / Offline */}
             <div className="glass-form-group">
               <label className="glass-label">Type</label>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -295,14 +330,13 @@ export default function Interviews() {
                     onClick={() => setForm({ ...form, type: t })}
                     className={`glass-btn glass-btn-sm ${form.type === t ? 'glass-btn-primary' : 'glass-btn-ghost'}`}
                     style={{ flex: 1, justifyContent: 'center' }}>
-                    <Icon icon={t === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 4 }}></Icon>
+                    <Icon icon={t === 'online' ? 'lucide:globe' : 'lucide:building'} style={{ marginRight: 4 }} />
                     {t === 'online' ? 'Online' : 'Offline'}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Online Fields */}
             {form.type === 'online' && (
               <>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -324,13 +358,12 @@ export default function Interviews() {
                   </div>
                 </div>
                 <div className="glass-form-group">
-                  <label className="glass-label">Meeting Link <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>(leave blank for Jitsi auto-generate)</span></label>
+                  <label className="glass-label">Meeting Link <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>(leave blank for auto-generate)</span></label>
                   <input type="text" value={form.meeting_link} onChange={e => setForm({ ...form, meeting_link: e.target.value })} className="glass-input" placeholder="https://zoom.us/j/..." />
                 </div>
               </>
             )}
 
-            {/* Offline Fields */}
             {form.type === 'offline' && (
               <>
                 <div className="glass-form-group">
@@ -358,7 +391,6 @@ export default function Interviews() {
               </>
             )}
 
-            {/* Interviewer + Notes */}
             <div className="glass-form-group">
               <label className="glass-label">Interviewer</label>
               <input type="text" value={form.interviewer} onChange={e => setForm({ ...form, interviewer: e.target.value })} className="glass-input" placeholder="Interviewer name" />
@@ -372,7 +404,7 @@ export default function Interviews() {
               <button className="glass-btn glass-btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleSave}
                 disabled={!form.candidate_id || !form.interview_date || (form.type === 'offline' && !form.location_name)}>
-                {editingId ? <><Icon icon="lucide:check"></Icon> Update & Notify</> : <><Icon icon="lucide:send"></Icon> Schedule & Notify</>}
+                {editingId ? <><Icon icon="lucide:check" /> Update</> : <><Icon icon="lucide:send" /> Schedule</>}
               </button>
             </div>
           </motion.div>
