@@ -120,7 +120,7 @@ export default function App() {
           <Route path="/personnel/my-assets" element={<Navigate to="/personnel/my-profile" />} />
           <Route path="/personnel/my-contracts" element={<Navigate to="/personnel/my-profile" />} />
           {/* Admin Panel — IT Admins only */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<Navigate to="/login" />} />
           <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/activity-log" element={<ActivityLog />} />

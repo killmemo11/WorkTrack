@@ -1,9 +1,10 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { useAdminAuth } from '../../../shared/context/AdminAuthContext';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -12,34 +13,23 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login: empLogin } = useAuth();
+  const { login: adminLogin } = useAdminAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch('/api/auth/has-employees');
-        const data = await res.json();
-        if (!data.hasEmployees) {
-          navigate('/admin/login', { replace: true });
-        }
-      } catch {}
-    };
-    check();
-  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(username, password, rememberMe);
+      await empLogin(username, password, rememberMe);
       navigate('/dashboard', { replace: true });
-    } catch (err) {
-      const msg = err.response?.data;
-      if (msg?.error && msg?.email) {
-        navigate(`/verify?email=${encodeURIComponent(msg.email)}`);
-      } else {
+    } catch (empErr) {
+      try {
+        await adminLogin(username, password);
+        navigate('/admin/settings', { replace: true });
+      } catch {
+        const msg = empErr.response?.data;
         setError(msg?.error || 'Login failed');
       }
     } finally {
