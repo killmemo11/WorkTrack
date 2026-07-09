@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 
@@ -14,6 +14,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch('/api/auth/has-employees');
+        const data = await res.json();
+        if (!data.hasEmployees) {
+          navigate('/admin/login', { replace: true });
+        }
+      } catch {}
+    };
+    check();
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

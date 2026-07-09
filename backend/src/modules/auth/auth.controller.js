@@ -452,5 +452,10 @@ async function resetPassword(req, res) {
   res.json({ message: 'Password reset successfully. You can now login with your new password.' });
 }
 
-module.exports = { register, verify, login, resendCode, me, logout, forgotPassword, resetPassword };
+async function hasEmployees(req, res) {
+  const [rows] = await pool.query("SELECT COUNT(*) AS cnt FROM employees WHERE is_verified = 1");
+  res.json({ hasEmployees: rows[0].cnt > 0 });
+}
+
+module.exports = { register, verify, login, resendCode, me, logout, forgotPassword, resetPassword, hasEmployees };
 

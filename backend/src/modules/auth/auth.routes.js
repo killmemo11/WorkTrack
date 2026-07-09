@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { authenticate } = require('../../shared/middleware/auth.middleware');
 const { requireReadWrite } = require('../../shared/middleware/readonly.middleware');
 const { requireLeaveService } = require('../../shared/middleware/leave-service.middleware');
-const { register, verify, login, resendCode, me, logout, forgotPassword, resetPassword } = require('./auth.controller');
+const { register, verify, login, resendCode, me, logout, forgotPassword, resetPassword, hasEmployees } = require('./auth.controller');
 const { updateProfile, changePassword } = require('../profile/profile.controller');
 const { getMyLeaves, createLeave, cancelLeave } = require('../leave/leave.controller');
 const { getNotifications, getUnreadCount, markAsRead, markAllAsRead } = require('../notification/notification.controller');
@@ -21,6 +21,7 @@ router.post('/login', authLimiter, login);
 router.post('/resend-code', authLimiter, resendCode);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
+router.get('/has-employees', hasEmployees);
 router.get('/me', authenticate, me);
 router.post('/logout', authenticate, logout);
 
