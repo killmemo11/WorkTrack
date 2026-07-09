@@ -24,6 +24,7 @@ export default function Login() {
     try {
       const empData = await empLogin(username, password, rememberMe);
       if (empData?.employee?.role === 'admin') {
+        await adminLogin(username, password);
         navigate('/admin/settings', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

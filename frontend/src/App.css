@@ -3019,7 +3019,6 @@ select.form-control { cursor: pointer; }
   }
   .admin-nav-section-label { display: none; }
   .admin-nav-link { font-size: 0.8rem; padding: 6px 10px; }
-  .admin-sidebar-footer { display: none; }
   .admin-content { padding: 16px; }
 }
 
