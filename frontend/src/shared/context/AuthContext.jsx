@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
     if (!res.ok) throw { response: { data } };
     localStorage.setItem('token', data.token);
     if (data.employee) setEmployee(data.employee);
+    return data;
   };
 
   const logout = () => {

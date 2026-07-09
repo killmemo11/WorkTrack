@@ -22,8 +22,12 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await empLogin(username, password, rememberMe);
-      navigate('/dashboard', { replace: true });
+      const empData = await empLogin(username, password, rememberMe);
+      if (empData?.employee?.role === 'admin') {
+        navigate('/admin/settings', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (empErr) {
       try {
         await adminLogin(username, password);
