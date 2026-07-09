@@ -5,24 +5,16 @@ const bcrypt = require('bcryptjs');
 const pool = require('./shared/config/database');
 
 async function seed() {
-  // Create or repair the default admin user so admin login works reliably
+  // Bootstrap admin user (env or hardcoded default — no DB dependency)
   const username = process.env.ADMIN_USERNAME || 'IT';
-
-  // Ensure admin_default_password setting exists (stored in DB, not env)
-  const [pwdSetting] = await pool.query("SELECT * FROM settings WHERE `key` = 'admin_default_password'");
-  if (pwdSetting.length === 0) {
-    await pool.query("INSERT INTO settings (`key`, `value`) VALUES ('admin_default_password', 'Admin@2026#')");
-  }
-  const [pwdRow] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'admin_default_password'");
-  const password = pwdRow[0]?.value || 'Admin@2026#';
+  const bootstrapPassword = process.env.ADMIN_PASSWORD || 'Admin@2026#';
 
   const [admins] = await pool.query('SELECT * FROM admin_users WHERE username = ? LIMIT 1', [username]);
-
   if (admins.length === 0) {
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(bootstrapPassword, 10);
     await pool.query('INSERT INTO admin_users (username, password_hash, is_active) VALUES (?, ?, 1)', [username, hash]);
   } else {
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(bootstrapPassword, 10);
     await pool.query(
       'UPDATE admin_users SET is_active = 1, password_hash = ? WHERE id = ?',
       [hash, admins[0].id]
@@ -52,6 +44,19 @@ async function seed() {
     if (existing.length === 0) {
       await pool.query('INSERT INTO settings (`key`, `value`) VALUES (?, ?)', [key, value]);
     }
+  }
+
+  // Ensure admin_default_password setting exists (DB-driven, not env)
+  const [pwdSetting] = await pool.query("SELECT * FROM settings WHERE `key` = 'admin_default_password'");
+  if (pwdSetting.length === 0) {
+    await pool.query("INSERT INTO settings (`key`, `value`) VALUES ('admin_default_password', ?)", [bootstrapPassword]);
+  }
+  const [pwdRow] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'admin_default_password'");
+  const dbPassword = pwdRow[0]?.value || bootstrapPassword;
+  // If DB password differs from bootstrap, update admin user hash
+  if (dbPassword !== bootstrapPassword) {
+    const hash = await bcrypt.hash(dbPassword, 10);
+    await pool.query('UPDATE admin_users SET password_hash = ? WHERE username = ?', [hash, username]);
   }
 
   // Service toggles defaults
