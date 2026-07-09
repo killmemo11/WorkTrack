@@ -5,6 +5,26 @@ const bcrypt = require('bcryptjs');
 const pool = require('./shared/config/database');
 
 async function seed() {
+  // Ensure core tables exist (may have been dropped during reset)
+  const [admTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'admin_users'",
+    [process.env.DB_NAME]
+  );
+  if (admTable.length === 0) {
+    await pool.query(
+      'CREATE TABLE admin_users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(100) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'
+    );
+  }
+  const [setTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'settings'",
+    [process.env.DB_NAME]
+  );
+  if (setTable.length === 0) {
+    await pool.query(
+      'CREATE TABLE settings (id INT AUTO_INCREMENT PRIMARY KEY, `key` VARCHAR(100) NOT NULL UNIQUE, `value` TEXT DEFAULT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)'
+    );
+  }
+
   // Bootstrap admin user (env or hardcoded default — no DB dependency)
   const username = process.env.ADMIN_USERNAME || 'IT';
   const bootstrapPassword = process.env.ADMIN_PASSWORD || 'Admin@2026#';
