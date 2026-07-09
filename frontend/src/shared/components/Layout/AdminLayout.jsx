@@ -43,9 +43,6 @@ export default function AdminLayout() {
           </Link>
         </nav>
         <div className="admin-sidebar-footer">
-          <Link to="/dashboard" className="admin-nav-link">
-            <Icon icon="lucide:arrow-left" /> Back to App
-          </Link>
           <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
             <Icon icon="lucide:log-out" /> Logout
           </button>
