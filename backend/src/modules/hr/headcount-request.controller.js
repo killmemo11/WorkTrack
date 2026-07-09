@@ -332,10 +332,29 @@ async function approveRequest(req, res) {
   let jobId = null;
   if (auto_create_job) {
     const [titleRow] = await pool.query(
-      'SELECT title, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, technical FROM department_titles WHERE id = ?',
+      'SELECT title, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, technical, grade_id, min_education_level, min_experience_years, required_skills FROM department_titles WHERE id = ?',
       [r.title_id]
     );
     const t = titleRow[0] || {};
+
+    // Validate required job fields before creating the posting
+    const missingFields = [];
+    if (!t.job_summary) missingFields.push('Job Summary');
+    if (!t.key_responsibilities) missingFields.push('Key Responsibilities');
+    if (!t.qualifications) missingFields.push('Qualifications & Skills');
+    if (!t.grade_id) missingFields.push('Grade (salary scale)');
+    if (!t.min_education_level) missingFields.push('Minimum Education Level');
+    if (!t.min_experience_years) missingFields.push('Minimum Years of Experience');
+    if (!t.required_skills) missingFields.push('Required Skills');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Cannot create job posting — the following fields are missing from the position setup. Please go to Job Architecture and fill them in first.',
+        missing_fields: missingFields,
+        redirect: '/personnel/positions'
+      });
+    }
+
     const title = t.title || 'Position';
     const [deptRow] = await pool.query('SELECT name FROM departments WHERE id = ?', [r.department_id]);
     const deptName = deptRow[0]?.name || '';

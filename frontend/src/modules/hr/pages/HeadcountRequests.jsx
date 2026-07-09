@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 
@@ -37,6 +38,7 @@ function StageProgress({ r }) {
 }
 
 export default function HeadcountRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +49,7 @@ export default function HeadcountRequests() {
   const [approveId, setApproveId] = useState(null);
   const [autoCreateJob, setAutoCreateJob] = useState(true);
   const [approving, setApproving] = useState(false);
+  const [validationError, setValidationError] = useState(null);
 
   const fetchRequests = () => {
     setLoading(true);
@@ -61,13 +64,21 @@ export default function HeadcountRequests() {
   const handleApprove = async () => {
     if (!approveId) return;
     setApproving(true);
+    setValidationError(null);
     try {
       await hrApi.put(`/headcount-requests/${approveId}/approve`, { auto_create_job: autoCreateJob });
       setApproveId(null);
       setAutoCreateJob(true);
       setFilterStatus('all');
       fetchRequests();
-    } catch (e) { alert(e.response?.data?.error || 'Failed to approve'); }
+    } catch (e) {
+      const err = e.response?.data;
+      if (err?.missing_fields) {
+        setValidationError(err);
+      } else {
+        alert(err?.error || 'Failed to approve');
+      }
+    }
     finally { setApproving(false); }
   };
 
@@ -223,6 +234,38 @@ export default function HeadcountRequests() {
               <button className="glass-btn glass-btn-ghost" onClick={() => { setApproveId(null); setAutoCreateJob(true); }}>Cancel</button>
               <button className="glass-btn glass-btn-primary" onClick={handleApprove} disabled={approving}>
                 {approving ? <span className="spinner-sm" /> : <>Confirm Approve <Icon icon="lucide:check" /></>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {validationError && (
+        <div className="glass-modal-overlay" onClick={() => setValidationError(null)}>
+          <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <button className="glass-modal-close" onClick={() => setValidationError(null)} />
+            <div className="glass-card-body">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Icon icon="lucide:alert-triangle" style={{ fontSize: 22, color: 'var(--danger)' }} />
+                <h2 style={{ margin: 0, fontSize: 18 }}>Missing Job Details</h2>
+              </div>
+              <p style={{ margin: '6px 0 0', color: 'var(--text-dim)', fontSize: 14 }}>
+                {validationError.error}
+              </p>
+            </div>
+            <div className="glass-card-body" style={{ borderTop: '1px solid var(--border-glass)', paddingTop: 16 }}>
+              <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: 14 }}>Please fill in the following fields in Job Architecture:</p>
+              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.8 }}>
+                {validationError.missing_fields.map(f => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="glass-modal-footer">
+              <button className="glass-btn glass-btn-ghost" onClick={() => setValidationError(null)}>Cancel</button>
+              <button className="glass-btn glass-btn-primary"
+                onClick={() => { setValidationError(null); navigate(validationError.redirect || '/personnel/positions'); }}>
+                <Icon icon="lucide:external-link" style={{ marginRight: 6 }} />Go to Job Architecture
               </button>
             </div>
           </div>

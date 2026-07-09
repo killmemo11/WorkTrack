@@ -7,7 +7,15 @@ const pool = require('./shared/config/database');
 async function seed() {
   // Create or repair the default admin user so admin login works reliably
   const username = process.env.ADMIN_USERNAME || 'IT';
-  const password = process.env.ADMIN_PASSWORD || 'Admin@2026#';
+
+  // Ensure admin_default_password setting exists (stored in DB, not env)
+  const [pwdSetting] = await pool.query("SELECT * FROM settings WHERE `key` = 'admin_default_password'");
+  if (pwdSetting.length === 0) {
+    await pool.query("INSERT INTO settings (`key`, `value`) VALUES ('admin_default_password', 'Admin@2026#')");
+  }
+  const [pwdRow] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'admin_default_password'");
+  const password = pwdRow[0]?.value || 'Admin@2026#';
+
   const [admins] = await pool.query('SELECT * FROM admin_users WHERE username = ? LIMIT 1', [username]);
 
   if (admins.length === 0) {
