@@ -3,7 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { requirePlatformAuth } = require('../shared/middleware/platform-auth.middleware');
+const { requirePlatformAuth } = require('../../shared/middleware/platform-auth.middleware');
 const {
   platformLogin,
   platformMe,
@@ -14,7 +14,7 @@ const {
   listTenants,
   getTenant,
   updateTenant,
-} = require('./modules/platform/platform.controller');
+} = require('./platform.controller');
 
 router.post('/login', platformLogin);
 router.get('/me', requirePlatformAuth, platformMe);
