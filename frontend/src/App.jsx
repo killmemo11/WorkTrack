@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import './shared/styles/design-tokens.css';
+import './shared/styles/platform.css';
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AdminAuthProvider } from './shared/context/AdminAuthContext';
+import { PlatformAuthProvider } from './shared/context/PlatformAuthContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import AdminRoute from './shared/components/AdminRoute';
 import HrRoute from './shared/components/HrRoute';
@@ -66,6 +68,17 @@ import ATSRecruitmentLayout from './shared/components/Layout/ATSRecruitmentLayou
 import PeopleLayout from './shared/components/Layout/PeopleLayout';
 import TimeAttendanceLayout from './shared/components/Layout/TimeAttendanceLayout';
 
+// Platform (Super-Admin) — lazy-loaded
+const PlatformLogin = lazy(() => import('./modules/platform/pages/PlatformLogin'));
+const PlatformLayout = lazy(() => import('./shared/components/Layout/PlatformLayout'));
+const PlatformDashboard = lazy(() => import('./modules/platform/pages/PlatformDashboard'));
+const PlatformTenants = lazy(() => import('./modules/platform/pages/PlatformTenants'));
+const PlatformTenantRequests = lazy(() => import('./modules/platform/pages/PlatformTenantRequests'));
+const ITPortal = lazy(() => import('./modules/it/pages/ITPortal'));
+const AuditPortal = lazy(() => import('./modules/audit/pages/AuditPortal'));
+const RBACManager = lazy(() => import('./modules/admin/pages/RBACManager'));
+const MagicLinkSetPassword = lazy(() => import('./modules/auth/pages/MagicLink'));
+
 function CandidatesRedirect() {
   const { id } = useParams();
   return <Navigate to={`/hr/recruitment/candidates${id ? '/' + id : ''}`} replace />;
@@ -97,6 +110,12 @@ export default function App() {
           <Route path="/verify" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          {/* ─── Magic Link (no auth required) ─── */}
+          <Route path="/magic-link" element={
+            <Suspense fallback={<div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><div className="spinner" /></div>}>
+              <MagicLinkSetPassword />
+            </Suspense>
+          } />
           {/* ─── Public (Employee) Routes with Layout ─── */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<EmployeeDashboard />} />
@@ -124,6 +143,22 @@ export default function App() {
           <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/activity-log" element={<ActivityLog />} />
+            {/* New portals for IT Admins */}
+            <Route path="/admin/it-portal" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal />
+              </Suspense>
+            } />
+            <Route path="/admin/audit-portal" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AuditPortal />
+              </Suspense>
+            } />
+            <Route path="/admin/rbac" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <RBACManager />
+              </Suspense>
+            } />
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/settings" />} />
           {/* HR Panel — HR Employees only */}
@@ -191,6 +226,35 @@ export default function App() {
           <Route path="/personnel/organization-chart" element={<ProtectedRoute><OrganizationChart /></ProtectedRoute>} />
           <Route path="/manager/dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
           <Route path="/ceo/dashboard" element={<ProtectedRoute><CEODashboard /></ProtectedRoute>} />
+          {/* ─── Platform Panel (Super-Admin only) ─── */}
+          <Route path="/platform/login" element={
+            <Suspense fallback={<div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><div className="spinner" /></div>}>
+              <PlatformLogin />
+            </Suspense>
+          } />
+          <Route path="/platform" element={
+            <PlatformAuthProvider>
+              <Suspense fallback={<div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><div className="spinner" /></div>}>
+                <PlatformLayout />
+              </Suspense>
+            </PlatformAuthProvider>
+          }>
+            <Route index element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformDashboard />
+              </Suspense>
+            } />
+            <Route path="tenants" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformTenants />
+              </Suspense>
+            } />
+            <Route path="requests" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformTenantRequests />
+              </Suspense>
+            } />
+          </Route>
           {/* Career Portal — React components */}
           <Route path="/careers" element={<PublicJobs />} />
           <Route path="/careers/apply" element={<PublicApply />} />

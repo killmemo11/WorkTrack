@@ -20,7 +20,7 @@ const requireHR = async (req, res, next) => {
     }
 
     const [rows] = await pool.query(
-      `SELECT e.id, e.name, e.email, e.department_id, e.role, e.is_active, e.is_verified,
+      `SELECT e.id, e.name, e.email, e.department_id, e.role, e.is_active, e.is_verified, e.tenant_id,
               d.name AS department_name
        FROM employees e
        LEFT JOIN departments d ON e.department_id = d.id
@@ -48,6 +48,7 @@ const requireHR = async (req, res, next) => {
 
     req.employee = emp;
     req.hr = emp;
+    req.tenantId = emp.tenant_id;
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid token' });

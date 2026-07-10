@@ -27,21 +27,14 @@ function loadLeaflet() {
 }
 
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState('smtp');
+  const [activeTab, setActiveTab] = useState('services');
   const [settings, setSettings] = useState({
-    smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '',
-    office_lat: '30.0444', office_lng: '31.2357', office_radius_meters: '200',
     work_week_start: 'Sunday', work_week_end: 'Thursday',
     period_start_day: '15', period_end_day: '16',
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [testEmail, setTestEmail] = useState('');
-  const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const markerRef = useRef(null);
-  const circleRef = useRef(null);
-  const initialized = useRef(false);
 
   const [services, setServices] = useState({
     service_wfh: '1', service_office_attendance: '1', service_leaves: '1',
@@ -49,19 +42,15 @@ export default function AdminSettings() {
   });
 
   const [allowedDomain, setAllowedDomain] = useState('');
-  const [meetingSettings, setMeetingSettings] = useState({
-    meeting_google_service_email: '',
-    meeting_google_private_key: '',
-    meeting_teams_tenant_id: '',
-    meeting_teams_client_id: '',
-    meeting_teams_client_secret: '',
-  });
-  const [testingGoogle, setTestingGoogle] = useState(false);
-  const [testingTeams, setTestingTeams] = useState(false);
 
   useEffect(() => {
     adminApi.get('/settings').then((res) => {
-      setSettings((prev) => ({ ...prev, ...res.data }));
+      setSettings({
+        work_week_start: res.data.work_week_start || 'Sunday',
+        work_week_end: res.data.work_week_end || 'Thursday',
+        period_start_day: res.data.period_start_day || '15',
+        period_end_day: res.data.period_end_day || '16',
+      });
       setServices({
         service_wfh: res.data.service_wfh || '1',
         service_office_attendance: res.data.service_office_attendance || '1',
@@ -71,100 +60,8 @@ export default function AdminSettings() {
         service_manager: res.data.service_manager || '1',
       });
       setAllowedDomain(res.data.allowed_email_domain || '');
-      setMeetingSettings({
-        meeting_google_service_email: res.data.meeting_google_service_email || '',
-        meeting_google_private_key: res.data.meeting_google_private_key || '',
-        meeting_teams_tenant_id: res.data.meeting_teams_tenant_id || '',
-        meeting_teams_client_id: res.data.meeting_teams_client_id || '',
-        meeting_teams_client_secret: res.data.meeting_teams_client_secret || '',
-      });
     });
   }, []);
-
-  useEffect(() => {
-    if (activeTab !== 'office') return;
-    if (initialized.current || !mapRef.current) return;
-    initialized.current = true;
-    loadLeafletCss();
-
-    loadLeaflet().then((L) => {
-      const lat = parseFloat(settings.office_lat) || 30.0444;
-      const lng = parseFloat(settings.office_lng) || 31.2357;
-      const radius = parseInt(settings.office_radius_meters) || 200;
-
-      const icon = L.icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41],
-      });
-
-      const map = L.map(mapRef.current, { zoomControl: true }).setView([lat, lng], 16);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 19,
-      }).addTo(map);
-
-      const marker = L.marker([lat, lng], { draggable: true, icon }).addTo(map);
-      marker.on('dragend', () => {
-        const pos = marker.getLatLng();
-        setSettings((prev) => ({
-          ...prev,
-          office_lat: pos.lat.toFixed(6),
-          office_lng: pos.lng.toFixed(6),
-        }));
-      });
-
-      const circle = L.circle([lat, lng], {
-        radius,
-        color: 'var(--warning)',
-        fillColor: 'var(--warning)',
-        fillOpacity: 0.15,
-        weight: 2,
-      }).addTo(map);
-
-      map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        circle.setLatLng(e.latlng);
-        setSettings((prev) => ({
-          ...prev,
-          office_lat: e.latlng.lat.toFixed(6),
-          office_lng: e.latlng.lng.toFixed(6),
-        }));
-      });
-
-      setTimeout(() => map.invalidateSize(), 100);
-
-      mapInstance.current = map;
-      markerRef.current = marker;
-      circleRef.current = circle;
-    });
-
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-        markerRef.current = null;
-        circleRef.current = null;
-        initialized.current = false;
-      }
-    };
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (!markerRef.current || !circleRef.current) return;
-    const lat = parseFloat(settings.office_lat) || 30.0444;
-    const lng = parseFloat(settings.office_lng) || 31.2357;
-    const radius = parseInt(settings.office_radius_meters) || 200;
-
-    markerRef.current.setLatLng([lat, lng]);
-    circleRef.current.setLatLng([lat, lng]);
-    circleRef.current.setRadius(radius);
-    mapInstance.current?.setView([lat, lng]);
-  }, [settings.office_lat, settings.office_lng, settings.office_radius_meters]);
 
   const handleChange = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -175,26 +72,11 @@ export default function AdminSettings() {
     setMessage('');
     try {
       await adminApi.put('/settings', { ...settings, ...overrides });
-      if (overrides.logo_data === '') {
-        setSettings((prev) => ({ ...prev, logo_data: '' }));
-      }
       setMessage('Settings saved successfully');
     } catch (err) {
       setMessage('Failed to save settings: ' + (err.response?.data?.error || err.message));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSendTest = async () => {
-    if (!testEmail.trim()) return;
-    setMessage('');
-    try {
-      const res = await adminApi.post('/settings/test', { to: testEmail });
-      setMessage(res.data.message);
-      setTestEmail('');
-    } catch (err) {
-      setMessage('Failed to send test email: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -210,14 +92,8 @@ export default function AdminSettings() {
       {message && <div className={`glass-alert ${message.toLowerCase().includes('failed') || message.toLowerCase().includes('error') ? 'glass-alert-danger' : 'glass-alert-success'}`} style={{whiteSpace:'pre-line'}}>{message}</div>}
 
       <div className="glass-tabs">
-        <button className={`glass-tab ${activeTab === 'smtp' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('smtp')}>
-          <Icon icon="lucide:mail" /> SMTP Settings
-        </button>
-        <button className={`glass-tab ${activeTab === 'office' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('office')}>
-          <Icon icon="lucide:map-pin" /> Office Location
-        </button>
-        <button className={`glass-tab ${activeTab === 'branding' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('branding')}>
-          <Icon icon="lucide:palette" /> Branding
+        <button className={`glass-tab ${activeTab === 'workweek' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('workweek')}>
+          <Icon icon="lucide:calendar" /> Work Week
         </button>
         <button className={`glass-tab ${activeTab === 'services' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('services')}>
           <Icon icon="lucide:layers" /> Services
@@ -225,139 +101,56 @@ export default function AdminSettings() {
         <button className={`glass-tab ${activeTab === 'security' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('security')}>
           <Icon icon="lucide:shield" /> Security
         </button>
-        <button className={`glass-tab ${activeTab === 'meeting' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('meeting')}>
-          <Icon icon="lucide:video" /> Meeting Integrations
-        </button>
       </div>
 
       <div className="settings-form">
-        {activeTab === 'smtp' && (
+        {activeTab === 'workweek' && (
           <>
             <div className="glass-card fade-in-up">
-              <div className="glass-card-header"><h3>SMTP Configuration</h3></div>
+              <div className="glass-card-header"><h3>Work Week & Pay Period</h3></div>
               <div className="glass-card-body">
                 <div className="settings-grid">
                   <label>
-                    SMTP Host
-                    <input type="text" className="glass-input" value={settings.smtp_host} onChange={(e) => handleChange('smtp_host', e.target.value)} placeholder="smtp.gmail.com" style={{width:'100%'}} />
+                    Work Week Start
+                    <select className="glass-select" value={settings.work_week_start}
+                      onChange={(e) => handleChange('work_week_start', e.target.value)} style={{width:'100%'}}>
+                      <option value="Sunday">Sunday</option>
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                    </select>
                   </label>
                   <label>
-                    SMTP Port
-                    <input type="text" className="glass-input" value={settings.smtp_port} onChange={(e) => handleChange('smtp_port', e.target.value)} placeholder="587" style={{width:'100%'}} />
+                    Work Week End
+                    <select className="glass-select" value={settings.work_week_end}
+                      onChange={(e) => handleChange('work_week_end', e.target.value)} style={{width:'100%'}}>
+                      <option value="Sunday">Sunday</option>
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                    </select>
                   </label>
                   <label>
-                    SMTP User
-                    <input type="text" className="glass-input" value={settings.smtp_user} onChange={(e) => handleChange('smtp_user', e.target.value)} placeholder="your-email@gmail.com" style={{width:'100%'}} />
+                    Period Start Day
+                    <input type="number" className="glass-input" value={settings.period_start_day}
+                      onChange={(e) => handleChange('period_start_day', e.target.value)} min={1} max={31} style={{width:'100%'}} />
                   </label>
                   <label>
-                    SMTP Password
-                    <input type="password" className="glass-input" value={settings.smtp_pass} onChange={(e) => handleChange('smtp_pass', e.target.value)} placeholder="App password" style={{width:'100%'}} />
+                    Period End Day
+                    <input type="number" className="glass-input" value={settings.period_end_day}
+                      onChange={(e) => handleChange('period_end_day', e.target.value)} min={1} max={31} style={{width:'100%'}} />
                   </label>
                 </div>
                 <div className="settings-actions">
                   <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
                     <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Settings'}
                   </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass-card fade-in-up" style={{ marginTop: 16 }}>
-              <div className="glass-card-header"><h3>Test Email</h3></div>
-              <div className="glass-card-body">
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 12 }}>
-                  Send a test email to verify your SMTP settings are working.
-                </p>
-                <div className="dept-add-form">
-                  <label style={{ minWidth: 280 }}>
-                    <input
-                      type="email" className="glass-input" placeholder="Enter recipient email"
-                      value={testEmail} onChange={(e) => setTestEmail(e.target.value)}
-                      style={{ width: '100%' }}
-                    />
-                  </label>
-                  <button className="glass-btn glass-btn-ghost" onClick={handleSendTest} disabled={!testEmail.trim()}>
-                    Send Test
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'office' && (
-          <>
-            <div className="glass-card fade-in-up">
-              <div className="glass-card-header"><h3>Office Location (GPS Geofence)</h3></div>
-              <div className="glass-card-body">
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                  Drag the marker or click on the map to set the office location. The orange circle shows the allowed area for Office sign-ins.
-                </p>
-                <div className="settings-grid">
-                  <label>
-                    Latitude
-                    <input type="text" className="glass-input" value={settings.office_lat}
-                      onChange={(e) => handleChange('office_lat', e.target.value)} style={{width:'100%'}} />
-                  </label>
-                  <label>
-                    Longitude
-                    <input type="text" className="glass-input" value={settings.office_lng}
-                      onChange={(e) => handleChange('office_lng', e.target.value)} style={{width:'100%'}} />
-                  </label>
-                  <label>
-                    Radius (meters)
-                    <input type="number" className="glass-input" value={settings.office_radius_meters}
-                      onChange={(e) => handleChange('office_radius_meters', e.target.value)}
-                      min={10} max={5000} style={{width:'100%'}} />
-                  </label>
-                </div>
-                <div ref={mapRef} style={{ height: 450, borderRadius: 'var(--radius-md)', marginBottom: 16, border: '1px solid var(--border-glass)', zIndex: 0 }} />
-                <div className="settings-actions">
-                  <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
-                    <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Settings'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'branding' && (
-          <>
-            <div className="glass-card fade-in-up">
-              <div className="glass-card-header"><h3>Branding</h3></div>
-              <div className="glass-card-body">
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                  Upload your company logo. It will appear in the top navigation bar.
-                </p>
-                <div style={{ marginBottom: 20 }}>
-                  {settings.logo_data && (
-                    <div style={{ marginBottom: 12, padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glass)', display: 'inline-block' }}>
-                      <img src={settings.logo_data} alt="Current logo" style={{ maxHeight: 60, width: 'auto' }} />
-                    </div>
-                  )}
-                  <input type="file" accept="image/png,image/jpeg,image/gif,image/svg+xml"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        setSettings((prev) => ({ ...prev, logo_data: ev.target.result }));
-                      };
-                      reader.readAsDataURL(file);
-                    }}
-                    style={{ display: 'block', marginBottom: 8 }} />
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-faint)' }}>Recommended: PNG or SVG, max 200px height.</p>
-                </div>
-                <div className="settings-actions">
-                  <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
-                    <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Logo'}
-                  </button>
-                  {settings.logo_data && (
-                    <button className="glass-btn glass-btn-ghost" onClick={() => handleSave({ logo_data: '' })} style={{ marginLeft: 8 }}>
-                      Remove Logo
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -501,117 +294,6 @@ export default function AdminSettings() {
                     }
                     setTimeout(() => setMessage(''), 3000);
                   }}><Icon icon="lucide:save" /> Save Security Settings</button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'meeting' && (
-          <>
-            <div className="glass-card fade-in-up">
-              <div className="glass-card-header"><h3>Meeting Integrations</h3></div>
-              <div className="glass-card-body">
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                  Configure Google Meet and Microsoft Teams to automatically generate meeting links when scheduling interviews.
-                  After saving, use "Test Connection" to verify your credentials.
-                </p>
-
-                <div style={{ display: 'grid', gap: 24 }}>
-                  <div className="glass-card fade-in-up" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><Icon icon="lucide:globe" /> Google Meet</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                      Requires a Google Cloud Service Account with Calendar API enabled and domain-wide delegation.
-                    </p>
-                    <div className="settings-grid">
-                      <label style={{ gridColumn: '1 / -1' }}>
-                        Service Account Email
-                        <input type="text" className="glass-input" value={meetingSettings.meeting_google_service_email}
-                          onChange={e => setMeetingSettings({ ...meetingSettings, meeting_google_service_email: e.target.value })}
-                          placeholder="service-account@project.iam.gserviceaccount.com" style={{ width: '100%' }} />
-                      </label>
-                      <label style={{ gridColumn: '1 / -1' }}>
-                        Private Key
-                        <textarea className="glass-textarea" value={meetingSettings.meeting_google_private_key}
-                          onChange={e => setMeetingSettings({ ...meetingSettings, meeting_google_private_key: e.target.value })}
-                          placeholder="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-                          style={{ width: '100%', minHeight: 120, fontFamily: 'monospace', fontSize: '0.8rem' }} />
-                      </label>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button className="glass-btn glass-btn-sm glass-btn-ghost" disabled={testingGoogle}
-                        onClick={async () => {
-                          setTestingGoogle(true); setMessage('');
-                          try {
-                            await adminApi.put('/settings', meetingSettings);
-                            const res = await adminApi.post('/settings/test-meeting', { provider: 'google' });
-                            setMessage('<Icon icon="lucide:check-circle" /> Google Meet: ' + (res.data.message || 'Connected!'));
-                          } catch (err) {
-                            setMessage('<Icon icon="lucide:x-circle" /> Google Meet: ' + (err.response?.data?.error || err.message));
-                          }
-                          setTestingGoogle(false);
-                          setTimeout(() => setMessage(''), 5000);
-                        }}>
-                        {testingGoogle ? 'Testing...' : <><Icon icon="lucide:test-tube" /> Test Google Connection</>}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="glass-card fade-in-up" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}><Icon icon="lucide:briefcase" /> Microsoft Teams</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                      Requires an Azure AD app registration with <code>OnlineMeetings.ReadWrite.All</code> (Application permission) and a client secret.
-                    </p>
-                    <div className="settings-grid">
-                      <label>
-                        Tenant ID
-                        <input type="text" className="glass-input" value={meetingSettings.meeting_teams_tenant_id}
-                          onChange={e => setMeetingSettings({ ...meetingSettings, meeting_teams_tenant_id: e.target.value })}
-                          placeholder="00000000-0000-0000-0000-000000000000" style={{ width: '100%' }} />
-                      </label>
-                      <label>
-                        Client ID
-                        <input type="text" className="glass-input" value={meetingSettings.meeting_teams_client_id}
-                          onChange={e => setMeetingSettings({ ...meetingSettings, meeting_teams_client_id: e.target.value })}
-                          placeholder="00000000-0000-0000-0000-000000000000" style={{ width: '100%' }} />
-                      </label>
-                      <label style={{ gridColumn: '1 / -1' }}>
-                        Client Secret
-                        <input type="password" className="glass-input" value={meetingSettings.meeting_teams_client_secret}
-                          onChange={e => setMeetingSettings({ ...meetingSettings, meeting_teams_client_secret: e.target.value })}
-                          placeholder="Enter client secret" style={{ width: '100%' }} />
-                      </label>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button className="glass-btn glass-btn-sm glass-btn-ghost" disabled={testingTeams}
-                        onClick={async () => {
-                          setTestingTeams(true); setMessage('');
-                          try {
-                            await adminApi.put('/settings', meetingSettings);
-                            const res = await adminApi.post('/settings/test-meeting', { provider: 'teams' });
-                            setMessage('<Icon icon="lucide:check-circle" /> Microsoft Teams: ' + (res.data.message || 'Connected!'));
-                          } catch (err) {
-                            setMessage('<Icon icon="lucide:x-circle" /> Microsoft Teams: ' + (err.response?.data?.error || err.message));
-                          }
-                          setTestingTeams(false);
-                          setTimeout(() => setMessage(''), 5000);
-                        }}>
-                        {testingTeams ? 'Testing...' : <><Icon icon="lucide:test-tube" /> Test Teams Connection</>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="settings-actions" style={{ marginTop: 20 }}>
-                  <button className="glass-btn glass-btn-primary" onClick={async () => {
-                    try {
-                      await adminApi.put('/settings', meetingSettings);
-                      setMessage('Meeting settings saved');
-                    } catch {
-                      setMessage('Failed to save settings');
-                    }
-                    setTimeout(() => setMessage(''), 3000);
-                  }}><Icon icon="lucide:save" /> Save Meeting Settings</button>
                 </div>
               </div>
             </div>

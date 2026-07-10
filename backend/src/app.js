@@ -21,9 +21,16 @@ const settingsRoutes = require('./modules/admin/settings.routes');
 const hrRoutes = require('./modules/hr/hr.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
 const tasksRoutes = require('./modules/tasks/tasks.routes');
+const platformRoutes = require('./modules/platform/platform.routes');
+const magicLinkRoutes = require('./modules/auth/magic-link.routes');
+const publicSignupRoutes = require('./modules/auth/public-signup.routes');
+const itRoutes = require('./modules/it/it.routes');
+const auditRoutes = require('./modules/audit/audit.routes');
+const rbacRoutes = require('./modules/admin/rbac.routes');
 const { requireHR } = require('./shared/middleware/hr.middleware');
 const { requireITAuth } = require('./shared/middleware/it-auth.middleware');
 const { requireService } = require('./shared/middleware/service.middleware');
+const { resolveTenant } = require('./shared/middleware/tenant.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
 const multer = require('multer');
 const cvUpload = multer({
@@ -83,6 +90,7 @@ if (fs.existsSync(frontendDist)) {
 // Apply rate limiters
 app.use('/api/auth', authLimiter);
 app.use('/api/admin/auth', authLimiter);
+app.use('/api/platform/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
@@ -156,7 +164,7 @@ app.put('/api/hr/settings/work-week', requireHR, async (req, res) => {
 
   let oldCeoEmail = '';
   if (updates.ceo_email !== undefined) {
-    const [oldSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+    const [oldSetting] = await pool.query("SELECT \`value\` FROM settings WHERE \`key\` = 'ceo_email'");
     oldCeoEmail = oldSetting.length > 0 ? oldSetting[0].value.trim().toLowerCase() : '';
   }
 
@@ -197,11 +205,27 @@ app.put('/api/hr/settings/work-week', requireHR, async (req, res) => {
     }
   }
 
-  const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE `key` IN (?,?,?,?,?)', ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email']);
+  const [rows] = await pool.query('SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (?,?,?,?,?)', ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email']);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
 });
+
+// Platform routes (super-admin only)
+app.use('/api/platform', platformRoutes);
+
+// Magic link & public signup (no auth required for these)
+app.use('/api/magic-link', magicLinkRoutes);
+app.use('/api/public', publicSignupRoutes);
+
+// IT Portal (IT admins with RBAC)
+app.use('/api/it', requireITAuth, resolveTenant, itRoutes);
+
+// Audit Portal (audit officers with RBAC)
+app.use('/api/audit', requireITAuth, resolveTenant, auditRoutes);
+
+// Admin RBAC management (tenant admin)
+app.use('/api/admin/rbac', requireITAuth, resolveTenant, rbacRoutes);
 
 // HR master lists CRUD
 app.get('/api/hr/master-skills', requireHR, listSkills);
