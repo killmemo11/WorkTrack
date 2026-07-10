@@ -24,7 +24,7 @@ const pool = require('./shared/config/database');
 
 const PORT = process.env.PORT || 5000;
 
-const seed = require('./seed');
+const { seed } = require('./seed');
 
 async function waitForDB(retries = 15, delay = 2000) {
   for (let i = 0; i < retries; i++) {
