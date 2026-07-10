@@ -356,3 +356,5 @@ router.post('/compliance-report', async (req, res) => {
 
   doc.end();
 });
+
+module.exports = router;
