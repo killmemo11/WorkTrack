@@ -489,6 +489,20 @@ async function getPlatformStats(req, res) {
 // HELPER: Seed RBAC for new tenant
 // ============================================================
 
+async function getPlatformActivity(req, res) {
+  const limit = parseInt(req.query.limit) || 50;
+  const [rows] = await pool.query(
+    `SELECT al.*, au.username as admin_username
+     FROM activity_log al
+     LEFT JOIN admin_users au ON al.admin_id = au.id
+     WHERE al.tenant_id IS NULL
+     ORDER BY al.created_at DESC
+     LIMIT ?`,
+    [limit]
+  );
+  res.json(rows);
+}
+
 async function seedTenantRBAC(conn, tenantId) {
   // Insert permissions (same as in seed.js)
   const permissions = [
@@ -612,4 +626,5 @@ module.exports = {
   suspendTenant,
   activateTenant,
   getPlatformStats,
+  getPlatformActivity,
 };
