@@ -27,7 +27,11 @@ WHERE r.name = 'audit_officer' AND r.tenant_id = 1
   AND p.module = 'audit' AND p.action = 'compliance_report' AND p.tenant_id = 1;
 
 -- 6. Seed service_toggles for IT and Audit (canonical source — replaces settings.service_* keys)
+-- Note: service_key uses short name (no 'service_' prefix); getPublicSettings adds the prefix.
 INSERT IGNORE INTO service_toggles (service_key, service_name, description, is_enabled, tenant_id, sort_order)
 VALUES
-  ('service_it', 'IT Portal', 'IT settings: SMTP, geofence, branding, meeting integrations', 1, 1, 7),
-  ('service_audit', 'Internal Audit', 'Activity logs, balance audit, compliance reports', 1, 1, 8);
+  ('it', 'IT Portal', 'IT settings: SMTP, geofence, branding, meeting integrations', 1, 1, 7),
+  ('audit', 'Internal Audit', 'Activity logs, balance audit, compliance reports', 1, 1, 8);
+
+-- Fix any existing wrong-prefixed rows from a prior run
+DELETE FROM service_toggles WHERE service_key IN ('service_it', 'service_audit');
