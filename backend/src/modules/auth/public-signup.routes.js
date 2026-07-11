@@ -8,7 +8,7 @@ const { sendTenantRequestNotification } = require('../../shared/services/platfor
 
 // Public endpoint — submit a tenant signup request
 router.post('/tenant-signup', async (req, res) => {
-  const { company_name, contact_email, contact_phone, employee_count, message } = req.body;
+  const { company_name, contact_email, contact_phone, employee_count, message, plan } = req.body;
 
   if (!company_name || !contact_email) {
     return res.status(400).json({ error: 'Company name and contact email are required' });
@@ -48,8 +48,8 @@ router.post('/tenant-signup', async (req, res) => {
     );
 
     const [reqResult] = await conn.query(
-      'INSERT INTO tenant_requests (company_name, contact_email, contact_phone, employee_count, message, status) VALUES (?, ?, ?, ?, ?, "pending")',
-      [company_name.trim(), contact_email.toLowerCase().trim(), contact_phone, employee_count || 10, message || null]
+      'INSERT INTO tenant_requests (company_name, contact_email, contact_phone, employee_count, message, requested_plan, status) VALUES (?, ?, ?, ?, ?, ?, "pending")',
+      [company_name.trim(), contact_email.toLowerCase().trim(), contact_phone, employee_count || 10, message || null, plan || 'trial']
     );
 
     await conn.commit();

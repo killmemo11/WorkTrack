@@ -61,7 +61,10 @@ export function PlatformAuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await fetch('/api/platform/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Platform-Access': 'worktrack-platform-2026'
+      },
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) {

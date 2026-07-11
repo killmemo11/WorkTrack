@@ -20,7 +20,7 @@ const requirePlatformAuth = async (req, res, next) => {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, is_active FROM platform_admins WHERE id = ?',
+      'SELECT id, username, email, is_active FROM admin_users WHERE id = ? AND is_platform_admin = 1',
       [decoded.id]
     );
     

@@ -66,9 +66,13 @@ export default function PlatformLayout() {
               <span className="nav-badge urgent">{stats.requests.pending_requests}</span>
             )}
           </Link>
-          <Link to="/platform/tenants" className={isActive('/platform/tenants')}>
-            <Icon icon="lucide:users" />
-            <span>All Users</span>
+          <Link to="/platform/plans" className={isActive('/platform/plans')}>
+            <Icon icon="lucide:credit-card" />
+            <span>Plans</span>
+          </Link>
+          <Link to="/platform/settings" className={isActive('/platform/settings')}>
+            <Icon icon="lucide:settings" />
+            <span>Settings</span>
           </Link>
         </nav>
         <div className="platform-sidebar-footer">

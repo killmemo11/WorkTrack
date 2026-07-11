@@ -10,8 +10,10 @@ import { PlatformAuthProvider } from './shared/context/PlatformAuthContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import AdminRoute from './shared/components/AdminRoute';
 import HrRoute from './shared/components/HrRoute';
+import Landing from './modules/landing/pages/Landing';
 import Login from './modules/auth/pages/Login';
 import Register from './modules/auth/pages/Register';
+import TenantRegister from './modules/auth/pages/TenantRegister';
 import VerifyEmail from './modules/auth/pages/VerifyEmail';
 import ForgotPassword from './modules/auth/pages/ForgotPassword';
 import ResetPassword from './modules/auth/pages/ResetPassword';
@@ -77,6 +79,8 @@ const PlatformLayout = lazy(() => import('./shared/components/Layout/PlatformLay
 const PlatformDashboard = lazy(() => import('./modules/platform/pages/PlatformDashboard'));
 const PlatformTenants = lazy(() => import('./modules/platform/pages/PlatformTenants'));
 const PlatformTenantRequests = lazy(() => import('./modules/platform/pages/PlatformTenantRequests'));
+const PlatformPlans = lazy(() => import('./modules/platform/pages/PlatformPlans'));
+const PlatformSettings = lazy(() => import('./modules/platform/pages/PlatformSettings'));
 const ITPortal = lazy(() => import('./modules/it/pages/ITPortal'));
 const AuditPortal = lazy(() => import('./modules/audit/pages/AuditPortal'));
 const RBACManager = lazy(() => import('./modules/admin/pages/RBACManager'));
@@ -108,8 +112,10 @@ export default function App() {
         </div>
       }>
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/tenant-register" element={<TenantRegister />} />
           <Route path="/verify" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
@@ -305,13 +311,23 @@ export default function App() {
                 <PlatformTenantRequests />
               </Suspense>
             } />
+            <Route path="plans" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformPlans />
+              </Suspense>
+            } />
+            <Route path="settings" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformSettings />
+              </Suspense>
+            } />
           </Route>
           {/* Career Portal — React components */}
           <Route path="/careers" element={<PublicJobs />} />
           <Route path="/careers/apply" element={<PublicApply />} />
           <Route path="/careers/track" element={<PublicTrack />} />
           <Route path="/careers/interviews" element={<PublicInterviews />} />
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
     </AdminAuthProvider>

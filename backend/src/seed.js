@@ -178,6 +178,7 @@ async function seed() {
         contact_phone VARCHAR(50) NULL,
         employee_count INT DEFAULT 10,
         message TEXT NULL,
+        requested_plan VARCHAR(50) DEFAULT 'trial',
         status ENUM('pending','approved','rejected') DEFAULT 'pending',
         reviewed_by INT NULL,
         reviewed_at DATETIME NULL,
@@ -191,6 +192,14 @@ async function seed() {
       )
     `);
     console.log('Created tenant_requests table');
+  } else {
+    const [planCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'tenant_requests' AND COLUMN_NAME = 'requested_plan'",
+      [process.env.DB_NAME]
+    );
+    if (planCol.length === 0) {
+      await pool.query("ALTER TABLE tenant_requests ADD COLUMN requested_plan VARCHAR(50) DEFAULT 'trial' AFTER message");
+    }
   }
 
   // ============================================================
@@ -481,7 +490,96 @@ async function seed() {
   }
 
   // ============================================================
-  // 7. RUN EXISTING MIGRATIONS (add tenant_id to all tables)
+  // 7. SUBSCRIPTION PLANS
+  // ============================================================
+  
+  const [spTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'subscription_plans'",
+    [process.env.DB_NAME]
+  );
+  if (spTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE subscription_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(50) UNIQUE NOT NULL,
+        description TEXT NULL,
+        price_monthly DECIMAL(10,2) DEFAULT 0,
+        price_yearly DECIMAL(10,2) DEFAULT 0,
+        currency VARCHAR(10) DEFAULT 'USD',
+        max_employees INT DEFAULT 50,
+        trial_days INT DEFAULT 14,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        is_public TINYINT(1) NOT NULL DEFAULT 1,
+        sort_order INT DEFAULT 0,
+        features JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Created subscription_plans table');
+    
+    // Seed default plans
+    const plans = [
+      { name: 'Trial', slug: 'trial', desc: 'Try WorkTrack free for 14 days', priceM: 0, priceY: 0, currency: 'USD', maxEmp: 25, trialDays: 14, sort: 1, features: JSON.stringify(['All modules included', 'Up to 25 employees', '14-day free trial', 'Email support']) },
+      { name: 'Basic', slug: 'basic', desc: 'For small teams getting started', priceM: 29, priceY: 290, currency: 'USD', maxEmp: 50, trialDays: 14, sort: 2, features: JSON.stringify(['All modules included', 'Up to 50 employees', '14-day free trial', 'Email support', 'Basic reports']) },
+      { name: 'Professional', slug: 'professional', desc: 'For growing companies', priceM: 79, priceY: 790, currency: 'USD', maxEmp: 200, trialDays: 14, sort: 3, features: JSON.stringify(['All modules included', 'Up to 200 employees', '14-day free trial', 'Priority support', 'Advanced reports', 'Custom workflows']) },
+      { name: 'Enterprise', slug: 'enterprise', desc: 'For large organizations', priceM: 199, priceY: 1990, currency: 'USD', maxEmp: 9999, trialDays: 14, sort: 4, features: JSON.stringify(['All modules included', 'Unlimited employees', '14-day free trial', 'Dedicated support', 'Custom integrations', 'SLA guarantee']) },
+    ];
+    
+    for (const p of plans) {
+      await pool.query(
+        'INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)',
+        [p.name, p.slug, p.desc, p.priceM, p.priceY, p.currency, p.maxEmp, p.trialDays, p.sort, p.features]
+      );
+    }
+    console.log('Seeded default subscription plans');
+  }
+
+  // ============================================================
+  // 8. PLATFORM SETTINGS (editable by Super Admin)
+  // ============================================================
+  
+  const [psTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'platform_settings'",
+    [process.env.DB_NAME]
+  );
+  if (psTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE platform_settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        \`key\` VARCHAR(100) NOT NULL UNIQUE,
+        \`value\` TEXT NULL,
+        description TEXT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Created platform_settings table');
+    
+    // Seed default platform settings
+    const platformDefaults = [
+      ['company_name', 'WorkTrack', 'Platform company name'],
+      ['company_email', 'support@worktrack.ddns.net', 'Platform support email'],
+      ['default_trial_days', '14', 'Default trial period in days'],
+      ['default_currency', 'USD', 'Default currency for pricing'],
+      ['landing_hero_title', 'Simplify Your HR Operations in One Place', 'Landing page hero title'],
+      ['landing_hero_subtitle', 'Track attendance, manage leaves, run recruitment pipelines, and generate HR insights — all from a single, secure platform built for modern teams.', 'Landing page hero subtitle'],
+      ['landing_cta_text', 'Start Your Company', 'Landing page CTA button text'],
+      ['contact_email', 'sales@worktrack.ddns.net', 'Sales contact email'],
+      ['contact_phone', '', 'Sales contact phone'],
+    ];
+    
+    for (const [key, value, desc] of platformDefaults) {
+      await pool.query(
+        'INSERT INTO platform_settings (`key`, `value`, description) VALUES (?, ?, ?)',
+        [key, value, desc]
+      );
+    }
+    console.log('Seeded default platform settings');
+  }
+
+  // ============================================================
+  // 9. RUN EXISTING MIGRATIONS (add tenant_id to all tables)
   // ============================================================
   
   await runLegacyMigrations();

@@ -41,13 +41,15 @@ export default function PlatformTenantRequests() {
   useEffect(() => { fetchRequests(1); }, [statusFilter]);
 
   const handleApprove = async (id) => {
-    if (!confirm('Approve this tenant request? This will create the tenant and send a magic link to the admin.')) return;
+    const req = data.requests.find(r => r.id === id);
+    const planName = req?.requested_plan || 'trial';
+    if (!confirm(`Approve this tenant request? Plan: ${planName}. This will create the tenant and send a magic link to the admin.`)) return;
     try {
       const token = localStorage.getItem('platformToken');
       const res = await fetch(`/api/platform/tenant-requests/${id}/approve`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'trial', max_employees: 50, trial_days: 30 }),
+        body: JSON.stringify({}),
       });
       if (res.ok) {
         fetchRequests(data.page);
@@ -116,6 +118,7 @@ export default function PlatformTenantRequests() {
                   <tr>
                     <th>Company</th>
                     <th>Contact</th>
+                    <th>Plan</th>
                     <th>Employees</th>
                     <th>Status</th>
                     <th>Requested</th>
@@ -134,6 +137,11 @@ export default function PlatformTenantRequests() {
                       <td>
                         <div>{req.contact_email}</div>
                         {req.contact_phone && <div className="text-dim text-sm">{req.contact_phone}</div>}
+                      </td>
+                      <td>
+                        <span className="glass-badge glass-badge-info" style={{ textTransform: 'capitalize' }}>
+                          {req.requested_plan || 'trial'}
+                        </span>
                       </td>
                       <td>{req.employee_count}</td>
                       <td>
@@ -190,6 +198,7 @@ export default function PlatformTenantRequests() {
                 <div><label>Company</label><span>{viewingRequest.company_name}</span></div>
                 <div><label>Contact Email</label><span>{viewingRequest.contact_email}</span></div>
                 <div><label>Contact Phone</label><span>{viewingRequest.contact_phone || '—'}</span></div>
+                <div><label>Requested Plan</label><span style={{ textTransform: 'capitalize' }}>{viewingRequest.requested_plan || 'trial'}</span></div>
                 <div><label>Employees</label><span>{viewingRequest.employee_count}</span></div>
                 <div><label>Status</label><span><span className={`glass-badge glass-badge-${STATUS_BADGE[viewingRequest.status] || 'default'}`}>{viewingRequest.status}</span></span></div>
                 <div><label>Requested</label><span>{formatDate(viewingRequest.created_at)}</span></div>

@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS tenant_requests (
   contact_phone VARCHAR(50) NULL,
   employee_count INT DEFAULT 10,
   message TEXT NULL,
+  requested_plan VARCHAR(50) DEFAULT 'trial',
   status ENUM('pending','approved','rejected') DEFAULT 'pending',
   reviewed_by INT NULL,
   reviewed_at DATETIME NULL,

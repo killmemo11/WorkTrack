@@ -22,6 +22,7 @@ const hrRoutes = require('./modules/hr/hr.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
 const tasksRoutes = require('./modules/tasks/tasks.routes');
 const platformRoutes = require('./modules/platform/platform.routes');
+const platformPlansRoutes = require('./modules/platform/plans.routes');
 const magicLinkRoutes = require('./modules/auth/magic-link.routes');
 const publicSignupRoutes = require('./modules/auth/public-signup.routes');
 const itRoutes = require('./modules/it/it.routes');
@@ -71,6 +72,15 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const platformLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many login attempts. Account locked for 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
 // CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
 const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
@@ -91,6 +101,7 @@ if (fs.existsSync(frontendDist)) {
 // Apply rate limiters
 app.use('/api/auth', authLimiter);
 app.use('/api/admin/auth', authLimiter);
+app.use('/api/platform/auth/login', platformLoginLimiter);
 app.use('/api/platform/auth', authLimiter);
 app.use('/api', apiLimiter);
 
@@ -214,6 +225,7 @@ app.put('/api/hr/settings/work-week', requireHR, async (req, res) => {
 
 // Platform routes (super-admin only)
 app.use('/api/platform', platformRoutes);
+app.use('/api/platform', platformPlansRoutes);
 
 // Magic link & public signup (no auth required for these)
 app.use('/api/magic-link', magicLinkRoutes);

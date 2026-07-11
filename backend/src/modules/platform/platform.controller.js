@@ -15,19 +15,60 @@ const {
   sendPlatformAlert
 } = require('../../shared/services/platform-email.service');
 
+// In-memory failed login attempts tracker (resets on server restart)
+const failedAttempts = new Map();
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function isLockedOut(username) {
+  const record = failedAttempts.get(username);
+  if (!record) return false;
+  if (record.count >= LOCKOUT_THRESHOLD) {
+    if (Date.now() - record.lastAttempt < LOCKOUT_DURATION_MS) {
+      return true;
+    }
+    failedAttempts.delete(username);
+    return false;
+  }
+  return false;
+}
+
+function recordFailedAttempt(username) {
+  const record = failedAttempts.get(username) || { count: 0, lastAttempt: 0 };
+  record.count++;
+  record.lastAttempt = Date.now();
+  failedAttempts.set(username, record);
+}
+
+function clearFailedAttempts(username) {
+  failedAttempts.delete(username);
+}
+
 async function platformLogin(req, res) {
   const { username, password } = req.body;
+  
+  // Custom header check - must come from the platform login page
+  const platformHeader = req.headers['x-platform-access'];
+  if (platformHeader !== 'worktrack-platform-2026') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
   
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
+  // Check account lockout
+  if (isLockedOut(username)) {
+    return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
+  }
+
   const [rows] = await pool.query(
-    'SELECT * FROM platform_admins WHERE username = ? AND is_active = 1',
+    'SELECT * FROM admin_users WHERE username = ? AND is_active = 1 AND is_platform_admin = 1',
     [username]
   );
   
   if (rows.length === 0) {
+    recordFailedAttempt(username);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
@@ -35,11 +76,16 @@ async function platformLogin(req, res) {
   const valid = await bcrypt.compare(password, admin.password_hash);
   
   if (!valid) {
+    recordFailedAttempt(username);
+    await logActivity(null, admin.id, 'platform_login_failed', `Failed login attempt for platform admin: ${username}`);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  // Clear failed attempts on successful login
+  clearFailedAttempts(username);
+
   const token = jwt.sign(
-    { id: admin.id, username: admin.username, email: admin.email, is_platform_admin: true },
+    { id: admin.id, username: admin.username, email: admin.email, type: 'platform_admin', is_platform_admin: true },
     process.env.JWT_SECRET,
     { expiresIn: '12h' }
   );
@@ -120,7 +166,7 @@ async function getTenantRequest(req, res) {
 
 async function approveTenantRequest(req, res) {
   const { id } = req.params;
-  const { plan = 'trial', max_employees = 50, trial_days = 30 } = req.body;
+  const { plan: overridePlan, max_employees: overrideMaxEmp, trial_days: overrideTrialDays } = req.body;
 
   const [requests] = await pool.query('SELECT * FROM tenant_requests WHERE id = ? AND status = "pending"', [id]);
   
@@ -129,6 +175,17 @@ async function approveTenantRequest(req, res) {
   }
 
   const request = requests[0];
+  
+  // Resolve plan: use override from body, or the requested_plan from the request, fallback to trial
+  const planSlug = overridePlan || request.requested_plan || 'trial';
+  
+  // Look up plan details from subscription_plans
+  const [planRows] = await pool.query('SELECT * FROM subscription_plans WHERE slug = ?', [planSlug]);
+  const planDetails = planRows.length > 0 ? planRows[0] : null;
+  
+  const maxEmployees = overrideMaxEmp || (planDetails ? planDetails.max_employees : 50);
+  const trialDays = overrideTrialDays || (planDetails ? planDetails.trial_days : 14);
+  
   const slug = request.company_name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -143,7 +200,7 @@ async function approveTenantRequest(req, res) {
     const [tenantResult] = await conn.query(
       `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, max_employees, status, trial_ends_at)
        VALUES (?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
-      [request.company_name, slug, request.contact_email, request.contact_phone, plan, max_employees, trial_days]
+      [request.company_name, slug, request.contact_email, request.contact_phone, planSlug, maxEmployees, trialDays]
     );
     const tenantId = tenantResult.insertId;
 
@@ -412,9 +469,9 @@ async function getPlatformStats(req, res) {
   `);
 
   const [recentActivity] = await pool.query(`
-    SELECT al.*, pa.username as admin_username 
+    SELECT al.*, au.username as admin_username 
     FROM activity_log al
-    LEFT JOIN platform_admins pa ON al.admin_id = pa.id
+    LEFT JOIN admin_users au ON al.admin_id = au.id
     WHERE al.tenant_id IS NULL
     ORDER BY al.created_at DESC
     LIMIT 20
