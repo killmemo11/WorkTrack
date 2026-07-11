@@ -87,6 +87,10 @@ export default function PlatformLayout() {
             <Icon icon="lucide:users" />
             <span>Admins</span>
           </Link>
+          <Link to="/platform/client-accounts" className={isActive('/platform/client-accounts')}>
+            <Icon icon="lucide:user-cog" />
+            <span>Client Accounts</span>
+          </Link>
           <Link to="/platform/activity" className={isActive('/platform/activity')}>
             <Icon icon="lucide:activity" />
             <span>Activity</span>

@@ -26,6 +26,11 @@ const {
   resetPlatformAdminPassword,
   deletePlatformAdmin,
   changeOwnPassword,
+  listClientAccounts,
+  createClientAccount,
+  updateClientAccount,
+  resetClientAccountPassword,
+  deleteClientAccount,
 } = require('./platform.controller');
 
 router.post('/auth/login', platformLogin);
@@ -57,5 +62,12 @@ router.put('/tenants/:id', requirePlatformAuth, updateTenant);
 router.post('/tenants/:id/suspend', requirePlatformAuth, suspendTenant);
 router.post('/tenants/:id/activate', requirePlatformAuth, activateTenant);
 router.post('/tenants/admins/:id/resend-magic-link', requirePlatformAuth, resendMagicLink);
+
+// Client Account Management (Tenant Admins)
+router.get('/client-accounts', requirePlatformAuth, listClientAccounts);
+router.post('/client-accounts', requirePlatformAuth, createClientAccount);
+router.put('/client-accounts/:id', requirePlatformAuth, updateClientAccount);
+router.post('/client-accounts/:id/reset-password', requirePlatformAuth, resetClientAccountPassword);
+router.delete('/client-accounts/:id', requirePlatformAuth, deleteClientAccount);
 
 module.exports = router;

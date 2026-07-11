@@ -904,6 +904,160 @@ async function resendMagicLink(req, res) {
   res.json({ message: 'Magic link resent to ' + admin.email });
 }
 
+// ============================================================
+// CLIENT ACCOUNTS MANAGEMENT (Tenant Admins)
+// ============================================================
+
+async function listClientAccounts(req, res) {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const offset = (page - 1) * limit;
+  const { tenant_id, search } = req.query;
+
+  let where = ['au.is_platform_admin = 0'];
+  let params = [];
+
+  if (tenant_id) {
+    where.push('au.tenant_id = ?');
+    params.push(tenant_id);
+  }
+
+  if (search) {
+    where.push('(au.username LIKE ? OR au.email LIKE ? OR t.name LIKE ?)');
+    const s = `%${search}%`;
+    params.push(s, s, s);
+  }
+
+  const whereClause = 'WHERE ' + where.join(' AND ');
+
+  const [rows] = await pool.query(
+    `SELECT au.id, au.username, au.email, au.is_active, au.must_change_password, au.created_at,
+            t.id as tenant_id, t.name as tenant_name, t.slug as tenant_slug, t.status as tenant_status
+     FROM admin_users au
+     LEFT JOIN tenants t ON au.tenant_id = t.id
+     ${whereClause}
+     ORDER BY au.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as total FROM admin_users au LEFT JOIN tenants t ON au.tenant_id = t.id ${whereClause}`,
+    params
+  );
+
+  res.json({
+    accounts: rows,
+    total: countRows[0].total,
+    page,
+    totalPages: Math.ceil(countRows[0].total / limit),
+  });
+}
+
+async function createClientAccount(req, res) {
+  const { tenant_id, username, email, password } = req.body;
+
+  if (!tenant_id || !username || !email || !password) {
+    return res.status(400).json({ error: 'Tenant, username, email, and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const [tenants] = await pool.query('SELECT id, name FROM tenants WHERE id = ?', [tenant_id]);
+  if (tenants.length === 0) {
+    return res.status(404).json({ error: 'Tenant not found' });
+  }
+
+  const [existing] = await pool.query(
+    'SELECT id FROM admin_users WHERE username = ? AND is_platform_admin = 0', [username]
+  );
+  if (existing.length > 0) {
+    return res.status(409).json({ error: 'Username already exists for this tenant' });
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+  const [result] = await pool.query(
+    'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, ?, 0, 0)',
+    [username, email, hash, tenant_id]
+  );
+
+  await logActivity(null, req.platformAdmin.id, 'client_account_created', `Created admin account "${username}" for tenant "${tenants[0].name}"`);
+  res.json({ message: 'Admin account created', id: result.insertId });
+}
+
+async function updateClientAccount(req, res) {
+  const { id } = req.params;
+  const { email, is_active } = req.body;
+
+  const [existing] = await pool.query(
+    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Client account not found' });
+  }
+
+  const updates = [];
+  const values = [];
+  if (email !== undefined) { updates.push('email = ?'); values.push(email); }
+  if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(id);
+  await pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+
+  await logActivity(null, req.platformAdmin.id, 'client_account_updated', `Updated client account ID ${id} (${existing[0].username})`);
+  res.json({ message: 'Account updated' });
+}
+
+async function resetClientAccountPassword(req, res) {
+  const { id } = req.params;
+  const { password } = req.body;
+
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const [existing] = await pool.query(
+    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Client account not found' });
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
+
+  await logActivity(null, req.platformAdmin.id, 'client_account_password_reset', `Reset password for client admin: ${existing[0].username}`);
+  res.json({ message: 'Password reset successfully' });
+}
+
+async function deleteClientAccount(req, res) {
+  const { id } = req.params;
+
+  const [existing] = await pool.query(
+    'SELECT id, username, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Client account not found' });
+  }
+
+  const [count] = await pool.query(
+    'SELECT COUNT(*) as total FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0',
+    [existing[0].tenant_id]
+  );
+  if (count[0].total <= 1) {
+    return res.status(400).json({ error: 'Cannot delete the last admin of this tenant' });
+  }
+
+  await pool.query('DELETE FROM admin_users WHERE id = ?', [id]);
+  await logActivity(null, req.platformAdmin.id, 'client_account_deleted', `Deleted client admin: ${existing[0].username}`);
+  res.json({ message: 'Account deleted' });
+}
+
 module.exports = {
   platformLogin,
   platformMe,
@@ -926,4 +1080,9 @@ module.exports = {
   getPlatformActivity,
   createTenant,
   resendMagicLink,
+  listClientAccounts,
+  createClientAccount,
+  updateClientAccount,
+  resetClientAccountPassword,
+  deleteClientAccount,
 };
