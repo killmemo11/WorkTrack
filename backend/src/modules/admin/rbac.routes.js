@@ -219,15 +219,15 @@ router.post('/assign-role', async (req, res) => {
   let user_type = forcedType;
   if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
     const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
-    if (adminCheck.length > 0) {
+    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
+    if (adminCheck.length > 0 && empCheck.length > 0) {
+      return res.status(400).json({ error: 'Ambiguous user_id: exists in both admin_users and employees. Please provide user_type explicitly.' });
+    } else if (adminCheck.length > 0) {
       user_type = 'admin';
+    } else if (empCheck.length > 0) {
+      user_type = 'employee';
     } else {
-      const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
-      if (empCheck.length > 0) {
-        user_type = 'employee';
-      } else {
-        return res.status(400).json({ error: 'User not found' });
-      }
+      return res.status(400).json({ error: 'User not found' });
     }
   }
 
@@ -260,10 +260,15 @@ router.post('/remove-role', async (req, res) => {
   let user_type = forcedType;
   if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
     const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
-    if (adminCheck.length > 0) {
+    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
+    if (adminCheck.length > 0 && empCheck.length > 0) {
+      return res.status(400).json({ error: 'Ambiguous user_id: exists in both admin_users and employees. Please provide user_type explicitly.' });
+    } else if (adminCheck.length > 0) {
       user_type = 'admin';
-    } else {
+    } else if (empCheck.length > 0) {
       user_type = 'employee';
+    } else {
+      return res.status(400).json({ error: 'User not found' });
     }
   }
 

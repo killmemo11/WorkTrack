@@ -84,21 +84,21 @@ export default function RBACManager() {
     fetchData();
   };
 
-  const handleAssignRole = async (userId, roleId) => {
+  const handleAssignRole = async (userId, roleId, userType) => {
     await fetch('/api/admin/rbac/assign-role', {
       method: 'POST',
       headers: jsonHeaders,
-      body: JSON.stringify({ user_id: userId, role_id: roleId }),
+      body: JSON.stringify({ user_id: userId, role_id: roleId, user_type: userType }),
     });
     setAssigningUser(null);
     fetchData();
   };
 
-  const handleRemoveRole = async (userId, roleId) => {
+  const handleRemoveRole = async (userId, roleId, userType) => {
     await fetch('/api/admin/rbac/remove-role', {
       method: 'POST',
       headers: jsonHeaders,
-      body: JSON.stringify({ user_id: userId, role_id: roleId }),
+      body: JSON.stringify({ user_id: userId, role_id: roleId, user_type: userType }),
     });
     fetchData();
   };
@@ -210,7 +210,7 @@ export default function RBACManager() {
                             <span key={role.role_id} className="glass-badge glass-badge-info" style={{fontSize:'0.7rem',display:'inline-flex',alignItems:'center',gap:'4px'}}>
                               {role.display_name || role.role_name}
                               <button
-                                onClick={() => handleRemoveRole(user.id, role.role_id)}
+                                onClick={() => handleRemoveRole(user.id, role.role_id, user._type)}
                                 style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',padding:0,lineHeight:1,fontSize:'0.8rem'}}
                                 title="Remove role"
                               >&times;</button>
@@ -303,7 +303,7 @@ export default function RBACManager() {
             </div>
             <div className="platform-modal-body" style={{padding:'16px 20px'}}>
               <p style={{fontSize:'0.85rem',color:'var(--text-dim)',marginBottom:'12px'}}>
-                Select a role to assign. The system auto-detects whether this is an admin user or employee.
+                Select a role to assign to this {assigningUser._type === 'admin' ? 'admin user' : 'employee'}.
               </p>
               {roles.filter(r => {
                 const alreadyAssigned = assigningUser.roles?.some(ur => ur && ur.role_id === r.id);
@@ -313,7 +313,7 @@ export default function RBACManager() {
                   className="glass-card"
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
-                  onClick={() => handleAssignRole(assigningUser.id, role.id)}
+                  onClick={() => handleAssignRole(assigningUser.id, role.id, assigningUser._type)}
                 >
                   <div>
                     <strong style={{fontSize:'0.9rem'}}>{role.display_name}</strong>
