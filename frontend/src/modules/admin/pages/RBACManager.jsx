@@ -13,8 +13,12 @@ export default function RBACManager() {
   const [activeSection, setActiveSection] = useState('roles');
   const [editingRole, setEditingRole] = useState(null);
   const [showRoleForm, setShowRoleForm] = useState(false);
+  const [assigningUser, setAssigningUser] = useState(null);
+  const [assigningUserType, setAssigningUserType] = useState(null);
+  const [userSearch, setUserSearch] = useState('');
 
   const authHeaders = { Authorization: `Bearer ${localStorage.getItem('adminToken')}` };
+  const jsonHeaders = { ...authHeaders, 'Content-Type': 'application/json' };
 
   const fetchData = async () => {
     setLoading(true);
@@ -74,11 +78,35 @@ export default function RBACManager() {
   const handleToggleService = async (id, is_enabled) => {
     await fetch(`/api/admin/rbac/services/${id}`, {
       method: 'PUT',
-      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      headers: jsonHeaders,
       body: JSON.stringify({ is_enabled }),
     });
     fetchData();
   };
+
+  const handleAssignRole = async (userId, roleId) => {
+    await fetch('/api/admin/rbac/assign-role', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ user_id: userId, role_id: roleId }),
+    });
+    setAssigningUser(null);
+    fetchData();
+  };
+
+  const handleRemoveRole = async (userId, roleId) => {
+    await fetch('/api/admin/rbac/remove-role', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ user_id: userId, role_id: roleId }),
+    });
+    fetchData();
+  };
+
+  const allUsers = [
+    ...users.admins.map(u => ({ ...u, _type: 'admin', _label: u.username })),
+    ...users.employees.map(u => ({ ...u, _type: 'employee', _label: u.name || u.username })),
+  ].filter(u => !userSearch || u._label.toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase()));
 
   if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading RBAC...</span></div>;
 
@@ -142,22 +170,71 @@ export default function RBACManager() {
 
         {activeSection === 'users' && (
           <div style={{padding:'20px'}}>
-            <h3 style={{marginBottom:'12px'}}>Admin Users</h3>
-            {users.admins.map(admin => (
-              <div key={admin.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border-light)'}}>
-                <div>
-                  <strong>{admin.username}</strong>
-                  <span style={{fontSize:'0.8rem',color:'var(--text-muted)',marginLeft:8}}>{admin.email}</span>
-                </div>
-                <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
-                  {admin.roles && admin.roles.filter(r => r && r.role_id).map(role => (
-                    <span key={role.role_id} className="glass-badge glass-badge-info" style={{fontSize:'0.7rem'}}>
-                      {role.display_name || role.role_name}
-                    </span>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+              <h3 style={{margin:0}}>User Assignments</h3>
+              <input
+                className="glass-input"
+                placeholder="Search users..."
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+                style={{width:'240px',fontSize:'0.85rem'}}
+              />
+            </div>
+            {allUsers.length === 0 ? (
+              <div style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No users found</div>
+            ) : (
+              <table className="glass-table" style={{width:'100%'}}>
+                <thead>
+                  <tr>
+                    <th style={{padding:'10px 12px'}}>User</th>
+                    <th style={{padding:'10px 12px'}}>Type</th>
+                    <th style={{padding:'10px 12px'}}>Assigned Roles</th>
+                    <th style={{padding:'10px 12px',width:'120px'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map(user => (
+                    <tr key={`${user._type}-${user.id}`} style={{borderBottom:'1px solid var(--border-light)'}}>
+                      <td style={{padding:'10px 12px'}}>
+                        <strong>{user._label}</strong>
+                        <div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{user.email}</div>
+                      </td>
+                      <td style={{padding:'10px 12px'}}>
+                        <span className={`glass-badge ${user._type === 'admin' ? 'glass-badge-warning' : 'glass-badge-info'}`} style={{fontSize:'0.7rem'}}>
+                          {user._type === 'admin' ? 'Admin User' : 'Employee'}
+                        </span>
+                      </td>
+                      <td style={{padding:'10px 12px'}}>
+                        <div style={{display:'flex',gap:'4px',flexWrap:'wrap',alignItems:'center'}}>
+                          {user.roles && user.roles.filter(r => r && r.role_id).map(role => (
+                            <span key={role.role_id} className="glass-badge glass-badge-info" style={{fontSize:'0.7rem',display:'inline-flex',alignItems:'center',gap:'4px'}}>
+                              {role.display_name || role.role_name}
+                              <button
+                                onClick={() => handleRemoveRole(user.id, role.role_id)}
+                                style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',padding:0,lineHeight:1,fontSize:'0.8rem'}}
+                                title="Remove role"
+                              >&times;</button>
+                            </span>
+                          ))}
+                          <button
+                            className="glass-btn glass-btn-sm glass-btn-ghost"
+                            onClick={() => { setAssigningUser(user); setAssigningUserType(user._type); }}
+                            style={{fontSize:'0.75rem'}}
+                          >
+                            <Icon icon="lucide:plus" size={12} /> Add Role
+                          </button>
+                        </div>
+                      </td>
+                      <td style={{padding:'10px 12px'}}>
+                        <span style={{fontSize:'0.75rem',color:user.is_active ? 'var(--success)' : 'var(--text-muted)'}}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
-            ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -215,6 +292,42 @@ export default function RBACManager() {
 
       {showRoleForm && (
         <RoleForm role={editingRole} permissions={permissions} onSave={handleSaveRole} onCancel={() => setShowRoleForm(false)} headers={authHeaders} />
+      )}
+
+      {assigningUser && (
+        <div className="platform-modal-overlay" onClick={() => setAssigningUser(null)}>
+          <div className="platform-modal glass-card" onClick={e => e.stopPropagation()} style={{maxWidth:'400px'}}>
+            <div className="platform-modal-header">
+              <h3>Assign Role to {assigningUser._label}</h3>
+              <button onClick={() => setAssigningUser(null)} className="glass-btn glass-btn-ghost glass-btn-sm"><Icon icon="lucide:x" size={18} /></button>
+            </div>
+            <div className="platform-modal-body" style={{padding:'16px 20px'}}>
+              <p style={{fontSize:'0.85rem',color:'var(--text-dim)',marginBottom:'12px'}}>
+                Select a role to assign. The system auto-detects whether this is an admin user or employee.
+              </p>
+              {roles.filter(r => {
+                const alreadyAssigned = assigningUser.roles?.some(ur => ur && ur.role_id === r.id);
+                return !alreadyAssigned;
+              }).map(role => (
+                <div key={role.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',border:'1px solid var(--border-light)',borderRadius:'8px',marginBottom:'8px',cursor:'pointer',transition:'background 0.15s'}}
+                  className="glass-card"
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = ''}
+                  onClick={() => handleAssignRole(assigningUser.id, role.id)}
+                >
+                  <div>
+                    <strong style={{fontSize:'0.9rem'}}>{role.display_name}</strong>
+                    <div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{role.permission_count || 0} permissions</div>
+                  </div>
+                  <Icon icon="lucide:plus" size={16} style={{color:'var(--primary)'}} />
+                </div>
+              ))}
+              {roles.filter(r => !assigningUser.roles?.some(ur => ur && ur.role_id === r.id)).length === 0 && (
+                <div style={{textAlign:'center',padding:'20px',color:'var(--text-muted)'}}>All roles already assigned</div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

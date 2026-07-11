@@ -206,13 +206,29 @@ router.get('/users', async (req, res) => {
   res.json({ admins, employees });
 });
 
-// Assign role to user
+// Assign role to user (auto-derives user_type from user_id)
 router.post('/assign-role', async (req, res) => {
   const tenantId = req.tenantId || 1;
-  const { user_id, role_id, user_type } = req.body;
+  const { user_id, role_id, user_type: forcedType } = req.body;
 
-  if (!user_id || !role_id || !user_type) {
-    return res.status(400).json({ error: 'user_id, role_id, and user_type are required' });
+  if (!user_id || !role_id) {
+    return res.status(400).json({ error: 'user_id and role_id are required' });
+  }
+
+  // Auto-derive user_type if not provided or invalid
+  let user_type = forcedType;
+  if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
+    const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
+    if (adminCheck.length > 0) {
+      user_type = 'admin';
+    } else {
+      const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
+      if (empCheck.length > 0) {
+        user_type = 'employee';
+      } else {
+        return res.status(400).json({ error: 'User not found' });
+      }
+    }
   }
 
   // Verify role belongs to tenant
@@ -228,13 +244,28 @@ router.post('/assign-role', async (req, res) => {
   clearPermissionCache(user_id, tenantId);
 
   await logActivity(null, req.admin?.id, 'role_assigned', `Assigned role ${role_id} to user ${user_id} (${user_type})`, null, tenantId);
-  res.json({ message: 'Role assigned' });
+  res.json({ message: 'Role assigned', user_type });
 });
 
-// Remove role from user
+// Remove role from user (auto-derives user_type from user_id)
 router.post('/remove-role', async (req, res) => {
   const tenantId = req.tenantId || 1;
-  const { user_id, role_id, user_type } = req.body;
+  const { user_id, role_id, user_type: forcedType } = req.body;
+
+  if (!user_id || !role_id) {
+    return res.status(400).json({ error: 'user_id and role_id are required' });
+  }
+
+  // Auto-derive user_type if not provided or invalid
+  let user_type = forcedType;
+  if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
+    const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
+    if (adminCheck.length > 0) {
+      user_type = 'admin';
+    } else {
+      user_type = 'employee';
+    }
+  }
 
   await pool.query(
     'DELETE FROM user_roles WHERE user_id = ? AND role_id = ? AND user_type = ?',

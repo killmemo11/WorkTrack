@@ -38,6 +38,9 @@ export default function AdminLayout() {
           <Link to="/admin/settings" className={isActive('/admin/settings')}>
             <Icon icon="lucide:settings" /> Settings
           </Link>
+          <Link to="/admin/rbac" className={isActive('/admin/rbac')}>
+            <Icon icon="lucide:shield" /> RBAC Manager
+          </Link>
           <Link to="/admin/activity-log" className={isActive('/admin/activity-log')}>
             <Icon icon="lucide:activity" /> Activity Log
           </Link>

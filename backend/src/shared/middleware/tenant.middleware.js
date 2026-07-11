@@ -32,6 +32,12 @@ const resolveTenant = async (req, res, next) => {
       return next();
     }
 
+    // Priority 2.5: employee-admin (it-auth sets req.admin with type: 'employee_admin')
+    if (req.admin && req.admin.type !== 'admin') {
+      req.tenantId = req.admin.tenant_id || 1;
+      return next();
+    }
+
     // Priority 3: employee (HR, manager, CEO, regular employee)
     if (req.employee || req.hr) {
       const empId = req.employee?.id || req.hr?.id;

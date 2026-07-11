@@ -41,7 +41,7 @@ async function getUserPermissions(userId, userType, tenantId) {
 function requirePermission(permKey) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
-    const userType = req.admin ? 'admin' : 'employee';
+    const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
     const tenantId = req.tenantId || 1;
 
     if (!userId) {
@@ -68,7 +68,7 @@ function requirePermission(permKey) {
 function requireAnyPermission(permKeys) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
-    const userType = req.admin ? 'admin' : 'employee';
+    const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
     const tenantId = req.tenantId || 1;
 
     if (!userId) {
@@ -90,7 +90,7 @@ function requireAnyPermission(permKeys) {
 function requireAllPermissions(permKeys) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
-    const userType = req.admin ? 'admin' : 'employee';
+    const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
     const tenantId = req.tenantId || 1;
 
     if (!userId) {
@@ -111,7 +111,7 @@ function requireAllPermissions(permKeys) {
 // Attach permissions to req for use in controllers
 async function attachPermissions(req, res, next) {
   const userId = req.admin?.id || req.employee?.id || req.hr?.id;
-  const userType = req.admin ? 'admin' : 'employee';
+  const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
   const tenantId = req.tenantId || 1;
 
   if (userId) {
