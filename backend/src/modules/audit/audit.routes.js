@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../shared/config/database');
+const { requirePermission } = require('../../shared/middleware/rbac.middleware');
 
 // Action categories for filtering
 const ACTION_CATEGORIES = {
@@ -31,7 +32,7 @@ function getCategoryForAction(action) {
 }
 
 // Get activity log for audit
-router.get('/activity-log', async (req, res) => {
+router.get('/activity-log', requirePermission('audit.view'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
@@ -95,7 +96,7 @@ router.get('/activity-log', async (req, res) => {
 });
 
 // Get balance audit for audit
-router.get('/balance-audit', async (req, res) => {
+router.get('/balance-audit', requirePermission('audit.view'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
@@ -137,7 +138,7 @@ router.get('/balance-audit', async (req, res) => {
 });
 
 // Export balance audit
-router.get('/export-balance', async (req, res) => {
+router.get('/export-balance', requirePermission('audit.export'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const XLSX = require('xlsx');
   const { employee_id, action, date_from, date_to } = req.query;
@@ -184,7 +185,7 @@ router.get('/export-balance', async (req, res) => {
 });
 
 // Export audit log (activity log)
-router.get('/export', async (req, res) => {
+router.get('/export', requirePermission('audit.export'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const XLSX = require('xlsx');
   const { employee_id, admin_id, action, category, date_from, date_to, search } = req.query;
@@ -227,6 +228,8 @@ router.get('/export', async (req, res) => {
     Action: r.action,
     Category: getCategoryForAction(r.action),
     Description: r.description,
+    'Old Value': r.old_value || '',
+    'New Value': r.new_value || '',
     Employee: r.employee_name || '',
     Admin: r.admin_username || '',
   }));
@@ -242,7 +245,7 @@ router.get('/export', async (req, res) => {
 });
 
 // Compliance report generation
-router.post('/compliance-report', async (req, res) => {
+router.post('/compliance-report', requirePermission('audit.compliance_report'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const { date_from, date_to } = req.body;
   const PDFDocument = require('pdfkit');
@@ -332,6 +335,9 @@ router.post('/compliance-report', async (req, res) => {
       doc.fontSize(9).font('Helvetica-Bold').text(`${i+1}. ${r.action} — ${new Date(r.created_at).toLocaleString()}`);
       doc.font('Helvetica').text(`   Employee: ${r.employee_name || '—'} | Admin: ${r.admin_username || '—'}`);
       doc.text(`   ${r.description?.substring(0, 100) || ''}`);
+      if (r.old_value || r.new_value) {
+        doc.fontSize(8).font('Helvetica-Oblique').text(`   Before: ${r.old_value || '—'} → After: ${r.new_value || '—'}`);
+      }
       doc.moveDown(0.5);
     });
   } else {

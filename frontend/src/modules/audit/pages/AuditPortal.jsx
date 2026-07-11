@@ -57,8 +57,8 @@ const DATE_PRESETS = [
   { label: 'Last 90 days', days: 90 },
 ];
 
-export default function AuditPortal() {
-  const [activeTab, setActiveTab] = useState('activity');
+export default function AuditPortal({ initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'activity');
   const [activityData, setActivityData] = useState({ entries: [], total: 0, page: 1, totalPages: 1 });
   const [auditData, setAuditData] = useState({ entries: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -364,13 +364,15 @@ export default function AuditPortal() {
                         <th style={{textAlign:'left'}}>Category</th>
                         <th style={{textAlign:'left'}}>Action</th>
                         <th style={{textAlign:'left'}}>Description</th>
+                        <th style={{textAlign:'left'}}>Old Value</th>
+                        <th style={{textAlign:'left'}}>New Value</th>
                         <th style={{textAlign:'left'}}>Employee</th>
                         <th style={{textAlign:'left'}}>Admin</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activityData.entries.length === 0 ? (
-                        <tr><td colSpan={6} style={{padding:'48px',textAlign:'center',color:'var(--text-muted)'}}>No activity records found</td></tr>
+                        <tr><td colSpan={8} style={{padding:'48px',textAlign:'center',color:'var(--text-muted)'}}>No activity records found</td></tr>
                       ) : (
                         activityData.entries.map((entry) => {
                           const cat = getCategoryForAction(entry.action);
@@ -390,6 +392,8 @@ export default function AuditPortal() {
                                 </span>
                               </td>
                               <td style={{padding:'10px 16px',fontSize:'0.8rem',maxWidth:'350px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.description}</td>
+                              <td style={{padding:'10px 16px',fontSize:'0.75rem',maxWidth:'150px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text-dim)'}}>{entry.old_value || '—'}</td>
+                              <td style={{padding:'10px 16px',fontSize:'0.75rem',maxWidth:'150px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text-dim)'}}>{entry.new_value || '—'}</td>
                               <td style={{padding:'10px 16px',fontSize:'0.8rem'}}>{entry.employee_name || '—'}</td>
                               <td style={{padding:'10px 16px',fontSize:'0.8rem'}}>{entry.admin_username || '—'}</td>
                             </tr>

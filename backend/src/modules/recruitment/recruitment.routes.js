@@ -4,6 +4,7 @@
 const { Router } = require('express');
 const multer = require('multer');
 const { requireITAuth } = require('../../shared/middleware/it-auth.middleware');
+const { requirePasswordChangeGate } = require('../../shared/middleware/password-gate.middleware');
 const { requireHR } = require('../../shared/middleware/hr.middleware');
 
 const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -50,6 +51,7 @@ const {
 
 const adminRouter = Router();
 adminRouter.use(requireITAuth);
+adminRouter.use(requirePasswordChangeGate);
 
 const hrRouter = Router();
 hrRouter.use(requireHR);

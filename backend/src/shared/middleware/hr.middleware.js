@@ -40,12 +40,6 @@ const requireHR = async (req, res, next) => {
       return res.status(403).json({ error: 'HR access required' });
     }
 
-    const [perms] = await pool.query(
-      'SELECT permission_key FROM hr_permissions WHERE employee_id = ?',
-      [emp.id]
-    );
-    emp.hr_permissions = perms.map(p => p.permission_key);
-
     req.employee = emp;
     req.hr = emp;
     req.tenantId = emp.tenant_id;

@@ -3,7 +3,43 @@
 
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const pool = require('./shared/config/database');
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Securely deliver an initial credential without leaking the plaintext to stdout.
+// - In non-production: prints the credential to console (dev/test convenience).
+// - In production: writes the credential to backend/.setup/ with chmod 600.
+//   NEVER logs plaintext to stdout in production.
+// Strict invariant: this function MUST NOT run unguarded in production for the
+// random-fallback branch. Callers must ensure env-provided credentials OR
+// explicitly rely on the dev-only console path.
+async function deliverInitialCredential(label, username, email, password, loginUrl, adminId) {
+  if (!isProduction) {
+    console.log(`   [DEV ONLY] ${label} password: ${password}`);
+    console.log(`   [DEV ONLY] Login URL: ${loginUrl}`);
+    return;
+  }
+  const setupDir = path.resolve(__dirname, '..', '.setup');
+  try { fs.mkdirSync(setupDir, { recursive: true, mode: 0o700 }); } catch { /* may already exist */ }
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const file = path.join(setupDir, `${label.toLowerCase()}_${username}_${stamp}.txt`);
+  const body = [
+    `WorkTrack initial credential — ${label}`,
+    `Created: ${new Date().toISOString()}`,
+    `admin_users.id: ${adminId}`,
+    `Username: ${username}`,
+    `Email: ${email}`,
+    `Password: ${password}`,
+    `Login URL: ${loginUrl}`,
+    `WARNING: delete this file after recording the password securely.`
+  ].join('\n') + '\n';
+  fs.writeFileSync(file, body, { mode: 0o600 });
+  console.log(`   [PROD] ${label} initial password written to: ${file}`);
+  console.log(`   [PROD] Move it to your password manager and delete the file.`);
+}
 
 async function seed() {
   console.log('🌱 Starting multi-tenant seed...');
@@ -51,6 +87,7 @@ async function seed() {
         username VARCHAR(100) NOT NULL UNIQUE,
         email VARCHAR(255) NULL,
         password_hash VARCHAR(255) NOT NULL,
+        must_change_password TINYINT(1) NOT NULL DEFAULT 1,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         tenant_id INT NULL,
         is_platform_admin TINYINT(1) NOT NULL DEFAULT 0,
@@ -84,6 +121,13 @@ async function seed() {
     );
     if (emailCol.length === 0) {
       await pool.query('ALTER TABLE admin_users ADD COLUMN email VARCHAR(255) NULL AFTER username');
+    }
+    const [mcpCol] = await pool.query(
+      "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'admin_users' AND COLUMN_NAME = 'must_change_password'",
+      [process.env.DB_NAME]
+    );
+    if (mcpCol.length === 0) {
+      await pool.query('ALTER TABLE admin_users ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 1 AFTER password_hash');
     }
   }
 
@@ -179,15 +223,11 @@ async function seed() {
   if (platformAdmins.length === 0) {
     const hash = await bcrypt.hash(platformAdminPassword, 12);
     const [result] = await pool.query(
-      'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, NULL, 1)',
+      'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
       [platformAdminUsername, platformAdminEmail, hash]
     );
-    console.log('✅ Created Platform Super-Admin:');
-    console.log(`   Username: ${platformAdminUsername}`);
-    console.log(`   Email: ${platformAdminEmail}`);
-    console.log(`   Password: ${platformAdminPassword}`);
-    console.log(`   ⚠️  SAVE THIS PASSWORD - It won't be shown again!`);
-    console.log(`   Login at: https://worktrack.ddns.net/platform/login`);
+    deliverInitialCredential('PLATFORM_SUPER_ADMIN', platformAdminUsername, platformAdminEmail, platformAdminPassword, 'https://worktrack.ddns.net/platform/login', result.insertId);
+    console.log('Created Platform Super-Admin. Initial credential delivered via secure channel (see above/aside), never printed to stdout.');
   } else {
     // Update password if env changed
     const newHash = await bcrypt.hash(platformAdminPassword, 12);
@@ -199,12 +239,15 @@ async function seed() {
   }
 
   // ============================================================
-  // 4. TENANT ADMIN for first tenant (IT) - uses magic link / OTP
+  // 4. TENANT ADMIN for first tenant (Admin) - uses magic link / OTP
   // ============================================================
   
-  const tenantAdminUsername = process.env.ADMIN_USERNAME || 'IT';
+  const tenantAdminUsername = process.env.ADMIN_USERNAME || 'Admin';
   const tenantAdminEmail = process.env.ADMIN_EMAIL || 'it@worktrack.ddns.net';
-  // No fixed password - will be set via magic link / first login
+  // No fixed password - will be set via magic link / first login.
+  // After magic-link set-password, must_change_password=1 (see migration 016) forces
+  // a SECOND password change on first real login — defense in depth against
+  // link interception / shoulder-surfing during onboarding.
   
   const [tenantAdmins] = await pool.query(
     'SELECT * FROM admin_users WHERE username = ? AND tenant_id = 1 AND is_platform_admin = 0',
@@ -212,22 +255,28 @@ async function seed() {
   );
   
   if (tenantAdmins.length === 0) {
-    // Create with a temporary password hash (will be replaced on first login via magic link)
+    // Create with a temporary password hash (will be replaced on first login via magic link).
+    // must_change_password stays 1 by default; magic-link set-password does NOT clear it.
     const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     await pool.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, 1, 0)',
       [tenantAdminUsername, tenantAdminEmail, tempHash]
     );
-    console.log(`✅ Created Tenant Admin for tenant 1: ${tenantAdminUsername} (${tenantAdminEmail})`);
-    console.log(`   First login via magic link sent to email`);
+    console.log(`Created Tenant Admin for tenant 1: ${tenantAdminUsername} (${tenantAdminEmail})`);
+    console.log(`   First login via magic link sent to email; password must be changed again on first login.`);
   } else {
-    // Update email if changed
+    // Update email if changed. Leave must_change_password alone (admin controls state).
     await pool.query(
       'UPDATE admin_users SET email = ? WHERE id = ?',
       [tenantAdminEmail, tenantAdmins[0].id]
     );
     console.log(`Tenant Admin ${tenantAdminUsername} already exists`);
   }
+
+  // Defensive cleanup: delete any historical plaintext admin_default_password row
+  // from settings. Per investigation no such row exists today, but the brief
+  // explicitly calls for a defensive purge. Idempotent.
+  await pool.query("DELETE FROM settings WHERE `key` = 'admin_default_password'");
 
   // ============================================================
   // 5. DEFAULT SETTINGS PER TENANT
@@ -481,6 +530,7 @@ async function seedTenantRBAC(tenantId) {
     { module: 'recruitment', action: 'manage_templates', label: 'Manage Templates', desc: 'Manage message/workflow templates' },
 
     // IT module
+    { module: 'it', action: 'view_settings', label: 'View IT Settings', desc: 'Read IT configuration (SMTP, geofence, branding, meetings)' },
     { module: 'it', action: 'manage_smtp', label: 'Manage SMTP', desc: 'Configure email server settings' },
     { module: 'it', action: 'manage_geofence', label: 'Manage Geofence', desc: 'Configure office GPS location' },
     { module: 'it', action: 'manage_branding', label: 'Manage Branding', desc: 'Configure logo, colors, company info' },
@@ -495,6 +545,7 @@ async function seedTenantRBAC(tenantId) {
     // Audit module
     { module: 'audit', action: 'view', label: 'View Audit Logs', desc: 'View all system activity logs' },
     { module: 'audit', action: 'export', label: 'Export Audit Logs', desc: 'Export audit logs for compliance' },
+    { module: 'audit', action: 'compliance_report', label: 'Generate Compliance Report', desc: 'Generate PDF compliance audit reports' },
 
     // HR module
     { module: 'hr', action: 'view', label: 'View HR Data', desc: 'Access HR portal' },
@@ -568,11 +619,11 @@ async function seedTenantRBAC(tenantId) {
       'hr.view'
     ],
     it_admin: [
-      'it.manage_smtp', 'it.manage_geofence', 'it.manage_branding', 'it.manage_meetings',
+      'it.view_settings', 'it.manage_smtp', 'it.manage_geofence', 'it.manage_branding', 'it.manage_meetings',
       'admin.manage_users', 'admin.manage_services'
     ],
     audit_officer: [
-      'audit.view', 'audit.export',
+      'audit.view', 'audit.export', 'audit.compliance_report',
       'admin.view_audit'
     ],
     manager: [

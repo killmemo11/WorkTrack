@@ -55,8 +55,17 @@ After making changes to the local code:
 
 ## Admin Login
 - URL: https://worktrack.ddns.net/login
-- Username: `IT`
-- Password: `Admin@2026#`
+- Admin accounts are bootstrapped via **magic link**, not a shared password.
+- On fresh seed, a Tenant Admin row is created with `must_change_password=1`.
+- **Onboarding flow:**
+  1. Call `POST /api/magic-link/request-magic-link` with the tenant admin's email.
+  2. In non-production (`NODE_ENV !== 'production'`), the response body includes
+     `dev_magic_link` and `dev_token` — no SMTP required locally.
+  3. Open the magic link → set an initial password.
+  4. On first real login, `must_change_password=true` forces a second password change.
+- **Dev shortcut:** When `NODE_ENV=development` (or unset), the magic-link endpoint
+  returns the token in the response body so you can test without configuring SMTP.
+- The tenant admin username defaults to `Admin` (env `ADMIN_USERNAME` overrides this).
 
 ## Git
 - Remote: https://github.com/killmemo11/WorkTrack.git

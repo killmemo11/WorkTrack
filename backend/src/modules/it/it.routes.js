@@ -7,7 +7,7 @@ const pool = require('../../shared/config/database');
 const { requirePermission } = require('../../shared/middleware/rbac.middleware');
 
 // Get IT settings (SMTP, GPS, Branding, Meetings)
-router.get('/settings', async (req, res) => {
+router.get('/settings', requirePermission('it.view_settings'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const keys = [
     'smtp_host','smtp_port','smtp_user','smtp_from',
@@ -28,7 +28,7 @@ router.get('/settings', async (req, res) => {
 });
 
 // Update IT settings
-router.put('/settings', async (req, res) => {
+router.put('/settings', requirePermission('it.manage_smtp'), async (req, res) => {
   const tenantId = req.tenantId || 1;
   const allowed = [
     'smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from',
@@ -58,7 +58,7 @@ router.put('/settings', async (req, res) => {
 });
 
 // Test SMTP
-router.post('/test-email', async (req, res) => {
+router.post('/test-email', requirePermission('it.manage_smtp'), async (req, res) => {
   const nodemailer = require('nodemailer');
   const { to } = req.body;
   if (!to) return res.status(400).json({ error: 'Recipient email required' });
@@ -94,7 +94,7 @@ router.post('/test-email', async (req, res) => {
 });
 
 // Test meeting integration
-router.post('/test-meeting', async (req, res) => {
+router.post('/test-meeting', requirePermission('it.manage_meetings'), async (req, res) => {
   const { provider } = req.body;
   if (!provider) return res.status(400).json({ error: 'Provider required' });
   try {

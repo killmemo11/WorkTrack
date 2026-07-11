@@ -24,15 +24,24 @@ export default function Login() {
     try {
       const empData = await empLogin(username, password, rememberMe);
       if (empData?.employee?.role === 'admin') {
-        await adminLogin(username, password);
-        navigate('/admin/settings', { replace: true });
+        const adminData = await adminLogin(username, password);
+        // Phase 1: if admin must change password, route directly there.
+        if (adminData?.admin?.must_change_password) {
+          navigate('/admin/change-password', { replace: true });
+        } else {
+          navigate('/admin/settings', { replace: true });
+        }
       } else {
         navigate('/dashboard', { replace: true });
       }
     } catch (empErr) {
       try {
-        await adminLogin(username, password);
-        navigate('/admin/settings', { replace: true });
+        const adminData = await adminLogin(username, password);
+        if (adminData?.admin?.must_change_password) {
+          navigate('/admin/change-password', { replace: true });
+        } else {
+          navigate('/admin/settings', { replace: true });
+        }
       } catch {
         const msg = empErr.response?.data;
         setError(msg?.error || 'Login failed');

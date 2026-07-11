@@ -28,7 +28,8 @@ const itRoutes = require('./modules/it/it.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
 const rbacRoutes = require('./modules/admin/rbac.routes');
 const { requireHR } = require('./shared/middleware/hr.middleware');
-const { requireITAuth } = require('./shared/middleware/it-auth.middleware');
+const { requireITAuth, requireAnyActiveToken } = require('./shared/middleware/it-auth.middleware');
+const { requirePasswordChangeGate } = require('./shared/middleware/password-gate.middleware');
 const { requireService } = require('./shared/middleware/service.middleware');
 const { resolveTenant } = require('./shared/middleware/tenant.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
@@ -96,17 +97,17 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
-app.use('/api/admin/settings', requireITAuth, settingsRoutes);
+app.use('/api/admin/settings', requireITAuth, requirePasswordChangeGate, settingsRoutes);
 
-app.use('/api/admin/reports', requireITAuth, reportsRoutes);
+app.use('/api/admin/reports', requireITAuth, requirePasswordChangeGate, reportsRoutes);
 app.use('/api/hr/reports', requireHR, reportsRoutes);
 
-app.get('/api/admin/balance-audit', requireITAuth, async (req, res) => {
+app.get('/api/admin/balance-audit', requireITAuth, requirePasswordChangeGate, async (req, res) => {
   const { getBalanceAudit } = require('./modules/reports/reports.controller');
   return getBalanceAudit(req, res);
 });
 
-app.get('/api/admin/activity-log', requireITAuth, async (req, res) => {
+app.get('/api/admin/activity-log', requireITAuth, requirePasswordChangeGate, async (req, res) => {
   const { getActivityLog } = require('./modules/reports/reports.controller');
   return getActivityLog(req, res);
 });
@@ -218,14 +219,14 @@ app.use('/api/platform', platformRoutes);
 app.use('/api/magic-link', magicLinkRoutes);
 app.use('/api/public', publicSignupRoutes);
 
-// IT Portal (IT admins with RBAC)
-app.use('/api/it', requireITAuth, resolveTenant, itRoutes);
+// IT Portal (IT admins / any active token — RBAC enforced per-route)
+app.use('/api/it', requireAnyActiveToken, requirePasswordChangeGate, resolveTenant, itRoutes);
 
-// Audit Portal (audit officers with RBAC)
-app.use('/api/audit', requireITAuth, resolveTenant, auditRoutes);
+// Audit Portal (audit officers / any active token — RBAC enforced per-route)
+app.use('/api/audit', requireAnyActiveToken, requirePasswordChangeGate, resolveTenant, auditRoutes);
 
 // Admin RBAC management (tenant admin)
-app.use('/api/admin/rbac', requireITAuth, resolveTenant, rbacRoutes);
+app.use('/api/admin/rbac', requireITAuth, requirePasswordChangeGate, resolveTenant, rbacRoutes);
 
 // HR master lists CRUD
 app.get('/api/hr/master-skills', requireHR, listSkills);
@@ -307,14 +308,14 @@ app.put('/api/interviews/respond', respondToInterview);
 // Master Lists (read for HR/Public, CRUD for Admin)
 app.get('/api/master-skills', listSkills);
 app.get('/api/master-certifications', listCertifications);
-app.get('/api/admin/master-skills', requireITAuth, listSkills);
-app.post('/api/admin/master-skills', requireITAuth, createSkill);
-app.put('/api/admin/master-skills/:id', requireITAuth, updateSkill);
-app.delete('/api/admin/master-skills/:id', requireITAuth, deleteSkill);
-app.get('/api/admin/master-certifications', requireITAuth, listCertifications);
-app.post('/api/admin/master-certifications', requireITAuth, createCertification);
-app.put('/api/admin/master-certifications/:id', requireITAuth, updateCertification);
-app.delete('/api/admin/master-certifications/:id', requireITAuth, deleteCertification);
+app.get('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, listSkills);
+app.post('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, createSkill);
+app.put('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, updateSkill);
+app.delete('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, deleteSkill);
+app.get('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, listCertifications);
+app.post('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, createCertification);
+app.put('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, updateCertification);
+app.delete('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, deleteCertification);
 
 // SPA fallback for production — serve index.html for non-API, non-static routes
 if (fs.existsSync(frontendDist)) {

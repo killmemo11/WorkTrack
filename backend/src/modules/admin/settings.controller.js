@@ -10,20 +10,45 @@ async function getSettings(req, res) {
   for (const row of rows) {
     settings[row.key] = row.value;
   }
+
+  // Merge service toggles from canonical service_toggles table
+  const tenantId = req.tenantId || 1;
+  const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [tenantId]);
+  for (const svc of svcRows) {
+    settings[`service_${svc.service_key}`] = svc.is_enabled ? '1' : '0';
+  }
+
   res.json(settings);
 }
 
 async function updateSettings(req, res) {
   try {
-    const allowed = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'office_lat', 'office_lng', 'office_radius_meters', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'logo_data', 'service_wfh', 'service_office_attendance', 'service_leaves', 'service_recruitment', 'service_people', 'service_manager', 'allowed_email_domain', 'ceo_email', 'meeting_google_service_email', 'meeting_google_private_key', 'meeting_teams_tenant_id', 'meeting_teams_client_id', 'meeting_teams_client_secret'];
+    const allowed = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'office_lat', 'office_lng', 'office_radius_meters', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'logo_data', 'allowed_email_domain', 'ceo_email', 'meeting_google_service_email', 'meeting_google_private_key', 'meeting_teams_tenant_id', 'meeting_teams_client_id', 'meeting_teams_client_secret'];
+    const serviceKeys = ['service_wfh', 'service_office_attendance', 'service_leaves', 'service_recruitment', 'service_people', 'service_manager', 'service_it', 'service_audit'];
     const updates = req.body;
-    const entries = Object.entries(updates).filter(([key]) => allowed.includes(key));
-    if (entries.length > 0) {
-      const values = entries.map(() => '(?, ?)').join(',');
-      const flatParams = entries.flatMap(([k, v]) => [k, String(v)]);
+
+    // Write non-service settings to the settings table
+    const settingEntries = Object.entries(updates).filter(([key]) => allowed.includes(key));
+    if (settingEntries.length > 0) {
+      const values = settingEntries.map(() => '(?, ?)').join(',');
+      const flatParams = settingEntries.flatMap(([k, v]) => [k, String(v)]);
       await pool.query(
         `INSERT INTO settings (\`key\`, \`value\`) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
         flatParams
+      );
+    }
+
+    // Write service toggles to the canonical service_toggles table
+    const tenantId = req.tenantId || 1;
+    const svcEntries = Object.entries(updates).filter(([key]) => serviceKeys.includes(key));
+    for (const [key, value] of svcEntries) {
+      const toggleKey = key.replace(/^service_/, '');
+      const isEnabled = value === '0' || value === 0 ? 0 : 1;
+      await pool.query(
+        `INSERT INTO service_toggles (service_key, service_name, description, is_enabled, tenant_id)
+         VALUES (?, '', '', ?, ?)
+         ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled)`,
+        [toggleKey, isEnabled, tenantId]
       );
     }
 
@@ -68,6 +93,13 @@ async function updateSettings(req, res) {
       settings[row.key] = row.value;
     }
     delete settings.smtp_pass;
+
+    // Merge service toggles from canonical table
+    const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [tenantId]);
+    for (const svc of svcRows) {
+      settings[`service_${svc.service_key}`] = svc.is_enabled ? '1' : '0';
+    }
+
     res.json(settings);
   } catch (err) {
     console.error('updateSettings error:', err);
@@ -124,11 +156,18 @@ async function testEmail(req, res) {
 }
 
 async function getPublicSettings(req, res) {
-  const keys = ['logo_data', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'service_wfh', 'service_office_attendance', 'service_leaves', 'service_recruitment', 'service_people', 'service_manager', 'allowed_email_domain'];
+  const keys = ['logo_data', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'allowed_email_domain'];
   const placeholders = keys.map(() => '?').join(',');
   const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
+
+  // Read service toggles from canonical service_toggles table
+  const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [req.tenantId || 1]);
+  for (const svc of svcRows) {
+    settings[`service_${svc.service_key}`] = svc.is_enabled ? '1' : '0';
+  }
+
   res.json(settings);
 }
 

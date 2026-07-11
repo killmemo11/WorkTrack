@@ -39,6 +39,7 @@ export default function AdminSettings() {
   const [services, setServices] = useState({
     service_wfh: '1', service_office_attendance: '1', service_leaves: '1',
     service_recruitment: '1', service_people: '1', service_manager: '1',
+    service_it: '1', service_audit: '1',
   });
 
   const [allowedDomain, setAllowedDomain] = useState('');
@@ -58,6 +59,8 @@ export default function AdminSettings() {
         service_recruitment: res.data.service_recruitment || '1',
         service_people: res.data.service_people || '1',
         service_manager: res.data.service_manager || '1',
+        service_it: res.data.service_it || '1',
+        service_audit: res.data.service_audit || '1',
       });
       setAllowedDomain(res.data.allowed_email_domain || '');
     });
@@ -240,6 +243,34 @@ export default function AdminSettings() {
                         <div>
                           <strong>Manager Dashboard</strong>
                           <p>Team view, approvals, sign-out requests, headcount requests</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="service-module-card glass-card fade-in-up">
+                    <h3 className="service-module-title"><Icon icon="lucide:monitor" /> IT Portal</h3>
+                    <div className="service-toggle-list">
+                      <label className="service-toggle">
+                        <input type="checkbox" checked={services.service_it === '1'}
+                          onChange={(e) => setServices({ ...services, service_it: e.target.checked ? '1' : '0' })} />
+                        <div>
+                          <strong>IT Settings</strong>
+                          <p>SMTP, office geofence, branding, Google Meet and Teams integrations</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="service-module-card glass-card fade-in-up">
+                    <h3 className="service-module-title"><Icon icon="lucide:shield-check" /> Internal Audit</h3>
+                    <div className="service-toggle-list">
+                      <label className="service-toggle">
+                        <input type="checkbox" checked={services.service_audit === '1'}
+                          onChange={(e) => setServices({ ...services, service_audit: e.target.checked ? '1' : '0' })} />
+                        <div>
+                          <strong>Audit Portal</strong>
+                          <p>Activity logs, balance audit trail, compliance PDF reports</p>
                         </div>
                       </label>
                     </div>

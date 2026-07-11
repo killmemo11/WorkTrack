@@ -48,6 +48,9 @@ import ContractTemplates from './modules/admin/pages/ContractTemplates';
 import AdminChecklists from './modules/admin/pages/Checklists';
 import Layout from './shared/components/Layout/Layout';
 import AdminLayout from './shared/components/Layout/AdminLayout';
+import ITLayout from './shared/components/Layout/ITLayout';
+import AuditLayout from './shared/components/Layout/AuditLayout';
+import ChangePassword from './modules/admin/pages/ChangePassword';
 import HRSettings from './modules/hr/pages/HRSettings';
 import Candidates from './modules/recruitment/pages/Candidates';
 import CandidateDetails from './modules/recruitment/pages/CandidateDetails';
@@ -140,20 +143,11 @@ export default function App() {
           <Route path="/personnel/my-contracts" element={<Navigate to="/personnel/my-profile" />} />
           {/* Admin Panel — IT Admins only */}
           <Route path="/admin/login" element={<Navigate to="/login" />} />
+          {/* Phase 1: Forced password change — standalone page, no sidebar */}
+          <Route path="/admin/change-password" element={<AdminRoute><ChangePassword /></AdminRoute>} />
           <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/activity-log" element={<ActivityLog />} />
-            {/* New portals for IT Admins */}
-            <Route path="/admin/it-portal" element={
-              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
-                <ITPortal />
-              </Suspense>
-            } />
-            <Route path="/admin/audit-portal" element={
-              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
-                <AuditPortal />
-              </Suspense>
-            } />
             <Route path="/admin/rbac" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <RBACManager />
@@ -161,6 +155,63 @@ export default function App() {
             } />
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/settings" />} />
+          {/* ─── IT Portal (own layout, admin/IT admin auth) ─── */}
+          <Route path="/it" element={<AdminRoute><ITLayout /></AdminRoute>}>
+            <Route index element={<Navigate to="settings" />} />
+            <Route path="settings" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal initialTab="smtp" />
+              </Suspense>
+            } />
+            <Route path="smtp" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal initialTab="smtp" />
+              </Suspense>
+            } />
+            <Route path="geofence" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal initialTab="geofence" />
+              </Suspense>
+            } />
+            <Route path="branding" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal initialTab="branding" />
+              </Suspense>
+            } />
+            <Route path="meetings" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <ITPortal initialTab="meetings" />
+              </Suspense>
+            } />
+          </Route>
+          {/* Old admin IT portal — redirect to new /it/* route group */}
+          <Route path="/admin/it-portal" element={<Navigate to="/it/settings" replace />} />
+          {/* ─── Audit Portal (own layout, admin/audit auth) ─── */}
+          <Route path="/audit" element={<AdminRoute><AuditLayout /></AdminRoute>}>
+            <Route index element={<Navigate to="activity" />} />
+            <Route path="activity" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AuditPortal initialTab="activity" />
+              </Suspense>
+            } />
+            <Route path="balance" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AuditPortal initialTab="balance" />
+              </Suspense>
+            } />
+            <Route path="export" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AuditPortal initialTab="activity" />
+              </Suspense>
+            } />
+            <Route path="compliance" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AuditPortal initialTab="activity" />
+              </Suspense>
+            } />
+          </Route>
+          {/* Old admin audit portal — redirect to new /audit/* route group */}
+          <Route path="/admin/audit-portal" element={<Navigate to="/audit/activity" replace />} />
           {/* HR Panel — HR Employees only */}
           <Route path="/hr/hr-settings" element={<HrRoute><HRSettings /></HrRoute>} />
           <Route path="/hr/audit-log" element={<HrRoute><AuditLog /></HrRoute>} />

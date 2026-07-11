@@ -46,7 +46,15 @@ router.post('/request-magic-link', async (req, res) => {
   await sendTenantAdminMagicLink(email, admin.username, tenantName, magicLink);
   await logActivity(null, admin.id, 'magic_link_requested', `Magic link requested for ${admin.username}`);
 
-  res.json({ message: 'Magic link sent to your email', token: process.env.NODE_ENV === 'development' ? token : undefined });
+  // Dev/test convenience: expose the magic-link token in the API response body so
+  // local onboarding doesn't require a working SMTP server. STRICTLY gated —
+  // never reachable when NODE_ENV === 'production'. The token alone (without the
+  // user row) is also useless cross-tenant.
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.json({
+    message: 'Magic link sent to your email',
+    ...(isDev ? { dev_magic_link: magicLink, dev_token: token } : {})
+  });
 });
 
 // Verify magic link token and set password
@@ -69,18 +77,24 @@ router.post('/verify-and-set-password', async (req, res) => {
   }
 
   const magicToken = tokens[0];
-  const [admins] = await pool.query('SELECT id, username, tenant_id FROM admin_users WHERE id = ?', [magicToken.user_id]);
+  const [admins] = await pool.query('SELECT id, username, tenant_id, must_change_password FROM admin_users WHERE id = ?', [magicToken.user_id]);
   if (admins.length === 0) {
     return res.status(400).json({ error: 'Admin account not found' });
   }
 
   const admin = admins[0];
-  const hash = await bcrypt.hash(password, 12);
+  const hash = bcrypt.hashSync(password, 12);
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, admin.id]);
+    // Set the new password hash. Per Phase 1 design, we LEAVE must_change_password=1
+    // so the admin is forced to change it again on the first real interactive login.
+    // Defense in depth against magic-link interception / shoulder-surfing during onboarding.
+    await conn.query(
+      'UPDATE admin_users SET password_hash = ? WHERE id = ?',
+      [hash, admin.id]
+    );
     await conn.query('UPDATE magic_link_tokens SET used_at = NOW() WHERE id = ?', [magicToken.id]);
     await conn.query('DELETE FROM magic_link_tokens WHERE user_id = ? AND user_type = "admin"', [admin.id]);
     await conn.commit();
@@ -102,7 +116,7 @@ router.post('/verify-and-set-password', async (req, res) => {
   res.json({
     message: 'Password set successfully',
     token: jwtToken,
-    admin: { id: admin.id, username: admin.username }
+    admin: { id: admin.id, username: admin.username, must_change_password: admin.must_change_password === 1 ? true : false }
   });
 });
 

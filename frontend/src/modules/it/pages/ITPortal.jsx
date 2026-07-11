@@ -25,8 +25,8 @@ function loadLeaflet() {
   });
 }
 
-export default function ITPortal() {
-  const [activeTab, setActiveTab] = useState('smtp');
+export default function ITPortal({ initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'smtp');
   const [settings, setSettings] = useState({
     smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '',
     office_lat: '30.0444', office_lng: '31.2357', office_radius_meters: '200',
