@@ -785,11 +785,11 @@ async function runLegacyMigrations() {
   
   console.log('Running legacy migrations (tenant_id backfill)...');
 
-  // Update employees
-  await pool.query('UPDATE employees SET tenant_id = 1 WHERE tenant_id IS NULL OR tenant_id = 0');
+  // Update employees (wrapped in try-catch since table may not exist on fresh seed)
+  try { await pool.query('UPDATE employees SET tenant_id = 1 WHERE tenant_id IS NULL OR tenant_id = 0'); } catch {}
   
   // Update departments
-  await pool.query('UPDATE departments SET tenant_id = 1 WHERE tenant_id IS NULL OR tenant_id = 0');
+  try { await pool.query('UPDATE departments SET tenant_id = 1 WHERE tenant_id IS NULL OR tenant_id = 0'); } catch {}
   
   // Update other tables that might have been created before tenant_id column
   const tables = [
