@@ -1,7 +1,4 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { usePlatformAuth } from '../../../shared/context/PlatformAuthContext';
 import Icon from '../../../shared/components/Icon';
@@ -11,8 +8,16 @@ export default function PlatformLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [branding, setBranding] = useState({});
   const { login } = usePlatformAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/api/platform/public/settings')
+      .then(res => res.json())
+      .then(data => setBranding(data))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,13 +38,17 @@ export default function PlatformLogin() {
       <div className="platform-login-card glass-card">
         <div className="platform-login-header">
           <div className="platform-logo">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
+            {branding.platform_logo ? (
+              <img src={branding.platform_logo} alt="Logo" style={{ width: 48, height: 48, borderRadius: 8 }} />
+            ) : (
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            )}
           </div>
-          <h1>WorkTrack Platform</h1>
+          <h1>{branding.company_name || 'WorkTrack'} Platform</h1>
           <p>Super Admin Access</p>
         </div>
 
@@ -89,7 +98,7 @@ export default function PlatformLogin() {
         </form>
 
         <div className="platform-login-footer">
-          <p>This is a restricted area for WorkTrack platform owners only.</p>
+          <p>This is a restricted area for {branding.company_name || 'WorkTrack'} platform owners only.</p>
           <Link to="/login" className="platform-link">Back to Tenant Login</Link>
         </div>
       </div>

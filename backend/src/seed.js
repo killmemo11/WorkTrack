@@ -567,6 +567,13 @@ async function seed() {
       ['landing_cta_text', 'Start Your Company', 'Landing page CTA button text'],
       ['contact_email', 'sales@worktrack.ddns.net', 'Sales contact email'],
       ['contact_phone', '', 'Sales contact phone'],
+      ['smtp_host', '', 'Platform SMTP host'],
+      ['smtp_port', '587', 'Platform SMTP port'],
+      ['smtp_user', '', 'Platform SMTP username'],
+      ['smtp_pass', '', 'Platform SMTP password (encrypted)'],
+      ['smtp_from', '', 'Platform SMTP from address'],
+      ['platform_logo', '', 'Platform logo (base64 or URL)'],
+      ['platform_primary_color', '#6366f1', 'Platform primary color'],
     ];
     
     for (const [key, value, desc] of platformDefaults) {

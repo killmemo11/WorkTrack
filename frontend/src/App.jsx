@@ -81,6 +81,10 @@ const PlatformTenants = lazy(() => import('./modules/platform/pages/PlatformTena
 const PlatformTenantRequests = lazy(() => import('./modules/platform/pages/PlatformTenantRequests'));
 const PlatformPlans = lazy(() => import('./modules/platform/pages/PlatformPlans'));
 const PlatformSettings = lazy(() => import('./modules/platform/pages/PlatformSettings'));
+const PlatformTenantDetail = lazy(() => import('./modules/platform/pages/PlatformTenantDetail'));
+const PlatformCreateTenant = lazy(() => import('./modules/platform/pages/PlatformCreateTenant'));
+const PlatformAdmins = lazy(() => import('./modules/platform/pages/PlatformAdmins'));
+const PlatformActivity = lazy(() => import('./modules/platform/pages/PlatformActivity'));
 const ITPortal = lazy(() => import('./modules/it/pages/ITPortal'));
 const AuditPortal = lazy(() => import('./modules/audit/pages/AuditPortal'));
 const RBACManager = lazy(() => import('./modules/admin/pages/RBACManager'));
@@ -313,6 +317,16 @@ export default function App() {
                 <PlatformTenantRequests />
               </Suspense>
             } />
+            <Route path="tenants/new" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformCreateTenant />
+              </Suspense>
+            } />
+            <Route path="tenants/:id" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformTenantDetail />
+              </Suspense>
+            } />
             <Route path="plans" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <PlatformPlans />
@@ -321,6 +335,16 @@ export default function App() {
             <Route path="settings" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <PlatformSettings />
+              </Suspense>
+            } />
+            <Route path="admins" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformAdmins />
+              </Suspense>
+            } />
+            <Route path="activity" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformActivity />
               </Suspense>
             } />
           </Route>

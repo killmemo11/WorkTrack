@@ -743,3 +743,147 @@
   background: var(--bg-hover);
   border-radius: 6px;
 }
+
+/* ─── Tenant Detail & Create ─── */
+.platform-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.platform-back-link:hover { color: var(--color-primary); }
+.platform-detail-grid {
+  display: grid;
+  gap: 20px;
+}
+.platform-detail-info { display: flex; flex-direction: column; gap: 12px; }
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.detail-label { font-weight: 500; color: var(--text-muted); font-size: 0.85rem; }
+.platform-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.platform-form-grid .glass-input-group:last-of-type {
+  grid-column: 1 / -1;
+}
+.platform-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 8px;
+}
+.platform-admin-list { display: flex; flex-direction: column; gap: 8px; }
+.platform-admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-body);
+}
+.admin-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-info span { font-size: 0.8rem; color: var(--text-muted); }
+.admin-actions { display: flex; gap: 4px; }
+.platform-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.platform-service-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--bg-body);
+}
+.platform-service-item span:last-child { margin-left: auto; }
+
+/* ─── Platform Admins Management ─── */
+.platform-admins-grid { display: flex; flex-direction: column; gap: 8px; }
+.platform-admin-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-body);
+}
+.platform-admin-card .admin-details { display: flex; flex-direction: column; gap: 2px; }
+.platform-admin-card .admin-details strong { font-size: 0.95rem; }
+.platform-admin-card .admin-details span { font-size: 0.8rem; color: var(--text-muted); }
+.platform-admin-card .admin-controls { display: flex; gap: 6px; align-items: center; }
+
+/* ─── Platform Activity Log ─── */
+.platform-activity-table { width: 100%; }
+.platform-activity-table th { text-align: left; }
+.platform-action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+/* ─── Platform SMTP ─── */
+.platform-smtp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.smtp-configured { background: rgba(34,197,94,0.1); color: #22c55e; }
+.smtp-unconfigured { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+/* ─── Modal ─── */
+.platform-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.platform-modal {
+  background: var(--bg-white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.platform-modal h2 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.platform-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}

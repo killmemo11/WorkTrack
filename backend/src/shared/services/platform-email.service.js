@@ -2,24 +2,52 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const nodemailer = require('nodemailer');
+const pool = require('../config/database');
+const { decrypt } = require('../utils/encryption');
 
 let platformTransporter = null;
 let cachedConfigHash = '';
+let cachedSettings = null;
+let settingsCacheTime = 0;
+const SETTINGS_CACHE_TTL = 60 * 1000;
+
+async function loadPlatformSmtpSettings() {
+  const now = Date.now();
+  if (cachedSettings && now - settingsCacheTime < SETTINGS_CACHE_TTL) {
+    return cachedSettings;
+  }
+  try {
+    const [rows] = await pool.query(
+      "SELECT `key`, `value` FROM platform_settings WHERE `key` LIKE 'smtp_%'"
+    );
+    const map = {};
+    rows.forEach(r => { map[r.key] = r.value; });
+    cachedSettings = map;
+    settingsCacheTime = now;
+    return map;
+  } catch {
+    return {};
+  }
+}
 
 async function getPlatformTransporter() {
+  const dbSettings = await loadPlatformSmtpSettings();
+
   const config = {
-    host: process.env.PLATFORM_SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.PLATFORM_SMTP_PORT) || 587,
-    secure: parseInt(process.env.PLATFORM_SMTP_PORT) === 465,
+    host: dbSettings.smtp_host || process.env.PLATFORM_SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(dbSettings.smtp_port || process.env.PLATFORM_SMTP_PORT) || 587,
+    secure: parseInt(dbSettings.smtp_port || process.env.PLATFORM_SMTP_PORT) === 465,
     auth: {
-      user: process.env.PLATFORM_SMTP_USER,
-      pass: process.env.PLATFORM_SMTP_PASS,
+      user: dbSettings.smtp_user || process.env.PLATFORM_SMTP_USER,
+      pass: dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS,
     },
   };
 
+  const fromEmail = dbSettings.smtp_from || process.env.PLATFORM_SMTP_FROM || '';
+
   const hash = JSON.stringify(config);
   if (platformTransporter && cachedConfigHash === hash) {
-    return platformTransporter;
+    return { transporter: platformTransporter, from: fromEmail || config.auth.user };
   }
 
   if (!config.auth.user || !config.auth.pass) {
@@ -30,7 +58,6 @@ async function getPlatformTransporter() {
   platformTransporter = nodemailer.createTransport(config);
   cachedConfigHash = hash;
 
-  // Verify connection
   try {
     await platformTransporter.verify();
     console.log('✅ Platform SMTP connection verified');
@@ -40,7 +67,7 @@ async function getPlatformTransporter() {
     return null;
   }
 
-  return platformTransporter;
+  return { transporter: platformTransporter, from: fromEmail || config.auth.user };
 }
 
 function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
@@ -72,17 +99,17 @@ function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
 }
 
 async function sendPlatformEmail(to, subject, htmlContent) {
-  const transporter = await getPlatformTransporter();
-  if (!transporter) {
+  const result = await getPlatformTransporter();
+  if (!result) {
     console.warn(`⚠️ Platform email not sent to ${to} (SMTP not configured): ${subject}`);
     return { success: false, reason: 'SMTP not configured' };
   }
 
-  const fromAddress = process.env.PLATFORM_SMTP_FROM || `WorkTrack Platform <${process.env.PLATFORM_SMTP_USER}>`;
+  const { transporter, from: fromAddress } = result;
 
   try {
     const info = await transporter.sendMail({
-      from: fromAddress,
+      from: fromAddress || 'WorkTrack Platform',
       to,
       subject,
       html: platformMailLayout(htmlContent, subject),

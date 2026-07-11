@@ -18,10 +18,26 @@ const {
   activateTenant,
   getPlatformStats,
   getPlatformActivity,
+  createTenant,
+  resendMagicLink,
+  listPlatformAdmins,
+  createPlatformAdmin,
+  updatePlatformAdmin,
+  resetPlatformAdminPassword,
+  deletePlatformAdmin,
+  changeOwnPassword,
 } = require('./platform.controller');
 
 router.post('/auth/login', platformLogin);
 router.get('/auth/me', requirePlatformAuth, platformMe);
+router.post('/auth/change-password', requirePlatformAuth, changeOwnPassword);
+
+// Platform Admin Accounts
+router.get('/admins', requirePlatformAuth, listPlatformAdmins);
+router.post('/admins', requirePlatformAuth, createPlatformAdmin);
+router.put('/admins/:id', requirePlatformAuth, updatePlatformAdmin);
+router.post('/admins/:id/reset-password', requirePlatformAuth, resetPlatformAdminPassword);
+router.delete('/admins/:id', requirePlatformAuth, deletePlatformAdmin);
 
 // Tenant Requests
 router.get('/tenant-requests', requirePlatformAuth, listTenantRequests);
@@ -36,8 +52,10 @@ router.get('/activity', requirePlatformAuth, getPlatformActivity);
 // Tenants Management
 router.get('/tenants', requirePlatformAuth, listTenants);
 router.get('/tenants/:id', requirePlatformAuth, getTenant);
+router.post('/tenants', requirePlatformAuth, createTenant);
 router.put('/tenants/:id', requirePlatformAuth, updateTenant);
 router.post('/tenants/:id/suspend', requirePlatformAuth, suspendTenant);
 router.post('/tenants/:id/activate', requirePlatformAuth, activateTenant);
+router.post('/tenants/admins/:id/resend-magic-link', requirePlatformAuth, resendMagicLink);
 
 module.exports = router;

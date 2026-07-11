@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const pool = require('../../shared/config/database');
+const { encrypt, decrypt } = require('../../shared/utils/encryption');
 const { logActivity } = require('../../shared/services/activity.service');
 
 // ============================================================
@@ -132,7 +133,10 @@ async function updatePlatformSettings(req, res) {
     return res.status(400).json({ error: 'Settings array is required' });
   }
 
-  for (const { key, value } of settings) {
+  for (let { key, value } of settings) {
+    if (key === 'smtp_pass' && value && !value.includes(':')) {
+      value = encrypt(value);
+    }
     await pool.query(
       'INSERT INTO platform_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?',
       [key, value, value]
@@ -141,6 +145,19 @@ async function updatePlatformSettings(req, res) {
 
   await logActivity(null, req.platformAdmin.id, 'platform_settings_updated', `Updated ${settings.length} platform setting(s)`);
   res.json({ message: 'Settings updated' });
+}
+
+async function testPlatformSmtp(req, res) {
+  const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  const result = await sendPlatformEmail(email, 'WorkTrack SMTP Test', '<p>This is a test email from your WorkTrack platform. If you received this, your SMTP configuration is working correctly.</p>');
+  if (result.success) {
+    res.json({ message: 'Test email sent successfully' });
+  } else {
+    res.status(500).json({ error: result.error || result.reason || 'Failed to send test email' });
+  }
 }
 
 module.exports = {
@@ -153,4 +170,5 @@ module.exports = {
   deletePlan,
   listPlatformSettings,
   updatePlatformSettings,
+  testPlatformSmtp,
 };

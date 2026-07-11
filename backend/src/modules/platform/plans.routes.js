@@ -14,6 +14,7 @@ const {
   deletePlan,
   listPlatformSettings,
   updatePlatformSettings,
+  testPlatformSmtp,
 } = require('./plans.controller');
 
 // Public routes (no auth required)
@@ -29,5 +30,6 @@ router.delete('/plans/:id', requirePlatformAuth, deletePlan);
 
 router.get('/settings', requirePlatformAuth, listPlatformSettings);
 router.put('/settings', requirePlatformAuth, updatePlatformSettings);
+router.post('/settings/test-smtp', requirePlatformAuth, testPlatformSmtp);
 
 module.exports = router;

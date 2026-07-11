@@ -111,6 +111,151 @@ async function platformMe(req, res) {
 }
 
 // ============================================================
+// PLATFORM ADMIN ACCOUNTS
+// ============================================================
+
+async function listPlatformAdmins(req, res) {
+  const [rows] = await pool.query(
+    'SELECT id, username, email, is_active, must_change_password, created_at FROM admin_users WHERE is_platform_admin = 1 ORDER BY created_at ASC'
+  );
+  res.json(rows);
+}
+
+async function createPlatformAdmin(req, res) {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Username, email, and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const [existing] = await pool.query(
+    'SELECT id FROM admin_users WHERE username = ? AND is_platform_admin = 1', [username]
+  );
+  if (existing.length > 0) {
+    return res.status(409).json({ error: 'Username already exists' });
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+  const [result] = await pool.query(
+    'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
+    [username, email, hash]
+  );
+
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_created', `Created platform admin: ${username}`);
+  res.json({ message: 'Platform admin created', id: result.insertId });
+}
+
+async function updatePlatformAdmin(req, res) {
+  const { id } = req.params;
+  const { email, is_active } = req.body;
+
+  const [existing] = await pool.query(
+    'SELECT id FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Platform admin not found' });
+  }
+
+  if (id == req.platformAdmin.id && is_active === false) {
+    return res.status(400).json({ error: 'Cannot deactivate yourself' });
+  }
+
+  const updates = [];
+  const values = [];
+  if (email !== undefined) { updates.push('email = ?'); values.push(email); }
+  if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(id);
+  await pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_updated', `Updated platform admin ID ${id}`);
+  res.json({ message: 'Platform admin updated' });
+}
+
+async function resetPlatformAdminPassword(req, res) {
+  const { id } = req.params;
+  const { password } = req.body;
+
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const [existing] = await pool.query(
+    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Platform admin not found' });
+  }
+
+  const hash = await bcrypt.hash(password, 12);
+  await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
+
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_password_reset', `Reset password for platform admin: ${existing[0].username}`);
+  res.json({ message: 'Password reset successfully' });
+}
+
+async function deletePlatformAdmin(req, res) {
+  const { id } = req.params;
+
+  if (id == req.platformAdmin.id) {
+    return res.status(400).json({ error: 'Cannot delete yourself' });
+  }
+
+  const [existing] = await pool.query(
+    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
+  );
+  if (existing.length === 0) {
+    return res.status(404).json({ error: 'Platform admin not found' });
+  }
+
+  const [count] = await pool.query(
+    'SELECT COUNT(*) as total FROM admin_users WHERE is_platform_admin = 1'
+  );
+  if (count[0].total <= 1) {
+    return res.status(400).json({ error: 'Cannot delete the last platform admin' });
+  }
+
+  await pool.query('DELETE FROM admin_users WHERE id = ?', [id]);
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_deleted', `Deleted platform admin: ${existing[0].username}`);
+  res.json({ message: 'Platform admin deleted' });
+}
+
+async function changeOwnPassword(req, res) {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Current and new password are required' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  }
+
+  const [rows] = await pool.query(
+    'SELECT id, password_hash FROM admin_users WHERE id = ? AND is_platform_admin = 1',
+    [req.platformAdmin.id]
+  );
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Admin not found' });
+  }
+
+  const valid = await bcrypt.compare(current_password, rows[0].password_hash);
+  if (!valid) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+
+  const hash = await bcrypt.hash(new_password, 12);
+  await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, req.platformAdmin.id]);
+
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_password_changed', 'Changed own password');
+  res.json({ message: 'Password changed successfully' });
+}
+
+// ============================================================
 // TENANT REQUESTS MANAGEMENT
 // ============================================================
 
@@ -205,11 +350,13 @@ async function approveTenantRequest(req, res) {
     const tenantId = tenantResult.insertId;
 
     // Create tenant admin user (will set password via magic link)
+    const adminUsername = request.contact_email.split('@')[0];
     const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
-    await conn.query(
+    const [adminResult] = await conn.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, ?, 0)',
-      [request.contact_email.split('@')[0], request.contact_email, tempHash, tenantId]
+      [adminUsername, request.contact_email, tempHash, tenantId]
     );
+    const adminUserId = adminResult.insertId;
 
     // Seed default settings for new tenant
     const defaults = [
@@ -259,7 +406,15 @@ async function approveTenantRequest(req, res) {
     await conn.commit();
 
     // Send magic link to tenant admin
-    await sendTenantAdminMagicLink(request.contact_email, request.company_name, tenantId);
+    const mlToken = crypto.randomBytes(32).toString('hex');
+    const mlExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await pool.query(
+      'INSERT INTO magic_link_tokens (user_id, user_type, token, expires_at, created_at) VALUES (?, "admin", ?, ?, NOW())',
+      [adminUserId, mlToken, mlExpires]
+    );
+    const baseUrl = process.env.FRONTEND_URL || 'https://worktrack.ddns.net';
+    const magicLink = `${baseUrl}/magic-link?token=${mlToken}`;
+    await sendTenantAdminMagicLink(request.contact_email, adminUsername, request.company_name, magicLink);
 
     // Notify platform admin
     await sendPlatformEmail(
@@ -368,7 +523,19 @@ async function getTenant(req, res) {
     return res.status(404).json({ error: 'Tenant not found' });
   }
 
-  res.json(rows[0]);
+  const tenant = rows[0];
+
+  const [admins] = await pool.query(
+    'SELECT id, username, email, is_active, must_change_password, created_at FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0',
+    [id]
+  );
+
+  const [services] = await pool.query(
+    'SELECT service_key, service_name, is_enabled, is_visible FROM service_toggles WHERE tenant_id = ? ORDER BY sort_order',
+    [id]
+  );
+
+  res.json({ ...tenant, admins, services });
 }
 
 async function updateTenant(req, res) {
@@ -613,9 +780,139 @@ async function seedTenantRBAC(conn, tenantId) {
   }
 }
 
+async function createTenant(req, res) {
+  const { company_name, contact_email, contact_phone, plan, max_employees, trial_days } = req.body;
+
+  if (!company_name || !contact_email) {
+    return res.status(400).json({ error: 'Company name and contact email are required' });
+  }
+
+  const planSlug = plan || 'trial';
+  const [planRows] = await pool.query('SELECT * FROM subscription_plans WHERE slug = ?', [planSlug]);
+  const planDetails = planRows.length > 0 ? planRows[0] : null;
+  const maxEmp = max_employees || (planDetails ? planDetails.max_employees : 50);
+  const trialDays = trial_days || (planDetails ? planDetails.trial_days : 14);
+
+  const slug = company_name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .substring(0, 100) + '-' + Date.now().toString(36);
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [tenantResult] = await conn.query(
+      `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, max_employees, status, trial_ends_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
+      [company_name, slug, contact_email, contact_phone || null, planSlug, maxEmp, trialDays]
+    );
+    const tenantId = tenantResult.insertId;
+
+    const adminUsername = contact_email.split('@')[0];
+    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const [adminResult] = await conn.query(
+      'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, ?, 0)',
+      [adminUsername, contact_email, tempHash, tenantId]
+    );
+    const adminUserId = adminResult.insertId;
+
+    const defaults = [
+      ['smtp_host', ''], ['smtp_port', '587'], ['smtp_user', ''], ['smtp_pass', ''], ['smtp_from', ''],
+      ['office_lat', '30.0444'], ['office_lng', '31.2357'], ['office_radius_meters', '200'],
+      ['work_week_start', 'Sunday'], ['work_week_end', 'Thursday'],
+      ['period_start_day', '15'], ['period_end_day', '16'],
+      ['logo_data', ''], ['allowed_email_domain', ''],
+      ['company_name', company_name], ['company_address', ''],
+      ['company_representative', ''], ['company_representative_title', ''],
+      ['company_phone', ''], ['company_fax', ''], ['company_commercial_register', ''],
+      ['company_tax_card', ''], ['company_location_url', ''],
+    ];
+    for (const [key, value] of defaults) {
+      await conn.query('INSERT INTO settings (`key`, `value`, tenant_id) VALUES (?, ?, ?)', [key, value, tenantId]);
+    }
+
+    const serviceDefaults = [
+      { key: 'wfh', name: 'Work From Home', desc: 'Allow employees to sign in remotely', icon: 'home', order: 1 },
+      { key: 'office_attendance', name: 'Office Attendance', desc: 'Track office check-in/out with GPS', icon: 'building', order: 2 },
+      { key: 'leaves', name: 'Leave Management', desc: 'Request and approve leave', icon: 'calendar-x', order: 3 },
+      { key: 'recruitment', name: 'Recruitment', desc: 'Job postings and candidate pipeline', icon: 'briefcase', order: 4 },
+      { key: 'people', name: 'People Management', desc: 'Employee profiles, documents, contracts', icon: 'users', order: 5 },
+      { key: 'manager', name: 'Manager Tools', desc: 'Team approvals and dashboard', icon: 'user-check', order: 6 },
+      { key: 'assets', name: 'Asset Management', desc: 'Track company assets and assignments', icon: 'laptop', order: 7 },
+      { key: 'payroll', name: 'Payroll Components', desc: 'Salary components and structures', icon: 'dollar-sign', order: 8 },
+    ];
+    for (const svc of serviceDefaults) {
+      await conn.query(
+        'INSERT INTO service_toggles (service_key, service_name, description, icon, is_enabled, is_visible, sort_order, tenant_id) VALUES (?, ?, ?, ?, 1, 1, ?, ?)',
+        [svc.key, svc.name, svc.desc, svc.icon, svc.order, tenantId]
+      );
+    }
+
+    await seedTenantRBAC(conn, tenantId);
+    await conn.commit();
+
+    const mlToken = crypto.randomBytes(32).toString('hex');
+    const mlExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await pool.query(
+      'INSERT INTO magic_link_tokens (user_id, user_type, token, expires_at, created_at) VALUES (?, "admin", ?, ?, NOW())',
+      [adminUserId, mlToken, mlExpires]
+    );
+    const baseUrl = process.env.FRONTEND_URL || 'https://worktrack.ddns.net';
+    const magicLink = `${baseUrl}/magic-link?token=${mlToken}`;
+    await sendTenantAdminMagicLink(contact_email, adminUsername, company_name, magicLink);
+
+    await logActivity(null, req.platformAdmin.id, 'tenant_created', `Manually created tenant: ${company_name} (ID: ${tenantId})`);
+
+    res.json({ message: 'Tenant created', tenantId, slug });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Create tenant error:', err);
+    res.status(500).json({ error: err.message || 'Failed to create tenant' });
+  } finally {
+    conn.release();
+  }
+}
+
+async function resendMagicLink(req, res) {
+  const { id } = req.params;
+
+  const [admins] = await pool.query(
+    'SELECT id, username, email, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0',
+    [id]
+  );
+  if (admins.length === 0) {
+    return res.status(404).json({ error: 'Admin user not found' });
+  }
+  const admin = admins[0];
+
+  const [tenants] = await pool.query('SELECT name FROM tenants WHERE id = ?', [admin.tenant_id]);
+  const tenantName = tenants[0]?.name || 'WorkTrack';
+
+  await pool.query('DELETE FROM magic_link_tokens WHERE user_id = ? AND user_type = "admin"', [admin.id]);
+  const mlToken = crypto.randomBytes(32).toString('hex');
+  const mlExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await pool.query(
+    'INSERT INTO magic_link_tokens (user_id, user_type, token, expires_at, created_at) VALUES (?, "admin", ?, ?, NOW())',
+    [admin.id, mlToken, mlExpires]
+  );
+  const baseUrl = process.env.FRONTEND_URL || 'https://worktrack.ddns.net';
+  const magicLink = `${baseUrl}/magic-link?token=${mlToken}`;
+  await sendTenantAdminMagicLink(admin.email, admin.username, tenantName, magicLink);
+
+  res.json({ message: 'Magic link resent to ' + admin.email });
+}
+
 module.exports = {
   platformLogin,
   platformMe,
+  listPlatformAdmins,
+  createPlatformAdmin,
+  updatePlatformAdmin,
+  resetPlatformAdminPassword,
+  deletePlatformAdmin,
+  changeOwnPassword,
   listTenantRequests,
   getTenantRequest,
   approveTenantRequest,
@@ -627,4 +924,6 @@ module.exports = {
   activateTenant,
   getPlatformStats,
   getPlatformActivity,
+  createTenant,
+  resendMagicLink,
 };

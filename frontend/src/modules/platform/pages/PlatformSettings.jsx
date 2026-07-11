@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 
@@ -10,6 +7,9 @@ export default function PlatformSettings() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState('');
 
   const token = localStorage.getItem('platformToken');
 
@@ -25,8 +25,19 @@ export default function PlatformSettings() {
       .catch(() => setLoading(false));
   }, []);
 
+  const ensureSetting = (key, defaultValue = '') => {
+    if (!settings.find(s => s.key === key)) {
+      setSettings(prev => [...prev, { key, value: defaultValue }]);
+    }
+  };
+
   const handleChange = (key, value) => {
     setSettings((prev) => prev.map((s) => s.key === key ? { ...s, value } : s));
+  };
+
+  const getVal = (key) => {
+    const s = settings.find(s => s.key === key);
+    return s ? s.value || '' : '';
   };
 
   const handleSave = async () => {
@@ -57,6 +68,31 @@ export default function PlatformSettings() {
       setSaving(false);
     }
   };
+
+  const handleTestSmtp = async () => {
+    if (!testEmail) return;
+    setTesting(true);
+    setTestResult('');
+    try {
+      const res = await fetch('/api/platform/settings/test-smtp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email: testEmail }),
+      });
+      const data = await res.json();
+      setTestResult(res.ok ? 'ok' : (data.error || 'Failed'));
+    } catch {
+      setTestResult('Network error');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const smtpFields = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from'];
+  smtpFields.forEach(k => ensureSetting(k));
 
   if (loading) return <div className="glass-loading"><div className="spinner" /></div>;
 
@@ -119,6 +155,62 @@ export default function PlatformSettings() {
               </p>
             </div>
           ))}
+        </div>
+
+        {/* Platform SMTP */}
+        <div className="glass-card" style={{ padding: 24, gridColumn: 'span 2' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon icon="lucide:mail" /> Platform Email (SMTP)
+            <span className={`platform-smtp-status ${getVal('smtp_user') ? 'smtp-configured' : 'smtp-unconfigured'}`}>
+              {getVal('smtp_user') ? 'Configured' : 'Not Configured'}
+            </span>
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: '#71717a', margin: '0 0 16px' }}>
+            SMTP settings for platform emails (magic links, tenant notifications, alerts). Falls back to environment variables if empty.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="glass-input-group">
+              <label>SMTP Host</label>
+              <input type="text" value={getVal('smtp_host')} onChange={e => handleChange('smtp_host', e.target.value)} className="glass-input" placeholder="smtp.gmail.com" />
+            </div>
+            <div className="glass-input-group">
+              <label>Port</label>
+              <input type="number" value={getVal('smtp_port')} onChange={e => handleChange('smtp_port', e.target.value)} className="glass-input" placeholder="587" />
+            </div>
+            <div className="glass-input-group">
+              <label>Username</label>
+              <input type="text" value={getVal('smtp_user')} onChange={e => handleChange('smtp_user', e.target.value)} className="glass-input" placeholder="your@email.com" />
+            </div>
+            <div className="glass-input-group">
+              <label>Password</label>
+              <input type="password" value={getVal('smtp_pass')} onChange={e => handleChange('smtp_pass', e.target.value)} className="glass-input" placeholder="App password or SMTP password" />
+            </div>
+            <div className="glass-input-group">
+              <label>From Address</label>
+              <input type="email" value={getVal('smtp_from')} onChange={e => handleChange('smtp_from', e.target.value)} className="glass-input" placeholder="noreply@worktrack.ddns.net" />
+            </div>
+          </div>
+          <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', margin: '0 0 8px' }}>Send Test Email</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="email"
+                className="glass-input"
+                placeholder="test@example.com"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button className="glass-btn glass-btn-ghost" onClick={handleTestSmtp} disabled={testing || !testEmail}>
+                {testing ? 'Sending...' : 'Send Test'}
+              </button>
+            </div>
+            {testResult && (
+              <p style={{ marginTop: 8, fontSize: '0.8rem', color: testResult === 'ok' ? '#22c55e' : '#ef4444' }}>
+                {testResult === 'ok' ? 'Test email sent successfully!' : testResult}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Landing Page Settings */}

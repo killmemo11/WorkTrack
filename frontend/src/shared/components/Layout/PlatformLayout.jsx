@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Mohamed Yehia
-// SPDX-License-Identifier: AGPL-3.0
-
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { usePlatformAuth } from '../../context/PlatformAuthContext';
@@ -12,9 +9,9 @@ export default function PlatformLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [stats, setStats] = useState(null);
+  const [platformSettings, setPlatformSettings] = useState({});
 
   useEffect(() => {
-    // Fetch platform stats
     const token = localStorage.getItem('platformToken');
     if (token) {
       fetch('/api/platform/stats', {
@@ -22,6 +19,17 @@ export default function PlatformLayout() {
       })
         .then((res) => res.json())
         .then((data) => setStats(data))
+        .catch(() => {});
+
+      fetch('/api/platform/settings', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          const map = {};
+          data.forEach(s => { map[s.key] = s.value; });
+          setPlatformSettings(map);
+        })
         .catch(() => {});
     }
   }, []);
@@ -32,18 +40,23 @@ export default function PlatformLayout() {
   };
 
   const isActive = (path) => location.pathname === path ? 'platform-nav-link active' : 'platform-nav-link';
+  const platformName = platformSettings.company_name || 'WorkTrack';
 
   return (
     <div className="platform-layout">
       <aside className="platform-sidebar">
         <div className="platform-brand">
           <Link to="/platform">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="platform-logo">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
-            <span>WorkTrack Platform</span>
+            {platformSettings.platform_logo ? (
+              <img src={platformSettings.platform_logo} alt={platformName} style={{ height: 32, width: 'auto', borderRadius: 6 }} />
+            ) : (
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="platform-logo">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            )}
+            <span>{platformName} Platform</span>
           </Link>
           <span className="platform-badge">Super Admin</span>
         </div>
@@ -69,6 +82,14 @@ export default function PlatformLayout() {
           <Link to="/platform/plans" className={isActive('/platform/plans')}>
             <Icon icon="lucide:credit-card" />
             <span>Plans</span>
+          </Link>
+          <Link to="/platform/admins" className={isActive('/platform/admins')}>
+            <Icon icon="lucide:users" />
+            <span>Admins</span>
+          </Link>
+          <Link to="/platform/activity" className={isActive('/platform/activity')}>
+            <Icon icon="lucide:activity" />
+            <span>Activity</span>
           </Link>
           <Link to="/platform/settings" className={isActive('/platform/settings')}>
             <Icon icon="lucide:settings" />
