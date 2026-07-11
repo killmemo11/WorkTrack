@@ -159,9 +159,9 @@ export default function PlatformSettings() {
               {getVal('smtp_user') ? 'Configured' : 'Not Configured'}
             </span>
           </h3>
-          <p className="field-desc" style={{ marginBottom: 16 }}>
-            SMTP settings for platform emails (magic links, tenant notifications, alerts). Falls back to environment variables if empty.
-          </p>
+              <p className="field-desc platform-mb-sm">
+                SMTP settings for platform emails (magic links, tenant notifications, alerts). Falls back to environment variables if empty.
+              </p>
           <div className="platform-settings-grid-2">
             <div className="glass-input-group">
               <label>SMTP Host</label>
@@ -215,7 +215,7 @@ export default function PlatformSettings() {
               {s.key.includes('title') || s.key.includes('text') ? (
                 <input type="text" value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" />
               ) : (
-                <textarea value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" rows={3} style={{ resize: 'vertical' }} />
+                <textarea value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input glass-textarea" rows={3} />
               )}
               {s.description && <p className="field-desc">{s.description}</p>}
             </div>

@@ -47,7 +47,7 @@ export default function PlatformActivity() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          <span className="platform-filter-count">
             {filtered.length} events
           </span>
         </div>
@@ -75,11 +75,11 @@ export default function PlatformActivity() {
                     <td>
                       <span className="platform-action-badge">{item.action}</span>
                     </td>
-                    <td style={{ maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td className="platform-activity-desc-cell">
                       {item.description || '—'}
                     </td>
                     <td>{item.admin_username || 'System'}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(item.created_at)}</td>
+                    <td className="platform-nowrap">{formatDate(item.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

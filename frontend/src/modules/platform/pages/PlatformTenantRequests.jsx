@@ -139,7 +139,7 @@ export default function PlatformTenantRequests() {
                         {req.contact_phone && <div className="text-dim text-sm">{req.contact_phone}</div>}
                       </td>
                       <td>
-                        <span className="glass-badge glass-badge-info" style={{ textTransform: 'capitalize' }}>
+                        <span className="glass-badge glass-badge-info platform-capitalize">
                           {req.requested_plan || 'trial'}
                         </span>
                       </td>
@@ -198,7 +198,7 @@ export default function PlatformTenantRequests() {
                 <div><label>Company</label><span>{viewingRequest.company_name}</span></div>
                 <div><label>Contact Email</label><span>{viewingRequest.contact_email}</span></div>
                 <div><label>Contact Phone</label><span>{viewingRequest.contact_phone || '—'}</span></div>
-                <div><label>Requested Plan</label><span style={{ textTransform: 'capitalize' }}>{viewingRequest.requested_plan || 'trial'}</span></div>
+                <div><label>Requested Plan</label><span className="platform-capitalize">{viewingRequest.requested_plan || 'trial'}</span></div>
                 <div><label>Employees</label><span>{viewingRequest.employee_count}</span></div>
                 <div><label>Status</label><span><span className={`glass-badge glass-badge-${STATUS_BADGE[viewingRequest.status] || 'default'}`}>{viewingRequest.status}</span></span></div>
                 <div><label>Requested</label><span>{formatDate(viewingRequest.created_at)}</span></div>

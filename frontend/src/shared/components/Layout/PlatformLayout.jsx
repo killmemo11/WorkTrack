@@ -48,7 +48,7 @@ export default function PlatformLayout() {
         <div className="platform-brand">
           <Link to="/platform">
             {platformSettings.platform_logo ? (
-              <img src={platformSettings.platform_logo} alt={platformName} style={{ height: 32, width: 'auto', borderRadius: 6 }} />
+              <img src={platformSettings.platform_logo} alt={platformName} className="platform-brand-logo" />
             ) : (
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="platform-logo">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -101,13 +101,13 @@ export default function PlatformLayout() {
           </Link>
         </nav>
         <div className="platform-sidebar-footer">
-          <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost" style={{width:'100%'}}>
+          <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost platform-logout-btn">
             <Icon icon="lucide:log-out" /> Logout
           </button>
           <div className="platform-user">
-            <Icon icon="lucide:user" style={{fontSize:'0.8rem'}} />
+            <Icon icon="lucide:user" />
             {platformAdmin?.username}
-            <span style={{ fontSize: '0.65rem', opacity: 0.6, marginLeft:2 }}>Platform Owner</span>
+            <span className="platform-user-role">Platform Owner</span>
           </div>
         </div>
       </aside>

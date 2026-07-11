@@ -185,11 +185,11 @@ export default function PlatformPlans() {
                 <input type="text" value={form.slug} onChange={(e) => handleChange('slug', e.target.value)} required className="glass-input" placeholder="e.g. professional" pattern="[a-z0-9-]+" />
               </div>
             </div>
-            <div className="glass-input-group" style={{ marginTop: 12 }}>
+            <div className="glass-input-group platform-mt-sm">
               <label>Description</label>
               <input type="text" value={form.description} onChange={(e) => handleChange('description', e.target.value)} className="glass-input" placeholder="Short description of this plan" />
             </div>
-            <div className="platform-plans-form-grid-4" style={{ marginTop: 12 }}>
+            <div className="platform-plans-form-grid-4 platform-mt-sm">
               <div className="glass-input-group">
                 <label>Monthly Price</label>
                 <input type="number" step="0.01" min="0" value={form.price_monthly} onChange={(e) => handleChange('price_monthly', e.target.value)} className="glass-input" />
@@ -214,7 +214,7 @@ export default function PlatformPlans() {
                 <input type="number" min="1" value={form.max_employees} onChange={(e) => handleChange('max_employees', e.target.value)} className="glass-input" />
               </div>
             </div>
-            <div className="platform-plans-form-grid-3" style={{ marginTop: 12 }}>
+            <div className="platform-plans-form-grid-3 platform-mt-sm">
               <div className="glass-input-group">
                 <label>Trial Days</label>
                 <input type="number" min="0" value={form.trial_days} onChange={(e) => handleChange('trial_days', e.target.value)} className="glass-input" />
@@ -234,7 +234,7 @@ export default function PlatformPlans() {
                 </label>
               </div>
             </div>
-            <div className="glass-input-group" style={{ marginTop: 12 }}>
+            <div className="glass-input-group platform-mt-sm">
               <label>Features</label>
               <div className="platform-plans-features-input">
                 <input type="text" value={featureInput} onChange={(e) => setFeatureInput(e.target.value)} className="glass-input" placeholder="Add a feature"
@@ -264,8 +264,8 @@ export default function PlatformPlans() {
       {loading ? (
         <div className="glass-loading"><div className="spinner" /></div>
       ) : plans.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: 48 }}>
-          <Icon icon="lucide:package" style={{ fontSize: '2rem', color: 'var(--text-muted)', marginBottom: 12 }} />
+        <div className="glass-card platform-empty-state">
+          <Icon icon="lucide:package" className="platform-empty-icon" />
           <p className="text-dim">No plans yet. Create your first plan.</p>
         </div>
       ) : (

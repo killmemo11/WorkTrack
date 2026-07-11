@@ -39,7 +39,7 @@ export default function PlatformLogin() {
         <div className="platform-login-header">
           <div className="platform-logo">
             {branding.platform_logo ? (
-              <img src={branding.platform_logo} alt="Logo" style={{ width: 48, height: 48, borderRadius: 8 }} />
+              <img src={branding.platform_logo} alt="Logo" className="platform-login-logo" />
             ) : (
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -85,10 +85,10 @@ export default function PlatformLogin() {
             </div>
           </div>
 
-          <button type="submit" className="glass-btn glass-btn-primary" style={{width:'100%', marginTop:8}} disabled={loading}>
+          <button type="submit" className="glass-btn glass-btn-primary platform-login-submit" disabled={loading}>
             {loading ? (
               <>
-                <span className="spinner" style={{width:16,height:16,marginRight:8}} />
+                <span className="spinner platform-login-spinner" />
                 Signing in...
               </>
             ) : (
