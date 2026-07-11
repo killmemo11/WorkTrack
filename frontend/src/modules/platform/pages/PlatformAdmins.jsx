@@ -125,14 +125,14 @@ export default function PlatformAdmins() {
               <div className="admin-details">
                 <strong>{admin.username}</strong>
                 <span>{admin.email}</span>
-                <span style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+                <div className="platform-badges-row">
                   <span className={`glass-badge glass-badge-${admin.is_active ? 'success' : 'error'}`}>
                     {admin.is_active ? 'Active' : 'Inactive'}
                   </span>
                   {admin.id === currentAdmin.id && (
                     <span className="glass-badge glass-badge-info">You</span>
                   )}
-                </span>
+                </div>
               </div>
               <div className="admin-controls">
                 <button onClick={() => openEdit(admin)} className="glass-btn glass-btn-sm glass-btn-ghost" title="Edit">
@@ -162,7 +162,7 @@ export default function PlatformAdmins() {
           <div className="platform-modal" onClick={e => e.stopPropagation()}>
             <h2>{editAdmin ? 'Edit Admin' : 'Create New Admin'}</h2>
             {error && <div className="glass-alert glass-alert-error">{error}</div>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="platform-modal-form">
               {!editAdmin && (
                 <div className="glass-input-group">
                   <label>Username</label>

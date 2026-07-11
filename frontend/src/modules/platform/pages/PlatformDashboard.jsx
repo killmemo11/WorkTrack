@@ -72,7 +72,7 @@ export default function PlatformDashboard() {
           </div>
         </Link>
 
-        <Link to="/platform/tenant-requests" className="platform-stat-card glass-card">
+        <Link to="/platform/requests" className="platform-stat-card glass-card">
           <div className="stat-icon warning">
             <Icon icon="lucide:inbox" size={24} />
           </div>
@@ -102,7 +102,7 @@ export default function PlatformDashboard() {
         <div className="glass-card">
           <h2 className="platform-section-title">Quick Actions</h2>
           <div className="platform-quick-actions">
-            <Link to="/platform/tenant-requests" className="platform-action-btn glass-btn glass-btn-primary">
+            <Link to="/platform/requests" className="platform-action-btn glass-btn glass-btn-primary">
               <Icon icon="lucide:plus-circle" size={20} />
               <div>
                 <strong>Review Requests</strong>
@@ -121,6 +121,13 @@ export default function PlatformDashboard() {
               <div>
                 <strong>Create Tenant</strong>
                 <span>Manually create a new tenant account</span>
+              </div>
+            </Link>
+            <Link to="/platform/client-accounts" className="platform-action-btn glass-btn glass-btn-ghost">
+              <Icon icon="lucide:user-cog" size={20} />
+              <div>
+                <strong>Client Accounts</strong>
+                <span>Manage admin accounts for all tenants</span>
               </div>
             </Link>
           </div>

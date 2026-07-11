@@ -78,7 +78,7 @@ export default function PlatformCreateTenant() {
         </div>
       </div>
 
-      <div className="glass-card" style={{ maxWidth: 640 }}>
+      <div className="glass-card platform-form-card">
         {error && <div className="glass-alert glass-alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="platform-form-grid">

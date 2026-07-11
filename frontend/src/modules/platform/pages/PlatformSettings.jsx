@@ -101,31 +101,27 @@ export default function PlatformSettings() {
       <div className="platform-page-header">
         <div>
           <h1>Platform Settings</h1>
-          <p style={{ color: '#71717a', fontSize: '0.85rem', margin: '4px 0 0' }}>
-            Configure platform-wide settings that affect all tenants and the landing page
-          </p>
+          <p>Configure platform-wide settings that affect all tenants and the landing page</p>
         </div>
         <button className="glass-btn glass-btn-primary" onClick={handleSave} disabled={saving}>
           <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
-      {error && <div className="glass-alert glass-alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+      {error && <div className="glass-alert glass-alert-error">{error}</div>}
       {success && (
-        <div className="glass-alert glass-alert-success" style={{ marginBottom: 16 }}>
+        <div className="glass-alert glass-alert-success">
           <Icon icon="lucide:check-circle" /> Settings saved successfully
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="platform-settings-grid">
         {/* General Settings */}
-        <div className="glass-card" style={{ padding: 24 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon icon="lucide:settings" /> General
-          </h3>
+        <div className="glass-card platform-settings-card">
+          <h3><Icon icon="lucide:settings" /> General</h3>
           {settings.filter(s => ['company_name', 'company_email', 'contact_email', 'contact_phone', 'default_currency'].includes(s.key)).map((s) => (
-            <div key={s.key} className="glass-input-group" style={{ marginBottom: 12 }}>
-              <label style={{ textTransform: 'capitalize' }}>{s.key.replace(/_/g, ' ')}</label>
+            <div key={s.key} className="glass-input-group">
+              <label>{s.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
               {s.key === 'default_currency' ? (
                 <select value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input">
                   <option value="USD">USD ($)</option>
@@ -136,21 +132,19 @@ export default function PlatformSettings() {
               ) : (
                 <input type="text" value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" />
               )}
-              {s.description && <p style={{ fontSize: '0.72rem', color: '#52525b', margin: '4px 0 0' }}>{s.description}</p>}
+              {s.description && <p className="field-desc">{s.description}</p>}
             </div>
           ))}
         </div>
 
         {/* Trial Settings */}
-        <div className="glass-card" style={{ padding: 24 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon icon="lucide:clock" /> Trial Period
-          </h3>
+        <div className="glass-card platform-settings-card">
+          <h3><Icon icon="lucide:clock" /> Trial Period</h3>
           {settings.filter(s => s.key === 'default_trial_days').map((s) => (
-            <div key={s.key} className="glass-input-group" style={{ marginBottom: 12 }}>
+            <div key={s.key} className="glass-input-group">
               <label>Default Trial Days</label>
               <input type="number" min="0" value={s.value || '14'} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" />
-              <p style={{ fontSize: '0.72rem', color: '#52525b', margin: '4px 0 0' }}>
+              <p className="field-desc">
                 New tenants get this many free days before requiring a subscription
               </p>
             </div>
@@ -158,17 +152,17 @@ export default function PlatformSettings() {
         </div>
 
         {/* Platform SMTP */}
-        <div className="glass-card" style={{ padding: 24, gridColumn: 'span 2' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="glass-card platform-settings-card full-width">
+          <h3>
             <Icon icon="lucide:mail" /> Platform Email (SMTP)
             <span className={`platform-smtp-status ${getVal('smtp_user') ? 'smtp-configured' : 'smtp-unconfigured'}`}>
               {getVal('smtp_user') ? 'Configured' : 'Not Configured'}
             </span>
           </h3>
-          <p style={{ fontSize: '0.8rem', color: '#71717a', margin: '0 0 16px' }}>
+          <p className="field-desc" style={{ marginBottom: 16 }}>
             SMTP settings for platform emails (magic links, tenant notifications, alerts). Falls back to environment variables if empty.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="platform-settings-grid-2">
             <div className="glass-input-group">
               <label>SMTP Host</label>
               <input type="text" value={getVal('smtp_host')} onChange={e => handleChange('smtp_host', e.target.value)} className="glass-input" placeholder="smtp.gmail.com" />
@@ -190,23 +184,22 @@ export default function PlatformSettings() {
               <input type="email" value={getVal('smtp_from')} onChange={e => handleChange('smtp_from', e.target.value)} className="glass-input" placeholder="noreply@worktrack.ddns.net" />
             </div>
           </div>
-          <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light)', paddingTop: 16 }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', margin: '0 0 8px' }}>Send Test Email</p>
-            <div style={{ display: 'flex', gap: 8 }}>
+          <div className="platform-settings-divider">
+            <p className="platform-settings-label">Send Test Email</p>
+            <div className="platform-test-row">
               <input
                 type="email"
                 className="glass-input"
                 placeholder="test@example.com"
                 value={testEmail}
                 onChange={e => setTestEmail(e.target.value)}
-                style={{ flex: 1 }}
               />
               <button className="glass-btn glass-btn-ghost" onClick={handleTestSmtp} disabled={testing || !testEmail}>
                 {testing ? 'Sending...' : 'Send Test'}
               </button>
             </div>
             {testResult && (
-              <p style={{ marginTop: 8, fontSize: '0.8rem', color: testResult === 'ok' ? '#22c55e' : '#ef4444' }}>
+              <p className={`platform-test-result ${testResult === 'ok' ? 'success' : 'error'}`}>
                 {testResult === 'ok' ? 'Test email sent successfully!' : testResult}
               </p>
             )}
@@ -214,19 +207,17 @@ export default function PlatformSettings() {
         </div>
 
         {/* Landing Page Settings */}
-        <div className="glass-card" style={{ padding: 24, gridColumn: 'span 2' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem', fontWeight: 700, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon icon="lucide:layout" /> Landing Page Content
-          </h3>
+        <div className="glass-card platform-settings-card full-width">
+          <h3><Icon icon="lucide:layout" /> Landing Page Content</h3>
           {settings.filter(s => s.key.startsWith('landing_')).map((s) => (
-            <div key={s.key} className="glass-input-group" style={{ marginBottom: 12 }}>
-              <label style={{ textTransform: 'capitalize' }}>{s.key.replace(/_/g, ' ')}</label>
+            <div key={s.key} className="glass-input-group">
+              <label>{s.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</label>
               {s.key.includes('title') || s.key.includes('text') ? (
                 <input type="text" value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" />
               ) : (
                 <textarea value={s.value || ''} onChange={(e) => handleChange(s.key, e.target.value)} className="glass-input" rows={3} style={{ resize: 'vertical' }} />
               )}
-              {s.description && <p style={{ fontSize: '0.72rem', color: '#52525b', margin: '4px 0 0' }}>{s.description}</p>}
+              {s.description && <p className="field-desc">{s.description}</p>}
             </div>
           ))}
         </div>

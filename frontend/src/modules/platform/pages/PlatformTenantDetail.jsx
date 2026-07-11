@@ -120,7 +120,7 @@ export default function PlatformTenantDetail() {
           <h1>{tenant.name}</h1>
           <p>Slug: {tenant.slug}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="platform-detail-actions">
           {editing ? (
             <>
               <button onClick={() => setEditing(false)} className="glass-btn glass-btn-ghost">Cancel</button>
@@ -221,7 +221,7 @@ export default function PlatformTenantDetail() {
         <div className="glass-card">
           <h2 className="platform-section-title">Admin Users</h2>
           {!tenant.admins || tenant.admins.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No admin users</p>
+            <p className="text-muted">No admin users</p>
           ) : (
             <div className="platform-admin-list">
               {tenant.admins.map(admin => (

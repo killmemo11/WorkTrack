@@ -164,25 +164,23 @@ export default function PlatformClientAccounts() {
         </button>
       </div>
 
-      <div className="glass-card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 200 }}>
+      <div className="glass-card platform-filter-bar">
+        <div className="platform-filter-row">
+          <form onSubmit={handleSearch} className="platform-filter-search">
             <input
               className="glass-input"
               placeholder="Search by name or email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1 }}
             />
             <button type="submit" className="glass-btn glass-btn-primary glass-btn-sm">
               <Icon icon="lucide:search" size={14} />
             </button>
           </form>
           <select
-            className="glass-input"
+            className="glass-input platform-filter-select"
             value={filterTenant}
             onChange={e => { setFilterTenant(e.target.value); setPage(1); }}
-            style={{ minWidth: 180 }}
           >
             <option value="">All Tenants</option>
             {tenants.map(t => (
@@ -198,9 +196,9 @@ export default function PlatformClientAccounts() {
             <div key={account.id} className="platform-admin-card">
               <div className="admin-details">
                 <strong>{account.username}</strong>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{account.email}</span>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-                  <span className="glass-badge glass-badge-info" style={{ fontSize: '0.7rem' }}>
+                <span className="text-secondary">{account.email}</span>
+                <div className="platform-badges-row">
+                  <span className="glass-badge glass-badge-info glass-badge-sm">
                     {account.tenant_name || 'No Tenant'}
                   </span>
                   <span className={`glass-badge glass-badge-${account.is_active ? 'success' : 'error'}`}>
@@ -231,7 +229,7 @@ export default function PlatformClientAccounts() {
             </div>
           ))}
           {accounts.length === 0 && (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
+            <div className="platform-empty-state">
               No client accounts found
             </div>
           )}
@@ -239,9 +237,9 @@ export default function PlatformClientAccounts() {
       </div>
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+        <div className="platform-pagination">
           <button className="glass-btn glass-btn-sm glass-btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-          <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <span className="platform-pagination-info">
             Page {page} of {totalPages}
           </span>
           <button className="glass-btn glass-btn-sm glass-btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
@@ -253,7 +251,7 @@ export default function PlatformClientAccounts() {
           <div className="platform-modal" onClick={e => e.stopPropagation()}>
             <h2>{editAccount ? 'Edit Client Account' : 'Create New Client Account'}</h2>
             {error && <div className="glass-alert glass-alert-error">{error}</div>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="platform-modal-form">
               {!editAccount && (
                 <div className="glass-input-group">
                   <label>Tenant</label>
