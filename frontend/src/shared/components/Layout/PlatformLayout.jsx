@@ -95,6 +95,10 @@ export default function PlatformLayout() {
             <Icon icon="lucide:activity" />
             <span>Activity</span>
           </Link>
+          <Link to="/platform/landing" className={isActive('/platform/landing')}>
+            <Icon icon="lucide:layout-template" />
+            <span>Landing Page</span>
+          </Link>
           <Link to="/platform/settings" className={isActive('/platform/settings')}>
             <Icon icon="lucide:settings" />
             <span>Settings</span>

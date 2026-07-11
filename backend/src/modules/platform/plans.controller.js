@@ -18,8 +18,17 @@ async function getPublicPlans(req, res) {
 
 async function getPublicSettings(req, res) {
   const [rows] = await pool.query('SELECT `key`, `value` FROM platform_settings');
+  const PUBLIC_KEYS = new Set([
+    'company_name', 'company_email', 'contact_email', 'contact_phone',
+    'default_currency', 'default_trial_days',
+    'platform_logo', 'platform_primary_color',
+  ]);
   const settings = {};
-  for (const row of rows) settings[row.key] = row.value;
+  for (const row of rows) {
+    if (row.key.startsWith('landing_') || PUBLIC_KEYS.has(row.key)) {
+      settings[row.key] = row.value;
+    }
+  }
   res.json(settings);
 }
 
