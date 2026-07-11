@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function AdminRoute({ children }) {
   const { admin, loading, recheck } = useAdminAuth();
   const [rechecking, setRechecking] = useState(false);
+  const location = useLocation();
   const hasToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
   const initialCheckDone = useRef(false);
 
@@ -26,11 +27,10 @@ export default function AdminRoute({ children }) {
   if (!admin) return hasToken ? <Navigate to="/dashboard" /> : <Navigate to="/admin/login" />;
 
   // Phase 1: if the admin must change their password, force-redirect to the
-  // change-password page. The whitelist in the server-side gate
-  // (password-gate.middleware.js) ensures /api/admin/auth/change-password and
-  // /me remain reachable; the change-password page reads the flag from /me
-  // and handles the rest client-side.
-  if (admin.must_change_password) return <Navigate to="/admin/change-password" replace />;
+  // change-password page — but only if we're not already on it (avoids redirect loop).
+  if (admin.must_change_password && location.pathname !== '/admin/change-password') {
+    return <Navigate to="/admin/change-password" replace />;
+  }
 
   return children;
 }
