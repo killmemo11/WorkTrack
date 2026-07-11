@@ -113,8 +113,8 @@ export default function PlatformLayout() {
       </aside>
       <main className="platform-content">
         <Outlet />
+        <Footer />
       </main>
-      <Footer />
     </div>
   );
 }
