@@ -203,7 +203,8 @@ router.get('/users', async (req, res) => {
     [tenantId, tenantId]
   );
 
-  res.json({ admins, employees });
+  const parseJsonField = (rows, field) => rows.map(r => ({ ...r, [field]: typeof r[field] === 'string' ? JSON.parse(r[field]) : r[field] || [] }));
+  res.json({ admins: parseJsonField(admins, 'roles'), employees: parseJsonField(employees, 'roles') });
 });
 
 // Assign role to user (auto-derives user_type from user_id)
