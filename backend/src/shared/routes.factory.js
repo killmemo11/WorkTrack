@@ -37,17 +37,27 @@ const { mountLeaveRoutes } = require('./routes/leave.routes');
 const { mountEmployeeRoutes } = require('./routes/employee.routes');
 const { mountDocumentRoutes } = require('./routes/document.routes');
 const { mountAssetRoutes } = require('./routes/asset.routes');
+const { requireService } = require('./middleware/service.middleware');
 
 function createRoutes(requireAuth) {
   const router = Router();
   router.use(requireAuth);
 
   mountAttendanceRoutes(router);
-  mountDepartmentRoutes(router, memoryUpload);
-  mountLeaveRoutes(router);
-  mountEmployeeRoutes(router, personnelUpload);
-  mountDocumentRoutes(router);
-  mountAssetRoutes(router);
+
+  const peopleRouter = Router();
+  mountDepartmentRoutes(peopleRouter, memoryUpload);
+  mountEmployeeRoutes(peopleRouter, personnelUpload);
+  mountDocumentRoutes(peopleRouter);
+  router.use(requireService('service_people', 'People management is disabled'), peopleRouter);
+
+  const leaveRouter = Router();
+  mountLeaveRoutes(leaveRouter);
+  router.use(requireService('service_leaves', 'Leave management is disabled'), leaveRouter);
+
+  const assetRouter = Router();
+  mountAssetRoutes(assetRouter);
+  router.use(requireService('service_assets', 'Assets module is disabled'), assetRouter);
 
   return router;
 }

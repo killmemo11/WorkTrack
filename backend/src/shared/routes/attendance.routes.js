@@ -7,18 +7,22 @@ const {
   getPendingSignoutRequests, adminApproveSignoutRequest, adminRejectSignoutRequest, updateRecordSignOut,
   triggerMissingSignOutCheck,
 } = require('../../modules/admin/admin.controller');
+const { requireService } = require('../middleware/service.middleware');
 
 function mountAttendanceRoutes(router) {
   router.get('/records', getRecords);
   router.delete('/records/:id', deleteRecord);
-  router.put('/records/:id/signout', updateRecordSignOut);
   router.get('/export', exportExcel);
-  router.get('/signout-requests', getPendingSignoutRequests);
-  router.put('/signout-requests/:id/approve', adminApproveSignoutRequest);
-  router.put('/signout-requests/:id/reject', adminRejectSignoutRequest);
   router.get('/stats', getStats);
   router.get('/report/monthly', getMonthlyReport);
-  router.post('/reminders/missing-signout', triggerMissingSignOutCheck);
+
+  const officeRouter = require('express').Router();
+  officeRouter.put('/records/:id/signout', updateRecordSignOut);
+  officeRouter.get('/signout-requests', getPendingSignoutRequests);
+  officeRouter.put('/signout-requests/:id/approve', adminApproveSignoutRequest);
+  officeRouter.put('/signout-requests/:id/reject', adminRejectSignoutRequest);
+  officeRouter.post('/reminders/missing-signout', triggerMissingSignOutCheck);
+  router.use(requireService('service_office_attendance', 'Office attendance is disabled'), officeRouter);
 }
 
 module.exports = { mountAttendanceRoutes };

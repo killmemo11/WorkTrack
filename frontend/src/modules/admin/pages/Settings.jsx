@@ -1,46 +1,18 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 
-
-function loadLeafletCss() {
-  if (!document.querySelector('#leaflet-css')) {
-    const link = document.createElement('link');
-    link.id = 'leaflet-css';
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-  }
-}
-
-function loadLeaflet() {
-  return new Promise((resolve) => {
-    if (window.L) { resolve(window.L); return; }
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => resolve(window.L);
-    document.head.appendChild(script);
-  });
-}
-
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState('workweek');
   const [settings, setSettings] = useState({
     work_week_start: 'Sunday', work_week_end: 'Thursday',
     period_start_day: '15', period_end_day: '16',
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [testEmail, setTestEmail] = useState('');
-
-  const [services, setServices] = useState({
-    service_wfh: '1', service_office_attendance: '1', service_leaves: '1',
-    service_recruitment: '1', service_people: '1', service_manager: '1',
-    service_it: '1', service_audit: '1',
-  });
 
   const [allowedDomain, setAllowedDomain] = useState('');
 
@@ -51,16 +23,6 @@ export default function AdminSettings() {
         work_week_end: res.data.work_week_end || 'Thursday',
         period_start_day: res.data.period_start_day || '15',
         period_end_day: res.data.period_end_day || '16',
-      });
-      setServices({
-        service_wfh: res.data.service_wfh || '1',
-        service_office_attendance: res.data.service_office_attendance || '1',
-        service_leaves: res.data.service_leaves || '1',
-        service_recruitment: res.data.service_recruitment || '1',
-        service_people: res.data.service_people || '1',
-        service_manager: res.data.service_manager || '1',
-        service_it: res.data.service_it || '1',
-        service_audit: res.data.service_audit || '1',
       });
       setAllowedDomain(res.data.allowed_email_domain || '');
     });
@@ -97,9 +59,6 @@ export default function AdminSettings() {
       <div className="glass-tabs">
         <button className={`glass-tab ${activeTab === 'workweek' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('workweek')}>
           <Icon icon="lucide:calendar" /> Work Week
-        </button>
-        <button className={`glass-tab ${activeTab === 'services' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('services')}>
-          <Icon icon="lucide:layers" /> Services
         </button>
         <button className={`glass-tab ${activeTab === 'security' ? 'glass-tab-active' : ''}`} onClick={() => setActiveTab('security')}>
           <Icon icon="lucide:shield" /> Security
@@ -154,139 +113,6 @@ export default function AdminSettings() {
                   <button className="glass-btn glass-btn-primary" onClick={() => handleSave()} disabled={saving}>
                     <Icon icon="lucide:save" /> {saving ? 'Saving...' : 'Save Settings'}
                   </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'services' && (
-          <>
-            <div className="glass-card fade-in-up">
-              <div className="glass-card-header"><h3>Service Toggles</h3></div>
-              <div className="glass-card-body">
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 16 }}>
-                  Enable or disable services by module. Disabled services will be hidden from users and blocked at the API level.
-                </p>
-
-                <div className="services-modules">
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:clock" /> Attendance</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_wfh === '1'}
-                          onChange={(e) => setServices({ ...services, service_wfh: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>WFH Sign-In</strong>
-                          <p>Allow employees to sign in from home</p>
-                        </div>
-                      </label>
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_office_attendance === '1'}
-                          onChange={(e) => setServices({ ...services, service_office_attendance: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>Office Attendance</strong>
-                          <p>Allow Office sign-in / sign-out with GPS verification</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:umbrella" /> Leave</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_leaves === '1'}
-                          onChange={(e) => setServices({ ...services, service_leaves: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>Leave System</strong>
-                          <p>Allow employees to submit and manage leave requests</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:target" /> Recruitment (ATS)</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_recruitment === '1'}
-                          onChange={(e) => setServices({ ...services, service_recruitment: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>Recruitment System</strong>
-                          <p>Job postings, candidates, interviews, offers, and career portal</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:users" /> People Management</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_people === '1'}
-                          onChange={(e) => setServices({ ...services, service_people: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>HR People Module</strong>
-                          <p>Employees, profiles, positions, documents, contracts, resignations, headcount</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:clipboard-list" /> Manager Tools</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_manager === '1'}
-                          onChange={(e) => setServices({ ...services, service_manager: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>Manager Dashboard</strong>
-                          <p>Team view, approvals, sign-out requests, headcount requests</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:monitor" /> IT Portal</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_it === '1'}
-                          onChange={(e) => setServices({ ...services, service_it: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>IT Settings</strong>
-                          <p>SMTP, office geofence, branding, Google Meet and Teams integrations</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="service-module-card glass-card fade-in-up">
-                    <h3 className="service-module-title"><Icon icon="lucide:shield-check" /> Internal Audit</h3>
-                    <div className="service-toggle-list">
-                      <label className="service-toggle">
-                        <input type="checkbox" checked={services.service_audit === '1'}
-                          onChange={(e) => setServices({ ...services, service_audit: e.target.checked ? '1' : '0' })} />
-                        <div>
-                          <strong>Audit Portal</strong>
-                          <p>Activity logs, balance audit trail, compliance PDF reports</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="settings-actions" style={{ marginTop: 20 }}>
-                  <button className="glass-btn glass-btn-primary" onClick={async () => {
-                    try {
-                      await adminApi.put('/settings', services);
-                      setMessage('Services updated');
-                    } catch (err) {
-                      setMessage('Failed to update services: ' + (err.response?.data?.error || err.message));
-                    }
-                    setTimeout(() => setMessage(''), 3000);
-                  }}><Icon icon="lucide:save" /> Save Service Settings</button>
                 </div>
               </div>
             </div>

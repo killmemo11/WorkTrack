@@ -32,14 +32,18 @@ async function signIn(req, res) {
     return res.status(400).json({ error: 'Invalid attendance type. Must be "wfh" or "office".' });
   }
 
-  // Check service toggles
-  const [svcRows] = await pool.query("SELECT `key`, `value` FROM settings WHERE `key` IN ('service_wfh', 'service_office_attendance')");
+  // Check service toggles (canonical source: service_toggles table)
+  const tenantId = req.employee?.tenant_id || 1;
+  const [svcRows] = await pool.query(
+    'SELECT service_key, is_enabled FROM service_toggles WHERE service_key IN (?, ?) AND tenant_id = ?',
+    ['wfh', 'office_attendance', tenantId]
+  );
   const svc = {};
-  for (const r of svcRows) svc[r.key] = r.value;
-  if (type === 'wfh' && svc.service_wfh === '0') {
+  for (const r of svcRows) svc[r.service_key] = r.is_enabled;
+  if (type === 'wfh' && svc.wfh === 0) {
     return res.status(403).json({ error: 'WFH sign-in is disabled by the administrator' });
   }
-  if (type === 'office' && svc.service_office_attendance === '0') {
+  if (type === 'office' && svc.office_attendance === 0) {
     return res.status(403).json({ error: 'Office attendance is disabled by the administrator' });
   }
 
