@@ -662,34 +662,53 @@
 }
 .landing-plan-card.featured {
   --plan-glow-color: #6366f1;
-  border-color: var(--plan-glow-color);
+  border-color: rgba(255,255,255,0.1);
   background: rgba(30, 27, 75, 0.3);
   transform: scale(1.03);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--plan-glow-color) 25%, transparent),
-              0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 30%, transparent);
-  animation: plan-glow-rotate 4s linear infinite;
+  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.3);
   position: relative;
-}
-@keyframes plan-glow-rotate {
-  0%   { box-shadow: 0 0 20px color-mix(in srgb, var(--plan-glow-color) 25%, transparent), 0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 30%, transparent), inset 0 0 20px color-mix(in srgb, var(--plan-glow-color) 5%, transparent); }
-  25%  { box-shadow: 0 0 30px color-mix(in srgb, var(--plan-glow-color) 35%, transparent), 0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 40%, transparent), inset 0 0 30px color-mix(in srgb, var(--plan-glow-color) 8%, transparent); }
-  50%  { box-shadow: 0 0 20px color-mix(in srgb, var(--plan-glow-color) 25%, transparent), 0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 30%, transparent), inset 0 0 20px color-mix(in srgb, var(--plan-glow-color) 5%, transparent); }
-  75%  { box-shadow: 0 0 30px color-mix(in srgb, var(--plan-glow-color) 35%, transparent), 0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 40%, transparent), inset 0 0 30px color-mix(in srgb, var(--plan-glow-color) 8%, transparent); }
-  100% { box-shadow: 0 0 20px color-mix(in srgb, var(--plan-glow-color) 25%, transparent), 0 20px 40px -16px color-mix(in srgb, var(--plan-glow-color) 30%, transparent), inset 0 0 20px color-mix(in srgb, var(--plan-glow-color) 5%, transparent); }
+  overflow: visible;
 }
 .landing-plan-card.featured::before {
   content: '';
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: conic-gradient(from 0deg, var(--plan-glow-color), transparent 40%, var(--plan-glow-color) 60%, transparent);
+  padding: 2px;
+  background: conic-gradient(from var(--led-angle, 0deg), transparent 0%, transparent calc(100% - 40px), var(--plan-glow-color) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
   z-index: -1;
-  animation: plan-border-spin 4s linear infinite;
-  opacity: 0.6;
+  animation: led-spin 3s linear infinite;
 }
-@keyframes plan-border-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.landing-plan-card.featured::after {
+  content: '';
+  position: absolute;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: var(--plan-glow-color);
+  filter: blur(20px);
+  opacity: 0.4;
+  z-index: -1;
+  animation: led-dot 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes led-spin {
+  from { --led-angle: 0deg; }
+  to { --led-angle: 360deg; }
+}
+@keyframes led-dot {
+  0%   { top: -30px; left: 50%; }
+  25%  { top: 50%; left: calc(100% + 10px); }
+  50%  { top: calc(100% + 10px); left: 50%; }
+  75%  { top: 50%; left: -30px; }
+  100% { top: -30px; left: 50%; }
+}
+@property --led-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 [data-theme="light"] .landing-plan-card.featured {
   background: rgba(224, 231, 255, 0.4);
@@ -703,13 +722,12 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 4px 16px;
-  background: linear-gradient(135deg, var(--plan-glow-color, #6366f1), color-mix(in srgb, var(--plan-glow-color, #6366f1) 80%, #000));
+  background: var(--plan-glow-color, #6366f1);
   border-radius: 20px;
   font-size: 0.7rem;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
-  animation: badge-pulse 2.5s ease-in-out infinite;
   z-index: 1;
 }
 @keyframes badge-pulse {
