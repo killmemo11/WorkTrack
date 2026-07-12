@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ParticlesBackground from '../components/ParticlesBackground';
 import TiltCard from '../components/TiltCard';
 import MagneticButton from '../components/MagneticButton';
@@ -160,38 +160,27 @@ export default function LandingFeatures() {
 
         {/* Feature Grid */}
         <div ref={gridRef} className="feat-grid">
-          <AnimatePresence mode="popLayout">
-            {filteredFeatures.map((f) => (
-              <motion.div
-                key={f.title}
-                layout
-                initial={{ opacity: 0, scale: 0.92, y: 16 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: -16 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-              >
-                <TiltCard maxTilt={6} scale={1.01}>
-                  <div className="feat-card">
-                    <div className="feat-card-glow" style={{ background: `radial-gradient(circle at 30% 0%, ${f.color}18 0%, transparent 60%)` }} />
-                    <div className="feat-card-icon" style={{ background: `${f.color}14`, color: f.color, boxShadow: `0 0 20px ${f.color}10` }}>
-                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d={f.icon} />
-                      </svg>
-                    </div>
-                    <h3 className="feat-card-title">{f.title}</h3>
-                    <p className="feat-card-desc">{f.desc}</p>
-                    <div className="feat-card-tags">
-                      {f.highlights.map((h) => (
-                        <span key={h} className="feat-tag" style={{ borderColor: `${f.color}25`, color: f.color }}>
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {filteredFeatures.map((f, i) => (
+            <TiltCard key={f.title} maxTilt={6} scale={1.01}>
+              <div className="feat-card">
+                <div className="feat-card-glow" style={{ background: `radial-gradient(circle at 30% 0%, ${f.color}18 0%, transparent 60%)` }} />
+                <div className="feat-card-icon" style={{ background: `${f.color}14`, color: f.color, boxShadow: `0 0 20px ${f.color}10` }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={f.icon} />
+                  </svg>
+                </div>
+                <h3 className="feat-card-title">{f.title}</h3>
+                <p className="feat-card-desc">{f.desc}</p>
+                <div className="feat-card-tags">
+                  {f.highlights.map((h) => (
+                    <span key={h} className="feat-tag" style={{ borderColor: `${f.color}25`, color: f.color }}>
+                      {h}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </TiltCard>
+          ))}
         </div>
       </section>
 
