@@ -4530,6 +4530,192 @@ select.form-control { cursor: pointer; }
   .tr-step-label { font-size: 0.6rem; }
 }
 
+/* ─── Track Request Page ─── */
+.tr-track-container {
+  max-width: 640px;
+  margin: -20px auto 60px;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+.tr-track-form {
+  margin-bottom: 32px;
+}
+.tr-track-input-row {
+  display: flex;
+  gap: 8px;
+}
+.tr-track-input-row .glass-input { flex: 1; }
+.tr-track-loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+.tr-track-result { margin-top: 8px; }
+.tr-track-not-found {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--landing-card-bg);
+  border: 1px solid var(--landing-card-border);
+  border-radius: 16px;
+}
+.tr-track-not-found p {
+  color: var(--landing-text-secondary);
+  font-size: 0.9rem;
+  margin: 16px 0 0;
+}
+.tr-track-info-card {
+  background: var(--landing-card-bg);
+  border: 1px solid var(--landing-card-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.tr-track-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--landing-border-faint);
+}
+.tr-track-info-row:last-child { border-bottom: none; }
+.tr-track-info-label {
+  font-size: 0.8rem;
+  color: var(--landing-text-secondary);
+  font-weight: 500;
+}
+.tr-track-info-value {
+  font-size: 0.85rem;
+  color: var(--landing-text-primary);
+  font-weight: 600;
+}
+.tr-track-status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: capitalize;
+}
+.tr-track-status-pending { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.tr-track-status-approved { background: rgba(34,197,94,0.12); color: #22c55e; }
+.tr-track-status-rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
+.tr-track-pay-pending { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.tr-track-pay-verified { background: rgba(34,197,94,0.12); color: #22c55e; }
+.tr-track-pay-rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+/* Timeline */
+.tr-track-timeline {
+  position: relative;
+  padding-left: 32px;
+}
+.tr-track-timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--landing-card-border);
+}
+.tr-track-timeline-item {
+  position: relative;
+  padding-bottom: 24px;
+}
+.tr-track-timeline-item:last-child { padding-bottom: 0; }
+.tr-track-timeline-dot {
+  position: absolute;
+  left: -32px;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--landing-bg);
+  border: 2px solid var(--landing-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.tr-track-timeline-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--landing-text-primary);
+  padding-top: 5px;
+}
+.tr-track-timeline-date {
+  font-size: 0.75rem;
+  color: var(--landing-text-secondary);
+  margin-top: 2px;
+}
+.tr-track-timeline-reason {
+  font-size: 0.78rem;
+  color: #ef4444;
+  margin-top: 4px;
+  background: rgba(239,68,68,0.08);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.tr-track-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 16px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--landing-text-secondary);
+}
+.tr-track-note svg { flex-shrink: 0; margin-top: 2px; }
+
+/* ─── Payment Step Styles ─── */
+.tr-payment-info {
+  background: var(--landing-card-bg);
+  border: 1px solid var(--landing-card-border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.tr-payment-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--landing-border-faint);
+  font-size: 0.82rem;
+}
+.tr-payment-info-row:last-child { border-bottom: none; }
+.tr-payment-info-row .label { color: var(--landing-text-secondary); }
+.tr-payment-info-row .value { color: var(--landing-text-primary); font-weight: 600; }
+.tr-payment-proof-area {
+  border: 2px dashed var(--landing-card-border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.tr-payment-proof-area:hover { border-color: var(--landing-accent-light); }
+.tr-payment-proof-area.has-file { border-color: #22c55e; border-style: solid; }
+.tr-payment-proof-preview {
+  max-width: 200px;
+  max-height: 160px;
+  border-radius: 8px;
+  margin: 8px auto;
+  object-fit: contain;
+}
+.tr-payment-proof-name {
+  font-size: 0.78rem;
+  color: var(--landing-text-secondary);
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .tr-track-input-row { flex-direction: column; }
+  .tr-track-info-card { padding: 16px; }
+}
+
 /* ───────────────────────────────────────────
    Dashboard Styles
    ─────────────────────────────────────────── */

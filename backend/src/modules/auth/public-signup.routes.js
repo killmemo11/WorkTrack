@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const crypto = require('crypto');
+const path = require('path');
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const pool = require('../../shared/config/database');
+const { getPaymentsDir } = require('../../shared/config/storage');
 const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
 
 // Free/personal email domains that are NOT allowed for company registration
@@ -40,6 +43,132 @@ function isPersonalDomain(email) {
 function generateCode() {
   return crypto.randomInt(100000, 999999).toString();
 }
+
+// Multer config for payment proof uploads
+const storage = multer.diskStorage({
+  destination: () => getPaymentsDir(),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `proof-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp|pdf/;
+    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mimeOk = allowed.test(file.mimetype) || file.mimetype === 'application/pdf';
+    cb(null, extOk && mimeOk);
+  },
+});
+
+// ─────────────────────────────────────────────────────
+// GET /api/public/payment-info
+// Returns bank account details for InstaPay transfers
+// ─────────────────────────────────────────────────────
+router.get('/payment-info', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT \`key\`, \`value\` FROM platform_settings
+       WHERE \`key\` IN ('payment_bank_name','payment_account_name','payment_account_number','payment_iban','payment_instapay_id','payment_notes')`
+    );
+    const settings = {};
+    rows.forEach(r => { settings[r.key] = r.value; });
+
+    // Get plan prices from subscription_plans
+    const [plans] = await pool.query(
+      `SELECT name, slug, price_monthly, price_yearly, currency FROM subscription_plans WHERE is_active = 1 ORDER BY sort_order ASC`
+    );
+
+    res.json({
+      bank_name: settings.payment_bank_name || '',
+      account_name: settings.payment_account_name || '',
+      account_number: settings.payment_account_number || '',
+      iban: settings.payment_iban || '',
+      instapay_id: settings.payment_instapay_id || '',
+      notes: settings.payment_notes || '',
+      plans: plans.map(p => ({
+        name: p.name,
+        slug: p.slug,
+        price_monthly: p.price_monthly,
+        price_yearly: p.price_yearly,
+        currency: p.currency || 'EGP',
+      })),
+    });
+  } catch (err) {
+    console.error('Get payment info error:', err);
+    res.status(500).json({ error: 'Failed to load payment info' });
+  }
+});
+
+// ─────────────────────────────────────────────────────
+// GET /api/public/track-request?email=...
+// Public status tracking for tenant signup requests
+// ─────────────────────────────────────────────────────
+router.get('/track-request', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const trimmed = email.trim().toLowerCase();
+    const [rows] = await pool.query(
+      `SELECT id, company_name, contact_email, requested_plan, status, payment_status,
+              payment_amount, payment_currency, payment_method,
+              payment_proof_url, payment_rejection_reason,
+              created_at, reviewed_at, rejection_reason
+       FROM tenant_requests
+       WHERE contact_email = ? ORDER BY created_at DESC LIMIT 1`,
+      [trimmed]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ found: false });
+    }
+
+    const r = rows[0];
+
+    // Build timeline
+    const timeline = [];
+    timeline.push({ status: 'submitted', label: 'Registration Submitted', date: r.created_at });
+
+    if (r.payment_proof_url) {
+      timeline.push({ status: 'payment_uploaded', label: 'Payment Proof Uploaded', date: r.created_at });
+    }
+    if (r.payment_status === 'verified') {
+      timeline.push({ status: 'payment_verified', label: 'Payment Verified', date: r.reviewed_at });
+    }
+    if (r.payment_status === 'rejected') {
+      timeline.push({ status: 'payment_rejected', label: 'Payment Rejected', date: r.reviewed_at, reason: r.payment_rejection_reason });
+    }
+
+    if (r.status === 'approved') {
+      timeline.push({ status: 'approved', label: 'Request Approved', date: r.reviewed_at });
+    } else if (r.status === 'rejected') {
+      timeline.push({ status: 'rejected', label: 'Request Rejected', date: r.reviewed_at, reason: r.rejection_reason });
+    } else {
+      timeline.push({ status: 'pending', label: 'Under Review', date: null });
+    }
+
+    res.json({
+      found: true,
+      status: r.status,
+      company_name: r.company_name,
+      requested_plan: r.requested_plan,
+      payment_status: r.payment_status,
+      payment_amount: r.payment_amount,
+      payment_currency: r.payment_currency,
+      payment_method: r.payment_method,
+      created_at: r.created_at,
+      timeline,
+    });
+  } catch (err) {
+    console.error('Track request error:', err);
+    res.status(500).json({ error: 'Failed to track request' });
+  }
+});
 
 // ─────────────────────────────────────────────────────
 // POST /api/public/send-verification-code
@@ -181,14 +310,15 @@ router.post('/verify-email-code', async (req, res) => {
 
 // ─────────────────────────────────────────────────────
 // POST /api/public/tenant-signup
-// Submit a complete tenant signup request
+// Submit a complete tenant signup request (with optional payment proof)
 // ─────────────────────────────────────────────────────
-router.post('/tenant-signup', async (req, res) => {
+router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) => {
   try {
     const {
       company_name, contact_email, contact_phone,
       industry, website, contact_person_name, contact_person_title,
       employee_count, message, plan, email_verified,
+      payment_amount, payment_currency, payment_method,
     } = req.body;
 
     if (!company_name || !contact_email) {
@@ -239,6 +369,10 @@ router.post('/tenant-signup', async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
     const userAgent = req.headers['user-agent'] || '';
 
+    // Payment proof file path
+    const paymentProofUrl = req.file ? `/uploads/payments/${req.file.filename}` : null;
+    const hasPayment = paymentProofUrl && payment_amount;
+
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -262,13 +396,19 @@ router.post('/tenant-signup', async (req, res) => {
         `INSERT INTO tenant_requests
          (company_name, contact_email, contact_phone, industry, website,
           contact_person_name, contact_person_title,
-          employee_count, message, requested_plan, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          employee_count, message, requested_plan, status,
+          payment_amount, payment_currency, payment_method, payment_proof_url, payment_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
         [
           company_name.trim(), trimmedEmail, contact_phone || null,
           industry || null, website || null,
           contact_person_name || null, contact_person_title || null,
           employee_count || 10, message || null, plan || 'trial',
+          hasPayment ? parseFloat(payment_amount) : null,
+          payment_currency || 'EGP',
+          payment_method || 'instapay',
+          paymentProofUrl,
+          hasPayment ? 'pending' : null,
         ]
       );
 
@@ -283,7 +423,10 @@ router.post('/tenant-signup', async (req, res) => {
       }
 
       res.status(201).json({
-        message: 'Thank you! Your request has been received. We will review it and contact you within 24 hours.',
+        message: hasPayment
+          ? 'Thank you! Your registration and payment proof have been received. We will verify your payment and contact you within 24 hours.'
+          : 'Thank you! Your request has been received. We will review it and contact you within 24 hours.',
+        has_payment: hasPayment,
       });
     } catch (err) {
       await conn.rollback();

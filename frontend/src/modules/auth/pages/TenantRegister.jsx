@@ -17,15 +17,9 @@ const COMPANY_SIZES = [
   '1-10', '11-50', '51-200', '201-500', '501-1000', '1000+',
 ];
 
-const STEP_ICONS = {
-  company: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
-  contact: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
-  verify: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
-  details: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
-};
-
 export default function TenantRegister() {
   const [plans, setPlans] = useState([]);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     company_name: '', industry: '', employee_count: '', website: '',
@@ -33,6 +27,8 @@ export default function TenantRegister() {
     email_verified: false, verification_code: '',
     contact_phone: '', plan: '', message: '',
   });
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,21 +38,31 @@ export default function TenantRegister() {
   const [codeCooldown, setCodeCooldown] = useState(0);
   const [devCode, setDevCode] = useState('');
   const codeInputsRef = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
+  const fileInputRef = useRef();
+
+  const selectedPlan = plans.find(p => p.slug === form.plan);
+  const isPaidPlan = selectedPlan && selectedPlan.price_monthly > 0;
 
   useEffect(() => {
     fetch('/api/platform/public/plans')
       .then(res => res.json())
       .then(data => { setPlans(data); if (data.length > 0) { const t = data.find(p => p.slug === 'trial') || data[0]; setForm(prev => ({ ...prev, plan: t.slug })); } })
       .catch(() => {});
+    fetch('/api/public/payment-info')
+      .then(res => res.json())
+      .then(data => setPaymentInfo(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (codeCooldown <= 0) return;
     const t = setTimeout(() => setCodeCooldown(c => c - 1), 1000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timeout);
   }, [codeCooldown]);
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const totalSteps = isPaidPlan ? 5 : 4;
 
   const validateStep1 = () => {
     if (!form.company_name.trim()) { setError('Company name is required'); return false; }
@@ -92,6 +98,10 @@ export default function TenantRegister() {
     if (step === 1 && validateStep1()) setStep(2);
     else if (step === 2 && validateStep2()) { setStep(3); setCodeSent(false); setForm(prev => ({ ...prev, verification_code: '' })); }
     else if (step === 3 && validateStep3()) setStep(4);
+    else if (step === 4) {
+      if (isPaidPlan) setStep(5);
+      else handleSubmit();
+    }
   };
 
   const handleBack = () => { setError(''); setStep(s => s - 1); };
@@ -150,28 +160,43 @@ export default function TenantRegister() {
     finally { setVerifying(false); }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError('File size must be under 5MB'); return; }
+    setPaymentProof(file);
+    setError('');
+    const reader = new FileReader();
+    reader.onload = (ev) => setPaymentProofPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const body = {
-        company_name: form.company_name.trim(),
-        contact_email: form.contact_email.trim().toLowerCase(),
-        contact_phone: form.contact_phone.trim() || undefined,
-        industry: form.industry || undefined,
-        website: form.website.trim() || undefined,
-        contact_person_name: form.contact_person_name.trim() || undefined,
-        contact_person_title: form.contact_person_title.trim() || undefined,
-        employee_count: form.employee_count || undefined,
-        message: form.message.trim() || undefined,
-        plan: form.plan || undefined,
-        email_verified: true,
-      };
+      const formData = new FormData();
+      formData.append('company_name', form.company_name.trim());
+      formData.append('contact_email', form.contact_email.trim().toLowerCase());
+      formData.append('contact_phone', form.contact_phone.trim() || '');
+      formData.append('industry', form.industry || '');
+      formData.append('website', form.website.trim() || '');
+      formData.append('contact_person_name', form.contact_person_name.trim() || '');
+      formData.append('contact_person_title', form.contact_person_title.trim() || '');
+      formData.append('employee_count', form.employee_count || '');
+      formData.append('message', form.message.trim() || '');
+      formData.append('plan', form.plan || '');
+      formData.append('email_verified', 'true');
+      if (isPaidPlan && paymentProof) {
+        formData.append('payment_proof', paymentProof);
+        formData.append('payment_amount', selectedPlan.price_monthly);
+        formData.append('payment_currency', selectedPlan.currency || 'EGP');
+        formData.append('payment_method', 'instapay');
+      }
       const res = await fetch('/api/public/tenant-signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: formData,
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); setStep(data.error.includes('verify') ? 3 : 4); return; }
@@ -212,11 +237,15 @@ export default function TenantRegister() {
               What happens next?
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
+              {(isPaidPlan ? [
+                { num: '1', text: 'Our team verifies your payment proof' },
+                { num: '2', text: 'Our team reviews your registration (within 24 hours)' },
+                { num: '3', text: 'You receive a magic link via email to set up your admin account' },
+              ] : [
                 { num: '1', text: 'Our team reviews your registration (within 24 hours)' },
                 { num: '2', text: 'You receive a magic link via email to set up your admin account' },
                 { num: '3', text: 'Configure your workspace and invite employees' },
-              ].map((s, i) => (
+              ]).map((s, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#818cf8', flexShrink: 0 }}>{s.num}</div>
                   <span style={{ fontSize: '0.85rem', color: '#d4d4d8' }}>{s.text}</span>
@@ -224,10 +253,15 @@ export default function TenantRegister() {
               ))}
             </div>
           </div>
-          <Link to="/" className="landing-btn-secondary" style={{ padding: '12px 24px', fontSize: '0.9rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back to Home
-          </Link>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/track-request" className="landing-btn-primary" style={{ padding: '12px 24px', fontSize: '0.85rem' }}>
+              Track Your Request
+            </Link>
+            <Link to="/" className="landing-btn-secondary" style={{ padding: '12px 24px', fontSize: '0.85rem' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -239,6 +273,7 @@ export default function TenantRegister() {
     { key: 'contact', label: 'Contact' },
     { key: 'verify', label: 'Verify' },
     { key: 'details', label: 'Details' },
+    ...(isPaidPlan ? [{ key: 'payment', label: 'Payment' }] : []),
   ];
 
   const renderStepIndicator = () => (
@@ -377,7 +412,7 @@ export default function TenantRegister() {
     );
   };
 
-  // ── Step 4: Additional Details + Submit ───────
+  // ── Step 4: Additional Details + Plan Selection ──
   const renderStep4 = () => (
     <div className="tr-step-content">
       <div className="tr-field">
@@ -390,7 +425,7 @@ export default function TenantRegister() {
           {plans.map(p => (
             <div key={p.id} className={`tr-plan-card ${form.plan === p.slug ? 'active' : ''}`} onClick={() => handleChange('plan', p.slug)}>
               <div className="tr-plan-name">{p.name}</div>
-              <div className="tr-plan-price">{p.price_monthly === 0 ? 'Free' : `$${p.price_monthly}/mo`}</div>
+              <div className="tr-plan-price">{p.price_monthly === 0 ? 'Free' : `${p.price_monthly} ${p.currency || 'EGP'}/mo`}</div>
               <div className="tr-plan-emp">{p.max_employees >= 9999 ? 'Unlimited' : `${p.max_employees} employees`}</div>
             </div>
           ))}
@@ -399,6 +434,86 @@ export default function TenantRegister() {
       <div className="tr-field">
         <label className="tr-label">Additional Message</label>
         <textarea placeholder="Tell us about your needs, questions, or special requirements..." value={form.message} onChange={e => handleChange('message', e.target.value)} className="login-field-input" rows={3} style={{ resize: 'vertical' }} />
+      </div>
+    </div>
+  );
+
+  // ── Step 5: Payment (InstaPay) ────────────────
+  const renderStep5 = () => (
+    <div className="tr-step-content">
+      <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <p style={{ color: '#a1a1aa', fontSize: '0.85rem', margin: 0 }}>
+          Transfer <strong style={{ color: '#22c55e' }}>{selectedPlan?.price_monthly} {selectedPlan?.currency || 'EGP'}</strong> via InstaPay
+        </p>
+      </div>
+
+      {paymentInfo && (
+        <div className="tr-payment-info">
+          <div className="tr-payment-info-row">
+            <span className="label">Bank</span>
+            <span className="value">{paymentInfo.bank_name || '—'}</span>
+          </div>
+          <div className="tr-payment-info-row">
+            <span className="label">Account Name</span>
+            <span className="value">{paymentInfo.account_name || '—'}</span>
+          </div>
+          <div className="tr-payment-info-row">
+            <span className="label">Account Number</span>
+            <span className="value">{paymentInfo.account_number || '—'}</span>
+          </div>
+          {paymentInfo.iban && (
+            <div className="tr-payment-info-row">
+              <span className="label">IBAN</span>
+              <span className="value" style={{ fontSize: '0.75rem' }}>{paymentInfo.iban}</span>
+            </div>
+          )}
+          {paymentInfo.instapay_id && (
+            <div className="tr-payment-info-row">
+              <span className="label">InstaPay ID</span>
+              <span className="value">{paymentInfo.instapay_id}</span>
+            </div>
+          )}
+          {paymentInfo.notes && (
+            <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(99,102,241,0.06)', borderRadius: 8, fontSize: '0.78rem', color: '#a1a1aa' }}>
+              {paymentInfo.notes}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="tr-field">
+        <label className="tr-label">Upload Payment Proof *</label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
+        <div
+          className={`tr-payment-proof-area ${paymentProof ? 'has-file' : ''}`}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {paymentProofPreview ? (
+            <>
+              {paymentProof?.type?.startsWith('image/') ? (
+                <img src={paymentProofPreview} alt="Payment proof" className="tr-payment-proof-preview" />
+              ) : (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              )}
+              <div className="tr-payment-proof-name">{paymentProof.name}</div>
+            </>
+          ) : (
+            <>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p style={{ color: '#71717a', fontSize: '0.82rem', margin: '8px 0 0' }}>Click to upload screenshot or receipt</p>
+              <p style={{ color: '#52525b', fontSize: '0.72rem', margin: '4px 0 0' }}>JPG, PNG, or PDF — Max 5MB</p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -437,6 +552,7 @@ export default function TenantRegister() {
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
             {step === 4 && renderStep4()}
+            {step === 5 && isPaidPlan && renderStep5()}
           </div>
 
           <div className="tr-nav">
@@ -446,14 +562,14 @@ export default function TenantRegister() {
                 Back
               </button>
             )}
-            {step < 4 ? (
+            {step < totalSteps ? (
               <button type="button" onClick={handleNext} className="login-submit-btn" style={{ flex: 1 }}>
                 Continue
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             ) : (
               <button type="submit" className="login-submit-btn" disabled={loading} style={{ flex: 1 }}>
-                {loading ? 'Submitting...' : 'Submit Registration'}
+                {loading ? 'Submitting...' : isPaidPlan ? 'Submit Payment & Registration' : 'Submit Registration'}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             )}

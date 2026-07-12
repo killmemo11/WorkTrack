@@ -19,6 +19,7 @@ import LandingContact from './modules/landing/pages/LandingContact';
 import Login from './modules/auth/pages/Login';
 import Register from './modules/auth/pages/Register';
 import TenantRegister from './modules/auth/pages/TenantRegister';
+import TrackRequest from './modules/auth/pages/TrackRequest';
 import VerifyEmail from './modules/auth/pages/VerifyEmail';
 import ForgotPassword from './modules/auth/pages/ForgotPassword';
 import ResetPassword from './modules/auth/pages/ResetPassword';
@@ -132,6 +133,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/tenant-register" element={<TenantRegister />} />
+          <Route path="/track-request" element={<TrackRequest />} />
           <Route path="/verify" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

@@ -451,11 +451,15 @@ export default function PlatformSettings() {
   const smtpFields = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from'];
   smtpFields.forEach(k => ensureSetting(k));
 
+  const paymentFields = ['payment_bank_name', 'payment_account_name', 'payment_account_number', 'payment_iban', 'payment_instapay_id', 'payment_notes'];
+  paymentFields.forEach(k => ensureSetting(k));
+
   if (loading) return <div className="glass-loading"><div className="spinner" /></div>;
 
   const tabs = [
     { id: 'general', label: 'General', icon: 'lucide:settings' },
     { id: 'landing', label: 'Landing Page', icon: 'lucide:layout-template' },
+    { id: 'payment', label: 'Payment', icon: 'lucide:credit-card' },
   ];
 
   return (
@@ -1014,6 +1018,44 @@ export default function PlatformSettings() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Payment Tab ─── */}
+      {activeTab === 'payment' && (
+        <div className="platform-settings-grid">
+          <div className="glass-card platform-settings-card full-width">
+            <h3><Icon icon="lucide:credit-card" /> Payment Settings (InstaPay)</h3>
+            <p className="field-desc platform-mb-sm">
+              Configure bank account details for manual InstaPay payments. These details will be shown to customers during the registration payment step.
+            </p>
+            <div className="platform-settings-grid-2">
+              <div className="glass-input-group">
+                <label>Bank Name</label>
+                <input type="text" className="glass-input" value={getVal('payment_bank_name')} onChange={e => handleChange('payment_bank_name', e.target.value)} placeholder="e.g. National Bank of Egypt" />
+              </div>
+              <div className="glass-input-group">
+                <label>Account Holder Name</label>
+                <input type="text" className="glass-input" value={getVal('payment_account_name')} onChange={e => handleChange('payment_account_name', e.target.value)} placeholder="e.g. WorkTrack LLC" />
+              </div>
+              <div className="glass-input-group">
+                <label>Account Number</label>
+                <input type="text" className="glass-input" value={getVal('payment_account_number')} onChange={e => handleChange('payment_account_number', e.target.value)} placeholder="e.g. 1234567890" />
+              </div>
+              <div className="glass-input-group">
+                <label>IBAN</label>
+                <input type="text" className="glass-input" value={getVal('payment_iban')} onChange={e => handleChange('payment_iban', e.target.value)} placeholder="e.g. EG1234567890123456789012345" />
+              </div>
+              <div className="glass-input-group">
+                <label>InstaPay ID / Vodafone Cash</label>
+                <input type="text" className="glass-input" value={getVal('payment_instapay_id')} onChange={e => handleChange('payment_instapay_id', e.target.value)} placeholder="e.g. 01012345678" />
+              </div>
+            </div>
+            <div className="glass-input-group">
+              <label>Payment Notes (shown to customer)</label>
+              <textarea className="glass-input glass-textarea" value={getVal('payment_notes')} onChange={e => handleChange('payment_notes', e.target.value)} placeholder="e.g. Please include your company name in the payment reference" rows={3} />
+            </div>
           </div>
         </div>
       )}

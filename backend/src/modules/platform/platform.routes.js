@@ -11,6 +11,8 @@ const {
   getTenantRequest,
   approveTenantRequest,
   rejectTenantRequest,
+  verifyPayment,
+  rejectPayment,
   listTenants,
   getTenant,
   updateTenant,
@@ -49,6 +51,8 @@ router.get('/tenant-requests', requirePlatformAuth, listTenantRequests);
 router.get('/tenant-requests/:id', requirePlatformAuth, getTenantRequest);
 router.post('/tenant-requests/:id/approve', requirePlatformAuth, approveTenantRequest);
 router.post('/tenant-requests/:id/reject', requirePlatformAuth, rejectTenantRequest);
+router.post('/tenant-requests/:id/verify-payment', requirePlatformAuth, verifyPayment);
+router.post('/tenant-requests/:id/reject-payment', requirePlatformAuth, rejectPayment);
 
 // Platform Stats
 router.get('/stats', requirePlatformAuth, getPlatformStats);

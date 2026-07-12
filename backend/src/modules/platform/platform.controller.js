@@ -464,6 +464,74 @@ async function rejectTenantRequest(req, res) {
   res.json({ message: 'Tenant request rejected' });
 }
 
+async function verifyPayment(req, res) {
+  const { id } = req.params;
+
+  const [requests] = await pool.query('SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending"', [id]);
+  if (requests.length === 0) {
+    return res.status(400).json({ error: 'Request not found or payment already processed' });
+  }
+
+  const request = requests[0];
+
+  await pool.query(
+    'UPDATE tenant_requests SET payment_status = "verified", payment_verified_by = ?, payment_verified_at = NOW() WHERE id = ?',
+    [req.platformAdmin.id, id]
+  );
+
+  // Send email to applicant
+  const html = `
+    <p style="color:#52525b;font-size:14px;">
+      Your payment of <strong>${request.payment_amount} ${request.payment_currency || 'EGP'}</strong> for <strong>${request.company_name}</strong> has been <strong style="color:#22c55e;">verified</strong>.
+    </p>
+    <p style="color:#52525b;font-size:14px;margin-top:16px;">
+      Your registration is now being reviewed. You will receive another email once your account is fully approved.
+    </p>
+  `;
+  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Verified for ${request.company_name}`, html);
+
+  await logActivity(null, req.platformAdmin.id, 'payment_verified', `Verified payment for: ${request.company_name} (${request.payment_amount} ${request.payment_currency || 'EGP'})`);
+
+  res.json({ message: 'Payment verified' });
+}
+
+async function rejectPayment(req, res) {
+  const { id } = req.params;
+  const { rejection_reason } = req.body;
+
+  const [requests] = await pool.query('SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending"', [id]);
+  if (requests.length === 0) {
+    return res.status(400).json({ error: 'Request not found or payment already processed' });
+  }
+
+  const request = requests[0];
+
+  await pool.query(
+    'UPDATE tenant_requests SET payment_status = "rejected", payment_verified_by = ?, payment_verified_at = NOW(), payment_rejection_reason = ? WHERE id = ?',
+    [req.platformAdmin.id, rejection_reason || null, id]
+  );
+
+  // Send email to applicant
+  const html = `
+    <p style="color:#52525b;font-size:14px;">
+      Your payment for <strong>${request.company_name}</strong> could not be verified.
+    </p>
+    ${rejection_reason ? `
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px 0;">
+      <p style="color:#dc2626;font-size:13px;margin:0;"><strong>Reason:</strong> ${rejection_reason}</p>
+    </div>
+    ` : ''}
+    <p style="color:#52525b;font-size:14px;margin-top:16px;">
+      Please try again by registering with a valid payment proof, or contact our support team for assistance.
+    </p>
+  `;
+  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Issue for ${request.company_name}`, html);
+
+  await logActivity(null, req.platformAdmin.id, 'payment_rejected', `Rejected payment for: ${request.company_name} - ${rejection_reason || 'No reason'}`);
+
+  res.json({ message: 'Payment rejected' });
+}
+
 // ============================================================
 // TENANTS MANAGEMENT
 // ============================================================
@@ -1071,6 +1139,8 @@ module.exports = {
   getTenantRequest,
   approveTenantRequest,
   rejectTenantRequest,
+  verifyPayment,
+  rejectPayment,
   listTenants,
   getTenant,
   updateTenant,
