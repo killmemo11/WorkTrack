@@ -92,6 +92,8 @@ const PlatformCreateTenant = lazy(() => import('./modules/platform/pages/Platfor
 const PlatformAdmins = lazy(() => import('./modules/platform/pages/PlatformAdmins'));
 const PlatformActivity = lazy(() => import('./modules/platform/pages/PlatformActivity'));
 const PlatformClientAccounts = lazy(() => import('./modules/platform/pages/PlatformClientAccounts'));
+const PlatformPayments = lazy(() => import('./modules/platform/pages/PlatformPayments'));
+const PlatformRevenue = lazy(() => import('./modules/platform/pages/PlatformRevenue'));
 const ITPortal = lazy(() => import('./modules/it/pages/ITPortal'));
 const AuditPortal = lazy(() => import('./modules/audit/pages/AuditPortal'));
 const RBACManager = lazy(() => import('./modules/admin/pages/RBACManager'));
@@ -364,6 +366,16 @@ export default function App() {
             <Route path="client-accounts" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <PlatformClientAccounts />
+              </Suspense>
+            } />
+            <Route path="payments" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformPayments />
+              </Suspense>
+            } />
+            <Route path="revenue" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformRevenue />
               </Suspense>
             } />
           </Route>

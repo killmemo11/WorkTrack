@@ -18,6 +18,11 @@ const {
   updateTenant,
   suspendTenant,
   activateTenant,
+  deleteTenant,
+  getPaymentTransactions,
+  verifyPaymentTransaction,
+  rejectPaymentTransaction,
+  getRevenueAnalytics,
   getPlatformStats,
   getPlatformActivity,
   createTenant,
@@ -65,7 +70,16 @@ router.post('/tenants', requirePlatformAuth, createTenant);
 router.put('/tenants/:id', requirePlatformAuth, updateTenant);
 router.post('/tenants/:id/suspend', requirePlatformAuth, suspendTenant);
 router.post('/tenants/:id/activate', requirePlatformAuth, activateTenant);
+router.delete('/tenants/:id', requirePlatformAuth, deleteTenant);
 router.post('/tenants/admins/:id/resend-magic-link', requirePlatformAuth, resendMagicLink);
+
+// Payment Transactions
+router.get('/payments', requirePlatformAuth, getPaymentTransactions);
+router.post('/payments/:id/verify', requirePlatformAuth, verifyPaymentTransaction);
+router.post('/payments/:id/reject', requirePlatformAuth, rejectPaymentTransaction);
+
+// Revenue Analytics
+router.get('/revenue', requirePlatformAuth, getRevenueAnalytics);
 
 // Client Account Management (Tenant Admins)
 router.get('/client-accounts', requirePlatformAuth, listClientAccounts);

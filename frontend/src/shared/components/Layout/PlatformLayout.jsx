@@ -84,6 +84,14 @@ export default function PlatformLayout() {
             <Icon icon="lucide:credit-card" />
             <span>Plans</span>
           </Link>
+          <Link to="/platform/payments" className={isActive('/platform/payments')}>
+            <Icon icon="lucide:banknote" />
+            <span>Payments</span>
+          </Link>
+          <Link to="/platform/revenue" className={isActive('/platform/revenue')}>
+            <Icon icon="lucide:trending-up" />
+            <span>Revenue</span>
+          </Link>
           <Link to="/platform/admins" className={isActive('/platform/admins')}>
             <Icon icon="lucide:users" />
             <span>Admins</span>

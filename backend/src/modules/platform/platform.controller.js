@@ -542,15 +542,15 @@ async function listTenants(req, res) {
   const offset = (page - 1) * limit;
   const { status } = req.query;
 
-  let where = [];
+  let where = ['t.deleted_at IS NULL'];
   let params = [];
 
   if (status) {
-    where.push('status = ?');
+    where.push('t.status = ?');
     params.push(status);
   }
 
-  const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const whereClause = 'WHERE ' + where.join(' AND ');
 
   const [rows] = await pool.query(
     `SELECT t.*, 
@@ -564,7 +564,7 @@ async function listTenants(req, res) {
   );
 
   const [countRows] = await pool.query(
-    `SELECT COUNT(*) as total FROM tenants ${whereClause}`,
+    `SELECT COUNT(*) as total FROM tenants t ${whereClause}`,
     params
   );
 
@@ -583,7 +583,7 @@ async function getTenant(req, res) {
     `SELECT t.*, 
       (SELECT COUNT(*) FROM employees WHERE tenant_id = t.id AND (is_system IS NULL OR is_system = 0)) as employee_count,
       (SELECT COUNT(*) FROM admin_users WHERE tenant_id = t.id AND is_platform_admin = 0) as admin_count
-     FROM tenants t WHERE t.id = ?`,
+     FROM tenants t WHERE t.id = ? AND t.deleted_at IS NULL`,
     [id]
   );
   
@@ -673,6 +673,212 @@ async function activateTenant(req, res) {
   res.json({ message: 'Tenant activated' });
 }
 
+async function deleteTenant(req, res) {
+  const { id } = req.params;
+  const { reason } = req.body || {};
+
+  const [rows] = await pool.query('SELECT * FROM tenants WHERE id = ?', [id]);
+  if (rows.length === 0) {
+    return res.status(404).json({ error: 'Tenant not found' });
+  }
+
+  if (rows[0].deleted_at) {
+    return res.status(400).json({ error: 'Tenant already deleted' });
+  }
+
+  await pool.query('UPDATE tenants SET deleted_at = NOW(), status = "cancelled" WHERE id = ?', [id]);
+  await logActivity(null, req.platformAdmin.id, 'tenant_deleted', `Soft-deleted tenant ${id} (${rows[0].name}): ${reason || 'No reason'}`);
+
+  const [admins] = await pool.query('SELECT email FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0 AND is_active = 1', [id]);
+  for (const admin of admins) {
+    await sendPlatformEmail(admin.email, 'Your WorkTrack Account Has Been Deleted',
+      `Your tenant account has been deleted. Reason: ${reason || 'Not specified'}. If you believe this is an error, please contact WorkTrack support.`
+    );
+  }
+
+  res.json({ message: 'Tenant deleted' });
+}
+
+// ============================================================
+// PAYMENT TRANSACTIONS
+// ============================================================
+
+async function getPaymentTransactions(req, res) {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
+  const { status, method, from, to } = req.query;
+
+  let where = ['ph.amount > 0'];
+  let params = [];
+
+  if (status) {
+    where.push('ph.status = ?');
+    params.push(status);
+  }
+  if (method) {
+    where.push('ph.payment_method = ?');
+    params.push(method);
+  }
+  if (from) {
+    where.push('ph.created_at >= ?');
+    params.push(from);
+  }
+  if (to) {
+    where.push('ph.created_at <= ?');
+    params.push(to + ' 23:59:59');
+  }
+
+  const whereClause = 'WHERE ' + where.join(' AND ');
+
+  const [rows] = await pool.query(
+    `SELECT ph.*, tr.company_name, tr.contact_email, tr.requested_plan,
+            au.username AS verified_by_name
+     FROM payment_history ph
+     LEFT JOIN tenant_requests tr ON ph.tenant_request_id = tr.id
+     LEFT JOIN admin_users au ON ph.verified_by = au.id
+     ${whereClause}
+     ORDER BY ph.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  const [countRows] = await pool.query(
+    `SELECT COUNT(*) as total FROM payment_history ph ${whereClause}`,
+    params
+  );
+
+  res.json({
+    transactions: rows,
+    total: countRows[0].total,
+    page,
+    totalPages: Math.ceil(countRows[0].total / limit),
+  });
+}
+
+async function verifyPaymentTransaction(req, res) {
+  const { id } = req.params;
+
+  const [rows] = await pool.query('SELECT * FROM payment_history WHERE id = ?', [id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+
+  await pool.query('UPDATE payment_history SET status = "verified", verified_by = ?, verified_at = NOW() WHERE id = ?',
+    [req.platformAdmin.id, id]);
+
+  await logActivity(null, req.platformAdmin.id, 'payment_verified', `Verified payment #${id}: ${rows[0].amount} ${rows[0].currency}`);
+  res.json({ message: 'Payment verified' });
+}
+
+async function rejectPaymentTransaction(req, res) {
+  const { id } = req.params;
+  const { rejection_reason } = req.body || {};
+
+  const [rows] = await pool.query('SELECT * FROM payment_history WHERE id = ?', [id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+
+  await pool.query('UPDATE payment_history SET status = "rejected", verified_by = ?, verified_at = NOW(), rejection_reason = ? WHERE id = ?',
+    [req.platformAdmin.id, rejection_reason || null, id]);
+
+  await logActivity(null, req.platformAdmin.id, 'payment_rejected', `Rejected payment #${id}: ${rows[0].amount} ${rows[0].currency} - ${rejection_reason || 'No reason'}`);
+  res.json({ message: 'Payment rejected' });
+}
+
+// ============================================================
+// REVENUE ANALYTICS
+// ============================================================
+
+async function getRevenueAnalytics(req, res) {
+  try {
+    const [totalRev] = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total_revenue,
+        COUNT(*) as total_transactions,
+        COUNT(CASE WHEN status = 'verified' THEN 1 END) as verified_count,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count,
+        COALESCE(SUM(CASE WHEN status = 'verified' THEN amount ELSE 0 END), 0) as verified_revenue,
+        COALESCE(AVG(CASE WHEN status = 'verified' THEN amount END), 0) as avg_per_verified
+      FROM payment_history
+      WHERE amount > 0
+    `);
+
+    const [monthlyRev] = await pool.query(`
+      SELECT
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        COALESCE(SUM(amount), 0) as revenue,
+        COUNT(*) as transactions,
+        COUNT(CASE WHEN status = 'verified' THEN 1 END) as verified,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected
+      FROM payment_history
+      WHERE amount > 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+      ORDER BY month DESC
+    `);
+
+    const [topTenants] = await pool.query(`
+      SELECT
+        tr.company_name,
+        tr.contact_email,
+        tr.requested_plan,
+        SUM(ph.amount) as total_paid,
+        COUNT(ph.id) as payment_count,
+        MAX(ph.verified_at) as last_payment
+      FROM payment_history ph
+      LEFT JOIN tenant_requests tr ON ph.tenant_request_id = tr.id
+      WHERE ph.status = 'verified' AND ph.amount > 0
+      GROUP BY tr.company_name, tr.contact_email, tr.requested_plan
+      ORDER BY total_paid DESC
+      LIMIT 10
+    `);
+
+    const [recentPayments] = await pool.query(`
+      SELECT ph.*, tr.company_name, tr.contact_email
+      FROM payment_history ph
+      LEFT JOIN tenant_requests tr ON ph.tenant_request_id = tr.id
+      WHERE ph.amount > 0
+      ORDER BY ph.created_at DESC
+      LIMIT 10
+    `);
+
+    const [byMethod] = await pool.query(`
+      SELECT
+        payment_method,
+        COUNT(*) as count,
+        COALESCE(SUM(amount), 0) as total,
+        COUNT(CASE WHEN status = 'verified' THEN 1 END) as verified
+      FROM payment_history
+      WHERE amount > 0
+      GROUP BY payment_method
+    `);
+
+    const [byPlan] = await pool.query(`
+      SELECT
+        COALESCE(tr.requested_plan, 'unknown') as plan,
+        COUNT(*) as count,
+        COALESCE(SUM(ph.amount), 0) as total,
+        COALESCE(AVG(ph.amount), 0) as avg_amount
+      FROM payment_history ph
+      LEFT JOIN tenant_requests tr ON ph.tenant_request_id = tr.id
+      WHERE ph.status = 'verified' AND ph.amount > 0
+      GROUP BY tr.requested_plan
+      ORDER BY total DESC
+    `);
+
+    res.json({
+      summary: totalRev[0],
+      monthly: monthlyRev,
+      topTenants,
+      recentPayments,
+      byMethod,
+      byPlan,
+    });
+  } catch (err) {
+    console.error('Revenue analytics error:', err);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+}
+
 // ============================================================
 // PLATFORM STATS
 // ============================================================
@@ -686,6 +892,7 @@ async function getPlatformStats(req, res) {
       SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended_tenants,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_tenants
     FROM tenants
+    WHERE deleted_at IS NULL
   `);
 
   const [employeeStats] = await pool.query(`
@@ -1146,6 +1353,11 @@ module.exports = {
   updateTenant,
   suspendTenant,
   activateTenant,
+  deleteTenant,
+  getPaymentTransactions,
+  verifyPaymentTransaction,
+  rejectPaymentTransaction,
+  getRevenueAnalytics,
   getPlatformStats,
   getPlatformActivity,
   createTenant,

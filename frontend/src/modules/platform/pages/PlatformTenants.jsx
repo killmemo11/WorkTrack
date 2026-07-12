@@ -80,6 +80,21 @@ export default function PlatformTenants() {
     } catch { alert('Failed to activate'); }
   };
 
+  const handleDelete = async (id, name) => {
+    const reason = prompt(`Delete tenant "${name}"?\nThis is a soft-delete — data is preserved but hidden.\n\nReason (optional):`);
+    if (reason === null) return;
+    try {
+      const token = localStorage.getItem('platformToken');
+      const res = await fetch(`/api/platform/tenants/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (res.ok) fetchTenants(data.page);
+      else { const err = await res.json(); alert(err.error || 'Failed to delete'); }
+    } catch { alert('Failed to delete'); }
+  };
+
   const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : '—';
 
   return (
@@ -179,6 +194,9 @@ export default function PlatformTenants() {
                                 <Icon icon="lucide:pause" size={14} />
                               </button>
                             ) : null}
+                            <button onClick={() => handleDelete(tenant.id, tenant.name)} className="glass-btn glass-btn-sm glass-btn-error">
+                              <Icon icon="lucide:trash-2" size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
