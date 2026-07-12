@@ -2,7 +2,7 @@
 -- Adds deleted_at column for soft-delete and a view for payment analytics
 
 -- 1. Add deleted_at column to tenants
-ALTER TABLE `tenants` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL AFTER `cancelled_at`;
+ALTER TABLE `tenants` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL AFTER `updated_at`;
 
 -- 2. Create a comprehensive payment transactions view
 CREATE OR REPLACE VIEW `payment_transactions` AS
@@ -21,11 +21,11 @@ SELECT
   tr.payment_rejection_reason,
   tr.status AS request_status,
   tr.created_at AS submitted_at,
-  p.name AS plan_name,
-  p.price_monthly,
-  p.price_yearly
+  sp.name AS plan_name,
+  sp.price_monthly,
+  sp.price_yearly
 FROM tenant_requests tr
-LEFT JOIN plans p ON tr.requested_plan = p.slug
+LEFT JOIN subscription_plans sp ON tr.requested_plan = sp.slug
 WHERE tr.payment_amount IS NOT NULL AND tr.payment_amount > 0;
 
 -- 3. Add a payment_history table for tracking ALL payments (not just registration)
