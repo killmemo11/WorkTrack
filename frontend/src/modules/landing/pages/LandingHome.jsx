@@ -190,7 +190,6 @@ const SHOWCASE_SLIDES = [
 
 export default function LandingHome() {
   const [s, setS] = useState({});
-  const location = useLocation();
 
   useEffect(() => {
     fetch('/api/platform/public/settings')
