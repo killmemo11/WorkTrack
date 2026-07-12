@@ -1,12 +1,13 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ParticlesBackground from '../components/ParticlesBackground';
 import TiltCard from '../components/TiltCard';
 import FAQAccordion from '../components/FAQAccordion';
+import TestimonialCarousel from '../components/TestimonialCarousel';
 import MagneticButton from '../components/MagneticButton';
 import useScrollReveal from '../hooks/useScrollReveal';
 
@@ -24,6 +25,51 @@ const PRICING_FAQ = [
   { question: 'Do you offer discounts for nonprofits?', answer: 'Yes! Qualified nonprofit organizations get 50% off any paid plan. Contact sales to learn more.' },
   { question: 'Is there a minimum contract?', answer: 'No. Monthly plans cancel anytime. Annual plans are prepaid for the year with a 17% discount.' },
 ];
+
+const COMPARISON_FEATURES = [
+  { name: 'Employees', key: 'max_employees' },
+  { name: 'Departments', key: 'departments' },
+  { name: 'Projects', key: 'projects' },
+  { name: 'Time Tracking', key: 'time_tracking' },
+  { name: 'Leave Management', key: 'leave' },
+  { name: 'Payroll', key: 'payroll' },
+  { name: 'Reports & Analytics', key: 'reports' },
+  { name: 'API Access', key: 'api' },
+  { name: 'Priority Support', key: 'priority_support' },
+  { name: 'Custom Branding', key: 'custom_branding' },
+  { name: 'SSO / SAML', key: 'sso' },
+  { name: 'Dedicated Account Manager', key: 'dedicated_manager' },
+];
+
+const PRICING_TESTIMONIALS = [
+  { quote: 'WorkTrack replaced 3 separate tools for us. The pricing is transparent and the ROI was immediate.', name: 'Sarah Chen', role: 'COO, TechFlow', initials: 'SC', color: '#6366f1' },
+  { quote: 'Switching from spreadsheets to WorkTrack saved us 15 hours per month on HR tasks alone.', name: 'Ahmed Hassan', role: 'HR Director, NexaCorp', initials: 'AH', color: '#10b981' },
+  { quote: 'The annual plan paid for itself in the first quarter. Best investment we made this year.', name: 'Maria Santos', role: 'Finance Lead, Orbital', initials: 'MS', color: '#f59e0b' },
+  { quote: 'Our team adopted WorkTrack instantly. The onboarding flow made it seamless for 200+ employees.', name: 'James Wright', role: 'CTO, Pinnacle', initials: 'JW', color: '#ec4899' },
+];
+
+const TRUST_METRICS = [
+  { value: '500+', label: 'Companies' },
+  { value: '50K+', label: 'Employees Managed' },
+  { value: '99.9%', label: 'Uptime' },
+  { value: '4.9/5', label: 'Customer Rating' },
+];
+
+function CompareValue({ plan, feature }) {
+  if (feature.key === 'max_employees') {
+    return <span>{plan.max_employees >= 9999 ? 'Unlimited' : plan.max_employees}</span>;
+  }
+  const val = plan[feature.key] ?? plan.features_raw?.[feature.key];
+  if (val === undefined || val === null) return <span className="plan-compare-na">-</span>;
+  if (typeof val === 'boolean') {
+    return val ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    );
+  }
+  return <span>{val}</span>;
+}
 
 export default function LandingPricing() {
   const [plans, setPlans] = useState([]);
@@ -50,6 +96,7 @@ export default function LandingPricing() {
 
   const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-10% 0px' });
   const { ref: plansRef, inView: plansInView } = useScrollReveal();
+  const { ref: compareRef, inView: compareInView } = useScrollReveal();
   const { ref: faqRef, inView: faqInView } = useScrollReveal();
   const { ref: ctaRef, inView: ctaInView } = useScrollReveal();
 
@@ -66,6 +113,21 @@ export default function LandingPricing() {
           <p>{pricingSubtitle || 'Choose the plan that fits your team. Upgrade or downgrade anytime.'}</p>
         </div>
       </section>
+
+      {/* Trust Bar */}
+      <motion.div
+        className="pricing-trust-bar"
+        initial={{ opacity: 0, y: 20 }}
+        animate={heroInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        {TRUST_METRICS.map((m) => (
+          <div key={m.label} className="pricing-trust-metric">
+            <span className="pricing-trust-value">{m.value}</span>
+            <span className="pricing-trust-label">{m.label}</span>
+          </div>
+        ))}
+      </motion.div>
 
       {/* Billing Toggle */}
       <div ref={plansRef} className="landing-billing-toggle">
@@ -153,6 +215,73 @@ export default function LandingPricing() {
             );
           })}
         </div>
+      </section>
+
+      {/* Feature Comparison Table */}
+      <section ref={compareRef} className="pricing-compare">
+        <div className="landing-section-header">
+          <h2>Compare Plans</h2>
+          <p>See exactly what's included in every plan</p>
+        </div>
+        <motion.div
+          className="pricing-compare-table-wrap"
+          initial={{ opacity: 0, y: 30 }}
+          animate={compareInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+        >
+          <table className="pricing-compare-table">
+            <thead>
+              <tr>
+                <th className="pricing-compare-feature-col">Feature</th>
+                {plans.map((plan) => {
+                  const isFeatured = highlightedPlanName ? plan.name === highlightedPlanName : plans.indexOf(plan) === 1;
+                  return (
+                    <th key={plan.id} className={isFeatured ? 'pricing-compare-featured-col' : ''}>
+                      {plan.name}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON_FEATURES.map((feature) => (
+                <tr key={feature.key}>
+                  <td className="pricing-compare-feature-name">{feature.name}</td>
+                  {plans.map((plan) => {
+                    const isFeatured = highlightedPlanName ? plan.name === highlightedPlanName : plans.indexOf(plan) === 1;
+                    return (
+                      <td key={plan.id} className={isFeatured ? 'pricing-compare-featured-col' : ''}>
+                        <CompareValue plan={plan} feature={feature} />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              <tr>
+                <td className="pricing-compare-feature-name">Price</td>
+                {plans.map((plan) => {
+                  const price = billing === 'monthly' ? plan.price_monthly : plan.price_yearly;
+                  const isFeatured = highlightedPlanName ? plan.name === highlightedPlanName : plans.indexOf(plan) === 1;
+                  return (
+                    <td key={plan.id} className={`pricing-compare-price ${isFeatured ? 'pricing-compare-featured-col' : ''}`}>
+                      <strong>{formatPrice(price, plan.currency)}</strong>
+                      {price > 0 && <span>/{billing === 'monthly' ? 'mo' : 'yr'}</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </motion.div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="pricing-testimonials-section">
+        <div className="landing-section-header">
+          <h2>Trusted by Growing Teams</h2>
+          <p>See why companies choose WorkTrack</p>
+        </div>
+        <TestimonialCarousel items={PRICING_TESTIMONIALS} interval={5000} />
       </section>
 
       {/* FAQ */}
