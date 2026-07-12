@@ -18,12 +18,6 @@ function parseJSON(val, fallback) {
   try { return JSON.parse(val); } catch { return fallback; }
 }
 
-const STEPS = [
-  { icon: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', title: 'Register Your Company', desc: 'Create your account and tell us about your team.' },
-  { icon: 'M22 11.08V12a10 10 0 1 1-5.93-9.14', title: 'Get Approved', desc: 'Our team reviews and approves your workspace within 24 hours.' },
-  { icon: 'M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-1.66.5-3-1.5-1-4-.5-5 1z', title: 'Set Up & Go', desc: 'Add employees, configure settings, and start managing.' },
-];
-
 const LOGOS = [
   { name: 'TechCorp', svg: '<svg viewBox="0 0 120 40" fill="currentColor"><text x="0" y="28" font-size="24" font-weight="800">TechCorp</text></svg>' },
   { name: 'InnovateLabs', svg: '<svg viewBox="0 0 120 40" fill="currentColor"><text x="0" y="28" font-size="24" font-weight="800">InnovateLabs</text></svg>' },
@@ -266,12 +260,12 @@ export default function LandingHome() {
   const navTitle = g('landing_nav_title', g('company_name', 'WorkTrack'));
 
   // Scroll reveal for sections
-  const heroRef = useScrollReveal({ margin: '-20% 0px' });
-  const statsRef = useScrollReveal();
-  const showcaseRef = useScrollReveal();
-  const testimonialsRef = useScrollReveal();
-  const faqRef = useScrollReveal();
-  const ctaRef = useScrollReveal();
+  const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-20% 0px' });
+  const { ref: statsRef, inView: statsInView } = useScrollReveal();
+  const { ref: showcaseRef, inView: showcaseInView } = useScrollReveal();
+  const { ref: testimonialsRef, inView: testimonialsInView } = useScrollReveal();
+  const { ref: faqRef, inView: faqInView } = useScrollReveal();
+  const { ref: ctaRef, inView: ctaInView } = useScrollReveal();
 
   // Mouse tracking for hero orbs
   const { ref: heroMouseRef, x: mx, y: my } = useMousePosition({ smoothing: 0.06 });

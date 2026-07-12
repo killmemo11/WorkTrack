@@ -29,9 +29,9 @@ const LandingContact = () => {
       .catch(() => {});
   }, []);
 
-  const heroRef = useScrollReveal({ margin: '-10% 0px' });
-  const formRef = useScrollReveal();
-  const trustRef = useScrollReveal();
+  const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-10% 0px' });
+  const { ref: formRef, inView: formInView } = useScrollReveal();
+  const { ref: trustRef, inView: trustInView } = useScrollReveal();
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -43,10 +43,10 @@ export default function LandingPricing() {
       .catch(() => {});
   }, []);
 
-  const heroRef = useScrollReveal({ margin: '-10% 0px' });
-  const plansRef = useScrollReveal();
-  const faqRef = useScrollReveal();
-  const ctaRef = useScrollReveal();
+  const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-10% 0px' });
+  const { ref: plansRef, inView: plansInView } = useScrollReveal();
+  const { ref: faqRef, inView: faqInView } = useScrollReveal();
+  const { ref: ctaRef, inView: ctaInView } = useScrollReveal();
 
   return (
     <div className="landing-page">
