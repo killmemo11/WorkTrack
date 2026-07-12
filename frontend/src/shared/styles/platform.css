@@ -954,6 +954,23 @@
   box-shadow: 0 0 0 3px var(--color-primary-ring), 0 0 20px rgba(34,197,94,0.06);
 }
 .glass-input::placeholder { color: var(--text-placeholder); }
+select.glass-input { cursor: pointer; color-scheme: dark; }
+select.glass-input option {
+  background: #1e1e2e;
+  color: #e4e4e7;
+  padding: 8px;
+}
+select.glass-input option:hover {
+  background: #2a2a3e;
+}
+.platform-settings-page[data-theme="light"] select.glass-input { color-scheme: light; }
+.platform-settings-page[data-theme="light"] select.glass-input option {
+  background: #f8fafc;
+  color: #1e293b;
+}
+.platform-settings-page[data-theme="light"] select.glass-input option:hover {
+  background: #e2e8f0;
+}
 .glass-input-wrapper {
   position: relative;
   display: flex;
