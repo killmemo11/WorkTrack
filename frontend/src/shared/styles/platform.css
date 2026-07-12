@@ -2209,6 +2209,121 @@
   flex-shrink: 0;
 }
 
+/* ─── Step Tab Number Badge ─── */
+.platform-step-tab-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--color-primary-light);
+  color: var(--color-primary, #6366f1);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.platform-feature-tab.active .platform-step-tab-num {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ─── Steps Vertical Preview ─── */
+.platform-step-preview {
+  padding: 16px;
+}
+.platform-step-preview-vertical {
+  display: flex;
+  flex-direction: column;
+}
+.platform-step-preview-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+.platform-step-preview-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.platform-step-preview-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+.platform-step-preview-number.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+}
+.platform-step-preview-connector {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: linear-gradient(180deg, var(--border-glass), transparent);
+  margin: 4px 0;
+}
+.platform-step-preview-item.active .platform-step-preview-connector {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.3), transparent);
+}
+.platform-step-preview-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  min-width: 0;
+  flex: 1;
+}
+.platform-step-preview-item:last-child .platform-step-preview-content {
+  padding-bottom: 0;
+}
+.platform-step-preview-item.active .platform-step-preview-content {
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: -4px -12px;
+}
+.platform-step-preview-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-primary-light);
+  color: var(--color-primary, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.platform-step-preview-item.active .platform-step-preview-icon-wrap {
+  background: rgba(99, 102, 241, 0.2);
+}
+.platform-step-preview-content h4 {
+  margin: 0 0 2px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.platform-step-preview-item.active .platform-step-preview-content h4 {
+  color: var(--color-primary, #6366f1);
+}
+.platform-step-preview-content p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
 /* ─── CTA Grid ─── */
 .platform-landing-cta-grid {
   display: grid;

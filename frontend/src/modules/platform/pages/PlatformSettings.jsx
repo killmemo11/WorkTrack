@@ -54,6 +54,7 @@ export default function PlatformSettings() {
   const [activeTab, setActiveTab] = useState('general');
   const [activeLandingTab, setActiveLandingTab] = useState('hero');
   const [activeFeatureTab, setActiveFeatureTab] = useState(0);
+  const [activeStepTab, setActiveStepTab] = useState(0);
 
   const token = localStorage.getItem('platformToken');
 
@@ -127,8 +128,8 @@ export default function PlatformSettings() {
     const list = [...steps]; list[idx] = { ...list[idx], [field]: value };
     handleChange('landing_steps_list', JSON.stringify({ steps: list }));
   };
-  const addStep = () => handleChange('landing_steps_list', JSON.stringify({ steps: [...steps, { icon: 'lucide:check', title: 'New Step', desc: 'Step description' }] }));
-  const removeStep = (idx) => handleChange('landing_steps_list', JSON.stringify({ steps: steps.filter((_, i) => i !== idx) }));
+  const addStep = () => { handleChange('landing_steps_list', JSON.stringify({ steps: [...steps, { icon: 'lucide:rocket', title: 'New Step', desc: 'Step description' }] })); setActiveStepTab(steps.length); };
+  const removeStep = (idx) => { handleChange('landing_steps_list', JSON.stringify({ steps: steps.filter((_, i) => i !== idx) })); setActiveStepTab(Math.min(idx, Math.max(0, steps.length - 2))); };
   const moveStep = (idx, dir) => {
     const ni = idx + dir; if (ni < 0 || ni >= steps.length) return;
     const list = [...steps]; [list[idx], list[ni]] = [list[ni], list[idx]];
@@ -442,47 +443,106 @@ export default function PlatformSettings() {
             {activeLandingTab === 'steps' && (
               <div className="glass-card platform-landing-section">
                 <h3 className="platform-landing-section-title"><Icon icon="lucide:route" /> How It Works Section</h3>
-                <p className="platform-landing-hint">A numbered stepper showing how customers get started with your platform.</p>
+                <p className="platform-landing-hint">A numbered stepper showing how customers get started with your platform. Click a step tab to edit.</p>
                 <div className="platform-landing-form">
-                  <div className="glass-input-group">
-                    <label>Section Title</label>
-                    <input className="glass-input" value={getVal('landing_steps_title', '')} onChange={e => handleChange('landing_steps_title', e.target.value)} placeholder="Get Started in 3 Simple Steps" />
-                  </div>
-                  <div className="glass-input-group">
-                    <label>Section Subtitle</label>
-                    <input className="glass-input" value={getVal('landing_steps_subtitle', '')} onChange={e => handleChange('landing_steps_subtitle', e.target.value)} placeholder="No technical expertise required" />
+                  <div className="platform-landing-form-2col">
+                    <div className="glass-input-group">
+                      <label>Section Title</label>
+                      <input className="glass-input" value={getVal('landing_steps_title', '')} onChange={e => handleChange('landing_steps_title', e.target.value)} placeholder="Get Started in 3 Simple Steps" />
+                    </div>
+                    <div className="glass-input-group">
+                      <label>Section Subtitle</label>
+                      <input className="glass-input" value={getVal('landing_steps_subtitle', '')} onChange={e => handleChange('landing_steps_subtitle', e.target.value)} placeholder="No technical expertise required" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="platform-landing-list-header">
-                  <span>Steps ({steps.length})</span>
-                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={addStep}><Icon icon="lucide:plus" size={14} /> Add Step</button>
-                </div>
-                <div className="platform-landing-list">
+                {/* Step Tabs */}
+                <div className="platform-feature-tabs">
                   {steps.map((step, i) => (
-                    <div key={i} className="platform-landing-list-item">
-                      <div className="platform-landing-list-top">
-                        <span className="platform-landing-list-num">{i + 1}</span>
-                        <div className="platform-landing-list-fields">
-                          <div className="glass-input-group" style={{ marginBottom: 8 }}>
-                            <label>Step Title</label>
-                            <input className="glass-input" value={step.title} onChange={e => updateStep(i, 'title', e.target.value)} placeholder="Register Your Company" />
-                          </div>
-                          <div className="glass-input-group" style={{ marginBottom: 0 }}>
-                            <label>Step Description</label>
-                            <textarea className="glass-input glass-textarea" value={step.desc} onChange={e => updateStep(i, 'desc', e.target.value)} style={{ minHeight: 60 }} />
+                    <button
+                      key={i}
+                      className={`platform-feature-tab ${activeStepTab === i ? 'active' : ''}`}
+                      onClick={() => setActiveStepTab(i)}
+                    >
+                      <span className="platform-step-tab-num">{i + 1}</span>
+                      <Icon icon={step.icon || 'lucide:rocket'} size={13} />
+                      <span>{step.title || `Step ${i + 1}`}</span>
+                    </button>
+                  ))}
+                  <button className="platform-feature-tab platform-feature-tab-add" onClick={addStep}>
+                    <Icon icon="lucide:plus" size={14} /> Add Step
+                  </button>
+                </div>
+
+                {/* Step Editor + Live Preview */}
+                {steps.length > 0 && steps[activeStepTab] && (
+                  <div className="platform-feature-editor">
+                    {/* Left: Form */}
+                    <div className="platform-feature-form">
+                      <div className="glass-input-group">
+                        <label>Icon</label>
+                        <div className="platform-icon-picker-row">
+                          <select
+                            className="glass-input platform-icon-picker"
+                            value={steps[activeStepTab].icon}
+                            onChange={e => updateStep(activeStepTab, 'icon', e.target.value)}
+                          >
+                            {ICON_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          <div className="platform-icon-picker-preview">
+                            <Icon icon={steps[activeStepTab].icon || 'lucide:rocket'} size={20} />
                           </div>
                         </div>
-                        <div className="platform-landing-list-controls">
-                          <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveStep(i, -1)} disabled={i === 0}><Icon icon="lucide:chevron-up" size={14} /></button>
-                          <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveStep(i, 1)} disabled={i === steps.length - 1}><Icon icon="lucide:chevron-down" size={14} /></button>
-                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => removeStep(i)}><Icon icon="lucide:trash-2" size={14} /></button>
+                      </div>
+                      <div className="glass-input-group">
+                        <label>Step Title</label>
+                        <input className="glass-input" value={steps[activeStepTab].title} onChange={e => updateStep(activeStepTab, 'title', e.target.value)} placeholder="Register Your Company" />
+                      </div>
+                      <div className="glass-input-group">
+                        <label>Step Description</label>
+                        <textarea className="glass-input glass-textarea" value={steps[activeStepTab].desc} onChange={e => updateStep(activeStepTab, 'desc', e.target.value)} placeholder="Describe this step..." style={{ minHeight: 80 }} />
+                      </div>
+                      <div className="platform-feature-actions">
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveStep(activeStepTab, -1)} disabled={activeStepTab === 0}><Icon icon="lucide:chevron-left" size={14} /> Left</button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveStep(activeStepTab, 1)} disabled={activeStepTab === steps.length - 1}>Right <Icon icon="lucide:chevron-right" size={14} /></button>
+                        <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => removeStep(activeStepTab)}><Icon icon="lucide:trash-2" size={14} /> Delete</button>
+                      </div>
+                    </div>
+
+                    {/* Right: Live Preview */}
+                    <div className="platform-feature-preview">
+                      <div className="platform-landing-preview-label"><Icon icon="lucide:eye" size={12} /> Live Preview</div>
+                      <div className="platform-step-preview">
+                        <div className="platform-step-preview-vertical">
+                          {steps.map((step, i) => (
+                            <div key={i} className={`platform-step-preview-item ${i === activeStepTab ? 'active' : ''} ${i < steps.length - 1 ? 'has-connector' : ''}`}>
+                              <div className="platform-step-preview-left">
+                                <div className={`platform-step-preview-number ${i === activeStepTab ? 'active' : ''}`}>
+                                  {i + 1}
+                                </div>
+                                {i < steps.length - 1 && <div className="platform-step-preview-connector" />}
+                              </div>
+                              <div className="platform-step-preview-content">
+                                <div className="platform-step-preview-icon-wrap">
+                                  <Icon icon={step.icon || 'lucide:rocket'} size={20} />
+                                </div>
+                                <div>
+                                  <h4>{step.title || `Step ${i + 1}`}</h4>
+                                  <p>{step.desc || 'Step description...'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  ))}
-                  {steps.length === 0 && <div className="platform-empty-state small"><p>No steps yet. Click "Add Step" to create one.</p></div>}
-                </div>
+                  </div>
+                )}
+
+                {steps.length === 0 && <div className="platform-empty-state small"><p>No steps yet. Click "Add Step" to create one.</p></div>}
               </div>
             )}
 
