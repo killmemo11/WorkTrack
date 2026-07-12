@@ -21,4 +21,8 @@ function getRecruitmentDir() {
   return ensureDir(path.join(STORAGE_DIR, 'recruitment'));
 }
 
-module.exports = { STORAGE_DIR, getPersonnelDir, getRecruitmentDir };
+function getPaymentsDir() {
+  return ensureDir(path.join(STORAGE_DIR, 'payments'));
+}
+
+module.exports = { STORAGE_DIR, getPersonnelDir, getRecruitmentDir, getPaymentsDir };
