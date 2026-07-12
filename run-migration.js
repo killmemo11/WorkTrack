@@ -1,5 +1,9 @@
 // Run migration 019
-require('dotenv').config({ path: require('path').join(__dirname, 'backend/.env') });
+process.env.DB_HOST = 'localhost';
+process.env.DB_PORT = '3306';
+process.env.DB_USER = 'worktrack';
+process.env.DB_PASSWORD = 'YourStrongPassword@2026';
+process.env.DB_NAME = 'work_track_db';
 const pool = require('./backend/src/shared/config/database');
 const fs = require('fs');
 const sql = fs.readFileSync('backend/migrations/019_email_verification.sql', 'utf8');
