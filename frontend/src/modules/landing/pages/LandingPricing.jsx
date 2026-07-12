@@ -43,6 +43,11 @@ export default function LandingPricing() {
       .catch(() => {});
   }, []);
 
+  const highlightedPlanName = g('landing_highlighted_plan', '');
+  const glowColor = g('landing_pricing_glow_color', '#6366f1');
+  const pricingTitle = g('landing_pricing_title', '');
+  const pricingSubtitle = g('landing_pricing_subtitle', '');
+
   const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-10% 0px' });
   const { ref: plansRef, inView: plansInView } = useScrollReveal();
   const { ref: faqRef, inView: faqInView } = useScrollReveal();
@@ -57,8 +62,8 @@ export default function LandingPricing() {
         <div className="landing-page-hero-bg" />
         <div ref={heroRef} className="landing-page-hero-content">
           <div className="landing-page-badge">PRICING</div>
-          <h1>Simple, Transparent Pricing</h1>
-          <p>Choose the plan that fits your team. Upgrade or downgrade anytime.</p>
+          <h1>{pricingTitle || 'Simple, Transparent Pricing'}</h1>
+          <p>{pricingSubtitle || 'Choose the plan that fits your team. Upgrade or downgrade anytime.'}</p>
         </div>
       </section>
 
@@ -89,7 +94,7 @@ export default function LandingPricing() {
                 : plan.features
               : [];
             const price = billing === 'monthly' ? plan.price_monthly : plan.price_yearly;
-            const isFeatured = idx === 1;
+            const isFeatured = highlightedPlanName ? plan.name === highlightedPlanName : idx === 1;
             return (
               <TiltCard key={plan.id} maxTilt={8} scale={isFeatured ? 1.01 : 1.02} className="landing-plan-card-wrapper">
                 <AnimatePresence mode="wait">
@@ -100,8 +105,11 @@ export default function LandingPricing() {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className={`landing-plan-card ${isFeatured ? 'featured' : ''}`}>
-                      {isFeatured && <div className="plan-badge">Most Popular</div>}
+                    <div
+                      className={`landing-plan-card ${isFeatured ? 'featured' : ''}`}
+                      style={isFeatured ? { '--plan-glow-color': glowColor } : undefined}
+                    >
+                      {isFeatured && <div className="plan-badge" style={{ background: glowColor }}>Most Popular</div>}
                       <h3>{plan.name}</h3>
                       <p className="plan-desc">{plan.description}</p>
                       <div className="plan-price">
@@ -133,6 +141,7 @@ export default function LandingPricing() {
                         <Link
                           to="/tenant-register"
                           className={isFeatured ? 'landing-btn-primary plan-cta' : 'landing-btn-secondary plan-cta'}
+                          style={isFeatured ? { background: `linear-gradient(135deg, ${glowColor}, ${glowColor}dd)`, boxShadow: `0 10px 30px -5px ${glowColor}66` } : undefined}
                         >
                           Get Started
                         </Link>

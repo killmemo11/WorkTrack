@@ -354,6 +354,7 @@ export default function PlatformSettings() {
   const [activeLandingTab, setActiveLandingTab] = useState('hero');
   const [activeFeatureTab, setActiveFeatureTab] = useState(0);
   const [activeStepTab, setActiveStepTab] = useState(0);
+  const [plans, setPlans] = useState([]);
 
   const token = localStorage.getItem('platformToken');
 
@@ -362,6 +363,10 @@ export default function PlatformSettings() {
       .then((res) => res.ok ? res.json() : [])
       .then((data) => { setSettings(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch('/api/platform/plans', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setPlans(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   const ensureSetting = (key, defaultValue = '') => {
@@ -582,6 +587,7 @@ export default function PlatformSettings() {
               { id: 'hero', label: 'Hero', icon: 'lucide:sparkles' },
               { id: 'features', label: 'Features', icon: 'lucide:grid-3x3' },
               { id: 'steps', label: 'How It Works', icon: 'lucide:route' },
+              { id: 'pricing', label: 'Pricing', icon: 'lucide:credit-card' },
               { id: 'cta', label: 'CTA Cards', icon: 'lucide:mouse-pointer-click' },
               { id: 'footer', label: 'Footer', icon: 'lucide:anchor' },
               { id: 'visibility', label: 'Visibility', icon: 'lucide:eye' },
@@ -842,6 +848,70 @@ export default function PlatformSettings() {
                 )}
 
                 {steps.length === 0 && <div className="platform-empty-state small"><p>No steps yet. Click "Add Step" to create one.</p></div>}
+              </div>
+            )}
+
+            {/* Pricing */}
+            {activeLandingTab === 'pricing' && (
+              <div className="glass-card platform-landing-section">
+                <h3 className="platform-landing-section-title"><Icon icon="lucide:credit-card" /> Pricing Section</h3>
+                <p className="platform-landing-hint">Customize the pricing page title, subtitle, and which plan gets the spotlight glow effect.</p>
+                <div className="platform-landing-form">
+                  <div className="glass-input-group">
+                    <label>Pricing Section Title</label>
+                    <input className="glass-input" value={getVal('landing_pricing_title', '')} onChange={e => handleChange('landing_pricing_title', e.target.value)} placeholder="Simple, Transparent Pricing" />
+                  </div>
+                  <div className="glass-input-group">
+                    <label>Pricing Section Subtitle</label>
+                    <textarea className="glass-input glass-textarea" value={getVal('landing_pricing_subtitle', '')} onChange={e => handleChange('landing_pricing_subtitle', e.target.value)} placeholder="Choose the plan that fits your team. Upgrade or downgrade anytime." />
+                  </div>
+                  <div className="platform-landing-form-2col">
+                    <div className="glass-input-group">
+                      <label>Highlighted Plan</label>
+                      <select className="glass-input" value={getVal('landing_highlighted_plan', '')} onChange={e => handleChange('landing_highlighted_plan', e.target.value)}>
+                        <option value="">Auto (2nd plan)</option>
+                        {plans.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-placeholder)', marginTop: 2 }}>Which plan gets the glowing border</span>
+                    </div>
+                    <div className="glass-input-group">
+                      <label>Glow Color</label>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input type="color" value={getVal('landing_pricing_glow_color', '#6366f1')} onChange={e => handleChange('landing_pricing_glow_color', e.target.value)} style={{ width: 44, height: 38, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'transparent' }} />
+                        <input className="glass-input" value={getVal('landing_pricing_glow_color', '#6366f1')} onChange={e => handleChange('landing_pricing_glow_color', e.target.value)} placeholder="#6366f1" style={{ flex: 1 }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Preview */}
+                <div className="platform-landing-preview">
+                  <div className="platform-landing-preview-label"><Icon icon="lucide:eye" size={12} /> Live Preview</div>
+                  <div style={{ padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>PRICING</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: 6 }}>{getVal('landing_pricing_title', '') || 'Simple, Transparent Pricing'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-body)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>{getVal('landing_pricing_subtitle', '') || 'Choose the plan that fits your team.'}</div>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {(plans.length > 0 ? plans : [{ name: 'Basic', price_monthly: 29 }, { name: 'Pro', price_monthly: 79 }]).slice(0, 3).map((p, i) => {
+                        const highlighted = getVal('landing_highlighted_plan', '') ? p.name === getVal('landing_highlighted_plan', '') : i === 1;
+                        const gc = getVal('landing_pricing_glow_color', '#6366f1');
+                        return (
+                          <div key={i} style={{
+                            padding: '16px 20px', borderRadius: 12, minWidth: 120, textAlign: 'center',
+                            background: highlighted ? 'rgba(99,102,241,0.08)' : 'var(--bg-card)',
+                            border: `1.5px solid ${highlighted ? gc : 'var(--border-subtle)'}`,
+                            boxShadow: highlighted ? `0 0 20px ${gc}33` : 'none',
+                            position: 'relative',
+                          }}>
+                            {highlighted && <div style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', background: gc, color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '2px 10px', borderRadius: 10, whiteSpace: 'nowrap' }}>Most Popular</div>}
+                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>{p.name}</div>
+                            <div style={{ fontSize: '1rem', fontWeight: 800, color: gc }}>${p.price_monthly}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
