@@ -17,15 +17,16 @@ export default function PlatformLayout() {
       fetch('/api/platform/stats', {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
-        .then((data) => setStats(data))
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (data) setStats(data); })
         .catch(() => {});
 
       fetch('/api/platform/settings', {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
+        .then((res) => res.ok ? res.json() : null)
         .then((data) => {
+          if (!Array.isArray(data)) return;
           const map = {};
           data.forEach(s => { map[s.key] = s.value; });
           setPlatformSettings(map);

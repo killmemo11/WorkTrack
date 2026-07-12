@@ -59,8 +59,8 @@ export default function PlatformSettings() {
 
   useEffect(() => {
     fetch('/api/platform/settings', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => res.json())
-      .then((data) => { setSettings(data); setLoading(false); })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => { setSettings(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

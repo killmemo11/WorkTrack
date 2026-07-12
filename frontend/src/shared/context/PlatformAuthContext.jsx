@@ -18,7 +18,7 @@ export function PlatformAuthProvider({ children }) {
   const [platformAdmin, setPlatformAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const recheck = async () => {
+  const recheck = async (redirect = false) => {
     setLoading(true);
     const token = localStorage.getItem('platformToken');
 
@@ -32,13 +32,17 @@ export function PlatformAuthProvider({ children }) {
 
     setPlatformAdmin(data);
     setLoading(false);
+
+    if (!data && redirect) {
+      window.location.href = '/platform/login';
+    }
   };
 
   useEffect(() => {
     let cancelled = false;
 
     const init = async () => {
-      await recheck();
+      await recheck(true);
       if (cancelled) return;
     };
 

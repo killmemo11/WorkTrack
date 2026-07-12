@@ -1,0 +1,23 @@
+worktrack.ddns.net {
+    route {
+        handle /api/* {
+            reverse_proxy localhost:5000
+        }
+
+        handle /uploads/* {
+            reverse_proxy localhost:5000
+        }
+
+        @landing_assets path /assets/img/*
+        handle @landing_assets {
+            root * /home/hrmohamedyehia/WorkTrack/landing
+            file_server
+        }
+
+        handle {
+            root * /home/hrmohamedyehia/WorkTrack/frontend/dist
+            try_files {path} /index.html
+            file_server
+        }
+    }
+}
