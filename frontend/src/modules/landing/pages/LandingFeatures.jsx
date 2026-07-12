@@ -4,11 +4,46 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Icon from '../../../shared/components/Icon';
 import ParticlesBackground from '../components/ParticlesBackground';
 import TiltCard from '../components/TiltCard';
 import MagneticButton from '../components/MagneticButton';
 import useScrollReveal from '../hooks/useScrollReveal';
+
+const ICON_SVG = {
+  'lucide:shield': <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
+  'lucide:shield-check': <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></>,
+  'lucide:users': <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  'lucide:user-check': <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></>,
+  'lucide:user-plus': <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>,
+  'lucide:briefcase': <><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
+  'lucide:bar-chart-3': <><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>,
+  'lucide:bar-chart-2': <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
+  'lucide:clock': <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+  'lucide:calendar': <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+  'lucide:calendar-check': <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 12 18 16 14"/></>,
+  'lucide:rocket': <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-1.66.5-3-1.5-1-4-.5-5 1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></>,
+  'lucide:check-circle': <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+};
+
+const SVG_WRAP_PROPS = { width: 26, height: 26, viewBox: '0 0 24 24', fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
+const SVG_SMALL_PROPS = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+function FeatureIcon({ icon, color, size = 26 }) {
+  const svgProps = size <= 16 ? SVG_SMALL_PROPS : SVG_WRAP_PROPS;
+  const iconContent = ICON_SVG[icon];
+  if (iconContent) {
+    return (
+      <svg {...svgProps} stroke={color} strokeWidth={size <= 16 ? '2' : '1.5'}>
+        {iconContent}
+      </svg>
+    );
+  }
+  return (
+    <svg {...svgProps} stroke={color} strokeWidth={size <= 16 ? '2' : '1.5'}>
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  );
+}
 
 const DEFAULT_FEATURES = [
   {
@@ -73,21 +108,6 @@ function parseJSON(val, fallback) {
   if (!val) return fallback;
   if (typeof val === 'object') return val;
   try { return JSON.parse(val); } catch { return fallback; }
-}
-
-function isSvgPath(s) {
-  return typeof s === 'string' && /^[MmLlHhVvCcSsQqTtAaZz]/.test(s.trim());
-}
-
-function FeatureIcon({ icon, color, size = 26 }) {
-  if (isSvgPath(icon)) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d={icon} />
-      </svg>
-    );
-  }
-  return <Icon icon={icon} style={{ fontSize: size, color }} />;
 }
 
 export default function LandingFeatures() {
