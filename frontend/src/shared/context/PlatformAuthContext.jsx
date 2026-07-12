@@ -33,7 +33,7 @@ export function PlatformAuthProvider({ children }) {
     setPlatformAdmin(data);
     setLoading(false);
 
-    if (!data && redirect) {
+    if (!data && redirect && !window.location.pathname.startsWith('/platform/login')) {
       window.location.href = '/platform/login';
     }
   };
