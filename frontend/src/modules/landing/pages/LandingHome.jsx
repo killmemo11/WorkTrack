@@ -247,10 +247,19 @@ export default function LandingHome() {
             <div className="landing-hero-badge">{g('landing_hero_badge', 'HR Management Platform')}</div>
           )}
           <h1>
-            {g('landing_hero_title', 'Simplify Your HR Operations in One Place').replace(
-              'One Place',
-              <span className="gradient-text">One Place</span>
-            )}
+            {(() => {
+              const title = g('landing_hero_title', 'Simplify Your HR Operations in One Place');
+              const marker = 'One Place';
+              const idx = title.indexOf(marker);
+              if (idx === -1) return title;
+              return (
+                <>
+                  {title.slice(0, idx)}
+                  <span className="gradient-text">{marker}</span>
+                  {title.slice(idx + marker.length)}
+                </>
+              );
+            })()}
           </h1>
           <p className="lead">
             {g('landing_hero_subtitle', 'Track attendance, manage leaves, streamline recruitment, and empower your team.')}
