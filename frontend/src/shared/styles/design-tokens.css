@@ -231,4 +231,104 @@
   --logo-size-sidebar-new: 28px;
   --avatar-size: 40px;
   --avatar-size-sm: 32px;
+
+  /* ============================
+     Landing Page Tokens (Dual Theme)
+     ============================ */
+
+  --landing-bg: #09090b;
+  --landing-bg-secondary: #0c0c14;
+  --landing-bg-tertiary: rgba(24, 24, 27, 0.4);
+  --landing-bg-nav: rgba(9, 9, 11, 0.7);
+  --landing-text-primary: #f4f4f5;
+  --landing-text-secondary: #71717a;
+  --landing-text-muted: #a1a1aa;
+  --landing-card-bg: rgba(24, 24, 27, 0.4);
+  --landing-card-bg-hover: rgba(24, 24, 27, 0.6);
+  --landing-card-border: rgba(255, 255, 255, 0.06);
+  --landing-card-border-hover: rgba(99, 102, 241, 0.2);
+  --landing-border-faint: rgba(255, 255, 255, 0.04);
+  --landing-divider: rgba(255, 255, 255, 0.06);
+  --landing-icon-secondary: #818cf8;
+  --landing-accent: #6366f1;
+  --landing-accent-dark: #4f46e5;
+  --landing-accent-light: #a5b4fc;
+  --landing-hero-gradient-start: #09090b;
+  --landing-hero-gradient-mid: rgba(30, 27, 75, 0.6);
+  --landing-grid-line: rgba(99, 102, 241, 0.04);
+  --landing-grid-mask-start: black;
+  --landing-grid-mask-end: transparent;
+  --landing-footer-bg: #09090b;
+  --landing-stats-bg: rgba(24, 24, 27, 0.6);
+  --landing-particle-color: 129, 140, 248;
+  --landing-particle-link: 99, 102, 241;
+  --landing-particle-opacity: 0.5;
+  --landing-orb-1: #4f46e5;
+  --landing-orb-2: #7c3aed;
+  --landing-orb-3: #818cf8;
+  --landing-orb-opacity: 0.25;
+  --landing-shadow-card: 0 20px 40px -16px rgba(0, 0, 0, 0.4);
+  --landing-shadow-glow: 0 0 24px rgba(99, 102, 241, 0.4);
+  --landing-shadow-cta-hover: 0 18px 32px -8px rgba(99, 102, 241, 0.5);
+  --landing-billing-bg: rgba(24, 24, 27, 0.6);
+  --landing-faq-bg: rgba(24, 24, 27, 0.4);
+  --landing-faq-border: rgba(255, 255, 255, 0.06);
+  --landing-cta-card-bg: rgba(24, 24, 27, 0.4);
+  --landing-cta-card-bg-hover: rgba(24, 24, 27, 0.55);
+  --landing-input-bg: rgba(39, 39, 42, 0.6);
+  --landing-input-border: rgba(255, 255, 255, 0.1);
+  --landing-input-border-focus: rgba(99, 102, 241, 0.5);
+  --landing-input-text: #d4d4d8;
+  --landing-scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --landing-scrollbar-track: transparent;
+  --landing-faq-chevron-color: #71717a;
+}
+
+[data-theme="light"] {
+  --landing-bg: #ffffff;
+  --landing-bg-secondary: #f8fafc;
+  --landing-bg-tertiary: rgba(241, 245, 249, 0.5);
+  --landing-bg-nav: rgba(255, 255, 255, 0.8);
+  --landing-text-primary: #0f172a;
+  --landing-text-secondary: #475569;
+  --landing-text-muted: #64748b;
+  --landing-card-bg: rgba(255, 255, 255, 0.7);
+  --landing-card-bg-hover: rgba(255, 255, 255, 0.95);
+  --landing-card-border: rgba(15, 23, 42, 0.08);
+  --landing-card-border-hover: rgba(99, 102, 241, 0.3);
+  --landing-border-faint: rgba(15, 23, 42, 0.05);
+  --landing-divider: rgba(15, 23, 42, 0.08);
+  --landing-icon-secondary: #4f46e5;
+  --landing-accent: #6366f1;
+  --landing-accent-dark: #4338ca;
+  --landing-accent-light: #818cf8;
+  --landing-hero-gradient-start: #f8fafc;
+  --landing-hero-gradient-mid: rgba(224, 231, 255, 0.5);
+  --landing-grid-line: rgba(99, 102, 241, 0.05);
+  --landing-grid-mask-start: black;
+  --landing-grid-mask-end: transparent;
+  --landing-footer-bg: #f8fafc;
+  --landing-stats-bg: rgba(255, 255, 255, 0.85);
+  --landing-particle-color: 79, 70, 229;
+  --landing-particle-link: 99, 102, 241;
+  --landing-particle-opacity: 0.35;
+  --landing-orb-1: #818cf8;
+  --landing-orb-2: #a78bfa;
+  --landing-orb-3: #c4b5fd;
+  --landing-orb-opacity: 0.18;
+  --landing-shadow-card: 0 20px 40px -16px rgba(15, 23, 42, 0.12);
+  --landing-shadow-glow: 0 0 24px rgba(99, 102, 241, 0.25);
+  --landing-shadow-cta-hover: 0 18px 32px -8px rgba(99, 102, 241, 0.4);
+  --landing-billing-bg: rgba(241, 245, 249, 0.8);
+  --landing-faq-bg: rgba(255, 255, 255, 0.7);
+  --landing-faq-border: rgba(15, 23, 42, 0.08);
+  --landing-cta-card-bg: rgba(255, 255, 255, 0.7);
+  --landing-cta-card-bg-hover: rgba(255, 255, 255, 0.95);
+  --landing-input-bg: rgba(241, 245, 249, 0.6);
+  --landing-input-border: rgba(15, 23, 42, 0.1);
+  --landing-input-border-focus: rgba(99, 102, 241, 0.5);
+  --landing-input-text: #334155;
+  --landing-scrollbar-thumb: rgba(15, 23, 42, 0.15);
+  --landing-scrollbar-track: transparent;
+  --landing-faq-chevron-color: #475569;
 }

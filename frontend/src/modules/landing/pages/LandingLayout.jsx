@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, NavLink, useLocation, Outlet } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 import './../styles/landing.css';
 
 function parseJSON(val, fallback) {
@@ -14,6 +15,7 @@ function parseJSON(val, fallback) {
 export default function LandingLayout() {
   const [s, setS] = useState({});
   const location = useLocation();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     fetch('/api/platform/public/settings')
@@ -21,6 +23,15 @@ export default function LandingLayout() {
       .then((data) => setS(data))
       .catch(() => {});
   }, []);
+
+  const handleScroll = useCallback(() => {
+    setScrolled(window.scrollY > 20);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -33,7 +44,7 @@ export default function LandingLayout() {
 
   return (
     <div className="landing-page">
-      <nav className="landing-nav">
+      <nav className={`landing-nav ${scrolled ? 'is-scrolled' : ''}`}>
         <Link to="/" className="landing-nav-brand">
           <img src={logo} alt={navTitle} className="landing-nav-logo" />
           <span className="landing-nav-name">{navTitle}</span>
@@ -48,6 +59,7 @@ export default function LandingLayout() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             {g('landing_cta_text', 'Get Started')}
           </Link>
+          <ThemeToggle />
         </div>
       </nav>
 
