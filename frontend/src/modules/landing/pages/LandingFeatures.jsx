@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Icon from '../../../shared/components/Icon';
 import ParticlesBackground from '../components/ParticlesBackground';
 import TiltCard from '../components/TiltCard';
 import MagneticButton from '../components/MagneticButton';
@@ -11,7 +12,7 @@ import useScrollReveal from '../hooks/useScrollReveal';
 
 const DEFAULT_FEATURES = [
   {
-    icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    icon: 'lucide:shield',
     title: 'Attendance Tracking',
     desc: 'Real-time attendance with GPS geofence, QR codes, biometric integration, and automated missing sign-out alerts.',
     color: '#6366f1',
@@ -19,7 +20,7 @@ const DEFAULT_FEATURES = [
     highlights: ['GPS & Geofence', 'QR Check-in', 'Auto Alerts', 'Overtime Tracking'],
   },
   {
-    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+    icon: 'lucide:users',
     title: 'Leave Management',
     desc: 'Comprehensive leave policies, approval workflows, balance tracking, and calendar integration.',
     color: '#22c55e',
@@ -27,7 +28,7 @@ const DEFAULT_FEATURES = [
     highlights: ['Custom Policies', 'Approval Flows', 'Balance Tracking', 'Calendar Sync'],
   },
   {
-    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+    icon: 'lucide:user-check',
     title: 'HR & People Ops',
     desc: 'Employee profiles, org charts, document vault, contracts, onboarding checklists, and offboarding workflows.',
     color: '#3b82f6',
@@ -35,7 +36,7 @@ const DEFAULT_FEATURES = [
     highlights: ['Org Chart', 'Document Vault', 'Onboarding', 'Contract Mgmt'],
   },
   {
-    icon: 'M2 7 20 7 20 21 2 21z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16',
+    icon: 'lucide:briefcase',
     title: 'Recruitment ATS',
     desc: 'Full applicant tracking with drag-and-drop pipeline, interview scheduling, scorecards, and offer management.',
     color: '#a78bfa',
@@ -43,7 +44,7 @@ const DEFAULT_FEATURES = [
     highlights: ['Pipeline View', 'Interview Sched.', 'Scorecards', 'Offer Letters'],
   },
   {
-    icon: 'M12 20V10 M18 20V4 M6 20v-6',
+    icon: 'lucide:bar-chart-3',
     title: 'Reports & Analytics',
     desc: 'Real-time dashboards, attendance trends, headcount reports, compliance audits, and custom report builder.',
     color: '#f59e0b',
@@ -51,7 +52,7 @@ const DEFAULT_FEATURES = [
     highlights: ['Live Dashboards', 'Trend Analysis', 'Export Excel/PDF', 'Audit Reports'],
   },
   {
-    icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    icon: 'lucide:shield-check',
     title: 'Security & RBAC',
     desc: 'Granular role-based permissions, audit trails, SSO integration, 2FA, and data encryption at rest.',
     color: '#f472b6',
@@ -62,10 +63,10 @@ const DEFAULT_FEATURES = [
 
 const FEATURE_CATEGORIES = [
   { key: 'all', label: 'All Features', icon: null },
-  { key: 'attendance', label: 'Attendance & Leave', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-  { key: 'hr', label: 'HR & People', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
-  { key: 'recruitment', label: 'Recruitment', icon: 'M2 7 20 7 20 21 2 21z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16' },
-  { key: 'security', label: 'Security', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+  { key: 'attendance', label: 'Attendance & Leave', icon: 'lucide:shield' },
+  { key: 'hr', label: 'HR & People', icon: 'lucide:users' },
+  { key: 'recruitment', label: 'Recruitment', icon: 'lucide:briefcase' },
+  { key: 'security', label: 'Security', icon: 'lucide:shield-check' },
 ];
 
 function parseJSON(val, fallback) {
@@ -74,10 +75,27 @@ function parseJSON(val, fallback) {
   try { return JSON.parse(val); } catch { return fallback; }
 }
 
+function isSvgPath(s) {
+  return typeof s === 'string' && /^[MmLlHhVvCcSsQqTtAaZz]/.test(s.trim());
+}
+
+function FeatureIcon({ icon, color, size = 26 }) {
+  if (isSvgPath(icon)) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d={icon} />
+      </svg>
+    );
+  }
+  return <Icon icon={icon} style={{ fontSize: size, color }} />;
+}
+
 export default function LandingFeatures() {
   const [s, setS] = useState({});
   const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('all');
+  const { ref: heroRef, inView: heroInView } = useScrollReveal({ margin: '-10% 0px' });
+  const { ref: gridRef, inView: gridInView } = useScrollReveal();
 
   useEffect(() => {
     fetch('/api/platform/public/settings')
@@ -86,10 +104,13 @@ export default function LandingFeatures() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    setActiveCategory('all');
+  }, [location.pathname]);
+
   const g = (key, fallback) => s[key] || fallback;
   const features = (parseJSON(g('landing_features_list', null), { items: DEFAULT_FEATURES }).items) || DEFAULT_FEATURES;
 
-  // Normalize features from API (may not have category/highlights)
   const normalizedFeatures = features.map((f, i) => ({
     ...DEFAULT_FEATURES[i % DEFAULT_FEATURES.length],
     ...f,
@@ -102,37 +123,25 @@ export default function LandingFeatures() {
     ? normalizedFeatures
     : normalizedFeatures.filter(f => f.category === activeCategory);
 
-  // Scroll reveal
-  const heroRef = useScrollReveal({ margin: '-10% 0px' });
-  const gridRef = useScrollReveal();
-
-  // Reset category on route change
-  useEffect(() => {
-    setActiveCategory('all');
-  }, [location.pathname]);
-
   return (
     <div className="landing-page">
       <ParticlesBackground count={30} className="landing-page-particles" />
 
-      {/* Page Hero */}
       <section className="landing-page-hero">
         <div className="landing-page-hero-bg" />
-        <div ref={heroRef} className="landing-page-hero-content">
+        <div ref={heroRef} className={`landing-page-hero-content ${heroInView ? 'visible' : ''}`}>
           <div className="landing-page-badge">FEATURES</div>
           <h1>{g('landing_features_title', 'Everything You Need to Run Your Team')}</h1>
           <p>{g('landing_features_subtitle', 'Powerful tools designed to make HR management effortless')}</p>
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="landing-features">
         <div className="landing-section-header">
           <h2>Explore Our Modules</h2>
           <p>Each module is designed to work independently or together as a complete HR platform</p>
         </div>
 
-        {/* Category Tabs */}
         <div className="feat-tabs-wrap">
           {FEATURE_CATEGORIES.map(cat => (
             <button
@@ -142,9 +151,9 @@ export default function LandingFeatures() {
               onClick={() => setActiveCategory(cat.key)}
             >
               {cat.icon && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={cat.icon} />
-                </svg>
+                <span className="feat-tab-icon">
+                  <FeatureIcon icon={cat.icon} color="currentColor" size={14} />
+                </span>
               )}
               <span>{cat.label}</span>
               {activeCategory === cat.key && (
@@ -158,16 +167,13 @@ export default function LandingFeatures() {
           ))}
         </div>
 
-        {/* Feature Grid */}
-        <div ref={gridRef} className="feat-grid">
-          {filteredFeatures.map((f, i) => (
+        <div ref={gridRef} className={`feat-grid ${gridInView ? 'visible' : ''}`}>
+          {filteredFeatures.map((f) => (
             <TiltCard key={f.title} maxTilt={6} scale={1.01}>
               <div className="feat-card">
                 <div className="feat-card-glow" style={{ background: `radial-gradient(circle at 30% 0%, ${f.color}18 0%, transparent 60%)` }} />
-                <div className="feat-card-icon" style={{ background: `${f.color}14`, color: f.color, boxShadow: `0 0 20px ${f.color}10` }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={f.icon} />
-                  </svg>
+                <div className="feat-card-icon" style={{ background: `${f.color}14`, boxShadow: `0 0 20px ${f.color}10` }}>
+                  <FeatureIcon icon={f.icon} color={f.color} size={26} />
                 </div>
                 <h3 className="feat-card-title">{f.title}</h3>
                 <p className="feat-card-desc">{f.desc}</p>
@@ -184,7 +190,6 @@ export default function LandingFeatures() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="landing-page-cta">
         <h2>See It in Action</h2>
         <p>Start your free trial and explore all features.</p>
