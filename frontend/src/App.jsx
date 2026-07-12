@@ -10,7 +10,12 @@ import { PlatformAuthProvider } from './shared/context/PlatformAuthContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import AdminRoute from './shared/components/AdminRoute';
 import HrRoute from './shared/components/HrRoute';
-import Landing from './modules/landing/pages/Landing';
+import LandingLayout from './modules/landing/pages/LandingLayout';
+import LandingHome from './modules/landing/pages/LandingHome';
+import LandingFeatures from './modules/landing/pages/LandingFeatures';
+import LandingHowItWorks from './modules/landing/pages/LandingHowItWorks';
+import LandingPricing from './modules/landing/pages/LandingPricing';
+import LandingContact from './modules/landing/pages/LandingContact';
 import Login from './modules/auth/pages/Login';
 import Register from './modules/auth/pages/Register';
 import TenantRegister from './modules/auth/pages/TenantRegister';
@@ -117,7 +122,13 @@ export default function App() {
         </div>
       }>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route element={<LandingLayout />}>
+            <Route path="/" element={<LandingHome />} />
+            <Route path="/features" element={<LandingFeatures />} />
+            <Route path="/how-it-works" element={<LandingHowItWorks />} />
+            <Route path="/pricing" element={<LandingPricing />} />
+            <Route path="/contact" element={<LandingContact />} />
+          </Route>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/tenant-register" element={<TenantRegister />} />

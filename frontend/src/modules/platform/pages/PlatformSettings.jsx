@@ -5,6 +5,37 @@ const DEFAULT_FEATURES = '{"items":[{"icon":"lucide:clock","title":"Attendance T
 const DEFAULT_STEPS = '{"steps":[{"icon":"lucide:user-plus","title":"Register Your Company","desc":"Create your account and tell us about your team."},{"icon":"lucide:check-circle","title":"Get Approved","desc":"Our team reviews and approves your workspace within 24 hours."},{"icon":"lucide:rocket","title":"Set Up & Go","desc":"Add your employees, configure settings, and start managing."}]}';
 const DEFAULT_FOOTER_LINKS = '{"links":[{"label":"Careers","url":"/careers"},{"label":"Sign In","url":"/login"},{"label":"Register","url":"/tenant-register"}]}';
 
+const ICON_OPTIONS = [
+  { value: 'lucide:clock', label: 'Clock' },
+  { value: 'lucide:calendar', label: 'Calendar' },
+  { value: 'lucide:users', label: 'Users' },
+  { value: 'lucide:user', label: 'User' },
+  { value: 'lucide:briefcase', label: 'Briefcase' },
+  { value: 'lucide:bar-chart-3', label: 'Bar Chart' },
+  { value: 'lucide:shield', label: 'Shield' },
+  { value: 'lucide:shield-check', label: 'Shield Check' },
+  { value: 'lucide:check-circle', label: 'Check Circle' },
+  { value: 'lucide:heart', label: 'Heart' },
+  { value: 'lucide:zap', label: 'Zap' },
+  { value: 'lucide:globe', label: 'Globe' },
+  { value: 'lucide:lock', label: 'Lock' },
+  { value: 'lucide:bell', label: 'Bell' },
+  { value: 'lucide:target', label: 'Target' },
+  { value: 'lucide:star', label: 'Star' },
+  { value: 'lucide:eye', label: 'Eye' },
+  { value: 'lucide:settings', label: 'Settings' },
+  { value: 'lucide:layers', label: 'Layers' },
+  { value: 'lucide:cpu', label: 'CPU' },
+  { value: 'lucide:mail', label: 'Mail' },
+  { value: 'lucide:phone', label: 'Phone' },
+  { value: 'lucide:smartphone', label: 'Smartphone' },
+  { value: 'lucide:database', label: 'Database' },
+  { value: 'lucide:file-text', label: 'File Text' },
+  { value: 'lucide:headphones', label: 'Headphones' },
+  { value: 'lucide:message-square', label: 'Message' },
+  { value: 'lucide:truck', label: 'Truck' },
+];
+
 function parseJSON(val, fallback) {
   if (!val) return fallback;
   if (typeof val === 'object') return val;
@@ -22,6 +53,7 @@ export default function PlatformSettings() {
   const [testResult, setTestResult] = useState('');
   const [activeTab, setActiveTab] = useState('general');
   const [activeLandingTab, setActiveLandingTab] = useState('hero');
+  const [activeFeatureTab, setActiveFeatureTab] = useState(0);
 
   const token = localStorage.getItem('platformToken');
 
@@ -82,8 +114,8 @@ export default function PlatformSettings() {
     const list = [...features]; list[idx] = { ...list[idx], [field]: value };
     handleChange('landing_features_list', JSON.stringify({ items: list }));
   };
-  const addFeature = () => handleChange('landing_features_list', JSON.stringify({ items: [...features, { icon: 'lucide:star', title: 'New Feature', desc: 'Feature description' }] }));
-  const removeFeature = (idx) => handleChange('landing_features_list', JSON.stringify({ items: features.filter((_, i) => i !== idx) }));
+  const addFeature = () => { handleChange('landing_features_list', JSON.stringify({ items: [...features, { icon: 'lucide:star', title: 'New Feature', desc: 'Feature description' }] })); setActiveFeatureTab(features.length); };
+  const removeFeature = (idx) => { handleChange('landing_features_list', JSON.stringify({ items: features.filter((_, i) => i !== idx) })); setActiveFeatureTab(Math.min(idx, Math.max(0, features.length - 2))); };
   const moveFeature = (idx, dir) => {
     const ni = idx + dir; if (ni < 0 || ni >= features.length) return;
     const list = [...features]; [list[idx], list[ni]] = [list[ni], list[idx]];
@@ -320,51 +352,89 @@ export default function PlatformSettings() {
             {activeLandingTab === 'features' && (
               <div className="glass-card platform-landing-section">
                 <h3 className="platform-landing-section-title"><Icon icon="lucide:grid-3x3" /> Features Section</h3>
-                <p className="platform-landing-hint">The grid of feature cards that showcase what your platform offers.</p>
+                <p className="platform-landing-hint">Each tab is a feature card on the landing page. Click a tab to edit, or add a new one.</p>
                 <div className="platform-landing-form">
-                  <div className="glass-input-group">
-                    <label>Section Title</label>
-                    <input className="glass-input" value={getVal('landing_features_title', '')} onChange={e => handleChange('landing_features_title', e.target.value)} placeholder="Everything You Need to Run Your Team" />
-                  </div>
-                  <div className="glass-input-group">
-                    <label>Section Subtitle</label>
-                    <input className="glass-input" value={getVal('landing_features_subtitle', '')} onChange={e => handleChange('landing_features_subtitle', e.target.value)} placeholder="Powerful tools designed to make HR management effortless" />
+                  <div className="platform-landing-form-2col">
+                    <div className="glass-input-group">
+                      <label>Section Title</label>
+                      <input className="glass-input" value={getVal('landing_features_title', '')} onChange={e => handleChange('landing_features_title', e.target.value)} placeholder="Everything You Need to Run Your Team" />
+                    </div>
+                    <div className="glass-input-group">
+                      <label>Section Subtitle</label>
+                      <input className="glass-input" value={getVal('landing_features_subtitle', '')} onChange={e => handleChange('landing_features_subtitle', e.target.value)} placeholder="Powerful tools designed to make HR management effortless" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="platform-landing-list-header">
-                  <span>Feature Cards ({features.length})</span>
-                  <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={addFeature}><Icon icon="lucide:plus" size={14} /> Add Feature</button>
-                </div>
-                <div className="platform-landing-list">
+                {/* Feature Tabs */}
+                <div className="platform-feature-tabs">
                   {features.map((f, i) => (
-                    <div key={i} className="platform-landing-list-item">
-                      <div className="platform-landing-list-top">
-                        <span className="platform-landing-list-num">{i + 1}</span>
-                        <div className="platform-landing-list-fields">
-                          <div className="glass-input-group" style={{ marginBottom: 8 }}>
-                            <label>Icon (lucide icon name)</label>
-                            <input className="glass-input" value={f.icon} onChange={e => updateFeature(i, 'icon', e.target.value)} placeholder="lucide:clock" />
+                    <button
+                      key={i}
+                      className={`platform-feature-tab ${activeFeatureTab === i ? 'active' : ''}`}
+                      onClick={() => setActiveFeatureTab(i)}
+                    >
+                      <Icon icon={f.icon || 'lucide:star'} size={13} />
+                      <span>{f.title || `Feature ${i + 1}`}</span>
+                    </button>
+                  ))}
+                  <button className="platform-feature-tab platform-feature-tab-add" onClick={addFeature}>
+                    <Icon icon="lucide:plus" size={14} /> Add
+                  </button>
+                </div>
+
+                {/* Feature Editor + Live Preview */}
+                {features.length > 0 && features[activeFeatureTab] && (
+                  <div className="platform-feature-editor">
+                    {/* Left: Form */}
+                    <div className="platform-feature-form">
+                      <div className="glass-input-group">
+                        <label>Icon</label>
+                        <div className="platform-icon-picker-row">
+                          <select
+                            className="glass-input platform-icon-picker"
+                            value={features[activeFeatureTab].icon}
+                            onChange={e => updateFeature(activeFeatureTab, 'icon', e.target.value)}
+                          >
+                            {ICON_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          <div className="platform-icon-picker-preview">
+                            <Icon icon={features[activeFeatureTab].icon || 'lucide:star'} size={20} />
                           </div>
-                          <div className="glass-input-group" style={{ marginBottom: 8 }}>
-                            <label>Title</label>
-                            <input className="glass-input" value={f.title} onChange={e => updateFeature(i, 'title', e.target.value)} placeholder="Attendance Tracking" />
-                          </div>
-                          <div className="glass-input-group" style={{ marginBottom: 0 }}>
-                            <label>Description</label>
-                            <textarea className="glass-input glass-textarea" value={f.desc} onChange={e => updateFeature(i, 'desc', e.target.value)} style={{ minHeight: 60 }} />
-                          </div>
-                        </div>
-                        <div className="platform-landing-list-controls">
-                          <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveFeature(i, -1)} disabled={i === 0} title="Move up"><Icon icon="lucide:chevron-up" size={14} /></button>
-                          <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveFeature(i, 1)} disabled={i === features.length - 1} title="Move down"><Icon icon="lucide:chevron-down" size={14} /></button>
-                          <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => removeFeature(i)} title="Delete"><Icon icon="lucide:trash-2" size={14} /></button>
                         </div>
                       </div>
+                      <div className="glass-input-group">
+                        <label>Title</label>
+                        <input className="glass-input" value={features[activeFeatureTab].title} onChange={e => updateFeature(activeFeatureTab, 'title', e.target.value)} placeholder="Feature Title" />
+                      </div>
+                      <div className="glass-input-group">
+                        <label>Description</label>
+                        <textarea className="glass-input glass-textarea" value={features[activeFeatureTab].desc} onChange={e => updateFeature(activeFeatureTab, 'desc', e.target.value)} placeholder="Short description of this feature..." style={{ minHeight: 80 }} />
+                      </div>
+                      <div className="platform-feature-actions">
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveFeature(activeFeatureTab, -1)} disabled={activeFeatureTab === 0}><Icon icon="lucide:chevron-left" size={14} /> Left</button>
+                        <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => moveFeature(activeFeatureTab, 1)} disabled={activeFeatureTab === features.length - 1}>Right <Icon icon="lucide:chevron-right" size={14} /></button>
+                        <button className="glass-btn glass-btn-danger glass-btn-sm" onClick={() => removeFeature(activeFeatureTab)}><Icon icon="lucide:trash-2" size={14} /> Delete</button>
+                      </div>
                     </div>
-                  ))}
-                  {features.length === 0 && <div className="platform-empty-state small"><p>No features yet. Click "Add Feature" to create one.</p></div>}
-                </div>
+
+                    {/* Right: Live Preview */}
+                    <div className="platform-feature-preview">
+                      <div className="platform-landing-preview-label"><Icon icon="lucide:eye" size={12} /> Live Preview</div>
+                      <div className="platform-feature-preview-card">
+                        <div className="platform-feature-preview-icon">
+                          <Icon icon={features[activeFeatureTab].icon || 'lucide:star'} size={24} />
+                        </div>
+                        <h4>{features[activeFeatureTab].title || 'Feature Title'}</h4>
+                        <p>{features[activeFeatureTab].desc || 'Feature description will appear here...'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {features.length === 0 && <div className="platform-empty-state small"><p>No features yet. Click "Add" to create one.</p></div>}
               </div>
             )}
 
@@ -490,7 +560,7 @@ export default function PlatformSettings() {
             )}
 
             {/* Visibility */}
-            {activeTab === 'visibility' && (
+            {activeLandingTab === 'visibility' && (
               <div className="glass-card platform-landing-section">
                 <h3 className="platform-landing-section-title"><Icon icon="lucide:eye" /> Section Visibility</h3>
                 <p className="platform-landing-hint">Show or hide individual sections of the landing page without deleting their content.</p>
