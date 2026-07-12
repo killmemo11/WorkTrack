@@ -62,34 +62,55 @@ const SHOWCASE_SLIDES = [
   {
     id: 'attendance',
     title: 'Attendance',
-    subtitle: 'Real-time tracking with geofence & QR',
+    subtitle: 'Real-time tracking with GPS geofence, QR codes, and automated alerts.',
+    highlights: [
+      'GPS & geofence check-in/out',
+      'QR code kiosk mode',
+      'Missing sign-out reminders',
+      'Overtime & late tracking',
+    ],
     body: (
-      <div className="landing-mock-dashboard">
-        <div className="landing-mock-header">
-          <div className="landing-mock-avatar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <span>Ahmed Mohamed</span>
-          <span className="landing-mock-badge">Active</span>
+      <div className="psc-mock">
+        <div className="psc-mock-topbar">
+          <span className="psc-mock-title">Attendance Overview</span>
+          <span className="psc-mock-date">Jul 12, 2026</span>
         </div>
-        <div className="landing-mock-cards">
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Today</div>
-            <div className="landing-mock-card-value">08:42 AM</div>
+        <div className="psc-mock-cards" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Checked In</div>
+            <div className="psc-mock-card-value" style={{color:'#22c55e'}}>184</div>
+            <div className="psc-mock-card-sub">of 247 employees</div>
           </div>
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Location</div>
-            <div className="landing-mock-card-value">HQ - Cairo</div>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Late Arrivals</div>
+            <div className="psc-mock-card-value" style={{color:'#f59e0b'}}>12</div>
+            <div className="psc-mock-card-sub">avg 14 min late</div>
           </div>
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Status</div>
-            <div className="landing-mock-card-value" style={{color:'#22c55e'}}>Present</div>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Remote</div>
+            <div className="psc-mock-card-value" style={{color:'#6366f1'}}>38</div>
+            <div className="psc-mock-card-sub">WFH today</div>
           </div>
         </div>
-        <div className="landing-mock-chart" style={{marginTop:'16px'}}>
-          {[45,62,38,71,55,83,67,49,76,58,92,74].map((h,i)=>(
-            <div key={i} className="landing-mock-bar" style={{height:`${h}%`}} />
-          ))}
+        <div className="psc-mock-chart">
+          <div className="psc-mock-chart-header">
+            <span className="psc-mock-card-label">Weekly Attendance Rate</span>
+            <span className="psc-mock-chart-badge">+2.3%</span>
+          </div>
+          <div className="psc-mock-bars">
+            {[78,85,72,91,88,95,82].map((h,i)=>(
+              <div key={i} className="psc-mock-bar-col">
+                <div className="psc-mock-bar-track">
+                  <div className="psc-mock-bar-fill" style={{height:`${h}%`, animationDelay:`${i*0.08}s`}} />
+                </div>
+                <span className="psc-mock-bar-label">{['M','T','W','T','F','S','S'][i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="psc-mock-live-row">
+          <span className="psc-mock-live-dot" />
+          <span className="psc-mock-card-label">Live: 3 employees currently checking in</span>
         </div>
       </div>
     ),
@@ -97,60 +118,98 @@ const SHOWCASE_SLIDES = [
   {
     id: 'team',
     title: 'Team',
-    subtitle: 'Org charts, profiles & documents',
+    subtitle: 'Org charts, profiles, documents, and real-time presence.',
+    highlights: [
+      'Interactive org chart',
+      'Employee document vault',
+      'Contract & expiry tracking',
+      'Team directory & profiles',
+    ],
     body: (
-      <div className="landing-mock-dashboard">
-        <div className="landing-mock-avatar-row">
-          <div className="landing-mock-avatar">SM</div>
-          <div><div className="landing-mock-name">Sarah Mitchell</div><div className="landing-mock-role">Engineering Lead</div></div>
-          <span className="landing-mock-status online">Online</span>
+      <div className="psc-mock">
+        <div className="psc-mock-topbar">
+          <span className="psc-mock-title">Team Directory</span>
+          <span className="psc-mock-search">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search employees...
+          </span>
         </div>
-        <div className="landing-mock-avatar-row">
-          <div className="landing-mock-avatar" style={{background:'linear-gradient(135deg,#22c55e,#16a34a)'}}>DJ</div>
-          <div><div className="landing-mock-name">David Johnson</div><div className="landing-mock-role">Senior Dev</div></div>
-          <span className="landing-mock-status online">Online</span>
-        </div>
-        <div className="landing-mock-avatar-row">
-          <div className="landing-mock-avatar" style={{background:'linear-gradient(135deg,#f59e0b,#d97706)'}}>LA</div>
-          <div><div className="landing-mock-name">Leila Ahmed</div><div className="landing-mock-role">HR Manager</div></div>
-          <span className="landing-mock-status away">Away</span>
-        </div>
-        <div className="landing-mock-avatar-row">
-          <div className="landing-mock-avatar" style={{background:'linear-gradient(135deg,#a78bfa,#8b5cf6)'}}>DP</div>
-          <div><div className="landing-mock-name">David Park</div><div className="landing-mock-role">Product Lead</div></div>
-          <span className="landing-mock-status offline">Offline</span>
-        </div>
+        {[
+          { initials:'SM', name:'Sarah Mitchell', role:'Engineering Lead', dept:'Engineering', status:'online', color:'#6366f1' },
+          { initials:'DJ', name:'David Johnson', role:'Senior Developer', dept:'Engineering', status:'online', color:'#22c55e' },
+          { initials:'LA', name:'Leila Ahmed', role:'HR Manager', dept:'Human Resources', status:'away', color:'#f59e0b' },
+          { initials:'DP', name:'David Park', role:'Product Lead', dept:'Product', status:'offline', color:'#a78bfa' },
+          { initials:'NK', name:'Nadia Khaled', role:'Recruiter', dept:'Human Resources', status:'online', color:'#f472b6' },
+        ].map((p,i) => (
+          <div key={i} className="psc-mock-member">
+            <div className="psc-mock-avatar" style={{background:`linear-gradient(135deg,${p.color},${p.color}cc)`}}>{p.initials}</div>
+            <div className="psc-mock-member-info">
+              <span className="psc-mock-member-name">{p.name}</span>
+              <span className="psc-mock-member-role">{p.role}</span>
+            </div>
+            <span className="psc-mock-member-dept">{p.dept}</span>
+            <span className={`psc-mock-presence ${p.status}`}>
+              <span className="psc-mock-presence-dot" />
+              {p.status}
+            </span>
+          </div>
+        ))}
       </div>
     ),
   },
   {
     id: 'analytics',
     title: 'Analytics',
-    subtitle: 'Headcount, attendance trends & compliance',
+    subtitle: 'Headcount, attendance trends, compliance, and custom reports.',
+    highlights: [
+      'Real-time dashboards',
+      'Attendance trend analysis',
+      'Export to Excel & PDF',
+      'Compliance & audit reports',
+    ],
     body: (
-      <div className="landing-mock-dashboard">
-        <div className="landing-mock-cards">
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Total Employees</div>
-            <div className="landing-mock-card-value">247</div>
+      <div className="psc-mock">
+        <div className="psc-mock-topbar">
+          <span className="psc-mock-title">Analytics Dashboard</span>
+          <span className="psc-mock-date">Last 30 days</span>
+        </div>
+        <div className="psc-mock-cards" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Headcount</div>
+            <div className="psc-mock-card-value">247</div>
           </div>
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Attendance Rate</div>
-            <div className="landing-mock-card-value" style={{color:'#22c55e'}}>96.4%</div>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Attendance</div>
+            <div className="psc-mock-card-value" style={{color:'#22c55e'}}>96.4%</div>
           </div>
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Open Positions</div>
-            <div className="landing-mock-card-value">12</div>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Open Roles</div>
+            <div className="psc-mock-card-value" style={{color:'#6366f1'}}>12</div>
           </div>
-          <div className="landing-mock-card">
-            <div className="landing-mock-card-label">Pending Leaves</div>
-            <div className="landing-mock-card-value">8</div>
+          <div className="psc-mock-card">
+            <div className="psc-mock-card-label">Pending Leaves</div>
+            <div className="psc-mock-card-value" style={{color:'#f59e0b'}}>8</div>
           </div>
         </div>
-        <div className="landing-mock-chart" style={{marginTop:'16px'}}>
-          {[32,45,38,52,48,65,58,71,62,78,71,85].map((h,i)=>(
-            <div key={i} className="landing-mock-bar" style={{height:`${h}%`}} />
-          ))}
+        <div className="psc-mock-chart">
+          <div className="psc-mock-chart-header">
+            <span className="psc-mock-card-label">Monthly Attendance Trend</span>
+            <span className="psc-mock-chart-badge" style={{color:'#22c55e'}}>+4.2%</span>
+          </div>
+          <div className="psc-mock-bars">
+            {[62,71,65,78,72,85,80,88,82,91,86,95].map((h,i)=>(
+              <div key={i} className="psc-mock-bar-col">
+                <div className="psc-mock-bar-track">
+                  <div className="psc-mock-bar-fill" style={{height:`${h}%`, animationDelay:`${i*0.06}s`}} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="psc-mock-bars-labels">
+            {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m,i)=>(
+              <span key={i}>{m}</span>
+            ))}
+          </div>
         </div>
       </div>
     ),
@@ -158,30 +217,44 @@ const SHOWCASE_SLIDES = [
   {
     id: 'recruitment',
     title: 'Recruitment',
-    subtitle: 'Pipeline, interviews & offers',
+    subtitle: 'Full ATS with candidate pipeline, interviews, and offer management.',
+    highlights: [
+      'Drag & drop pipeline',
+      'Automated screening',
+      'Interview scheduling',
+      'Offer letter generation',
+    ],
     body: (
-      <div className="landing-mock-dashboard">
-        <div className="landing-mock-cards" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-          <div className="landing-mock-card"><div className="landing-mock-card-label">Applied</div><div className="landing-mock-card-value">156</div></div>
-          <div className="landing-mock-card"><div className="landing-mock-card-label">Screening</div><div className="landing-mock-card-value">23</div></div>
-          <div className="landing-mock-card"><div className="landing-mock-card-label">Interviewing</div><div className="landing-mock-card-value">8</div></div>
-          <div className="landing-mock-card"><div className="landing-mock-card-label">Offered</div><div className="landing-mock-card-value">3</div></div>
+      <div className="psc-mock">
+        <div className="psc-mock-topbar">
+          <span className="psc-mock-title">Recruitment Pipeline</span>
+          <span className="psc-mock-date">12 active jobs</span>
         </div>
-        <div style={{marginTop:'16px',display:'flex',gap:'16px',flexWrap:'wrap'}}>
-          <div style={{flex:1,minWidth:'200px'}}>
-            <div className="landing-mock-card-label" style={{marginBottom:'12px'}}>Pipeline Stages</div>
-            <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              {[['Applied',156,'#6366f1'],['Screen',23,'#3b82f6'],['Tech',8,'#a78bfa'],['Offer',3,'#22c55e']].map(([label,val,color])=>(
-                <div key={label} style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{width:'80px',fontSize:'0.75rem',color:'var(--landing-text-secondary)'}}>{label}</span>
-                  <div style={{flex:1,height:'8px',background:'var(--landing-card-border)',borderRadius:'4px',overflow:'hidden'}}>
-                    <div style={{width:`${val/156*100}%`,height:'100%',background:color,borderRadius:'4px'}} />
+        <div className="psc-mock-pipeline">
+          {[
+            { stage:'Applied', count:156, color:'#6366f1', candidates:['AK','MR','SL','TN'] },
+            { stage:'Screen', count:43, color:'#3b82f6', candidates:['JB','LP'] },
+            { stage:'Interview', count:18, color:'#a78bfa', candidates:['RH'] },
+            { stage:'Offer', count:5, color:'#22c55e', candidates:['KW'] },
+          ].map((col,i)=>(
+            <div key={i} className="psc-pipeline-col">
+              <div className="psc-pipeline-header">
+                <span className="psc-pipeline-stage">{col.stage}</span>
+                <span className="psc-pipeline-count" style={{color:col.color}}>{col.count}</span>
+              </div>
+              <div className="psc-pipeline-bar">
+                <div className="psc-pipeline-bar-fill" style={{width:`${(col.count/156)*100}%`, background:col.color, animationDelay:`${i*0.15}s`}} />
+              </div>
+              <div className="psc-pipeline-cards">
+                {col.candidates.map((c,j)=>(
+                  <div key={j} className="psc-pipeline-card">
+                    <div className="psc-mock-avatar" style={{width:24,height:24,fontSize:'0.55rem',background:col.color}}>{c}</div>
+                    <span>Candidate</span>
                   </div>
-                  <span style={{fontSize:'0.8rem',fontWeight:600,width:'35px'}}>{val}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     ),

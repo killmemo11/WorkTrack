@@ -70,9 +70,9 @@ export default function TiltCard({
         rotateY: prefersReduced ? 0 : rotateY,
         transformStyle: 'preserve-3d',
         transformPerspective: 1000,
-        ...(prefersReduced ? {} : { whileHover: { scale } }),
         ...style,
       }}
+      whileHover={prefersReduced ? undefined : { scale }}
       {...rest}
     >
       <div className="landing-tilt-card-inner" style={{ transformStyle: 'preserve-3d', position: 'relative' }}>
