@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import ParticlesBackground from '../components/ParticlesBackground';
 import TiltCard from '../components/TiltCard';
@@ -17,15 +17,6 @@ function parseJSON(val, fallback) {
   if (typeof val === 'object') return val;
   try { return JSON.parse(val); } catch { return fallback; }
 }
-
-const DEFAULT_FEATURES = [
-  { icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', title: 'Smart Attendance', desc: 'GPS, QR codes, and automated tracking.', color: '#6366f1' },
-  { icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', title: 'Team Management', desc: 'Organize, track, and grow your team.', color: '#22c55e' },
-  { icon: 'M18 20V10 M12 20V4 M6 20v-6', title: 'Live Analytics', desc: 'Real-time reports and insights.', color: '#f59e0b' },
-  { icon: 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 12 14.01 9 11.01', title: 'Security & RBAC', desc: 'Granular permissions & audit trails.', color: '#a78bfa' },
-  { icon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z', title: 'Recruitment ATS', desc: 'Pipeline, interviews, offers in one place.', color: '#f472b6' },
-  { icon: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', title: 'Leave Management', desc: 'Workflows, balances, approvals.', color: '#3b82f6' },
-];
 
 const STEPS = [
   { icon: 'M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', title: 'Register Your Company', desc: 'Create your account and tell us about your team.' },
@@ -277,7 +268,6 @@ export default function LandingHome() {
   // Scroll reveal for sections
   const heroRef = useScrollReveal({ margin: '-20% 0px' });
   const statsRef = useScrollReveal();
-  const previewRef = useScrollReveal();
   const showcaseRef = useScrollReveal();
   const testimonialsRef = useScrollReveal();
   const faqRef = useScrollReveal();
@@ -399,30 +389,6 @@ export default function LandingHome() {
           <p>Explore the core modules that power modern HR teams</p>
         </div>
         <ProductShowcase slides={SHOWCASE_SLIDES} interval={4500} />
-      </section>
-
-      {/* Features Preview */}
-      <section ref={previewRef} className="landing-preview-section">
-        <div className="landing-section-header">
-          <h2>Powerful HR Tools</h2>
-          <p>Everything you need to manage your workforce efficiently</p>
-        </div>
-        <div className="landing-preview-grid">
-          {DEFAULT_FEATURES.map((f, i) => (
-            <TiltCard key={i} maxTilt={10} scale={1.02} className="landing-preview-card-wrapper">
-              <Link to="/features" className="landing-preview-card" style={{textDecoration:'none',color:'inherit',display:'block',height:'100%'}}>
-                <div className="landing-preview-icon" style={{ background: `${f.color}15`, color: f.color }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={f.icon} />
-                  </svg>
-                </div>
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-                <span className="landing-preview-link">Learn more &rarr;</span>
-              </Link>
-            </TiltCard>
-          ))}
-        </div>
       </section>
 
       {/* Testimonials */}

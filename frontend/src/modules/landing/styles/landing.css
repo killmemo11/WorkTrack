@@ -410,7 +410,7 @@
 .landing-section-header {
   text-align: center;
   max-width: 620px;
-  margin: 0 auto 64px;
+  margin: 0 auto 48px;
 }
 .landing-section-header h2 {
   font-size: 2rem;
@@ -424,62 +424,127 @@
   color: var(--landing-text-secondary);
   margin: 0;
 }
-.landing-features-grid {
+
+/* Feature Tabs */
+.feat-tabs-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+.feat-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border: 1px solid var(--landing-card-border);
+  background: var(--landing-card-bg);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--landing-text-secondary);
+  transition: all 0.2s ease;
+  font-family: inherit;
+  overflow: hidden;
+}
+.feat-tab:hover {
+  color: var(--landing-text-primary);
+  border-color: var(--landing-card-border-hover);
+  background: var(--landing-card-bg-hover);
+}
+.feat-tab.active {
+  color: #fff;
+  border-color: var(--landing-accent);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  box-shadow: 0 4px 16px -4px rgba(99, 102, 241, 0.4);
+}
+.feat-tab-indicator {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border-radius: inherit;
+  z-index: -1;
+}
+
+/* Feature Grid */
+.feat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
-  max-width: 1100px;
+  max-width: 1000px;
   margin: 0 auto;
 }
-.landing-feature-card {
+.feat-card {
   background: var(--landing-card-bg);
   border: 1px solid var(--landing-card-border);
   border-radius: 20px;
   padding: 32px 28px;
-  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   height: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-.landing-feature-card::before {
-  content: '';
+.feat-card:hover {
+  border-color: var(--landing-card-border-hover);
+  box-shadow: var(--landing-shadow-card);
+}
+.feat-card-glow {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
-  opacity: 0;
+  height: 120px;
+  pointer-events: none;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
-.landing-feature-card:hover {
-  border-color: var(--landing-card-border-hover);
-  background: var(--landing-card-bg-hover);
-  transform: translateY(-4px);
-  box-shadow: var(--landing-shadow-card);
-}
-.landing-feature-card:hover::before { opacity: 1; }
-.landing-feature-icon {
-  width: 48px;
-  height: 48px;
+.feat-card:hover .feat-card-glow { opacity: 1; }
+.feat-card-icon {
+  width: 52px;
+  height: 52px;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 20px;
-  font-size: 1.4rem;
+  position: relative;
+  z-index: 1;
 }
-.landing-feature-card h3 {
-  font-size: 1.1rem;
+.feat-card-title {
+  font-size: 1.15rem;
   font-weight: 700;
   margin: 0 0 8px;
   color: var(--landing-text-primary);
+  position: relative;
+  z-index: 1;
 }
-.landing-feature-card p {
+.feat-card-desc {
   font-size: 0.85rem;
   color: var(--landing-text-secondary);
   line-height: 1.6;
-  margin: 0;
+  margin: 0 0 20px;
+  position: relative;
+  z-index: 1;
+}
+.feat-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+.feat-tag {
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ─── How It Works ─── */
@@ -1840,6 +1905,7 @@
 @media (max-width: 900px) {
   .landing-features-grid { grid-template-columns: repeat(2, 1fr); }
   .landing-features-grid-large { grid-template-columns: 1fr; }
+  .feat-grid { grid-template-columns: 1fr; max-width: 500px; }
   .landing-steps { grid-template-columns: 1fr; gap: 40px; }
   .landing-cta-cards { grid-template-columns: 1fr; }
   .landing-plans-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1864,6 +1930,9 @@
 
   .landing-features { padding: 60px 20px 80px; }
   .landing-features-grid { grid-template-columns: 1fr; }
+  .feat-tabs-wrap { gap: 6px; }
+  .feat-tab { padding: 8px 14px; font-size: 0.75rem; }
+  .feat-grid { max-width: 100%; }
   .landing-section-header { margin-bottom: 40px; }
   .landing-section-header h2 { font-size: 1.5rem; }
 
