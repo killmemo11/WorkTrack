@@ -157,11 +157,13 @@ async function updatePlatformSettings(req, res) {
 }
 
 async function testPlatformSmtp(req, res) {
-  const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
+  const { sendPlatformEmail, loadPlatformSmtpSettings } = require('../../shared/services/platform-email.service');
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
-  const result = await sendPlatformEmail(email, 'WorkTrack SMTP Test', '<p>This is a test email from your WorkTrack platform. If you received this, your SMTP configuration is working correctly.</p>');
+  const settings = await loadPlatformSmtpSettings();
+  const companyName = settings.company_name || 'WorkTrack';
+  const result = await sendPlatformEmail(email, `${companyName} SMTP Test`, `<p>This is a test email from your <strong>${companyName}</strong> platform. If you received this, your SMTP configuration is working correctly.</p>`);
   if (result.success) {
     res.json({ message: 'Test email sent successfully' });
   } else {

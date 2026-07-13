@@ -18,7 +18,7 @@ async function loadPlatformSmtpSettings() {
   }
   try {
     const [rows] = await pool.query(
-      "SELECT `key`, `value` FROM platform_settings WHERE `key` LIKE 'smtp_%'"
+      "SELECT `key`, `value` FROM platform_settings WHERE `key` IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','company_name')"
     );
     const map = {};
     rows.forEach(r => { map[r.key] = r.value; });
@@ -44,10 +44,13 @@ async function getPlatformTransporter() {
   };
 
   const fromEmail = dbSettings.smtp_from || process.env.PLATFORM_SMTP_FROM || '';
+  const companyName = dbSettings.company_name || 'WorkTrack';
+  const fromAddress = fromEmail || config.auth.user;
+  const fromField = fromAddress ? `${companyName} <${fromAddress}>` : `${companyName} Platform`;
 
   const hash = JSON.stringify(config);
   if (platformTransporter && cachedConfigHash === hash) {
-    return { transporter: platformTransporter, from: fromEmail || config.auth.user };
+    return { transporter: platformTransporter, from: fromField };
   }
 
   if (!config.auth.user || !config.auth.pass) {
@@ -67,7 +70,7 @@ async function getPlatformTransporter() {
     return null;
   }
 
-  return { transporter: platformTransporter, from: fromEmail || config.auth.user };
+  return { transporter: platformTransporter, from: fromField };
 }
 
 function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
@@ -79,7 +82,7 @@ function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #22c55e;">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
           </svg>
-          <span style="color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">WorkTrack</span>
+          <span style="color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">{{companyName}}</span>
         </div>
         <p style="color: #94a3b8; margin: 12px 0 0; font-size: 14px;">Platform Administration</p>
       </div>
@@ -90,8 +93,8 @@ function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
         </div>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
         <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
-          &copy; ${year} WorkTrack — HR Management Platform<br />
-          This is an automated message from the WorkTrack platform administration system.
+          &copy; ${year} {{companyName}} — HR Management Platform<br />
+          This is an automated message from the {{companyName}} platform administration system.
         </p>
       </div>
     </div>
@@ -106,13 +109,16 @@ async function sendPlatformEmail(to, subject, htmlContent) {
   }
 
   const { transporter, from: fromAddress } = result;
+  const dbSettings = await loadPlatformSmtpSettings();
+  const companyName = dbSettings.company_name || 'WorkTrack';
 
   try {
+    const html = platformMailLayout(htmlContent, subject).replace(/\{\{companyName\}\}/g, companyName);
     const info = await transporter.sendMail({
-      from: fromAddress || 'WorkTrack Platform',
+      from: fromAddress || `${companyName} Platform`,
       to,
       subject,
-      html: platformMailLayout(htmlContent, subject),
+      html,
     });
     console.log(`✅ Platform email sent to ${to}: ${subject} (${info.messageId})`);
     return { success: true, messageId: info.messageId };
@@ -214,6 +220,7 @@ async function sendPlatformAlert(subject, message) {
 }
 
 module.exports = {
+  loadPlatformSmtpSettings,
   getPlatformTransporter,
   sendPlatformEmail,
   sendTenantAdminMagicLink,
