@@ -37,15 +37,19 @@ async function getPlatformTransporter() {
     host: dbSettings.smtp_host || process.env.PLATFORM_SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(dbSettings.smtp_port || process.env.PLATFORM_SMTP_PORT) || 587,
     secure: parseInt(dbSettings.smtp_port || process.env.PLATFORM_SMTP_PORT) === 465,
-    auth: {
-      user: dbSettings.smtp_user || process.env.PLATFORM_SMTP_USER,
-      pass: dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS,
-    },
+    auth: undefined,
   };
+
+  const smtpUser = dbSettings.smtp_user || process.env.PLATFORM_SMTP_USER;
+  const smtpPass = dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS;
+
+  if (smtpUser && smtpPass) {
+    config.auth = { user: smtpUser, pass: smtpPass };
+  }
 
   const fromEmail = dbSettings.smtp_from || process.env.PLATFORM_SMTP_FROM || '';
   const companyName = dbSettings.company_name || 'WorkTrack';
-  const fromAddress = fromEmail || config.auth.user;
+  const fromAddress = fromEmail || smtpUser || `noreply@${dbSettings.smtp_host || 'worktrack.ddns.net'}`;
   const fromField = fromAddress ? `${companyName} <${fromAddress}>` : `${companyName} Platform`;
 
   const hash = JSON.stringify(config);
@@ -53,7 +57,7 @@ async function getPlatformTransporter() {
     return { transporter: platformTransporter, from: fromField };
   }
 
-  if (!config.auth.user || !config.auth.pass) {
+  if (!config.host) {
     console.warn('⚠️ Platform SMTP not configured - platform emails will not be sent');
     return null;
   }
