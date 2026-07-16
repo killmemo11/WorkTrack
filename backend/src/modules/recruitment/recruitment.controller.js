@@ -70,7 +70,7 @@ async function createJob(req, res) {
     if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
   }
   const [result] = await pool.query(
-    'INSERT INTO recruitment_jobs (tenant_id,position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    'INSERT INTO recruitment_jobs (tenant_id,position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [req.tenantId || null, position_id || null, title_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
   );
   const [[job]] = await pool.query('SELECT * FROM recruitment_jobs WHERE id = ?', [result.insertId]);
