@@ -656,10 +656,15 @@ async function searchDocuments(req, res) {
     params.push(type);
   }
   
-  // Sort
+  // Sort (whitelist allowed columns to prevent SQL injection)
   if (sortBy) {
-    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
-    sql += ` ORDER BY ${sortBy} ${sortDirection}`;
+    const ALLOWED_SORT_COLUMNS = ['doc_name', 'doc_type', 'created_at'];
+    const ALLOWED_DIRECTIONS = ['ASC', 'DESC'];
+    if (!ALLOWED_SORT_COLUMNS.includes(sortBy)) {
+      return res.status(400).json({ error: 'Invalid sort column' });
+    }
+    const sortDir = ALLOWED_DIRECTIONS.includes((sortOrder || '').toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+    sql += ` ORDER BY ${sortBy} ${sortDir}`;
   } else {
     sql += ' ORDER BY created_at DESC';
   }
@@ -716,6 +721,13 @@ function excelSerialToDate(serial) {
 }
 
 async function exportProfiles(req, res) {
+  // Only admin or HR can export salary data
+  const isAdmin = req.admin?.type === 'admin' || req.admin?.role === 'admin' || req.employee?.role === 'admin';
+  const isHR = req.hr?.id || (req.employee?.department_name || '').toLowerCase() === 'hr';
+  if (!isAdmin && !isHR) {
+    return res.status(403).json({ error: 'Insufficient permissions to export profiles' });
+  }
+
   const [rows] = await pool.query(`
     SELECT e.employee_id, e.name, e.email, e.phone,
            d.name AS department, p.title AS position,

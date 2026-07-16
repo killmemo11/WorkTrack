@@ -110,7 +110,7 @@ router.post('/verify-and-set-password', async (req, res) => {
   const jwtToken = jwt.sign(
     { id: admin.id, username: admin.username, tenant_id: admin.tenant_id, type: 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: '24h', issuer: 'worktrack', audience: 'admin' }
   );
 
   res.json({

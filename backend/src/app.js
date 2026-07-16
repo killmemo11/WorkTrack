@@ -48,6 +48,15 @@ const { adminRouter: recAdminRouter, hrRouter: recHrRouter } = require('./module
 const { publicApply, publicTrack, getActiveJobs, listPublicInterviews, respondToInterview } = require('./modules/recruitment/recruitment.controller');
 const { listSkills, createSkill, updateSkill, deleteSkill, listCertifications, createCertification, updateCertification, deleteCertification } = require('./modules/admin/master-lists.controller');
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 const app = express();
 
 app.set('trust proxy', 1);
@@ -82,7 +91,7 @@ const platformLoginLimiter = rateLimit({
 });
 
 // CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
-const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+const isDev = process.env.NODE_ENV === 'development';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
@@ -92,7 +101,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use('/uploads', express.static(STORAGE_DIR));
+
+// Serve uploaded files — requires authentication
+const { authenticate } = require('./shared/middleware/auth.middleware');
+app.use('/uploads', authenticate, express.static(STORAGE_DIR));
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
@@ -296,11 +308,11 @@ app.post('/api/contact', async (req, res) => {
       const { mailLayout } = require('./shared/services/email.service');
       await sendEmail(adminEmail, `New Contact: ${name}`, mailLayout(`
         <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Company:</strong> ${company || '—'}</p>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        <p><strong>Company:</strong> ${escapeHtml(company || '—')}</p>
         <p><strong>Message:</strong></p>
-        <p>${message}</p>
+        <p>${escapeHtml(message)}</p>
       `)).catch(() => {});
     }
     res.status(201).json({ message: 'Message received. We\'ll get back to you within 24 hours.' });
@@ -337,11 +349,10 @@ if (fs.existsSync(frontendDist)) {
 }
 
 app.use((err, req, res, next) => {
-  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const isDev = process.env.NODE_ENV === 'development';
   if (!isDev) console.error('Unhandled error:', err.message);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(isDev && { stack: err.stack }),
+    error: isDev ? (err.message || 'Internal server error') : 'Internal server error',
   });
 });
 

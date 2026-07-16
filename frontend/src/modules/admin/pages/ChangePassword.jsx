@@ -5,9 +5,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../../shared/context/AdminAuthContext';
 
-// Must match backend's FORBIDDEN_DEFAULT in admin-auth.controller.js.
-const FORBIDDEN_DEFAULT = '001100WorkTrack';
-
 export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -27,10 +24,6 @@ export default function ChangePassword() {
     }
     if (newPassword.length < 10) {
       setError('Password must be at least 10 characters');
-      return false;
-    }
-    if (newPassword === FORBIDDEN_DEFAULT) {
-      setError('Please choose a different password');
       return false;
     }
     if (newPassword === currentPassword) {

@@ -3,14 +3,18 @@
 
 const mysql = require('mysql2/promise');
 
+if (!process.env.DB_USER || !process.env.DB_HOST) {
+  throw new Error('DB_USER and DB_HOST environment variables are required');
+}
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST,
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER,
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'wfh_attendance',
+  database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 25,
   queueLimit: 0,
 });
 

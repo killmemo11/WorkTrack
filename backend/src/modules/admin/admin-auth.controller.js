@@ -23,7 +23,7 @@ async function login(req, res) {
       const token = jwt.sign(
         { id: adminRows[0].id, username: adminRows[0].username, type: 'admin' },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '24h', issuer: 'worktrack', audience: 'admin' }
       );
       await logActivity(null, adminRows[0].id, 'admin_login', `Admin logged in: ${adminRows[0].username}`);
       return res.json({
@@ -51,9 +51,9 @@ async function login(req, res) {
   }
 
   const token = jwt.sign(
-    { id: empRows[0].id, email: empRows[0].email, role: empRows[0].role },
+    { id: empRows[0].id, email: empRows[0].email, role: empRows[0].role, type: 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: '12h', issuer: 'worktrack', audience: 'admin' }
   );
 
   await logActivity(null, empRows[0].id, 'admin_login', `Admin logged in: ${empRows[0].name}`);

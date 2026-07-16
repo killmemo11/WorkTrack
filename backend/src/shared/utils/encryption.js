@@ -5,7 +5,17 @@ const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
 
 function getEncryptionKey() {
-  const key = process.env.PLATFORM_ENCRYPTION_KEY || process.env.JWT_SECRET || 'worktrack-default-key-change-me';
+  const key = process.env.PLATFORM_ENCRYPTION_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('PLATFORM_ENCRYPTION_KEY must be set in production');
+    }
+    // Dev fallback — log a warning
+    const fallback = process.env.JWT_SECRET;
+    if (!fallback) throw new Error('PLATFORM_ENCRYPTION_KEY or JWT_SECRET must be set');
+    console.warn('⚠️ Using JWT_SECRET as encryption fallback — set PLATFORM_ENCRYPTION_KEY for production');
+    return crypto.createHash('sha256').update(fallback).digest();
+  }
   return crypto.createHash('sha256').update(key).digest();
 }
 
@@ -36,7 +46,7 @@ function decrypt(encryptedText) {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch {
-    return encryptedText;
+    throw new Error('Decryption failed: data may be corrupted or encrypted with a different key');
   }
 }
 

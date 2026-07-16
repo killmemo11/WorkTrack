@@ -67,7 +67,6 @@ export function PlatformAuthProvider({ children }) {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'X-Platform-Access': 'worktrack-platform-2026'
       },
       body: JSON.stringify({ username, password }),
     });

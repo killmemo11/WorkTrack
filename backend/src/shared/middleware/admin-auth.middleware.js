@@ -17,9 +17,15 @@ const requireAdminAuth = async (req, res, next) => {
     if (decoded.type !== 'admin') {
       return res.status(403).json({ error: 'Admin token required' });
     }
-    const [rows] = await pool.query('SELECT id, tenant_id, is_active, is_platform_admin FROM admin_users WHERE id = ?', [decoded.id]);
+    // Check admin_users first, then fall back to employees with role='admin'
+    let [rows] = await pool.query('SELECT id, tenant_id, is_active, is_platform_admin FROM admin_users WHERE id = ?', [decoded.id]);
     if (rows.length === 0) {
-      return res.status(401).json({ error: 'Admin account not found' });
+      [rows] = await pool.query("SELECT id, department_id, role FROM employees WHERE id = ? AND role = 'admin'", [decoded.id]);
+      if (rows.length === 0) {
+        return res.status(401).json({ error: 'Admin account not found' });
+      }
+      req.admin = { ...decoded, tenant_id: decoded.tenant_id || null, is_platform_admin: false };
+      return next();
     }
     if (rows[0].is_active === 0) {
       return res.status(403).json({ error: 'Admin account is deactivated' });

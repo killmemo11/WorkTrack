@@ -41,7 +41,13 @@ async function getPlatformTransporter() {
   };
 
   const smtpUser = dbSettings.smtp_user || process.env.PLATFORM_SMTP_USER;
-  const smtpPass = dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS;
+  let smtpPass;
+  try {
+    smtpPass = dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS;
+  } catch (err) {
+    console.error('Failed to decrypt SMTP password:', err.message);
+    smtpPass = process.env.PLATFORM_SMTP_PASS;
+  }
 
   if (smtpUser && smtpPass) {
     config.auth = { user: smtpUser, pass: smtpPass };

@@ -59,7 +59,7 @@ async function register(req, res) {
     return res.status(400).json({ error: 'Email, username, or employee ID already exists' });
   }
 
-  const password_hash = await bcrypt.hash(password, 10);
+  const password_hash = await bcrypt.hash(password, 12);
   const code = generateCode();
   const expires = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -162,7 +162,7 @@ async function verify(req, res) {
   const token = jwt.sign(
     { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
     process.env.JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: '12h', issuer: 'worktrack', audience: 'employee' }
   );
 
   res.json({ token, employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: finalEmp.department_name === 'HR' || finalEmp.role === 'admin', is_global_ceo: isGlobalCeo } });
@@ -176,10 +176,12 @@ async function login(req, res) {
 
   // First try admin_users table
   let [rows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [username]);
+  let userSource = 'admin_users';
   
   // If not found in admin_users, try employees table
   if (rows.length === 0) {
     [rows] = await pool.query('SELECT * FROM employees WHERE username = ?', [username]);
+    userSource = 'employees';
   }
   
   if (rows.length === 0) {
@@ -188,17 +190,37 @@ async function login(req, res) {
 
   const user = rows[0];
 
-  // Check password based on table
-  let valid = false;
-  if (user.password_hash) {
-    valid = await bcrypt.compare(password, user.password_hash);
-  } else if (user.password) {
-    // For admin_users with plain text password (legacy)
-    valid = password === user.password;
+  // Check account lockout (5 failures in 15 minutes) — employees only
+  if (userSource === 'employees' && (user.failed_attempts || 0) >= 5 && user.last_failed_login) {
+    const lockoutElapsed = Date.now() - new Date(user.last_failed_login).getTime();
+    if (lockoutElapsed < 15 * 60 * 1000) {
+      return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
+    }
   }
 
-  if (!valid) {
+  // Check password based on table
+  if (!user.password_hash) {
     return res.status(401).json({ error: 'Invalid username or password' });
+  }
+  const valid = await bcrypt.compare(password, user.password_hash);
+
+  if (!valid) {
+    // Track failed attempt on correct table
+    if (userSource === 'employees') {
+      await pool.query(
+        'UPDATE employees SET failed_attempts = COALESCE(failed_attempts, 0) + 1, last_failed_login = NOW() WHERE id = ?',
+        [user.id]
+      ).catch(() => {});
+    }
+    return res.status(401).json({ error: 'Invalid username or password' });
+  }
+
+  // Reset failed attempts on successful login
+  if (userSource === 'employees') {
+    await pool.query(
+      'UPDATE employees SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?',
+      [user.id]
+    ).catch(() => {});
   }
 
   // Check verification and status based on user type
@@ -242,7 +264,7 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: userId, email: user.email || user.username, role: user.role || 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: rememberMe ? '7d' : '12h' }
+    { expiresIn: rememberMe ? '7d' : '12h', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee' }
   );
 
   const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
@@ -418,8 +440,11 @@ async function forgotPassword(req, res) {
     res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
     console.error('Failed to send password reset email:', err.message);
-    // If SMTP not configured, return the code directly for testing
-    res.json({ message: 'Development mode - password reset code', email, code });
+    if (process.env.NODE_ENV !== 'production') {
+      res.json({ message: 'Development mode - password reset code', email, code });
+    } else {
+      res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
+    }
   }
 }
 
@@ -443,7 +468,7 @@ async function resetPassword(req, res) {
     return res.status(400).json({ error: 'Invalid or expired code' });
   }
 
-  const password_hash = await bcrypt.hash(password, 10);
+  const password_hash = await bcrypt.hash(password, 12);
   await pool.query(
     'UPDATE employees SET password_hash = ?, verification_code = NULL, verification_expires = NULL WHERE id = ?',
     [password_hash, rows[0].id]

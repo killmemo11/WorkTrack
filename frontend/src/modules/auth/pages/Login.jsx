@@ -22,19 +22,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const empData = await empLogin(username, password, rememberMe);
-      if (empData?.employee?.role === 'admin') {
-        const adminData = await adminLogin(username, password);
-        // Phase 1: if admin must change password, route directly there.
-        if (adminData?.admin?.must_change_password) {
-          navigate('/admin/change-password', { replace: true });
-        } else {
-          navigate('/admin/settings', { replace: true });
-        }
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
-    } catch (empErr) {
+      // Try admin login first (for admin_users accounts)
       try {
         const adminData = await adminLogin(username, password);
         if (adminData?.admin?.must_change_password) {
@@ -42,10 +30,32 @@ export default function Login() {
         } else {
           navigate('/admin/settings', { replace: true });
         }
+        return;
       } catch {
-        const msg = empErr.response?.data;
-        setError(msg?.error || 'Login failed');
+        // Not an admin_users account, try employee login
       }
+
+      const empData = await empLogin(username, password, rememberMe);
+      if (empData?.employee?.role === 'admin') {
+        // Employee with admin role needs admin token for admin panel
+        try {
+          const adminData = await adminLogin(username, password);
+          if (adminData?.admin?.must_change_password) {
+            navigate('/admin/change-password', { replace: true });
+          } else {
+            navigate('/admin/settings', { replace: true });
+          }
+          return;
+        } catch {
+          // Admin login failed, redirect to admin login page
+          navigate('/admin/login', { replace: true });
+          return;
+        }
+      }
+      navigate('/dashboard', { replace: true });
+    } catch (empErr) {
+      const msg = empErr.response?.data;
+      setError(msg?.error || 'Login failed');
     } finally {
       setLoading(false);
     }

@@ -34,8 +34,8 @@ async function createTask(req, res) {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO tasks (title, description, assigned_by, assigned_to, priority, due_date) VALUES (?, ?, ?, ?, ?, ?)',
-    [title.trim(), description || null, req.employee.id, assigned_to, priority || 'medium', due_date || null]
+    'INSERT INTO tasks (title, description, assigned_by, assigned_to, priority, due_date, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [title.trim(), description || null, req.employee.id, assigned_to, priority || 'medium', due_date || null, req.tenantId || null]
   );
 
   const [task] = await pool.query('SELECT * FROM tasks WHERE id = ?', [result.insertId]);
@@ -51,14 +51,20 @@ async function listTasks(req, res) {
   let whereClause = '';
   const params = [];
 
+  // Tenant isolation: always filter by tenant_id if set
+  if (req.tenantId) {
+    whereClause = 'WHERE t.tenant_id = ?';
+    params.push(req.tenantId);
+  }
+
   if (mine === 'true') {
-    whereClause = 'WHERE t.assigned_to = ?';
+    whereClause += whereClause ? ' AND t.assigned_to = ?' : 'WHERE t.assigned_to = ?';
     params.push(empId);
   } else if (MANAGER_ROLES.includes(req.employee.role)) {
-    whereClause = 'WHERE (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))';
+    whereClause += whereClause ? ' AND (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))' : 'WHERE (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))';
     params.push(empId, req.employee.department_id);
   } else {
-    whereClause = 'WHERE t.assigned_to = ?';
+    whereClause += whereClause ? ' AND t.assigned_to = ?' : 'WHERE t.assigned_to = ?';
     params.push(empId);
   }
 
@@ -98,8 +104,8 @@ async function getTask(req, res) {
      FROM tasks t
      JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
      JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-     WHERE t.id = ?`,
-    [req.params.id]
+     WHERE t.id = ? AND (t.tenant_id = ? OR t.tenant_id IS NULL)`,
+    [req.params.id, req.tenantId || null]
   );
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
@@ -113,7 +119,9 @@ async function getTask(req, res) {
 
 async function updateTask(req, res) {
   const { title, description, priority, due_date, notes } = req.body;
-  const [rows] = await pool.query('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
+  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
+  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
@@ -153,7 +161,9 @@ async function updateTaskStatus(req, res) {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
-  const [rows] = await pool.query('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
+  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
+  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
@@ -177,7 +187,9 @@ async function updateTaskStatus(req, res) {
 }
 
 async function deleteTask(req, res) {
-  const [rows] = await pool.query('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
+  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
+  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];

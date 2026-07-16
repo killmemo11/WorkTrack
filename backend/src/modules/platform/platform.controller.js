@@ -47,12 +47,6 @@ function clearFailedAttempts(username) {
 async function platformLogin(req, res) {
   const { username, password } = req.body;
   
-  // Custom header check - must come from the platform login page
-  const platformHeader = req.headers['x-platform-access'];
-  if (platformHeader !== 'worktrack-platform-2026') {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-  
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
@@ -87,7 +81,7 @@ async function platformLogin(req, res) {
   const token = jwt.sign(
     { id: admin.id, username: admin.username, email: admin.email, type: 'platform_admin', is_platform_admin: true },
     process.env.JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: '12h', issuer: 'worktrack', audience: 'platform' }
   );
 
   await logActivity(null, admin.id, 'platform_admin_login', `Platform admin logged in: ${admin.username}`);
@@ -126,8 +120,11 @@ async function createPlatformAdmin(req, res) {
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required' });
   }
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (password.length < 12) {
+    return res.status(400).json({ error: 'Password must be at least 12 characters' });
+  }
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    return res.status(400).json({ error: 'Password must contain uppercase, lowercase, and numbers' });
   }
 
   const [existing] = await pool.query(
@@ -261,7 +258,7 @@ async function changeOwnPassword(req, res) {
 
 async function listTenantRequests(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
   const offset = (page - 1) * limit;
   const { status } = req.query;
 
@@ -538,7 +535,7 @@ async function rejectPayment(req, res) {
 
 async function listTenants(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
   const offset = (page - 1) * limit;
   const { status } = req.query;
 
@@ -705,7 +702,7 @@ async function deleteTenant(req, res) {
 
 async function getPaymentTransactions(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
   const offset = (page - 1) * limit;
   const { status, method, from, to } = req.query;
 
@@ -932,7 +929,7 @@ async function getPlatformStats(req, res) {
 // ============================================================
 
 async function getPlatformActivity(req, res) {
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const [rows] = await pool.query(
     `SELECT al.*, au.username as admin_username
      FROM activity_log al
@@ -1185,7 +1182,7 @@ async function resendMagicLink(req, res) {
 
 async function listClientAccounts(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const { tenant_id, search } = req.query;
 

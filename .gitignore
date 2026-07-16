@@ -5,6 +5,7 @@ dist/
 mysql_data/
 certbot/
 storage/
+tmp/
 
 # غير ضروري للسيرفر
 Dockerfile

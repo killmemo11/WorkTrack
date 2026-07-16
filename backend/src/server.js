@@ -19,6 +19,21 @@ for (const key of requiredEnv) {
   }
 }
 
+// Production safety checks
+if (process.env.NODE_ENV === 'production') {
+  if (process.env.JWT_SECRET === 'super-secret-key-change-in-production-123456') {
+    console.error('FATAL: JWT_SECRET is the weak default. Change it immediately.');
+    process.exit(1);
+  }
+  const prodRequired = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+  for (const key of prodRequired) {
+    if (!process.env[key]) {
+      console.error(`FATAL: Missing required production environment variable: ${key}`);
+      process.exit(1);
+    }
+  }
+}
+
 const app = require('./app');
 const pool = require('./shared/config/database');
 
