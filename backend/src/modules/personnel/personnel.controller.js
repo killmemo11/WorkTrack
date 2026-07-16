@@ -11,11 +11,15 @@ const XLSX = require('xlsx');
 const path = require('path');
 
 async function getPositions(req, res) {
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' WHERE d.tenant_id = ?' : '';
   const [rows] = await pool.query(
     `SELECT p.*, d.name AS department_name
      FROM positions p
      LEFT JOIN departments d ON p.department_id = d.id
-     ORDER BY p.title`
+     ${tenantFilter}
+     ORDER BY p.title`,
+    tenantId ? [tenantId] : []
   );
   res.json(rows);
 }
@@ -179,8 +183,8 @@ async function createPosition(req, res) {
     return res.status(400).json({ error: 'Position title is required' });
   }
   const [result] = await pool.query(
-    'INSERT INTO positions (title, department_id, description, technical) VALUES (?, ?, ?, ?)',
-    [title.trim(), department_id || null, description || null, technical ? 1 : 0]
+    'INSERT INTO positions (tenant_id, title, department_id, description, technical) VALUES (?, ?, ?, ?, ?)',
+    [req.tenantId || 1, title.trim(), department_id || null, description || null, technical ? 1 : 0]
   );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'position_created', `Created position: ${title}`);
   res.status(201).json({ id: result.insertId, message: 'Position created' });
@@ -1031,7 +1035,12 @@ async function submitResignation(req, res) {
 
 // ── Grades ─────────────────────────────────────────────────────
 async function getGrades(req, res) {
-  const [rows] = await pool.query('SELECT * FROM grades ORDER BY grade_level');
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' WHERE tenant_id = ?' : '';
+  const [rows] = await pool.query(
+    `SELECT * FROM grades${tenantFilter} ORDER BY grade_level`,
+    tenantId ? [tenantId] : []
+  );
   res.json(rows);
 }
 
@@ -1039,8 +1048,8 @@ async function createGrade(req, res) {
   const { grade_level, name, description, min_salary, max_salary } = req.body;
   if (!grade_level || !name) return res.status(400).json({ error: 'grade_level and name are required' });
   const [result] = await pool.query(
-    'INSERT INTO grades (grade_level, name, description, min_salary, max_salary) VALUES (?,?,?,?,?)',
-    [grade_level, name, description || null, min_salary || null, max_salary || null]
+    'INSERT INTO grades (tenant_id, grade_level, name, description, min_salary, max_salary) VALUES (?,?,?,?,?,?)',
+    [req.tenantId || 1, grade_level, name, description || null, min_salary || null, max_salary || null]
   );
   const [created] = await pool.query('SELECT * FROM grades WHERE id = ?', [result.insertId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_created', `Created grade: ${name}`);
@@ -1085,9 +1094,12 @@ function parseTitleRow(row) {
 
 async function getDepartmentTitles(req, res) {
   const departmentId = req.query.department_id || (req.hr ? null : req.employee?.department_id);
-  let where = '';
+  const tenantId = req.tenantId;
+  let where = [];
   let params = [];
-  if (departmentId) { where = 'WHERE dt.department_id = ?'; params.push(departmentId); }
+  if (departmentId) { where.push('dt.department_id = ?'); params.push(departmentId); }
+  if (tenantId) { where.push('d.tenant_id = ?'); params.push(tenantId); }
+  const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
   const [rows] = await pool.query(
     `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,
             COALESCE(ec.cnt, 0) AS filled_count
@@ -1100,7 +1112,7 @@ async function getDepartmentTitles(req, res) {
        WHERE (is_system IS NULL OR is_system = 0)
        GROUP BY title_id
      ) ec ON ec.title_id = dt.id
-     ${where}
+     ${whereClause}
      ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, params
   );
   const [[allSkills], [allCerts]] = await Promise.all([

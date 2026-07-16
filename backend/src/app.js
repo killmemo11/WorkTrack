@@ -90,6 +90,22 @@ const platformLoginLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many contact form submissions. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const jobApplyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many applications. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
 const isDev = process.env.NODE_ENV === 'development';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
@@ -113,6 +129,7 @@ if (fs.existsSync(frontendDist)) {
 // Apply rate limiters
 app.use('/api/auth', authLimiter);
 app.use('/api/admin/auth', authLimiter);
+app.use('/api/magic-link', authLimiter);
 app.use('/api/platform/auth/login', platformLoginLimiter);
 app.use('/api/platform/auth', authLimiter);
 app.use('/api', apiLimiter);
@@ -120,32 +137,32 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
-app.use('/api/admin/settings', requireITAuth, requirePasswordChangeGate, settingsRoutes);
+app.use('/api/admin/settings', requireITAuth, requirePasswordChangeGate, resolveTenant, settingsRoutes);
 
-app.use('/api/admin/reports', requireITAuth, requirePasswordChangeGate, reportsRoutes);
-app.use('/api/hr/reports', requireHR, reportsRoutes);
+app.use('/api/admin/reports', requireITAuth, requirePasswordChangeGate, resolveTenant, reportsRoutes);
+app.use('/api/hr/reports', requireHR, resolveTenant, reportsRoutes);
 
-app.get('/api/admin/balance-audit', requireITAuth, requirePasswordChangeGate, async (req, res) => {
+app.get('/api/admin/balance-audit', requireITAuth, requirePasswordChangeGate, resolveTenant, async (req, res) => {
   const { getBalanceAudit } = require('./modules/reports/reports.controller');
   return getBalanceAudit(req, res);
 });
 
-app.get('/api/admin/activity-log', requireITAuth, requirePasswordChangeGate, async (req, res) => {
+app.get('/api/admin/activity-log', requireITAuth, requirePasswordChangeGate, resolveTenant, async (req, res) => {
   const { getActivityLog } = require('./modules/reports/reports.controller');
   return getActivityLog(req, res);
 });
 
-app.get('/api/hr/balance-audit', requireHR, async (req, res) => {
+app.get('/api/hr/balance-audit', requireHR, resolveTenant, async (req, res) => {
   const { getBalanceAudit } = require('./modules/reports/reports.controller');
   return getBalanceAudit(req, res);
 });
 
-app.get('/api/hr/activity-log', requireHR, async (req, res) => {
+app.get('/api/hr/activity-log', requireHR, resolveTenant, async (req, res) => {
   const { getActivityLog } = require('./modules/reports/reports.controller');
   return getActivityLog(req, res);
 });
 
-app.get('/api/hr/settings/work-week', requireHR, async (req, res) => {
+app.get('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res) => {
   const keys = ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email'];
   const placeholders = keys.map(() => '?').join(',');
   const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
@@ -154,7 +171,7 @@ app.get('/api/hr/settings/work-week', requireHR, async (req, res) => {
   res.json(settings);
 });
 
-app.get('/api/hr/settings/company', requireHR, async (req, res) => {
+app.get('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) => {
   const keys = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const placeholders = keys.map(() => '?').join(',');
   const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
@@ -163,7 +180,7 @@ app.get('/api/hr/settings/company', requireHR, async (req, res) => {
   res.json(settings);
 });
 
-app.put('/api/hr/settings/company', requireHR, async (req, res) => {
+app.put('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) => {
   const allowed = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const entries = Object.entries(req.body).filter(([key]) => allowed.includes(key));
   if (entries.length > 0) {
@@ -182,7 +199,7 @@ app.put('/api/hr/settings/company', requireHR, async (req, res) => {
   res.json(settings);
 });
 
-app.put('/api/hr/settings/work-week', requireHR, async (req, res) => {
+app.put('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res) => {
   const allowed = ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email'];
   const updates = req.body;
 
@@ -253,14 +270,14 @@ app.use('/api/audit', requireAnyActiveToken, requirePasswordChangeGate, resolveT
 app.use('/api/admin/rbac', requireITAuth, requirePasswordChangeGate, resolveTenant, rbacRoutes);
 
 // HR master lists CRUD
-app.get('/api/hr/master-skills', requireHR, listSkills);
-app.post('/api/hr/master-skills', requireHR, createSkill);
-app.put('/api/hr/master-skills/:id', requireHR, updateSkill);
-app.delete('/api/hr/master-skills/:id', requireHR, deleteSkill);
-app.get('/api/hr/master-certifications', requireHR, listCertifications);
-app.post('/api/hr/master-certifications', requireHR, createCertification);
-app.put('/api/hr/master-certifications/:id', requireHR, updateCertification);
-app.delete('/api/hr/master-certifications/:id', requireHR, deleteCertification);
+app.get('/api/hr/master-skills', requireHR, resolveTenant, listSkills);
+app.post('/api/hr/master-skills', requireHR, resolveTenant, createSkill);
+app.put('/api/hr/master-skills/:id', requireHR, resolveTenant, updateSkill);
+app.delete('/api/hr/master-skills/:id', requireHR, resolveTenant, deleteSkill);
+app.get('/api/hr/master-certifications', requireHR, resolveTenant, listCertifications);
+app.post('/api/hr/master-certifications', requireHR, resolveTenant, createCertification);
+app.put('/api/hr/master-certifications/:id', requireHR, resolveTenant, updateCertification);
+app.delete('/api/hr/master-certifications/:id', requireHR, resolveTenant, deleteCertification);
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/recruitment', requireService('service_recruitment', 'Recruitment is disabled'), recAdminRouter);
@@ -288,7 +305,7 @@ app.get('/api/settings/public', async (req, res) => {
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Public contact form endpoint (from landing page)
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', contactLimiter, async (req, res) => {
   const { name, email, company, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Name, email, and message are required.' });
@@ -323,7 +340,7 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Public recruitment routes
-app.post('/api/apply', cvUpload.single('cv'), publicApply);
+app.post('/api/apply', jobApplyLimiter, cvUpload.single('cv'), publicApply);
 app.get('/api/track/:email', publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
 app.get('/api/interviews/:email', listPublicInterviews);
@@ -332,14 +349,14 @@ app.put('/api/interviews/respond', respondToInterview);
 // Master Lists (read for HR/Public, CRUD for Admin)
 app.get('/api/master-skills', listSkills);
 app.get('/api/master-certifications', listCertifications);
-app.get('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, listSkills);
-app.post('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, createSkill);
-app.put('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, updateSkill);
-app.delete('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, deleteSkill);
-app.get('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, listCertifications);
-app.post('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, createCertification);
-app.put('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, updateCertification);
-app.delete('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, deleteCertification);
+app.get('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, resolveTenant, listSkills);
+app.post('/api/admin/master-skills', requireITAuth, requirePasswordChangeGate, resolveTenant, createSkill);
+app.put('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, resolveTenant, updateSkill);
+app.delete('/api/admin/master-skills/:id', requireITAuth, requirePasswordChangeGate, resolveTenant, deleteSkill);
+app.get('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, resolveTenant, listCertifications);
+app.post('/api/admin/master-certifications', requireITAuth, requirePasswordChangeGate, resolveTenant, createCertification);
+app.put('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, resolveTenant, updateCertification);
+app.delete('/api/admin/master-certifications/:id', requireITAuth, requirePasswordChangeGate, resolveTenant, deleteCertification);
 
 // SPA fallback for production — serve index.html for non-API, non-static routes
 if (fs.existsSync(frontendDist)) {

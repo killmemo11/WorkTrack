@@ -13,10 +13,12 @@ async function getEmployees(req, res) {
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
   const { department_id } = req.query;
+  const tenantId = req.tenantId;
 
   let where = ["(e.is_system IS NULL OR e.is_system = 0)"];
   let params = [];
 
+  if (tenantId) { where.push('e.tenant_id = ?'); params.push(tenantId); }
   if (department_id) { where.push('e.department_id = ?'); params.push(department_id); }
 
   const whereClause = 'WHERE ' + where.join(' AND ');
@@ -53,11 +55,12 @@ async function getEmployees(req, res) {
 
 async function updateEmployee(req, res) {
   const { id } = req.params;
+  const tenantId = req.tenantId;
   const { name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date } = req.body;
 
   const [oldRows] = await pool.query(
-    'SELECT name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date FROM employees WHERE id = ?',
-    [id]
+    'SELECT name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
   if (oldRows.length === 0) {
     return res.status(404).json({ error: 'Employee not found' });
@@ -143,10 +146,12 @@ async function getRecords(req, res) {
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
   const { employee_id, date_from, date_to } = req.query;
+  const tenantId = req.tenantId;
 
   let where = [];
   let params = [];
 
+  if (tenantId) { where.push('a.tenant_id = ?'); params.push(tenantId); }
   if (employee_id) { where.push('a.employee_id = ?'); params.push(employee_id); }
   if (date_from) { where.push('a.date >= ?'); params.push(date_from); }
   if (date_to) { where.push('a.date <= ?'); params.push(date_to); }
@@ -183,10 +188,12 @@ async function getRecords(req, res) {
 async function exportExcel(req, res) {
   const XLSX = require('xlsx');
   const { date_from, date_to, employee_id } = req.query;
+  const tenantId = req.tenantId;
 
   let where = [];
   let params = [];
 
+  if (tenantId) { where.push('a.tenant_id = ?'); params.push(tenantId); }
   if (employee_id) { where.push('a.employee_id = ?'); params.push(employee_id); }
   if (date_from) { where.push('a.date >= ?'); params.push(date_from); }
   if (date_to) { where.push('a.date <= ?'); params.push(date_to); }
@@ -241,6 +248,7 @@ async function exportExcel(req, res) {
 
 async function getEmployee(req, res) {
   const { id } = req.params;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
     `SELECT e.id, e.employee_id, e.email, e.name, e.username, e.phone, e.department, e.department_id, e.grade_id, e.title_id,
             d.name as department_name, e.role, e.is_active, e.can_wfh, e.employment_status,
@@ -250,8 +258,8 @@ async function getEmployee(req, res) {
      FROM employees e
      LEFT JOIN departments d ON e.department_id = d.id
      LEFT JOIN department_titles dt ON e.title_id = dt.id
-     WHERE e.id = ?`,
-    [id]
+     WHERE e.id = ?` + (tenantId ? ' AND e.tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
 
@@ -270,7 +278,11 @@ async function getEmployee(req, res) {
 
 async function deleteEmployee(req, res) {
   const { id } = req.params;
-  const [rows] = await pool.query('SELECT id, name, email FROM employees WHERE id = ?', [id]);
+  const tenantId = req.tenantId;
+  const [rows] = await pool.query(
+    'SELECT id, name, email FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
+  );
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
 
   const conn = await pool.getConnection();
@@ -292,9 +304,10 @@ async function deleteEmployee(req, res) {
 
 async function deleteRecord(req, res) {
   const { id } = req.params;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
-    'SELECT ar.*, e.name AS employee_name FROM attendance_records ar LEFT JOIN employees e ON ar.employee_id = e.id WHERE ar.id = ?',
-    [id]
+    'SELECT ar.*, e.name AS employee_name FROM attendance_records ar LEFT JOIN employees e ON ar.employee_id = e.id WHERE ar.id = ?' + (tenantId ? ' AND ar.tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Record not found' });
 
@@ -308,12 +321,24 @@ async function deleteRecord(req, res) {
 }
 
 async function getStats(req, res) {
-  const [totalEmployees] = await pool.query("SELECT COUNT(*) as count FROM employees WHERE (is_system IS NULL OR is_system = 0)");
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' AND e.tenant_id = ?' : '';
+  const [totalEmployees] = await pool.query(
+    `SELECT COUNT(*) as count FROM employees e WHERE (e.is_system IS NULL OR e.is_system = 0)${tenantFilter}`,
+    tenantId ? [tenantId] : []
+  );
   const [todayStats] = await pool.query(
-    "SELECT COUNT(*) as signed_in, SUM(CASE WHEN sign_out_time IS NOT NULL THEN 1 ELSE 0 END) as signed_out FROM attendance_records WHERE date = CURDATE()"
+    `SELECT COUNT(*) as signed_in, SUM(CASE WHEN sign_out_time IS NOT NULL THEN 1 ELSE 0 END) as signed_out
+     FROM attendance_records a
+     WHERE a.date = CURDATE()` + (tenantId ? ' AND a.tenant_id = ?' : ''),
+    tenantId ? [tenantId] : []
   );
   const [recentActivity] = await pool.query(
-    "SELECT a.date, COUNT(DISTINCT a.employee_id) as employees_count FROM attendance_records a WHERE a.date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY a.date ORDER BY a.date DESC"
+    `SELECT a.date, COUNT(DISTINCT a.employee_id) as employees_count
+     FROM attendance_records a
+     WHERE a.date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)` + (tenantId ? ' AND a.tenant_id = ?' : '') + `
+     GROUP BY a.date ORDER BY a.date DESC`,
+    tenantId ? [tenantId] : []
   );
 
   res.json({
@@ -328,6 +353,7 @@ async function getMonthlyReport(req, res) {
   const now = new Date();
   const year = parseInt(req.query.year) || now.getFullYear();
   const month = parseInt(req.query.month) || (now.getMonth() + 1);
+  const tenantId = req.tenantId;
 
   const [settingsRows] = await pool.query(
     "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
@@ -355,6 +381,8 @@ async function getMonthlyReport(req, res) {
     }
   }
 
+  const tenantFilter = tenantId ? ' AND e.tenant_id = ?' : '';
+  const tenantAttFilter = tenantId ? ' AND a.tenant_id = ?' : '';
   const [rows] = await pool.query(
     `SELECT
        e.id, e.name, e.email, e.employee_id,
@@ -365,11 +393,11 @@ async function getMonthlyReport(req, res) {
        SUM(CASE WHEN a.type = 'office' THEN 1 ELSE 0 END) as office_days
      FROM employees e
      LEFT JOIN attendance_records a
-       ON a.employee_id = e.id AND YEAR(a.date) = ? AND MONTH(a.date) = ?
-      WHERE (e.is_system IS NULL OR e.is_system = 0)
+       ON a.employee_id = e.id AND YEAR(a.date) = ? AND MONTH(a.date) = ?${tenantAttFilter}
+      WHERE (e.is_system IS NULL OR e.is_system = 0)${tenantFilter}
      GROUP BY e.id
      ORDER BY days_worked DESC, e.name ASC`,
-    [year, month]
+    tenantId ? [year, month, tenantId, tenantId] : [year, month]
   );
 
   // Fetch leave balances for the report
@@ -417,6 +445,8 @@ async function getPendingSignoutRequests(req, res) {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' AND sr.tenant_id = ?' : '';
 
   const [rows] = await pool.query(
     `SELECT sr.*, a.date, a.sign_in_time, e.name as employee_name, e.email as employee_email,
@@ -425,14 +455,15 @@ async function getPendingSignoutRequests(req, res) {
      JOIN attendance_records a ON sr.attendance_record_id = a.id
      JOIN employees e ON sr.employee_id = e.id
      LEFT JOIN departments d ON e.department_id = d.id
-     WHERE sr.status = 'pending'
+     WHERE sr.status = 'pending'${tenantFilter}
      ORDER BY sr.created_at ASC
      LIMIT ? OFFSET ?`,
-    [limit, offset]
+    tenantId ? [tenantId, limit, offset] : [limit, offset]
   );
 
   const [countRows] = await pool.query(
-    "SELECT COUNT(*) as total FROM signout_requests WHERE status = 'pending'"
+    `SELECT COUNT(*) as total FROM signout_requests sr WHERE sr.status = 'pending'${tenantFilter}`,
+    tenantId ? [tenantId] : []
   );
 
   res.json({
@@ -446,10 +477,11 @@ async function getPendingSignoutRequests(req, res) {
 async function adminApproveSignoutRequest(req, res) {
   const { id } = req.params;
   const adminId = req.admin?.id || req.employee?.id;
+  const tenantId = req.tenantId;
 
   const [rows] = await pool.query(
-    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'",
-    [id]
+    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'" + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
 
   if (rows.length === 0) {
@@ -494,10 +526,11 @@ async function adminRejectSignoutRequest(req, res) {
   const { id } = req.params;
   const { rejection_reason } = req.body;
   const adminId = req.admin?.id || req.employee?.id;
+  const tenantId = req.tenantId;
 
   const [rows] = await pool.query(
-    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'",
-    [id]
+    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'" + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
 
   if (rows.length === 0) {
@@ -535,12 +568,16 @@ async function adminRejectSignoutRequest(req, res) {
 async function updateRecordSignOut(req, res) {
   const { id } = req.params;
   const { sign_out_time, notes } = req.body;
+  const tenantId = req.tenantId;
 
   if (!sign_out_time) {
     return res.status(400).json({ error: 'Sign-out time is required' });
   }
 
-  const [rows] = await pool.query('SELECT * FROM attendance_records WHERE id = ?', [id]);
+  const [rows] = await pool.query(
+    'SELECT * FROM attendance_records WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
+  );
   if (rows.length === 0) {
     return res.status(404).json({ error: 'Record not found' });
   }

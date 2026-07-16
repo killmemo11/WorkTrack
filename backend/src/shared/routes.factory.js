@@ -38,10 +38,12 @@ const { mountEmployeeRoutes } = require('./routes/employee.routes');
 const { mountDocumentRoutes } = require('./routes/document.routes');
 const { mountAssetRoutes } = require('./routes/asset.routes');
 const { requireService } = require('./middleware/service.middleware');
+const { resolveTenant } = require('./middleware/tenant.middleware');
 
 function createRoutes(requireAuth) {
   const router = Router();
   router.use(requireAuth);
+  router.use(resolveTenant);
 
   mountAttendanceRoutes(router);
 

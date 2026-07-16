@@ -21,6 +21,8 @@ async function listJobs(req, res) {
   const page = parseInt(req.query.page) || 1;
   const perPage = Math.min(parseInt(req.query.per_page) || 20, 100);
   const offset = (page - 1) * perPage;
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' WHERE j.tenant_id = ?' : '';
 
   const [rows] = await pool.query(
     `SELECT j.*,
@@ -33,12 +35,16 @@ async function listJobs(req, res) {
      LEFT JOIN (SELECT hcr2.id, hcr2.requester_id, hcr2.status, e.name AS requester_name
                 FROM headcount_requests hcr2
                 JOIN employees e ON hcr2.requester_id = e.id) hcr ON hcr.id = j.headcount_request_id
+     ${tenantFilter}
      GROUP BY j.id
      ORDER BY j.created_at DESC
      LIMIT ? OFFSET ?`,
-    [perPage, offset]
+    tenantId ? [tenantId, perPage, offset] : [perPage, offset]
   );
-  const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM recruitment_jobs');
+  const [[{ total }]] = await pool.query(
+    `SELECT COUNT(*) AS total FROM recruitment_jobs j${tenantFilter}`,
+    tenantId ? [tenantId] : []
+  );
 
   res.json({
     data: rows,
@@ -64,8 +70,8 @@ async function createJob(req, res) {
     if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
   }
   const [result] = await pool.query(
-    'INSERT INTO recruitment_jobs (position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-    [position_id || null, title_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
+    'INSERT INTO recruitment_jobs (tenant_id,position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    [req.tenantId || null, position_id || null, title_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
   );
   const [[job]] = await pool.query('SELECT * FROM recruitment_jobs WHERE id = ?', [result.insertId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'job_created', `Created job: ${title}`);
@@ -90,8 +96,8 @@ async function updateJob(req, res) {
     if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
   }
   await pool.query(
-    'UPDATE recruitment_jobs SET position_id=?, title_id=?, title=?, department=?, type=?, technical=?, status=?, description=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=? WHERE id=?',
-    [position_id || null, title_id || null, title, department, type, technical ? 1 : 0, status, description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, id]
+    'UPDATE recruitment_jobs SET position_id=?, title_id=?, title=?, department=?, type=?, technical=?, status=?, description=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=? WHERE id=?' + (req.tenantId ? ' AND tenant_id=?' : ''),
+    [position_id || null, title_id || null, title, department, type, technical ? 1 : 0, status, description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, id].concat(req.tenantId ? [req.tenantId] : [])
   );
   const [[job]] = await pool.query('SELECT * FROM recruitment_jobs WHERE id = ?', [id]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'job_updated', `Updated job: ${title}`);
@@ -100,7 +106,11 @@ async function updateJob(req, res) {
 
 async function deleteJob(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM recruitment_jobs WHERE id = ?', [id]);
+  const tenantId = req.tenantId;
+  await pool.query(
+    'DELETE FROM recruitment_jobs WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
+  );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'job_deleted', `Deleted job #${id}`);
   res.json({ deleted: parseInt(id) });
 }
@@ -112,11 +122,19 @@ async function listCandidates(req, res) {
   const page = parseInt(req.query.page) || 1;
   const perPage = Math.min(parseInt(req.query.per_page) || 20, 100);
   const offset = (page - 1) * perPage;
+  const tenantId = req.tenantId;
 
   let sql = `SELECT c.*, (SELECT hh.note FROM recruitment_history hh WHERE hh.candidate_id = c.id ORDER BY hh.created_at DESC LIMIT 1) AS last_note, (SELECT sr.overall_status FROM screening_results sr WHERE sr.candidate_id = c.id ORDER BY sr.created_at DESC LIMIT 1) AS screening_status FROM recruitment_candidates c WHERE 1=1`;
   let countSql = 'SELECT COUNT(*) AS total FROM recruitment_candidates WHERE 1=1';
   const args = [];
   const countArgs = [];
+
+  if (tenantId) {
+    sql += ' AND c.tenant_id = ?';
+    countSql += ' AND tenant_id = ?';
+    args.push(tenantId);
+    countArgs.push(tenantId);
+  }
 
   if (stage && stage !== 'all') {
     sql += ' AND c.stage = ?';
@@ -146,7 +164,11 @@ async function listCandidates(req, res) {
 
 async function getCandidate(req, res) {
   const { id } = req.params;
-  const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
+  const tenantId = req.tenantId;
+  const [[candidate]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
+  );
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
 
   const [history] = await pool.query('SELECT * FROM recruitment_history WHERE candidate_id = ? ORDER BY created_at', [id]);
@@ -200,14 +222,14 @@ async function createCandidate(req, res) {
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
   const [result] = await pool.query(
-    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years || null, skills ? (typeof skills === 'string' ? skills : JSON.stringify(skills)) : null, certifications ? (typeof certifications === 'string' ? certifications : JSON.stringify(certifications)) : null,
+    `INSERT INTO recruitment_candidates (tenant_id,name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [req.tenantId || null, name, email, phone || '', job_id || null, job_title || '', stage || 'applied', technical ? 1 : 0, notes || '', source || 'Manual', education_level || null, experience_years || null, skills ? (typeof skills === 'string' ? skills : JSON.stringify(skills)) : null, certifications ? (typeof certifications === 'string' ? certifications : JSON.stringify(certifications)) : null,
      current_salary || null, expected_salary || null, nationality || null, birth_date || null, national_id || null, current_job_title || null, last_work_place || null, reason_leaving || null, governorate || null, city || null, district || null]
   );
   await pool.query(
-    'INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)',
-    [result.insertId, stage || 'applied', 'Candidate added manually', req.admin?.username || 'HR']
+    'INSERT INTO recruitment_history (tenant_id,candidate_id,stage,note,created_by) VALUES (?,?,?,?,?)',
+    [req.tenantId || null, result.insertId, stage || 'applied', 'Candidate added manually', req.admin?.username || 'HR']
   );
   const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [result.insertId]);
 
@@ -246,14 +268,18 @@ async function updateCandidate(req, res) {
   }
   if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
   args.push(id);
-  await pool.query(`UPDATE recruitment_candidates SET ${updates.join(', ')} WHERE id = ?`, args);
+  await pool.query(`UPDATE recruitment_candidates SET ${updates.join(', ')} WHERE id = ?` + (req.tenantId ? ' AND tenant_id = ?' : ''), args.concat(req.tenantId ? [req.tenantId] : []));
   const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
   res.json(candidate);
 }
 
 async function deleteCandidate(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM recruitment_candidates WHERE id = ?', [id]);
+  const tenantId = req.tenantId;
+  await pool.query(
+    'DELETE FROM recruitment_candidates WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
+  );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'candidate_deleted', `Deleted candidate #${id}`);
   res.json({ deleted: parseInt(id) });
 }
@@ -268,8 +294,8 @@ async function moveCandidate(req, res) {
   const adminName = req.admin?.username || req.hr?.username || req.admin?.name || 'HR';
 
   const [[candidate]] = await pool.query(
-    'SELECT * FROM recruitment_candidates WHERE id = ?',
-    [id]
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
   );
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
 
@@ -650,9 +676,11 @@ async function exportCandidates(req, res) {
   const page = parseInt(req.query.page) || 1;
   const perPage = Math.min(parseInt(req.query.per_page) || 200, 500);
   const offset = (page - 1) * perPage;
+  const tenantId = req.tenantId;
 
   let sql = `SELECT c.*, (SELECT hh.note FROM recruitment_history hh WHERE hh.candidate_id = c.id ORDER BY hh.created_at DESC LIMIT 1) AS last_note FROM recruitment_candidates c WHERE 1=1`;
   const args = [];
+  if (tenantId) { sql += ' AND c.tenant_id = ?'; args.push(tenantId); }
   if (stage && stage !== 'all') { sql += ' AND c.stage = ?'; args.push(stage); }
   if (search) { sql += ' AND (c.name LIKE ? OR c.email LIKE ? OR c.job_title LIKE ?)'; const t = `%${search}%`; args.push(t, t, t); }
   sql += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
@@ -733,12 +761,12 @@ async function hireCandidate(req, res) {
     const nextEmployeeId = (maxRow[0].max_id || 0) + 1;
     const username = candidate.email.split('@')[0] + Math.floor(Math.random() * 1000);
     const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
-    const password_hash = await bcrypt.hash(tempPassword, 10);
+    const password_hash = await bcrypt.hash(tempPassword, 12);
 
     const [insertResult] = await pool.query(
-      `INSERT INTO employees (employee_id, name, email, phone, username, password_hash, is_verified, department_id, title_id, can_wfh, employment_status)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 'active')`,
-      [nextEmployeeId, candidate.name, candidate.email, candidate.phone || '', username, password_hash, department_id || null, title_id || null]
+      `INSERT INTO employees (tenant_id, employee_id, name, email, phone, username, password_hash, is_verified, department_id, title_id, can_wfh, employment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 'active')`,
+      [req.tenantId || 1, nextEmployeeId, candidate.name, candidate.email, candidate.phone || '', username, password_hash, department_id || null, title_id || null]
     );
     const eid = insertResult.insertId;
 
@@ -768,10 +796,12 @@ async function listOffers(req, res) {
   const perPage = Math.min(parseInt(req.query.per_page) || 20, 100);
   const offset = (page - 1) * perPage;
   const status = req.query.status || '';
+  const tenantId = req.tenantId;
 
   let where = '';
   const params = [];
-  if (status) { where = 'WHERE o.status = ?'; params.push(status); }
+  if (tenantId) { where = 'WHERE o.tenant_id = ?'; params.push(tenantId); }
+  if (status) { where += where ? ' AND o.status = ?' : 'WHERE o.status = ?'; params.push(status); }
 
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM recruitment_offers o ${where}`, params
@@ -800,9 +830,11 @@ async function listInterviews(req, res) {
   const offset = (page - 1) * perPage;
   const status = req.query.status || '';
   const candidateId = req.query.candidate_id || '';
+  const tenantId = req.tenantId;
 
   let where = [];
   const params = [];
+  if (tenantId) { where.push('i.tenant_id = ?'); params.push(tenantId); }
   if (status) { where.push('i.status = ?'); params.push(status); }
   if (candidateId) { where.push('i.candidate_id = ?'); params.push(parseInt(candidateId)); }
   const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
@@ -851,12 +883,12 @@ async function createInterview(req, res) {
 
   const [result] = await pool.query(
     `INSERT INTO recruitment_interviews
-     (candidate_id, interview_date, duration, mode, interviewer, location_or_link, notes,
+     (tenant_id,candidate_id, interview_date, duration, mode, interviewer, location_or_link, notes,
       type, location_name, location_address, dress_code, what_to_bring, map_link,
       meeting_platform, meeting_link)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      candidate_id, interview_date, duration || 60, mode || 'video', interviewer || '',
+      req.tenantId || null, candidate_id, interview_date, duration || 60, mode || 'video', interviewer || '',
       location_or_link || '', notes || '',
       type || 'online', location_name || '', location_address || '', dress_code || '',
       what_to_bring || '', map_link || '', meeting_platform || '', generatedLink,
@@ -920,12 +952,22 @@ async function updateInterview(req, res) {
 
 // ── Reports ────────────────────────────────────────────────────
 async function getRecruitmentStats(req, res) {
+  const tenantId = req.tenantId;
+  const tenantCandFilter = tenantId ? ' WHERE tenant_id = ?' : '';
+  const tenantJobFilter = tenantId ? ' WHERE tenant_id = ?' : '';
+  const tenantOfferFilter = tenantId ? ' WHERE tenant_id = ?' : '';
+  const args = tenantId ? [tenantId] : [];
+  const args2 = tenantId ? [tenantId] : [];
+  const args3 = tenantId ? [tenantId] : [];
+
   const [[totalCount]] = await pool.query(
-    'SELECT COUNT(*) AS total FROM recruitment_candidates'
+    `SELECT COUNT(*) AS total FROM recruitment_candidates${tenantCandFilter}`,
+    args
   );
 
   const [stageCounts] = await pool.query(
-    'SELECT stage, COUNT(*) AS count FROM recruitment_candidates GROUP BY stage'
+    `SELECT stage, COUNT(*) AS count FROM recruitment_candidates${tenantCandFilter} GROUP BY stage`,
+    args
   );
 
   const [[offerStats]] = await pool.query(
@@ -936,7 +978,8 @@ async function getRecruitmentStats(req, res) {
        SUM(status='rejected') AS rejected,
        SUM(status='withdrawn') AS withdrawn,
        SUM(status='expired') AS expired
-     FROM recruitment_offers`
+     FROM recruitment_offers${tenantOfferFilter}`,
+    args2
   );
 
   const [[jobStats]] = await pool.query(
@@ -944,15 +987,19 @@ async function getRecruitmentStats(req, res) {
        COUNT(*) AS total,
        SUM(status='active') AS active,
        SUM(status='closed') AS closed
-     FROM recruitment_jobs`
+     FROM recruitment_jobs${tenantJobFilter}`,
+    args3
   );
 
+  const tenantAppFilter = tenantId ? ' AND tenant_id = ?' : '';
   const [monthlyApps] = await pool.query(
     `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count
      FROM recruitment_candidates
+     WHERE 1=1${tenantAppFilter}
      GROUP BY month
      ORDER BY month ASC
-     LIMIT 12`
+     LIMIT 12`,
+    tenantId ? [tenantId] : []
   );
 
   // Workflow-driven KPIs
@@ -1114,14 +1161,17 @@ async function respondToInterview(req, res) {
 
 // ── HR Staff (for interviewer dropdown) ────────────────────
 async function listHRStaff(req, res) {
+  const tenantId = req.tenantId;
+  const tenantFilter = tenantId ? ' AND e.tenant_id = ?' : '';
   const [rows] = await pool.query(
     `SELECT e.id, e.name, e.email
      FROM employees e
      LEFT JOIN departments d ON e.department_id = d.id
      WHERE (e.role = 'admin' OR LOWER(d.name) IN ('hr', 'human resources'))
      AND (e.is_system IS NULL OR e.is_system = 0)
-     AND e.is_active = 1
-     ORDER BY e.name ASC`
+     AND e.is_active = 1${tenantFilter}
+     ORDER BY e.name ASC`,
+    tenantId ? [tenantId] : []
   );
   res.json(rows);
 }

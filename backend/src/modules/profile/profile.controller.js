@@ -23,8 +23,8 @@ async function changePassword(req, res) {
   if (!current_password || !new_password) {
     return res.status(400).json({ error: 'Current and new password are required' });
   }
-  if (new_password.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  if (new_password.length < 12) {
+    return res.status(400).json({ error: 'New password must be at least 12 characters' });
   }
 
   const [rows] = await pool.query('SELECT password_hash FROM employees WHERE id = ?', [employeeId]);

@@ -1,7 +1,6 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 
 // Resolve tenant_id from the authenticated user's token
@@ -23,18 +22,24 @@ const resolveTenant = async (req, res, next) => {
       if (rows.length > 0) {
         if (rows[0].is_platform_admin === 1) {
           req.tenantId = req.body?.tenant_id || req.query?.tenant_id || null;
+        } else if (rows[0].tenant_id) {
+          req.tenantId = rows[0].tenant_id;
         } else {
-          req.tenantId = rows[0].tenant_id || 1;
+          return res.status(403).json({ error: 'Admin account has no tenant assigned' });
         }
       } else {
-        req.tenantId = 1;
+        return res.status(401).json({ error: 'Admin account not found' });
       }
       return next();
     }
 
     // Priority 2.5: employee-admin (it-auth sets req.admin with type: 'employee_admin')
     if (req.admin && req.admin.type !== 'admin') {
-      req.tenantId = req.admin.tenant_id || 1;
+      if (req.admin.tenant_id) {
+        req.tenantId = req.admin.tenant_id;
+      } else {
+        return res.status(403).json({ error: 'Employee-admin has no tenant assigned' });
+      }
       return next();
     }
 
@@ -45,21 +50,19 @@ const resolveTenant = async (req, res, next) => {
         'SELECT tenant_id FROM employees WHERE id = ?',
         [empId]
       );
-      if (rows.length > 0) {
-        req.tenantId = rows[0].tenant_id || 1;
+      if (rows.length > 0 && rows[0].tenant_id) {
+        req.tenantId = rows[0].tenant_id;
       } else {
-        req.tenantId = 1;
+        return res.status(403).json({ error: 'Employee has no tenant assigned' });
       }
       return next();
     }
 
-    // Default fallback
-    req.tenantId = 1;
-    next();
+    // No recognized auth context — reject
+    return res.status(401).json({ error: 'Authentication required to resolve tenant' });
   } catch (err) {
     console.error('resolveTenant error:', err);
-    req.tenantId = 1;
-    next();
+    return res.status(500).json({ error: 'Failed to resolve tenant context' });
   }
 };
 

@@ -6,6 +6,7 @@ const multer = require('multer');
 const { requireITAuth } = require('../../shared/middleware/it-auth.middleware');
 const { requirePasswordChangeGate } = require('../../shared/middleware/password-gate.middleware');
 const { requireHR } = require('../../shared/middleware/hr.middleware');
+const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 
 const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -52,9 +53,11 @@ const {
 const adminRouter = Router();
 adminRouter.use(requireITAuth);
 adminRouter.use(requirePasswordChangeGate);
+adminRouter.use(resolveTenant);
 
 const hrRouter = Router();
 hrRouter.use(requireHR);
+hrRouter.use(resolveTenant);
 
 // ── Admin routes ───────────────────────────────────────────────
 adminRouter.get('/jobs', listJobs);

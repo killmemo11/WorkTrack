@@ -1,9 +1,9 @@
 # WorkTrack - Project Info
 
 ## Server
-- IP: 34.18.219.80
+- IP: 34.18.50.195
 - Domain: https://worktrack.ddns.net
-- SSH: `ssh -i ~/.ssh/worktrack hrmohamedyehia@34.18.219.80`
+- SSH: `ssh -i ~/.ssh/worktrack hrmohamedyehia@34.18.50.195`
 - Project root: `~/WorkTrack`
 
 ## Key Paths

@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const { authenticate: requireAuth } = require('../../shared/middleware/auth.middleware');
 const { requireReadWrite } = require('../../shared/middleware/readonly.middleware');
+const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 const { getPersonnelDir } = require('../../shared/config/storage');
 
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
@@ -23,6 +24,11 @@ const upload = multer({
 });
 
 const router = Router();
+
+const requireAuthAndTenant = (req, res, next) => requireAuth(req, res, (err) => {
+  if (err) return next(err);
+  resolveTenant(req, res, next);
+});
 
 const {
   getMyProfile, updateMyProfile, getMyDocuments,
@@ -44,21 +50,21 @@ const {
   getMyPendingTasks,
 } = require('../admin/admin-checklist.controller');
 
-router.get('/my-profile', requireAuth, getMyProfile);
-router.put('/my-profile', requireAuth, requireReadWrite, updateMyProfile);
-router.get('/my-documents', requireAuth, getMyDocuments);
-router.get('/my-documents/search', requireAuth, searchDocuments);
-router.get('/my-documents/:docId/preview', requireAuth, getDocumentPreview);
-router.get('/organization-chart', requireAuth, getOrganization);
-router.post('/my-avatar', requireAuth, upload.single('file'), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
-router.post('/resignation', requireAuth, requireReadWrite, submitResignation);
-router.get('/my-assets', requireAuth, getMyAssets);
-router.get('/dashboard', requireAuth, getEmployeeDashboard);
-router.get('/my-assets/history', requireAuth, getMyAssetHistory);
-router.get('/my-contracts', requireAuth, getMyContracts);
-router.get('/my-contracts/:id/content', requireAuth, getMyContractContent);
-router.get('/my-contracts/:cid/pdf', requireAuth, (req, res, next) => { req.params.id = req.employee.id; next(); }, downloadContractPdf);
-router.get('/my-pending-tasks', requireAuth, getMyPendingTasks);
-router.patch('/goals/:goalId/progress', requireAuth, requireReadWrite, updateGoalProgress);
+router.get('/my-profile', requireAuthAndTenant, getMyProfile);
+router.put('/my-profile', requireAuthAndTenant, requireReadWrite, updateMyProfile);
+router.get('/my-documents', requireAuthAndTenant, getMyDocuments);
+router.get('/my-documents/search', requireAuthAndTenant, searchDocuments);
+router.get('/my-documents/:docId/preview', requireAuthAndTenant, getDocumentPreview);
+router.get('/organization-chart', requireAuthAndTenant, getOrganization);
+router.post('/my-avatar', requireAuthAndTenant, upload.single('file'), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
+router.post('/resignation', requireAuthAndTenant, requireReadWrite, submitResignation);
+router.get('/my-assets', requireAuthAndTenant, getMyAssets);
+router.get('/dashboard', requireAuthAndTenant, getEmployeeDashboard);
+router.get('/my-assets/history', requireAuthAndTenant, getMyAssetHistory);
+router.get('/my-contracts', requireAuthAndTenant, getMyContracts);
+router.get('/my-contracts/:id/content', requireAuthAndTenant, getMyContractContent);
+router.get('/my-contracts/:cid/pdf', requireAuthAndTenant, (req, res, next) => { req.params.id = req.employee.id; next(); }, downloadContractPdf);
+router.get('/my-pending-tasks', requireAuthAndTenant, getMyPendingTasks);
+router.patch('/goals/:goalId/progress', requireAuthAndTenant, requireReadWrite, updateGoalProgress);
 
 module.exports = router;
