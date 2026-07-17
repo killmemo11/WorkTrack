@@ -1,5 +1,15 @@
 const pino = require('pino');
 
+let transport;
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require.resolve('pino-pretty');
+    transport = { target: 'pino-pretty', options: { colorize: true } };
+  } catch {
+    // pino-pretty not installed — fall back to default JSON logging
+  }
+}
+
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   formatters: {
@@ -12,9 +22,7 @@ const logger = pino({
     censor: '[REDACTED]',
   },
   timestamp: pino.stdTimeFunctions.isoTime,
-  ...(process.env.NODE_ENV !== 'production' ? {
-    transport: { target: 'pino-pretty', options: { colorize: true } },
-  } : {}),
+  ...(transport ? { transport } : {}),
 });
 
 module.exports = logger;
