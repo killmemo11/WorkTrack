@@ -2,11 +2,9 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AdminAuthContext = createContext();
 
-const checkToken = async (token) => {
+const checkAuth = async () => {
   try {
-    const res = await fetch('/api/admin/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch('/api/admin/auth/me', { credentials: 'include' });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -20,42 +18,13 @@ export function AdminAuthProvider({ children }) {
 
   const recheck = async () => {
     setLoading(true);
-    const adminToken = localStorage.getItem('adminToken');
-
-    let data = null;
-    if (adminToken) {
-      data = await checkToken(adminToken);
-      if (!data) {
-        localStorage.removeItem('adminToken');
-      }
-    }
-
+    const data = await checkAuth();
     setAdmin(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    let cancelled = false;
-
-    const init = async () => {
-      await recheck();
-      if (cancelled) return;
-    };
-
-    init();
-
-    const onStorage = (e) => {
-      if (e.key === 'token' || e.key === 'adminToken') {
-        setLoading(true);
-        recheck();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('storage', onStorage);
-    };
+    recheck();
   }, []);
 
   const login = async (username, password) => {
@@ -69,13 +38,12 @@ export function AdminAuthProvider({ children }) {
       throw new Error(errData.error || 'Invalid credentials');
     }
     const data = await res.json();
-    localStorage.setItem('adminToken', data.token);
     setAdmin(data.admin);
     return data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('adminToken');
+  const logout = async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
     setAdmin(null);
     window.location.href = '/admin/login';
   };

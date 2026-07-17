@@ -8,17 +8,14 @@ function getTokenFromCookie(name) {
   return match ? match.trim().split('=')[1] : null;
 }
 
-function getToken() {
-  return getTokenFromCookie('access_token') || localStorage.getItem('token');
-}
-
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  const token = getTokenFromCookie('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -57,13 +54,11 @@ api.interceptors.response.use(
       try {
         const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
         const newToken = data.access_token;
-        localStorage.setItem('token', newToken);
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        localStorage.removeItem('token');
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       } finally {

@@ -2,11 +2,9 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const PlatformAuthContext = createContext();
 
-const checkToken = async (token) => {
+const checkAuth = async () => {
   try {
-    const res = await fetch('/api/platform/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch('/api/platform/auth/me', { credentials: 'include' });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -20,16 +18,7 @@ export function PlatformAuthProvider({ children }) {
 
   const recheck = async (redirect = false) => {
     setLoading(true);
-    const token = localStorage.getItem('platformToken');
-
-    let data = null;
-    if (token) {
-      data = await checkToken(token);
-      if (!data) {
-        localStorage.removeItem('platformToken');
-      }
-    }
-
+    const data = await checkAuth();
     setPlatformAdmin(data);
     setLoading(false);
 
@@ -39,35 +28,13 @@ export function PlatformAuthProvider({ children }) {
   };
 
   useEffect(() => {
-    let cancelled = false;
-
-    const init = async () => {
-      await recheck(true);
-      if (cancelled) return;
-    };
-
-    init();
-
-    const onStorage = (e) => {
-      if (e.key === 'platformToken') {
-        setLoading(true);
-        recheck();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener('storage', onStorage);
-    };
+    recheck(true);
   }, []);
 
   const login = async (username, password) => {
     const res = await fetch('/api/platform/auth/login', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) {
@@ -75,13 +42,12 @@ export function PlatformAuthProvider({ children }) {
       throw new Error(errData.error || 'Invalid credentials');
     }
     const data = await res.json();
-    localStorage.setItem('platformToken', data.token);
     setPlatformAdmin(data.platformAdmin);
     return data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('platformToken');
+  const logout = async () => {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
     setPlatformAdmin(null);
     window.location.href = '/platform/login';
   };

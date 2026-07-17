@@ -5,6 +5,7 @@ require('express-async-errors');
 const express = require('express');
 const path = require('path');
 const logger = require('./shared/utils/logger');
+const pinoHttp = require('pino-http');
 const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -63,6 +64,20 @@ function escapeHtml(str) {
 const app = express();
 
 app.set('trust proxy', 1);
+
+// Request logging + X-Request-Id
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => req.headers['x-request-id'] || require('crypto').randomUUID(),
+  customLogLevel: (req, res) => {
+    if (res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res) => `${req.method} ${req.url} ${res.statusCode}`,
+  morganConfig: { immediate: false },
+}));
 
 // Security headers
 app.use(helmet({

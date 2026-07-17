@@ -8,16 +8,13 @@ function getTokenFromCookie(name) {
   return match ? match.trim().split('=')[1] : null;
 }
 
-function getToken() {
-  return getTokenFromCookie('access_token') || localStorage.getItem('adminToken');
-}
-
 const adminApi = axios.create({
   baseURL: '/api/admin',
+  withCredentials: true,
 });
 
 adminApi.interceptors.request.use((config) => {
-  const adminToken = getToken();
+  const adminToken = getTokenFromCookie('access_token');
   if (adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`;
   }
@@ -56,13 +53,11 @@ adminApi.interceptors.response.use(
       try {
         const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
         const newToken = data.access_token;
-        localStorage.setItem('adminToken', newToken);
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return adminApi(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        localStorage.removeItem('adminToken');
         window.location.href = '/admin/login';
         return Promise.reject(refreshErr);
       } finally {
