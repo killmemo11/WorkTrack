@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { isWorkDay, getDaysInMonth, getTodayDateString, formatDateCairo } = require('../../shared/utils/work-day.util');
+const logger = require('../../shared/utils/logger');
 const { sendSignInEmail, sendSignOutEmail, sendSignOutRequestPendingEmail } = require('../../shared/services/email.service');
 const { createNotification, notifyAllAdmins } = require('../../shared/services/notification.service');
 
@@ -111,7 +112,7 @@ async function signIn(req, res) {
 
   const record = { id: result.insertId, employee_id: employeeId, date: today, type, sign_in_time: now };
 
-  try { await sendSignInEmail(req.employee, record); } catch (e) { console.error('Email error:', e); }
+  try { await sendSignInEmail(req.employee, record); } catch (e) { logger.error('Email error:', e); }
   await createNotification(employeeId, 'Sign-In Successful', `You signed in (${type === 'office' ? 'Office' : 'WFH'}) at ${new Date(now).toLocaleTimeString()}.`, 'success');
 
   res.status(201).json(record);
@@ -173,7 +174,7 @@ async function signOut(req, res) {
     notes: records[0].notes || notes || '',
   };
 
-  try { await sendSignOutEmail(req.employee, responseRecord); } catch (e) { console.error('Email error:', e); }
+  try { await sendSignOutEmail(req.employee, responseRecord); } catch (e) { logger.error('Email error:', e); }
   const diffMs = new Date(now) - new Date(responseRecord.sign_in_time);
   const totalHours = (diffMs / (1000 * 60 * 60)).toFixed(1);
   await createNotification(employeeId, 'Sign-Out Successful', `You signed out at ${new Date(now).toLocaleTimeString()}. Total: ${totalHours}h.`, 'success');
@@ -309,7 +310,7 @@ async function requestSignOut(req, res) {
         );
       }
     } catch (e) {
-      console.error('Sign-out request notification error:', e);
+      logger.error('Sign-out request notification error:', e);
     }
   } else {
     try {
@@ -321,7 +322,7 @@ async function requestSignOut(req, res) {
         '/admin/signout-requests'
       );
     } catch (e) {
-      console.error('Admin sign-out notification error:', e);
+      logger.error('Admin sign-out notification error:', e);
     }
   }
 
@@ -368,7 +369,7 @@ async function completeSignOut(req, res) {
 
   const record = { ...records[0], sign_out_time: signOutDate, notes: notes || '' };
 
-  try { await sendSignOutEmail(req.employee, record); } catch (e) { console.error('Email error:', e); }
+  try { await sendSignOutEmail(req.employee, record); } catch (e) { logger.error('Email error:', e); }
 
   res.json(record);
 }

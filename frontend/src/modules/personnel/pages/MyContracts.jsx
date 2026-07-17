@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
+import { sanitizeHTML } from '../../../shared/utils/sanitize';
 
 export default function MyContracts() {
   const [contracts, setContracts] = useState([]);
@@ -117,9 +118,9 @@ export default function MyContracts() {
         <div className="glass-modal-overlay" onClick={() => setViewContent(null)}>
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: 16 }}>Contract</h3>
-            <div className="glass-card" dangerouslySetInnerHTML={{ __html: viewContent }} />
+            <div className="glass-card" dangerouslySetInnerHTML={{ __html: sanitizeHTML(viewContent) }} />
             <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(viewContent); w.print(); }}>
+              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(sanitizeHTML(viewContent)); w.print(); }}>
                 <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>

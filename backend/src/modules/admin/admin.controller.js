@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { isWorkDay, getDaysInMonth, formatDateCairo } = require('../../shared/utils/work-day.util');
+const logger = require('../../shared/utils/logger');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logActivity } = require('../../shared/services/activity.service');
 const { runMissingSignOutCheck } = require('../../shared/jobs/missing-signout-reminder.job');
@@ -515,7 +516,7 @@ async function adminApproveSignoutRequest(req, res) {
       date: recRows[0].date,
       signOutTime: new Date(sr.sign_out_time).toLocaleTimeString(),
     });
-  } catch (e) { console.error('Sign-out approved email error:', e); }
+  } catch (e) { logger.error('Sign-out approved email error:', e); }
 
   await logActivity(sr.employee_id, adminId, 'signout_approved', `Admin approved sign-out request (record #${sr.attendance_record_id})`);
 
@@ -558,7 +559,7 @@ async function adminRejectSignoutRequest(req, res) {
     const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ?', [sr.attendance_record_id]);
     const emailService = require('../../shared/services/email.service');
     await emailService.sendSignOutRequestRejectedEmail(empRows[0], { date: recRows[0].date, signOutTime: '' }, rejection_reason);
-  } catch (e) { console.error('Sign-out rejected email error:', e); }
+  } catch (e) { logger.error('Sign-out rejected email error:', e); }
 
   await logActivity(sr.employee_id, adminId, 'signout_rejected', `Admin rejected sign-out request (record #${sr.attendance_record_id}): ${rejection_reason || 'No reason'}`);
 
@@ -599,8 +600,8 @@ async function triggerMissingSignOutCheck(req, res) {
     await logActivity(null, logAdminId, 'missing_signout_check', `Triggered missing sign-out check — ${result.processed || 0} processed, ${result.reminded || 0} reminded`);
     res.json({ message: 'Check complete', ...result });
   } catch (err) {
-    console.error('[Admin] Error triggering missing sign-out check:', err);
-    res.status(500).json({ error: err.message });
+    logger.error('[Admin] Error triggering missing sign-out check:', err);
+    res.status(500).json({ error: 'Failed to trigger sign-out check' });
   }
 }
 

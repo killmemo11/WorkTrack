@@ -75,7 +75,7 @@ export default function ProfileCertifications({ profile, onUpdate }) {
                   {c.issuing_authority && <span>{c.issuing_authority}</span>}
                   {c.issue_date && <span>Issued: {fmtDate(c.issue_date)}</span>}
                   {c.expiry_date && <span>Expires: {fmtDate(c.expiry_date)}</span>}
-                  {c.credential_url && <a href={c.credential_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)' }}>View</a>}
+                  {c.credential_url && isValidHttpUrl(c.credential_url) && <a href={c.credential_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)' }}>View</a>}
                 </div>
               </div>
               <div className="doc-list-actions">

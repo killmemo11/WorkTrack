@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const logger = require('../../shared/utils/logger');
 const { arabicNumberToWords, formatSalaryBreakdown, getTotalSalary } = require('../../shared/utils/arabic-number-to-words');
 
 async function getTemplates(req, res) {
@@ -229,7 +230,7 @@ async function downloadContractPdf(req, res) {
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="contract-${cid}.pdf"`, 'Content-Length': pdf.length });
     res.send(pdf);
   } catch (err) {
-    console.error('PDF generation error:', err);
+    logger.error('PDF generation error:', err);
     res.status(500).json({ error: 'Failed to generate PDF' });
   } finally {
     if (browser) await browser.close();

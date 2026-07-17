@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import ProfileTimeline from '../components/ProfileTimeline';
 import IDCardModal from '../../../shared/components/IDCardModal';
+import { sanitizeHTML } from '../../../shared/utils/sanitize';
 
 export default function MyProfile() {
   const [tab, setTab] = useState('profile');
@@ -460,9 +461,9 @@ export default function MyProfile() {
         <div className="glass-modal-overlay" onClick={() => setViewContractContent(null)}>
           <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: 16 }}>Contract</h3>
-            <div className="glass-card" dangerouslySetInnerHTML={{ __html: viewContractContent }} />
+            <div className="glass-card" dangerouslySetInnerHTML={{ __html: sanitizeHTML(viewContractContent) }} />
             <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(viewContractContent); w.print(); }}>
+              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(sanitizeHTML(viewContractContent)); w.print(); }}>
                 <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>

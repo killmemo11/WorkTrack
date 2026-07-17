@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const logger = require('../../shared/utils/logger');
 
 async function getSettings(req, res) {
   const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
@@ -102,8 +103,8 @@ async function updateSettings(req, res) {
 
     res.json(settings);
   } catch (err) {
-    console.error('updateSettings error:', err);
-    res.status(500).json({ error: err.message || 'Failed to update settings' });
+    logger.error('updateSettings error:', err);
+    res.status(500).json({ error: 'Failed to update settings' });
   }
 }
 
@@ -150,7 +151,7 @@ async function testEmail(req, res) {
     await logActivity(null, adminId, 'test_email_sent', `Test email sent to ${to}`);
     res.json({ message: `Test email sent to ${to}` });
   } catch (err) {
-    console.error('SMTP test error:', err);
+    logger.error('SMTP test error:', err);
     res.status(400).json({ error: 'Failed to send test email. Check SMTP settings and try again.' });
   }
 }

@@ -8,6 +8,7 @@ const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSum
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
 const { checkHeadcountCapacity, recalcDepartmentMaxHeadcount } = require('../../shared/utils/headcount.util');
 const XLSX = require('xlsx');
+const logger = require('../../shared/utils/logger');
 const path = require('path');
 
 async function getPositions(req, res) {
@@ -172,7 +173,7 @@ async function getEmployeeDashboard(req, res) {
       recentNotifications
     });
   } catch (err) {
-    console.error('Error fetching employee dashboard:', err);
+    logger.error('Error fetching employee dashboard:', err);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 }
@@ -1027,7 +1028,7 @@ async function submitResignation(req, res) {
     try {
       const emailService = require('../../shared/services/email.service');
       await emailService.sendResignationNotification(targetEmail, emp[0], { id: requestId, reason, resignation_date });
-    } catch (e) { console.error('Resignation email error:', e); }
+    } catch (e) { logger.error('Resignation email error:', e); }
   }
   logActivity(employeeId, null, 'resignation_submitted', `Submitted resignation request for ${resignation_date}`);
   res.status(201).json({ id: requestId, message: 'Resignation request submitted' });
@@ -1230,7 +1231,7 @@ async function getEmployeeGoals(req, res) {
     );
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching goals:', err);
+    logger.error('Error fetching goals:', err);
     res.status(500).json({ error: 'Failed to fetch goals' });
   }
 }
@@ -1257,7 +1258,7 @@ async function createEmployeeGoal(req, res) {
     const [created] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [result.insertId]);
     res.status(201).json(created[0]);
   } catch (err) {
-    console.error('Error creating goal:', err);
+    logger.error('Error creating goal:', err);
     res.status(500).json({ error: 'Failed to create goal' });
   }
 }
@@ -1288,7 +1289,7 @@ async function updateEmployeeGoal(req, res) {
     }
     res.json(updated[0]);
   } catch (err) {
-    console.error('Error updating goal:', err);
+    logger.error('Error updating goal:', err);
     res.status(500).json({ error: 'Failed to update goal' });
   }
 }
@@ -1305,7 +1306,7 @@ async function deleteEmployeeGoal(req, res) {
     }
     res.json({ message: 'Goal deleted' });
   } catch (err) {
-    console.error('Error deleting goal:', err);
+    logger.error('Error deleting goal:', err);
     res.status(500).json({ error: 'Failed to delete goal' });
   }
 }
@@ -1328,7 +1329,7 @@ async function updateGoalProgress(req, res) {
     }
     res.json(updated[0]);
   } catch (err) {
-    console.error('Error updating goal progress:', err);
+    logger.error('Error updating goal progress:', err);
     res.status(500).json({ error: 'Failed to update goal progress' });
   }
 }

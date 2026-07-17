@@ -1,4 +1,10 @@
 worktrack.ddns.net {
+    header X-Content-Type-Options "nosniff"
+    header X-Frame-Options "DENY"
+    header Referrer-Policy "strict-origin-when-cross-origin"
+    header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    header X-XSS-Protection "0"
+
     route {
         handle /api/* {
             reverse_proxy localhost:5000

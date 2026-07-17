@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import { sanitizeHTML } from '../../../shared/utils/sanitize';
 
 export default function MessageTemplates() {
   const [templates, setTemplates] = useState([]);
@@ -207,7 +208,7 @@ export default function MessageTemplates() {
                     <div style={{
                       padding: '12px 16px', background: '#fff', color: '#1a1a2e', borderRadius: 6,
                       fontSize: '0.9rem', lineHeight: 1.6, maxHeight: 400, overflowY: 'auto',
-                    }} dangerouslySetInnerHTML={{ __html: previewResult.body }} />
+                    }} dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewResult.body) }} />
                   </div>
                 </div>
               )}

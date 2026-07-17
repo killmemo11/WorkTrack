@@ -1,15 +1,8 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-/**
- * Infinite horizontal scrolling logos strip.
- * Uses pure CSS animation (translateX -50%) duplicated track for seamless loop.
- * Pauses on hover.
- *
- * @param {Object} props
- * @param {Array<{ name: string, svg: string }>} props.logos
- * @param {string} props.className
- */
+import { sanitizeHTML } from '../../../shared/utils/sanitize';
+
 export default function LogoStrip({ logos = [], className = '' }) {
   const doubled = [...logos, ...logos];
 
@@ -21,7 +14,7 @@ export default function LogoStrip({ logos = [], className = '' }) {
         {doubled.map((logo, i) => (
           <div key={i} className="landing-logo-strip-item" title={logo.name}>
             {logo.svg ? (
-              <span dangerouslySetInnerHTML={{ __html: logo.svg }} />
+              <span dangerouslySetInnerHTML={{ __html: sanitizeHTML(logo.svg) }} />
             ) : (
               <span className="landing-logo-strip-placeholder">{logo.name}</span>
             )}

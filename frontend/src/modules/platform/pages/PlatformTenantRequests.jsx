@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
+import { isValidHttpUrl } from '../../../shared/utils/sanitize';
 
 const STATUS_BADGE = {
   pending: 'warning',
@@ -275,7 +276,7 @@ export default function PlatformTenantRequests() {
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label>Payment Proof</label>
                     <div style={{ marginTop: 8 }}>
-                      <a href={viewingRequest.payment_proof_url} target="_blank" rel="noopener noreferrer" className="glass-btn glass-btn-sm glass-btn-ghost">
+                      <a href={isValidHttpUrl(viewingRequest.payment_proof_url) ? viewingRequest.payment_proof_url : '#'} target="_blank" rel="noopener noreferrer" className="glass-btn glass-btn-sm glass-btn-ghost">
                         <Icon icon="lucide:external-link" size={14} /> View Proof
                       </a>
                     </div>

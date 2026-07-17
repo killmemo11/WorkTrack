@@ -7,6 +7,7 @@ const emailService = require('../../shared/services/email.service');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logBalanceChange } = require('../../shared/services/audit.service');
 const { logActivity } = require('../../shared/services/activity.service');
+const logger = require('../../shared/utils/logger');
 
 function getDatesBetween(start, end) {
   const dates = [];
@@ -123,7 +124,7 @@ async function createLeave(req, res) {
   try {
     const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [employeeId]);
     await emailService.sendLeaveConfirmationEmail(empRows[0], { id: leaveId, type, start_date, end_date, days_count: daysCount });
-  } catch (e) { console.error('Leave confirmation email error:', e); }
+  } catch (e) { logger.error('Leave confirmation email error:', e); }
 
   await logActivity(employeeId, null, 'leave_submitted', `Submitted ${type} leave request for ${daysCount} day(s) (${start_date} → ${end_date})`);
 
@@ -179,7 +180,7 @@ async function createLeave(req, res) {
           );
         }
       }
-    } catch (e) { console.error('Manager notification email error:', e); }
+    } catch (e) { logger.error('Manager notification email error:', e); }
   }
 
   res.status(201).json({ message: 'Leave request submitted', id: leaveId });

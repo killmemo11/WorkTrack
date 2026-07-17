@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const logger = require('../../shared/utils/logger');
 const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 const bcrypt = require('bcryptjs');
 const path = require('path');
@@ -249,7 +250,7 @@ async function createCandidate(req, res) {
         }
       }
     }
-  } catch (e) { console.error('Auto-screening error:', e); }
+  } catch (e) { logger.error('Auto-screening error:', e); }
 
   logActivity(null, req.admin?.id || req.hr?.id || null, 'candidate_created', `Created candidate: ${name}`);
   res.status(201).json(candidate);
@@ -329,7 +330,7 @@ async function moveCandidate(req, res) {
         job_title: candidate.job_title,
       });
       await emailService.sendEmail(candidate.email, result.subject, result.html);
-    } catch (e) { console.error('Rejection email error:', e); }
+    } catch (e) { logger.error('Rejection email error:', e); }
   }
 
   logActivity(null, req.admin?.id || req.hr?.id || null, 'candidate_moved', `Moved candidate #${id} to ${stage}`);
@@ -431,7 +432,7 @@ async function createOffer(req, res) {
         offer_details: '',
       });
       await emailService.sendEmail(c.email, result2.subject, result2.html);
-    } catch (e) { console.error('Offer email error:', e); }
+    } catch (e) { logger.error('Offer email error:', e); }
   }
   logActivity(null, req.admin?.id || req.hr?.id || null, 'offer_created', `Created offer for candidate #${id}`);
   res.status(201).json({ id: result.insertId });
@@ -491,7 +492,7 @@ async function publicApply(req, res) {
         await autoScreen(result.insertId, jobs[0].title_id, job_id);
       }
     }
-  } catch (e) { console.error('Auto-screening error:', e); }
+  } catch (e) { logger.error('Auto-screening error:', e); }
 
   // Check if candidate was auto-rejected
   const [[current]] = await pool.query('SELECT stage FROM recruitment_candidates WHERE id = ?', [result.insertId]);
@@ -518,7 +519,7 @@ async function publicApply(req, res) {
       await emailService.sendEmail(email, result2.subject, result2.html);
     }
     emailSent = true;
-  } catch (e) { console.error('Confirmation/rejection email error:', e); }
+  } catch (e) { logger.error('Confirmation/rejection email error:', e); }
 
   res.status(201).json({ id: result.insertId, ref, email_sent: emailSent });
 }
@@ -878,7 +879,7 @@ async function createInterview(req, res) {
         notes: notes || '',
         interviewer,
       });
-    } catch (e) { console.error('Meeting link generation error:', e.message); }
+    } catch (e) { logger.error('Meeting link generation error:', e.message); }
   }
 
   const [result] = await pool.query(
@@ -913,7 +914,7 @@ async function createInterview(req, res) {
         job_title: candidate.job_title || req.body.job_title || '',
       };
       await sendInterviewInvitation(candidate.email, candidate.name, interview);
-    } catch (e) { console.error('Interview email error:', e); }
+    } catch (e) { logger.error('Interview email error:', e); }
   }
 
   res.status(201).json({ id: result.insertId, stage: 'first' });
@@ -1079,7 +1080,7 @@ async function updateOffer(req, res) {
       try {
         const result = await renderEmail('offer_accepted', { candidate_name: offer.candidate_name, position: offer.position });
         await emailService.sendEmail(offer.email, result.subject, result.html);
-      } catch (e) { console.error('Offer accepted email error:', e); }
+      } catch (e) { logger.error('Offer accepted email error:', e); }
       break;
     }
     case 'rejected': {
@@ -1087,7 +1088,7 @@ async function updateOffer(req, res) {
       try {
         const result = await renderEmail('offer_rejected', { candidate_name: offer.candidate_name, position: offer.position });
         await emailService.sendEmail(offer.email, result.subject, result.html);
-      } catch (e) { console.error('Offer rejected email error:', e); }
+      } catch (e) { logger.error('Offer rejected email error:', e); }
       break;
     }
     case 'withdrawn':

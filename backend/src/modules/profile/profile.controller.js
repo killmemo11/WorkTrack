@@ -33,7 +33,7 @@ async function changePassword(req, res) {
     return res.status(400).json({ error: 'Current password is incorrect' });
   }
 
-  const password_hash = await bcrypt.hash(new_password, 10);
+  const password_hash = await bcrypt.hash(new_password, 12);
   await pool.query('UPDATE employees SET password_hash = ? WHERE id = ?', [password_hash, employeeId]);
 
   res.json({ message: 'Password changed successfully' });

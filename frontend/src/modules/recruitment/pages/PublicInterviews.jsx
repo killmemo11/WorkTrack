@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { isValidHttpUrl } from '../../../shared/utils/sanitize';
 
 export default function PublicInterviews() {
   const [email, setEmail] = useState('');
@@ -40,10 +41,11 @@ export default function PublicInterviews() {
   };
 
   const openMeeting = (iv) => {
-    if (iv.meeting_link && !iv.meeting_link.includes('meet.jit.si')) {
+    if (iv.meeting_link && isValidHttpUrl(iv.meeting_link) && !iv.meeting_link.includes('meet.jit.si')) {
       window.open(iv.meeting_link, '_blank');
       return;
     }
+    if (iv.meeting_link && !isValidHttpUrl(iv.meeting_link)) return;
     setMeeting(iv);
   };
 
@@ -220,7 +222,7 @@ export default function PublicInterviews() {
             </div>
             <div style={{ height: 480, background: '#1a1a2e', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', overflow: 'hidden' }}>
               <iframe
-                src={(meeting.meeting_link || `https://meet.jit.si/wfh-interview-${Date.now()}`) + '#userInfo.displayName="Candidate"'}
+                src={((isValidHttpUrl(meeting.meeting_link) ? meeting.meeting_link : `https://meet.jit.si/wfh-interview-${Date.now()}`) + '#userInfo.displayName="Candidate"')}
                 allow="camera; microphone; fullscreen; display-capture"
                 style={{ width: '100%', height: '100%', border: 'none' }}
                 title="Meeting Room"

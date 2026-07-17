@@ -6,6 +6,7 @@ const emailService = require('../../shared/services/email.service');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logBalanceChange } = require('../../shared/services/audit.service');
 const { logActivity } = require('../../shared/services/activity.service');
+const logger = require('../../shared/utils/logger');
 
 async function isGlobalCeo(email) {
   const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
@@ -112,20 +113,20 @@ async function managerApproveLeave(req, res) {
         'success',
         '/leaves'
       );
-    } catch (e) { console.error('Leave approved notification error:', e); }
+    } catch (e) { logger.error('Leave approved notification error:', e); }
 
     try {
       const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [leave.employee_id]);
       await emailService.sendLeaveApprovedEmail(empRows[0], leave);
-    } catch (e) { console.error('Leave approved email error:', e); }
+    } catch (e) { logger.error('Leave approved email error:', e); }
 
     try {
       await logActivity(leave.employee_id, userId, 'leave_approved', `${approverLabel} approved ${leave.type} leave (${leave.start_date} → ${leave.end_date}, ${leave.days_count} day(s))`);
-    } catch (e) { console.error('Leave approved activity log error:', e); }
+    } catch (e) { logger.error('Leave approved activity log error:', e); }
 
     res.json({ message: 'Leave approved' });
   } catch (err) {
-    console.error('managerApproveLeave error:', err);
+    logger.error('managerApproveLeave error:', err);
     res.status(500).json({ error: 'Failed to approve leave request' });
   }
 }
@@ -184,20 +185,20 @@ async function managerRejectLeave(req, res) {
         'error',
         '/leaves'
       );
-    } catch (e) { console.error('Leave rejected notification error:', e); }
+    } catch (e) { logger.error('Leave rejected notification error:', e); }
 
     try {
       const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [leave.employee_id]);
       await emailService.sendLeaveRejectedEmail(empRows[0], leave, rejection_reason);
-    } catch (e) { console.error('Leave rejected email error:', e); }
+    } catch (e) { logger.error('Leave rejected email error:', e); }
 
     try {
       await logActivity(leave.employee_id, userId, 'leave_rejected', `${approverLabel} rejected ${leave.type} leave (${leave.start_date} → ${leave.end_date}): ${rejection_reason}`);
-    } catch (e) { console.error('Leave rejected activity log error:', e); }
+    } catch (e) { logger.error('Leave rejected activity log error:', e); }
 
     res.json({ message: 'Leave rejected' });
   } catch (err) {
-    console.error('managerRejectLeave error:', err);
+    logger.error('managerRejectLeave error:', err);
     res.status(500).json({ error: 'Failed to reject leave request' });
   }
 }
@@ -275,7 +276,7 @@ async function managerApproveSignoutRequest(req, res) {
         'success',
         '/missing-signout'
       );
-    } catch (e) { console.error('Sign-out approved notification error:', e); }
+    } catch (e) { logger.error('Sign-out approved notification error:', e); }
 
     try {
       const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [sr.employee_id]);
@@ -284,15 +285,15 @@ async function managerApproveSignoutRequest(req, res) {
         date: recRows[0].date,
         signOutTime: new Date(sr.sign_out_time).toLocaleTimeString(),
       });
-    } catch (e) { console.error('Sign-out approved email error:', e); }
+    } catch (e) { logger.error('Sign-out approved email error:', e); }
 
     try {
       await logActivity(sr.employee_id, userId, 'signout_approved', `${approverLabel} approved sign-out request (record #${sr.attendance_record_id})`);
-    } catch (e) { console.error('Sign-out approved activity log error:', e); }
+    } catch (e) { logger.error('Sign-out approved activity log error:', e); }
 
     res.json({ message: 'Sign-out request approved' });
   } catch (err) {
-    console.error('managerApproveSignoutRequest error:', err);
+    logger.error('managerApproveSignoutRequest error:', err);
     res.status(500).json({ error: 'Failed to approve sign-out request' });
   }
 }
@@ -344,21 +345,21 @@ async function managerRejectSignoutRequest(req, res) {
         'error',
         '/missing-signout'
       );
-    } catch (e) { console.error('Sign-out rejected notification error:', e); }
+    } catch (e) { logger.error('Sign-out rejected notification error:', e); }
 
     try {
       const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [sr.employee_id]);
       const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ?', [sr.attendance_record_id]);
       await emailService.sendSignOutRequestRejectedEmail(empRows[0], { date: recRows[0].date, signOutTime: '' }, rejection_reason);
-    } catch (e) { console.error('Sign-out rejected email error:', e); }
+    } catch (e) { logger.error('Sign-out rejected email error:', e); }
 
     try {
       await logActivity(sr.employee_id, userId, 'signout_rejected', `${approverLabel} rejected sign-out request (record #${sr.attendance_record_id}): ${rejection_reason}`);
-    } catch (e) { console.error('Sign-out rejected activity log error:', e); }
+    } catch (e) { logger.error('Sign-out rejected activity log error:', e); }
 
     res.json({ message: 'Sign-out request rejected' });
   } catch (err) {
-    console.error('managerRejectSignoutRequest error:', err);
+    logger.error('managerRejectSignoutRequest error:', err);
     res.status(500).json({ error: 'Failed to reject sign-out request' });
   }
 }
@@ -410,7 +411,7 @@ async function getManagerApprovalsCount(req, res) {
 
     res.json({ total: leaves + signouts + resignations, leaves, signouts, resignations });
   } catch (err) {
-    console.error('getManagerApprovalsCount error:', err);
+    logger.error('getManagerApprovalsCount error:', err);
     res.status(500).json({ error: 'Failed to get approvals count' });
   }
 }

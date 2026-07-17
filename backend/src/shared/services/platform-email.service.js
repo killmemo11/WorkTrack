@@ -4,6 +4,7 @@
 const nodemailer = require('nodemailer');
 const pool = require('../config/database');
 const { decrypt } = require('../utils/encryption');
+const logger = require('../utils/logger');
 
 let platformTransporter = null;
 let cachedConfigHash = '';
@@ -45,7 +46,7 @@ async function getPlatformTransporter() {
   try {
     smtpPass = dbSettings.smtp_pass ? decrypt(dbSettings.smtp_pass) : process.env.PLATFORM_SMTP_PASS;
   } catch (err) {
-    console.error('Failed to decrypt SMTP password:', err.message);
+    logger.error('Failed to decrypt SMTP password:', err.message);
     smtpPass = process.env.PLATFORM_SMTP_PASS;
   }
 
@@ -64,7 +65,7 @@ async function getPlatformTransporter() {
   }
 
   if (!config.host) {
-    console.warn('⚠️ Platform SMTP not configured - platform emails will not be sent');
+    logger.warn('⚠️ Platform SMTP not configured - platform emails will not be sent');
     return null;
   }
 
@@ -73,9 +74,9 @@ async function getPlatformTransporter() {
 
   try {
     await platformTransporter.verify();
-    console.log('✅ Platform SMTP connection verified');
+    logger.info('✅ Platform SMTP connection verified');
   } catch (err) {
-    console.error('❌ Platform SMTP verification failed:', err.message);
+    logger.error('❌ Platform SMTP verification failed:', err.message);
     platformTransporter = null;
     return null;
   }
@@ -114,7 +115,7 @@ function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
 async function sendPlatformEmail(to, subject, htmlContent) {
   const result = await getPlatformTransporter();
   if (!result) {
-    console.warn(`⚠️ Platform email not sent to ${to} (SMTP not configured): ${subject}`);
+    logger.warn(`⚠️ Platform email not sent to ${to} (SMTP not configured): ${subject}`);
     return { success: false, reason: 'SMTP not configured' };
   }
 
@@ -130,10 +131,10 @@ async function sendPlatformEmail(to, subject, htmlContent) {
       subject,
       html,
     });
-    console.log(`✅ Platform email sent to ${to}: ${subject} (${info.messageId})`);
+    logger.info(`✅ Platform email sent to ${to}: ${subject} (${info.messageId})`);
     return { success: true, messageId: info.messageId };
   } catch (err) {
-    console.error(`❌ Failed to send platform email to ${to}:`, err.message);
+    logger.error(`❌ Failed to send platform email to ${to}:`, err.message);
     return { success: false, error: err.message };
   }
 }

@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { createNotification, notifyAllAdmins } = require('../../shared/services/notification.service');
+const logger = require('../../shared/utils/logger');
 const { logBalanceChange } = require('../../shared/services/audit.service');
 
 async function getLeaveTypes(req, res) {
@@ -76,7 +77,7 @@ async function resetLeaveBalances(req, res) {
 
   try {
     await notifyAllAdmins('Leave Balances Reset', `All leave balances have been reset to default values by an admin.`, 'info');
-  } catch (e) { console.error('Reset notification error:', e); }
+  } catch (e) { logger.error('Reset notification error:', e); }
 
   res.json({ message: 'All leave balances reset to defaults' });
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
+import { isValidHttpUrl } from '../../../shared/utils/sanitize';
 
 const defaultForm = {
   candidate_id: '', workflow_stage_id: '', interview_date: '', duration: 60, mode: 'video',
@@ -244,7 +245,7 @@ export default function Interviews() {
                       </button>
                       {iv.type === 'online' && iv.status === 'scheduled' && (
                         <button className="glass-btn glass-btn-xs glass-btn-success"
-                          onClick={() => window.open(iv.meeting_link || `https://meet.jit.si/wfh-interview-${iv.id}`, '_blank')}>
+                          onClick={() => { const link = iv.meeting_link && isValidHttpUrl(iv.meeting_link) ? iv.meeting_link : `https://meet.jit.si/wfh-interview-${iv.id}`; window.open(link, '_blank'); }}>
                           <Icon icon="lucide:link" /> Join
                         </button>
                       )}

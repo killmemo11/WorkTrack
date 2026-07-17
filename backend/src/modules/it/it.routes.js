@@ -105,7 +105,7 @@ router.post('/test-meeting', requirePermission('it.manage_meetings'), async (req
     else return res.status(400).json({ error: 'Invalid provider' });
     res.json({ message: `${provider} connection successful`, link });
   } catch (err) {
-    res.status(400).json({ error: err.message || 'Connection failed' });
+    res.status(400).json({ error: 'Connection failed' });
   }
 });
 

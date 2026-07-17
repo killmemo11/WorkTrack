@@ -5,6 +5,7 @@ const pool = require('../../shared/config/database');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logActivity } = require('../../shared/services/activity.service');
 const emailService = require('../../shared/services/email.service');
+const logger = require('../../shared/utils/logger');
 
 async function getManagerPendingResignations(req, res) {
   const deptId = req.employee.department_id;
@@ -35,13 +36,13 @@ async function managerApproveResignation(req, res) {
     );
     try {
       await logActivity(r.employee_id, null, 'resignation_approved', `Resignation approved by manager: ${req.employee.name}`);
-    } catch (e) { console.error('Resignation approved activity log error:', e); }
+    } catch (e) { logger.error('Resignation approved activity log error:', e); }
     try {
       await createNotification(r.employee_id, 'Resignation Approved', 'Your resignation request has been approved.', 'info', '/leaves');
-    } catch (e) { console.error('Resignation approved notification error:', e); }
+    } catch (e) { logger.error('Resignation approved notification error:', e); }
     res.json({ message: 'Resignation approved' });
   } catch (err) {
-    console.error('managerApproveResignation error:', err);
+    logger.error('managerApproveResignation error:', err);
     res.status(500).json({ error: 'Failed to approve resignation request' });
   }
 }
@@ -58,13 +59,13 @@ async function managerRejectResignation(req, res) {
     await pool.query('UPDATE resignation_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?', ['rejected', req.employee.id, rejection_reason, id]);
     try {
       await logActivity(request[0].employee_id, null, 'resignation_rejected', `Resignation rejected by manager: ${req.employee.name} - ${rejection_reason}`);
-    } catch (e) { console.error('Resignation rejected activity log error:', e); }
+    } catch (e) { logger.error('Resignation rejected activity log error:', e); }
     try {
       await createNotification(request[0].employee_id, 'Resignation Rejected', `Your resignation request has been rejected. Reason: ${rejection_reason}`, 'info', '/leaves');
-    } catch (e) { console.error('Resignation rejected notification error:', e); }
+    } catch (e) { logger.error('Resignation rejected notification error:', e); }
     res.json({ message: 'Resignation rejected' });
   } catch (err) {
-    console.error('managerRejectResignation error:', err);
+    logger.error('managerRejectResignation error:', err);
     res.status(500).json({ error: 'Failed to reject resignation request' });
   }
 }

@@ -9,6 +9,7 @@ const router = express.Router();
 const pool = require('../../shared/config/database');
 const { getPaymentsDir } = require('../../shared/config/storage');
 const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
+const logger = require('../../shared/utils/logger');
 
 // Free/personal email domains that are NOT allowed for company registration
 const PERSONAL_DOMAINS = new Set([
@@ -97,7 +98,7 @@ router.get('/payment-info', async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error('Get payment info error:', err);
+    logger.error('Get payment info error:', err);
     res.status(500).json({ error: 'Failed to load payment info' });
   }
 });
@@ -165,7 +166,7 @@ router.get('/track-request', async (req, res) => {
       timeline,
     });
   } catch (err) {
-    console.error('Track request error:', err);
+    logger.error('Track request error:', err);
     res.status(500).json({ error: 'Failed to track request' });
   }
 });
@@ -248,7 +249,7 @@ router.post('/send-verification-code', async (req, res) => {
 
     res.json({ message: 'Verification code sent to your email' });
   } catch (err) {
-    console.error('Send verification code error:', err);
+    logger.error('Send verification code error:', err);
     res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
   }
 });
@@ -303,7 +304,7 @@ router.post('/verify-email-code', async (req, res) => {
 
     res.json({ message: 'Email verified successfully', verified: true });
   } catch (err) {
-    console.error('Verify email code error:', err);
+    logger.error('Verify email code error:', err);
     res.status(500).json({ error: 'Verification failed. Please try again.' });
   }
 });
@@ -430,13 +431,13 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
       });
     } catch (err) {
       await conn.rollback();
-      console.error('Tenant signup error:', err);
+      logger.error('Tenant signup error:', err);
       res.status(500).json({ error: 'Failed to submit request. Please try again.' });
     } finally {
       conn.release();
     }
   } catch (err) {
-    console.error('Tenant signup error:', err);
+    logger.error('Tenant signup error:', err);
     res.status(500).json({ error: 'Failed to submit request. Please try again.' });
   }
 });

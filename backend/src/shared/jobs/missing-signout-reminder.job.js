@@ -6,17 +6,18 @@ const pool = require('../config/database');
 const { sendMissingSignOutReminderEmail } = require('../services/email.service');
 const { createNotification } = require('../services/notification.service');
 const { getTodayDateString } = require('../utils/work-day.util');
+const logger = require('../utils/logger');
 
 let lastScanDate = null;
 
 async function runMissingSignOutCheck() {
   const today = getTodayDateString();
   if (lastScanDate === today) {
-    console.log('[MissingSignOut] Already ran today — skipping duplicate');
+    logger.info('[MissingSignOut] Already ran today — skipping duplicate');
     return { skipped: true };
   }
 
-  console.log('[MissingSignOut] Running missing sign-out reminder check...');
+  logger.info('[MissingSignOut] Running missing sign-out reminder check...');
   try {
     const [records] = await pool.query(
       `SELECT a.*, e.name as employee_name, e.email as employee_email, e.id as employee_id
@@ -55,11 +56,11 @@ async function runMissingSignOutCheck() {
 
       try {
         await sendMissingSignOutReminderEmail(employee, unsentRecords);
-        console.log(`[MissingSignOut] Sent reminder email to ${employee.email} (${employee.name})`);
+        logger.info(`[MissingSignOut] Sent reminder email to ${employee.email} (${employee.name})`);
         emailsSent++;
       } catch (e) {
-        console.error(`[MissingSignOut] Email error for ${employee.email}:`, e.message);
-        if (e.response) console.error('[MissingSignOut] SMTP response:', e.response);
+        logger.error(`[MissingSignOut] Email error for ${employee.email}:`, e.message);
+        if (e.response) logger.error('[MissingSignOut] SMTP response:', e.response);
         emailsFailed++;
       }
 
@@ -76,11 +77,11 @@ async function runMissingSignOutCheck() {
       );
     }
 
-    console.log(`[MissingSignOut] Check complete: ${Object.keys(byEmployee).length} employees, ${emailsSent} emails sent, ${emailsFailed} failed`);
+    logger.info(`[MissingSignOut] Check complete: ${Object.keys(byEmployee).length} employees, ${emailsSent} emails sent, ${emailsFailed} failed`);
     lastScanDate = today;
     return { employees: Object.keys(byEmployee).length, sent: emailsSent, failed: emailsFailed };
   } catch (err) {
-    console.error('[MissingSignOut] Error in missing sign-out reminder:', err);
+    logger.error('[MissingSignOut] Error in missing sign-out reminder:', err);
     throw err;
   }
 }
@@ -90,11 +91,11 @@ function startMissingSignOutReminderJob() {
     try {
       await runMissingSignOutCheck();
     } catch (err) {
-      console.error('[Cron] Error in missing sign-out reminder:', err);
+      logger.error('[Cron] Error in missing sign-out reminder:', err);
     }
   });
 
-  console.log('[Cron] Missing sign-out reminder scheduled for 7:00 AM daily');
+  logger.info('[Cron] Missing sign-out reminder scheduled for 7:00 AM daily');
 }
 
 module.exports = { startMissingSignOutReminderJob, runMissingSignOutCheck };

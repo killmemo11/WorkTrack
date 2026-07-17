@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import RichTextEditor from '../../../shared/components/RichTextEditor';
+import { sanitizeHTML } from '../../../shared/utils/sanitize';
 
 export default function ContractTemplates() {
   const [templates, setTemplates] = useState([]);
@@ -207,7 +208,7 @@ export default function ContractTemplates() {
             <div className="glass-modal modal-lg" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
               <button className="glass-modal-close" onClick={() => setPreviewContent(null)}><Icon icon="lucide:x" /></button>
               <h3>Preview: {previewName}</h3>
-              <div className="glass-card" style={{ padding: 24 }} dangerouslySetInnerHTML={{ __html: previewContent }} />
+              <div className="glass-card" style={{ padding: 24 }} dangerouslySetInnerHTML={{ __html: sanitizeHTML(previewContent) }} />
               <div className="glass-modal-footer">
                 <button className="glass-btn glass-btn-ghost" onClick={() => setPreviewContent(null)}>Close</button>
               </div>

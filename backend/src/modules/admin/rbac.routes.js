@@ -64,7 +64,7 @@ router.post('/roles', async (req, res) => {
     res.json({ id: roleId, message: 'Role created' });
   } catch (err) {
     await conn.rollback();
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to create role' });
   } finally {
     conn.release();
   }
@@ -107,7 +107,7 @@ router.put('/roles/:id', async (req, res) => {
     res.json({ message: 'Role updated' });
   } catch (err) {
     await conn.rollback();
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to update role' });
   } finally {
     conn.release();
   }
@@ -344,7 +344,7 @@ router.put('/services', async (req, res) => {
     res.json({ message: 'Services updated' });
   } catch (err) {
     await conn.rollback();
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to update services' });
   } finally {
     conn.release();
   }

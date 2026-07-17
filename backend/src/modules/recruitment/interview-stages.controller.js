@@ -1,6 +1,7 @@
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const { publishEvent } = require('./engines/workflow.engine');
+const logger = require('../../shared/utils/logger');
 
 // ── Interview Stages CRUD ─────────────────────────────────────
 async function listInterviewStages(req, res) {
@@ -70,7 +71,7 @@ async function createInterviewStage(req, res) {
         job_title: req.body.job_title || '',
         notes: notes || '', interviewer,
       });
-    } catch (e) { console.error('Meeting link generation error:', e.message); }
+    } catch (e) { logger.error('Meeting link generation error:', e.message); }
   }
 
   const [result] = await pool.query(

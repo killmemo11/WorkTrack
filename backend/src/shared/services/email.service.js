@@ -3,6 +3,7 @@
 
 const nodemailer = require('nodemailer');
 const pool = require('../config/database');
+const logger = require('../utils/logger');
 
 let transporterCache = null;
 let cachedSettingsHash = '';
@@ -261,7 +262,7 @@ async function sendLeaveRejectedEmail(employee, leave, reason) {
 async function sendMissingSignOutReminderEmail(employee, records) {
   const transporter = await getTransporter();
   if (!transporter) {
-    console.warn(`[Email] SMTP not configured — cannot send missing sign-out reminder to ${employee.email}`);
+    logger.warn(`[Email] SMTP not configured — cannot send missing sign-out reminder to ${employee.email}`);
     return;
   }
   const from = await getFromAddress();

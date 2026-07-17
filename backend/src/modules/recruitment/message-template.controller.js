@@ -72,7 +72,7 @@ async function renderPreview(req, res) {
     const result = await render(id, context || {});
     res.json(result);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: 'Failed to render template preview' });
   }
 }
 

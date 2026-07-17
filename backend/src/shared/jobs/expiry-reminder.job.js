@@ -4,10 +4,11 @@
 const cron = require('node-cron');
 const pool = require('../config/database');
 const { logActivity } = require('../services/activity.service');
+const logger = require('../utils/logger');
 
 function startExpiryReminderJob() {
   cron.schedule('0 8 * * *', async () => {
-    console.log('[Cron] Running expiry reminder check...');
+    logger.info('[Cron] Running expiry reminder check...');
     try {
       // Contract end date within 30 days
       const [contracts] = await pool.query(
@@ -19,7 +20,7 @@ function startExpiryReminderJob() {
            AND (e.is_system IS NULL OR e.is_system = 0)`
       );
       for (const c of contracts) {
-        console.log(`[Cron] Contract ending soon: ${c.name} - ${c.contract_end_date}`);
+        logger.info(`[Cron] Contract ending soon: ${c.name} - ${c.contract_end_date}`);
       }
 
       // Probation period ends within 14 days (hire_date + 90 days)
@@ -35,7 +36,7 @@ function startExpiryReminderJob() {
       for (const p of probation) {
         const endDate = new Date(p.hire_date);
         endDate.setDate(endDate.getDate() + 90);
-        console.log(`[Cron] Probation ending soon: ${p.name} - ${endDate.toISOString().split('T')[0]}`);
+        logger.info(`[Cron] Probation ending soon: ${p.name} - ${endDate.toISOString().split('T')[0]}`);
       }
 
       // ID/Passport expiry within 30 days
@@ -48,16 +49,16 @@ function startExpiryReminderJob() {
            AND (e.is_system IS NULL OR e.is_system = 0)`
       );
       for (const d of ids) {
-        console.log(`[Cron] ID/Passport expiring soon: ${d.name}`);
+        logger.info(`[Cron] ID/Passport expiring soon: ${d.name}`);
       }
 
-      console.log(`[Cron] Expiry reminder check complete (${contracts.length} contracts, ${probation.length} probations, ${ids.length} ID/passports)`);
+      logger.info(`[Cron] Expiry reminder check complete (${contracts.length} contracts, ${probation.length} probations, ${ids.length} ID/passports)`);
     } catch (err) {
-      console.error('[Cron] Error in expiry reminder:', err);
+      logger.error('[Cron] Error in expiry reminder:', err);
     }
   });
 
-  console.log('[Cron] Expiry reminder scheduled for 8:00 AM daily');
+  logger.info('[Cron] Expiry reminder scheduled for 8:00 AM daily');
 }
 
 module.exports = { startExpiryReminderJob };

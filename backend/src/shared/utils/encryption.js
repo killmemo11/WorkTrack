@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('./logger');
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -13,7 +14,7 @@ function getEncryptionKey() {
     // Dev fallback — log a warning
     const fallback = process.env.JWT_SECRET;
     if (!fallback) throw new Error('PLATFORM_ENCRYPTION_KEY or JWT_SECRET must be set');
-    console.warn('⚠️ Using JWT_SECRET as encryption fallback — set PLATFORM_ENCRYPTION_KEY for production');
+    logger.warn('⚠️ Using JWT_SECRET as encryption fallback — set PLATFORM_ENCRYPTION_KEY for production');
     return crypto.createHash('sha256').update(fallback).digest();
   }
   return crypto.createHash('sha256').update(key).digest();

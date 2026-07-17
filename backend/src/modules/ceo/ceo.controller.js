@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { isWorkDay, getDaysInMonth } = require('../../shared/utils/work-day.util');
+const logger = require('../../shared/utils/logger');
 
 async function getCeoDashboard(req, res) {
   try {
@@ -411,8 +412,8 @@ async function getCeoDashboard(req, res) {
       departments,
     });
   } catch (err) {
-    console.error('CEO Dashboard error:', err);
-    res.status(500).json({ error: err.message });
+    logger.error('CEO Dashboard error:', err);
+    res.status(500).json({ error: 'Failed to load CEO dashboard' });
   }
 }
 

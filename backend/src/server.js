@@ -3,6 +3,7 @@
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const path = require('path');
+const logger = require('./shared/utils/logger');
 
 // Point to full ICU data so Alpine's small-icu supports Africa/Cairo
 process.env.NODE_ICU_DATA = process.env.NODE_ICU_DATA || path.join(__dirname, '..', 'node_modules', 'full-icu');
@@ -14,7 +15,7 @@ process.env.TZ = process.env.TZ || 'Africa/Cairo';
 const requiredEnv = ['JWT_SECRET'];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
-    console.error(`FATAL: Missing required environment variable: ${key}`);
+    logger.error(`FATAL: Missing required environment variable: ${key}`);
     process.exit(1);
   }
 }
@@ -22,13 +23,13 @@ for (const key of requiredEnv) {
 // Production safety checks
 if (process.env.NODE_ENV === 'production') {
   if (process.env.JWT_SECRET === 'super-secret-key-change-in-production-123456') {
-    console.error('FATAL: JWT_SECRET is the weak default. Change it immediately.');
+    logger.error('FATAL: JWT_SECRET is the weak default. Change it immediately.');
     process.exit(1);
   }
   const prodRequired = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
   for (const key of prodRequired) {
     if (!process.env[key]) {
-      console.error(`FATAL: Missing required production environment variable: ${key}`);
+      logger.error(`FATAL: Missing required production environment variable: ${key}`);
       process.exit(1);
     }
   }
@@ -46,10 +47,10 @@ async function waitForDB(retries = 15, delay = 2000) {
     try {
       const conn = await pool.getConnection();
       conn.release();
-      console.log('Connected to MySQL');
+      logger.info('Connected to MySQL');
       return;
     } catch (err) {
-      console.log(`Waiting for MySQL (${i + 1}/${retries})...`);
+      logger.info(`Waiting for MySQL (${i + 1}/${retries})...`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -66,9 +67,9 @@ async function start() {
     runMissingSignOutCheck().catch(() => {});
     startMissingSignOutReminderJob();
     startExpiryReminderJob();
-    app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+    app.listen(PORT, () => logger.info(`Backend running on port ${PORT}`));
   } catch (err) {
-    console.error('Failed to connect to database:', err.message);
+    logger.error('Failed to connect to database:', err.message);
     process.exit(1);
   }
 }

@@ -1,4 +1,5 @@
 const pool = require('../../../shared/config/database');
+const logger = require('../../../shared/utils/logger');
 
 async function getWorkflowForJob(jobId) {
   const [[job]] = await pool.query(
@@ -140,7 +141,7 @@ async function fireAsyncScreening(candidateId) {
       const { autoScreen } = require('../../shared/services/screening.service');
       await autoScreen(candidateId, job.title_id, jobId);
     } catch (e) {
-      console.error('Auto-screening error:', e);
+      logger.error('Auto-screening error:', e);
     }
   });
 }
@@ -155,7 +156,7 @@ function fireAsyncAutomation(candidateId, eventType, eventData) {
         event_data: eventData,
       });
     } catch (e) {
-      console.error('Async automation error:', e);
+      logger.error('Async automation error:', e);
     }
   });
 }

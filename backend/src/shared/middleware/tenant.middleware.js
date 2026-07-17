@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const pool = require('../config/database');
+const logger = require('../utils/logger');
 
 // Resolve tenant_id from the authenticated user's token
 // Attaches req.tenantId for all downstream middleware/controllers
@@ -61,7 +62,7 @@ const resolveTenant = async (req, res, next) => {
     // No recognized auth context — reject
     return res.status(401).json({ error: 'Authentication required to resolve tenant' });
   } catch (err) {
-    console.error('resolveTenant error:', err);
+    logger.error('resolveTenant error:', err);
     return res.status(500).json({ error: 'Failed to resolve tenant context' });
   }
 };

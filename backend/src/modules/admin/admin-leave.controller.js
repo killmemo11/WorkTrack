@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const emailService = require('../../shared/services/email.service');
+const logger = require('../../shared/utils/logger');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logBalanceChange } = require('../../shared/services/audit.service');
 const { logActivity } = require('../../shared/services/activity.service');
@@ -98,7 +99,7 @@ async function approveLeave(req, res) {
   try {
     const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [leave.employee_id]);
     await emailService.sendLeaveApprovedEmail(empRows[0], leave);
-  } catch (e) { console.error('Leave approved email error:', e); }
+  } catch (e) { logger.error('Leave approved email error:', e); }
 
   await logActivity(leave.employee_id, adminId, 'leave_approved', `Admin approved ${leave.type} leave (${leave.start_date} → ${leave.end_date}, ${leave.days_count} day(s))`);
 
@@ -135,7 +136,7 @@ async function rejectLeave(req, res) {
   try {
     const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [leave.employee_id]);
     await emailService.sendLeaveRejectedEmail(empRows[0], leave, rejection_reason);
-  } catch (e) { console.error('Leave rejected email error:', e); }
+  } catch (e) { logger.error('Leave rejected email error:', e); }
 
   await logActivity(leave.employee_id, adminId, 'leave_rejected', `Admin rejected ${leave.type} leave (${leave.start_date} → ${leave.end_date}): ${rejection_reason || 'No reason'}`);
 
