@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import api from '../../../shared/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 
@@ -22,16 +23,10 @@ export default function CEODashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/ceo/dashboard', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch dashboard data');
-      }
-      setDashboardData(data);
+      const res = await api.get('/ceo/dashboard');
+      setDashboardData(res.data);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }

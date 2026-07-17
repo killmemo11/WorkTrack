@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
+import platformApi from '../../../shared/api/platformApi';
 
 const STATUS_BADGE = {
   pending: 'warning',
@@ -24,19 +25,13 @@ export default function PlatformPayments() {
   const fetchPayments = async (page = 1) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (statusFilter) params.append('status', statusFilter);
-      if (methodFilter) params.append('method', methodFilter);
-      if (dateFrom) params.append('from', dateFrom);
-      if (dateTo) params.append('to', dateTo);
-      const res = await fetch(`/api/platform/payments?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
-      }
+      const params = { page, limit: 20 };
+      if (statusFilter) params.status = statusFilter;
+      if (methodFilter) params.method = methodFilter;
+      if (dateFrom) params.from = dateFrom;
+      if (dateTo) params.to = dateTo;
+      const res = await platformApi.get('/payments', { params });
+      setData(res.data);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     } finally {
@@ -49,29 +44,24 @@ export default function PlatformPayments() {
   const handleVerify = async (id) => {
     if (!confirm('Mark this payment as verified?')) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/payments/${id}/verify`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (res.ok) { fetchPayments(data.page); setViewingTx(null); }
-      else { const err = await res.json(); alert(err.error || 'Failed'); }
-    } catch { alert('Failed'); }
+      await platformApi.post(`/payments/${id}/verify`, {});
+      fetchPayments(data.page);
+      setViewingTx(null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed');
+    }
   };
 
   const handleReject = async (id) => {
     if (!rejectionReason.trim()) { alert('Enter a rejection reason'); return; }
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/payments/${id}/reject`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejection_reason: rejectionReason.trim() }),
-      });
-      if (res.ok) { fetchPayments(data.page); setViewingTx(null); setRejectionReason(''); }
-      else { const err = await res.json(); alert(err.error || 'Failed'); }
-    } catch { alert('Failed'); }
+      await platformApi.post(`/payments/${id}/reject`, { rejection_reason: rejectionReason.trim() });
+      fetchPayments(data.page);
+      setViewingTx(null);
+      setRejectionReason('');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed');
+    }
   };
 
   const formatAmount = (amt, cur) => {

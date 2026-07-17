@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformActivity() {
   const [activities, setActivities] = useState([]);
@@ -9,12 +10,8 @@ export default function PlatformActivity() {
   const fetchActivity = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const params = new URLSearchParams({ limit: 100 });
-      const res = await fetch(`/api/platform/activity?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setActivities(await res.json());
+      const res = await platformApi.get('/activity', { params: { limit: 100 } });
+      setActivities(res.data);
     } catch {} finally { setLoading(false); }
   };
 

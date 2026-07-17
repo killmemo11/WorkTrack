@@ -236,16 +236,15 @@ export default function Candidates() {
         <div style={{ display: 'flex', gap: 8 }}>
           {!boardView && (
             <button className="glass-btn glass-btn-ghost" onClick={async () => {
-              const token = localStorage.getItem('hrToken');
-              const params = new URLSearchParams({ stage: stageFilter !== 'all' ? stageFilter : '', q: search.trim() });
-              const res = await fetch(`/api/hr/recruitment/candidates/export?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (!res.ok) return alert('Export failed');
-              const blob = await res.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a'); a.href = url; a.download = 'candidates.csv'; a.click();
-              window.URL.revokeObjectURL(url);
+              const params = {};
+              if (stageFilter !== 'all') params.stage = stageFilter;
+              if (search.trim()) params.q = search.trim();
+              try {
+                const res = await hrApi.get('/recruitment/candidates/export', { params, responseType: 'blob' });
+                const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+                const a = document.createElement('a'); a.href = blobUrl; a.download = 'candidates.csv'; a.click();
+                window.URL.revokeObjectURL(blobUrl);
+              } catch { alert('Export failed'); }
             }}>
               <Icon icon="lucide:download"></Icon> Export CSV
             </button>

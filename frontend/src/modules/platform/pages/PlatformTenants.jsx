@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
+import platformApi from '../../../shared/api/platformApi';
 
 const STATUS_CONFIG = {
   active: { label: 'Active', color: 'success' },
@@ -24,17 +25,11 @@ export default function PlatformTenants() {
   const fetchTenants = async (page = 1) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (statusFilter) params.append('status', statusFilter);
-      if (search) params.append('search', search);
-      const res = await fetch(`/api/platform/tenants?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
-      }
+      const params = { page, limit: 20 };
+      if (statusFilter) params.status = statusFilter;
+      if (search) params.search = search;
+      const res = await platformApi.get('/tenants', { params });
+      setData(res.data);
     } catch (err) {
       console.error('Failed to fetch tenants:', err);
     } finally {
@@ -56,27 +51,16 @@ export default function PlatformTenants() {
     const reason = prompt(`Suspend tenant "${name}"? Enter reason:`);
     if (reason === null) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}/suspend`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-      if (res.ok) fetchTenants(data.page);
-      else alert('Failed to suspend');
+      await platformApi.post(`/tenants/${id}/suspend`, { reason });
+      fetchTenants(data.page);
     } catch { alert('Failed to suspend'); }
   };
 
   const handleActivate = async (id, name) => {
     if (!confirm(`Reactivate tenant "${name}"?`)) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}/activate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchTenants(data.page);
-      else alert('Failed to activate');
+      await platformApi.post(`/tenants/${id}/activate`);
+      fetchTenants(data.page);
     } catch { alert('Failed to activate'); }
   };
 
@@ -84,15 +68,11 @@ export default function PlatformTenants() {
     const reason = prompt(`Delete tenant "${name}"?\nThis is a soft-delete — data is preserved but hidden.\n\nReason (optional):`);
     if (reason === null) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-      if (res.ok) fetchTenants(data.page);
-      else { const err = await res.json(); alert(err.error || 'Failed to delete'); }
-    } catch { alert('Failed to delete'); }
+      await platformApi.delete(`/tenants/${id}`, { data: { reason } });
+      fetchTenants(data.page);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete');
+    }
   };
 
   const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : '—';

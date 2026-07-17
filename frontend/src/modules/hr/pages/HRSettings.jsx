@@ -437,14 +437,10 @@ export default function HRSettings() {
                           const formData = new FormData();
                           formData.append('file', file);
                           try {
-                            const token = localStorage.getItem('hrToken');
-                            const res = await fetch('/api/hr/departments/import', {
-                              method: 'POST',
-                              headers: token ? { Authorization: `Bearer ${token}` } : {},
-                              body: formData,
+                            const res = await hrApi.post('/departments/import', formData, {
+                              headers: { 'Content-Type': 'multipart/form-data' },
                             });
-                            const data = await res.json();
-                            if (!res.ok) throw { response: { data } };
+                            const data = res.data;
                             let msg = data.message;
                             if (data.errors && data.errors.length > 0) {
                               msg += '\n' + data.errors.join('\n');

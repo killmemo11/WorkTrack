@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import adminApi from '../../../shared/api/adminApi';
 
 export default function RBACManager() {
   const [roles, setRoles] = useState([]);
@@ -17,22 +18,19 @@ export default function RBACManager() {
   const [assigningUserType, setAssigningUserType] = useState(null);
   const [userSearch, setUserSearch] = useState('');
 
-  const authHeaders = { Authorization: `Bearer ${localStorage.getItem('adminToken')}` };
-  const jsonHeaders = { ...authHeaders, 'Content-Type': 'application/json' };
-
   const fetchData = async () => {
     setLoading(true);
     try {
       const [rolesRes, permsRes, usersRes, servicesRes] = await Promise.all([
-        fetch('/api/admin/rbac/roles', { headers: authHeaders }),
-        fetch('/api/admin/rbac/permissions', { headers: authHeaders }),
-        fetch('/api/admin/rbac/users', { headers: authHeaders }),
-        fetch('/api/admin/rbac/services', { headers: authHeaders }),
+        adminApi.get('/rbac/roles'),
+        adminApi.get('/rbac/permissions'),
+        adminApi.get('/rbac/users'),
+        adminApi.get('/rbac/services'),
       ]);
-      if (rolesRes.ok) setRoles((await rolesRes.json()).roles);
-      if (permsRes.ok) setPermissions(await permsRes.json());
-      if (usersRes.ok) setUsers(await usersRes.json());
-      if (servicesRes.ok) setServices((await servicesRes.json()).services);
+      setRoles(rolesRes.data.roles);
+      setPermissions(permsRes.data);
+      setUsers(usersRes.data);
+      setServices(servicesRes.data.services);
     } catch (err) { console.error('Failed:', err); }
     setLoading(false);
   };
@@ -51,7 +49,7 @@ export default function RBACManager() {
 
   const handleDeleteRole = async (id, name) => {
     if (!confirm(`Delete role "${name}"?`)) return;
-    await fetch(`/api/admin/rbac/roles/${id}`, { method: 'DELETE', headers: authHeaders });
+    await adminApi.delete(`/rbac/roles/${id}`);
     fetchData();
   };
 
@@ -63,43 +61,27 @@ export default function RBACManager() {
       permission_ids: formData.permission_ids,
     };
     if (editingRole) {
-      await fetch(`/api/admin/rbac/roles/${editingRole.id}`, {
-        method: 'PUT', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
+      await adminApi.put(`/rbac/roles/${editingRole.id}`, body);
     } else {
-      await fetch('/api/admin/rbac/roles', {
-        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
+      await adminApi.post('/rbac/roles', body);
     }
     setShowRoleForm(false);
     fetchData();
   };
 
   const handleToggleService = async (id, is_enabled) => {
-    await fetch(`/api/admin/rbac/services/${id}`, {
-      method: 'PUT',
-      headers: jsonHeaders,
-      body: JSON.stringify({ is_enabled }),
-    });
+    await adminApi.put(`/rbac/services/${id}`, { is_enabled });
     fetchData();
   };
 
   const handleAssignRole = async (userId, roleId, userType) => {
-    await fetch('/api/admin/rbac/assign-role', {
-      method: 'POST',
-      headers: jsonHeaders,
-      body: JSON.stringify({ user_id: userId, role_id: roleId, user_type: userType }),
-    });
+    await adminApi.post('/rbac/assign-role', { user_id: userId, role_id: roleId, user_type: userType });
     setAssigningUser(null);
     fetchData();
   };
 
   const handleRemoveRole = async (userId, roleId, userType) => {
-    await fetch('/api/admin/rbac/remove-role', {
-      method: 'POST',
-      headers: jsonHeaders,
-      body: JSON.stringify({ user_id: userId, role_id: roleId, user_type: userType }),
-    });
+    await adminApi.post('/rbac/remove-role', { user_id: userId, role_id: roleId, user_type: userType });
     fetchData();
   };
 
@@ -291,7 +273,7 @@ export default function RBACManager() {
       </div>
 
       {showRoleForm && (
-        <RoleForm role={editingRole} permissions={permissions} onSave={handleSaveRole} onCancel={() => setShowRoleForm(false)} headers={authHeaders} />
+        <RoleForm role={editingRole} permissions={permissions} onSave={handleSaveRole} onCancel={() => setShowRoleForm(false)} />
       )}
 
       {assigningUser && (
@@ -333,7 +315,7 @@ export default function RBACManager() {
   );
 }
 
-function RoleForm({ role, permissions, onSave, onCancel, headers }) {
+function RoleForm({ role, permissions, onSave, onCancel }) {
   const [name, setName] = useState(role?.name || '');
   const [displayName, setDisplayName] = useState(role?.display_name || '');
   const [description, setDescription] = useState(role?.description || '');
@@ -342,10 +324,9 @@ function RoleForm({ role, permissions, onSave, onCancel, headers }) {
 
   useEffect(() => {
     if (role) {
-      fetch(`/api/admin/rbac/roles/${role.id}/permissions`, { headers })
-        .then(res => res.json())
-        .then(data => {
-          const set = new Set(data.permissions.map(p => p.id));
+      adminApi.get(`/rbac/roles/${role.id}/permissions`)
+        .then(res => {
+          const set = new Set(res.data.permissions.map(p => p.id));
           setExistingPerms(set);
           setSelectedPerms(new Set(set));
         });

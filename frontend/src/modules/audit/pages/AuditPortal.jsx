@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
+import adminApi from '../../../shared/api/adminApi';
 
 const actionLabels = {
   admin_login: 'Admin Login', settings_updated: 'Settings Updated', profile_updated: 'Profile Updated',
@@ -78,18 +79,16 @@ export default function AuditPortal({ initialTab }) {
   const fetchActivity = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit: 50 });
-      if (filter.action) params.append('action', filter.action);
-      if (filter.category) params.append('category', filter.category);
-      if (filter.date_from) params.append('date_from', filter.date_from);
-      if (filter.date_to) params.append('date_to', filter.date_to);
-      if (filter.search) params.append('search', filter.search);
-      if (filter.user_id) params.append('employee_id', filter.user_id);
-      if (filter.admin_id) params.append('admin_id', filter.admin_id);
-      const res = await fetch(`/api/audit/activity-log?${params}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-      });
-      if (res.ok) setActivityData(await res.json());
+      const params = { page, limit: 50 };
+      if (filter.action) params.action = filter.action;
+      if (filter.category) params.category = filter.category;
+      if (filter.date_from) params.date_from = filter.date_from;
+      if (filter.date_to) params.date_to = filter.date_to;
+      if (filter.search) params.search = filter.search;
+      if (filter.user_id) params.employee_id = filter.user_id;
+      if (filter.admin_id) params.admin_id = filter.admin_id;
+      const res = await adminApi.get('/audit/activity-log', { params });
+      setActivityData(res.data);
     } catch (err) { console.error('Failed:', err); }
     setLoading(false);
   }, [filter]);
@@ -97,10 +96,8 @@ export default function AuditPortal({ initialTab }) {
   const fetchAudit = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/audit/balance-audit?page=${page}&limit=50`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-      });
-      if (res.ok) setAuditData(await res.json());
+      const res = await adminApi.get('/audit/balance-audit', { params: { page, limit: 50 } });
+      setAuditData(res.data);
     } catch (err) { console.error('Failed:', err); }
     setLoading(false);
   }, []);
@@ -141,51 +138,35 @@ export default function AuditPortal({ initialTab }) {
 
   const handleExport = async (type = 'activity') => {
     try {
-      let url = '/api/audit/export';
-      if (type === 'balance') url = '/api/audit/export-balance';
+      let url = '/audit/export';
+      if (type === 'balance') url = '/audit/export-balance';
       
-      // Add current filters to export
-      const params = new URLSearchParams();
-      if (filter.action) params.append('action', filter.action);
-      if (filter.category) params.append('category', filter.category);
-      if (filter.date_from) params.append('date_from', filter.date_from);
-      if (filter.date_to) params.append('date_to', filter.date_to);
-      if (filter.search) params.append('search', filter.search);
+      const params = {};
+      if (filter.action) params.action = filter.action;
+      if (filter.category) params.category = filter.category;
+      if (filter.date_from) params.date_from = filter.date_from;
+      if (filter.date_to) params.date_to = filter.date_to;
+      if (filter.search) params.search = filter.search;
       
-      const res = await fetch(`${url}?${params}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; 
-        a.download = `${type}_audit_${new Date().toISOString().split('T')[0]}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+      const res = await adminApi.get(url, { params, responseType: 'blob' });
+      const blobUrl = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${type}_audit_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
     } catch { alert('Export failed'); }
   };
 
   const generateComplianceReport = async () => {
     try {
-      const res = await fetch('/api/audit/compliance-report', {
-        method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ date_from: filter.date_from, date_to: filter.date_to }),
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; 
-        a.download = `compliance_report_${new Date().toISOString().split('T')[0]}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+      const res = await adminApi.post('/audit/compliance-report', { date_from: filter.date_from, date_to: filter.date_to }, { responseType: 'blob' });
+      const blobUrl = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `compliance_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
     } catch { alert('Failed to generate compliance report'); }
   };
 

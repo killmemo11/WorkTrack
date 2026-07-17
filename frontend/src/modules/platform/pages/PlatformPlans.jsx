@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 const defaultForm = {
   name: '',
@@ -29,21 +30,11 @@ export default function PlatformPlans() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem('platformToken');
-
   const fetchPlans = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/platform/plans', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPlans(data);
-      }
-    } catch {} finally {
-      setLoading(false);
-    }
+      const res = await platformApi.get('/plans');
+      setPlans(res.data);
+    } catch {} finally { setLoading(false); }
   };
 
   useEffect(() => { fetchPlans(); }, []);
@@ -101,17 +92,10 @@ export default function PlatformPlans() {
         sort_order: parseInt(form.sort_order) || 0,
       };
       const isEdit = activeTab < plans.length;
-      const url = isEdit ? `/api/platform/plans/${plans[activeTab].id}` : '/api/platform/plans';
-      const method = isEdit ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Failed to save plan');
-        return;
+      if (isEdit) {
+        await platformApi.put(`/plans/${plans[activeTab].id}`, body);
+      } else {
+        await platformApi.post('/plans', body);
       }
       setEditing(false);
       fetchPlans();
@@ -125,35 +109,19 @@ export default function PlatformPlans() {
   const handleDelete = async (plan) => {
     if (!confirm(`Delete plan "${plan.name}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/platform/plans/${plan.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setActiveTab(0);
-        fetchPlans();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete');
-      }
-    } catch { alert('Network error'); }
+      await platformApi.delete(`/plans/${plan.id}`);
+      setActiveTab(0);
+      fetchPlans();
+    } catch (err) { alert(err.response?.data?.error || 'Failed to delete'); }
   };
 
   const toggleActive = async (plan) => {
-    await fetch(`/api/platform/plans/${plan.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ is_active: !plan.is_active }),
-    });
+    await platformApi.put(`/plans/${plan.id}`, { is_active: !plan.is_active });
     fetchPlans();
   };
 
   const togglePublic = async (plan) => {
-    await fetch(`/api/platform/plans/${plan.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ is_public: !plan.is_public }),
-    });
+    await platformApi.put(`/plans/${plan.id}`, { is_public: !plan.is_public });
     fetchPlans();
   };
 

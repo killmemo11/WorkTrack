@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
 import { isValidHttpUrl } from '../../../shared/utils/sanitize';
+import platformApi from '../../../shared/api/platformApi';
 
 const STATUS_BADGE = {
   pending: 'warning',
@@ -30,16 +31,10 @@ export default function PlatformTenantRequests() {
   const fetchRequests = async (page = 1) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (statusFilter) params.append('status', statusFilter);
-      const res = await fetch(`/api/platform/tenant-requests?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
-      }
+      const params = { page, limit: 20 };
+      if (statusFilter) params.status = statusFilter;
+      const res = await platformApi.get('/tenant-requests', { params });
+      setData(res.data);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
     } finally {
@@ -54,20 +49,10 @@ export default function PlatformTenantRequests() {
     const planName = req?.requested_plan || 'trial';
     if (!confirm(`Approve this tenant request? Plan: ${planName}. This will create the tenant and send a magic link to the admin.`)) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenant-requests/${id}/approve`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
-        fetchRequests(data.page);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to approve');
-      }
+      await platformApi.post(`/tenant-requests/${id}/approve`, {});
+      fetchRequests(data.page);
     } catch (err) {
-      alert('Failed to approve');
+      alert(err.response?.data?.error || 'Failed to approve');
     }
   };
 
@@ -75,63 +60,33 @@ export default function PlatformTenantRequests() {
     const reason = prompt('Reason for rejection (optional):');
     if (reason === null) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenant-requests/${id}/reject`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejection_reason: reason }),
-      });
-      if (res.ok) {
-        fetchRequests(data.page);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to reject');
-      }
+      await platformApi.post(`/tenant-requests/${id}/reject`, { rejection_reason: reason });
+      fetchRequests(data.page);
     } catch (err) {
-      alert('Failed to reject');
+      alert(err.response?.data?.error || 'Failed to reject');
     }
   };
 
   const handleVerifyPayment = async (id) => {
     if (!confirm('Mark this payment as verified?')) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenant-requests/${id}/verify-payment`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
-        fetchRequests(data.page);
-        setShowPaymentModal(null);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to verify payment');
-      }
+      await platformApi.post(`/tenant-requests/${id}/verify-payment`, {});
+      fetchRequests(data.page);
+      setShowPaymentModal(null);
     } catch (err) {
-      alert('Failed to verify payment');
+      alert(err.response?.data?.error || 'Failed to verify payment');
     }
   };
 
   const handleRejectPayment = async (id) => {
     if (!rejectionReason.trim()) { alert('Please enter a rejection reason'); return; }
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenant-requests/${id}/reject-payment`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejection_reason: rejectionReason.trim() }),
-      });
-      if (res.ok) {
-        fetchRequests(data.page);
-        setShowPaymentModal(null);
-        setRejectionReason('');
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to reject payment');
-      }
+      await platformApi.post(`/tenant-requests/${id}/reject-payment`, { rejection_reason: rejectionReason.trim() });
+      fetchRequests(data.page);
+      setShowPaymentModal(null);
+      setRejectionReason('');
     } catch (err) {
-      alert('Failed to reject payment');
+      alert(err.response?.data?.error || 'Failed to reject payment');
     }
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformAdmins() {
   const [admins, setAdmins] = useState([]);
@@ -12,16 +13,11 @@ export default function PlatformAdmins() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem('platformToken');
-  const currentAdmin = JSON.parse(localStorage.getItem('platformAdmin') || '{}');
-
   const fetchAdmins = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/platform/admins', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setAdmins(await res.json());
+      const res = await platformApi.get('/admins');
+      setAdmins(res.data);
     } catch {} finally { setLoading(false); }
   };
 
@@ -46,63 +42,44 @@ export default function PlatformAdmins() {
     setError('');
     try {
       if (editAdmin) {
-        const res = await fetch(`/api/platform/admins/${editAdmin.id}`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email }),
-        });
-        if (!res.ok) { const d = await res.json(); setError(d.error); return; }
+        await platformApi.put(`/admins/${editAdmin.id}`, { email: form.email });
       } else {
-        const res = await fetch('/api/platform/admins', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-        if (!res.ok) { const d = await res.json(); setError(d.error); return; }
+        await platformApi.post('/admins', form);
       }
       setShowModal(false);
       fetchAdmins();
-    } catch { setError('Failed'); }
+    } catch (err) { setError(err.response?.data?.error || 'Failed'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (admin) => {
     if (!confirm(`Delete admin "${admin.username}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/platform/admins/${admin.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchAdmins();
-      else { const d = await res.json(); alert(d.error); }
-    } catch { alert('Failed'); }
+      await platformApi.delete(`/admins/${admin.id}`);
+      fetchAdmins();
+    } catch (err) { alert(err.response?.data?.error || 'Failed'); }
   };
 
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 8) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/platform/admins/${resetPwId}/reset-password`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword }),
-      });
-      if (res.ok) { setResetPwId(null); setNewPassword(''); alert('Password reset successfully'); }
-      else { const d = await res.json(); alert(d.error); }
-    } catch { alert('Failed'); }
+      await platformApi.post(`/admins/${resetPwId}/reset-password`, { password: newPassword });
+      setResetPwId(null);
+      setNewPassword('');
+      alert('Password reset successfully');
+    } catch (err) { alert(err.response?.data?.error || 'Failed'); }
     finally { setSaving(false); }
   };
 
   const handleToggleActive = async (admin) => {
     try {
-      const res = await fetch(`/api/platform/admins/${admin.id}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !admin.is_active }),
-      });
-      if (res.ok) fetchAdmins();
+      await platformApi.put(`/admins/${admin.id}`, { is_active: !admin.is_active });
+      fetchAdmins();
     } catch {}
   };
+
+  const currentAdmin = JSON.parse(localStorage.getItem('platformAdmin') || '{}');
 
   if (loading) return <div className="glass-loading"><div className="spinner" /></div>;
 

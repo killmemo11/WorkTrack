@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { usePlatformAuth } from '../../context/PlatformAuthContext';
 import Icon from '../Icon';
 import Footer from '../Footer';
+import platformApi from '../../api/platformApi';
 
 export default function PlatformLayout() {
   const { platformAdmin, logout } = usePlatformAuth();
@@ -12,27 +13,19 @@ export default function PlatformLayout() {
   const [platformSettings, setPlatformSettings] = useState({});
 
   useEffect(() => {
-    const token = localStorage.getItem('platformToken');
-    if (token) {
-      fetch('/api/platform/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => { if (data) setStats(data); })
-        .catch(() => {});
+    platformApi.get('/stats')
+      .then((res) => { if (res.data) setStats(res.data); })
+      .catch(() => {});
 
-      fetch('/api/platform/settings', {
-        headers: { Authorization: `Bearer ${token}` },
+    platformApi.get('/settings')
+      .then((res) => {
+        const data = res.data;
+        if (!Array.isArray(data)) return;
+        const map = {};
+        data.forEach(s => { map[s.key] = s.value; });
+        setPlatformSettings(map);
       })
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (!Array.isArray(data)) return;
-          const map = {};
-          data.forEach(s => { map[s.key] = s.value; });
-          setPlatformSettings(map);
-        })
-        .catch(() => {});
-    }
+      .catch(() => {});
   }, []);
 
   const handleLogout = () => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
+import api from '../../../shared/api';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const formatDate = (dateString) => {
@@ -47,16 +48,10 @@ export default function EmployeeDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/personnel/dashboard', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch dashboard data');
-      }
-      setDashboardData(data);
+      const res = await api.get('/personnel/dashboard');
+      setDashboardData(res.data);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }

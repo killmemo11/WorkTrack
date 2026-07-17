@@ -186,13 +186,26 @@ async function verify(req, res) {
   );
   const finalEmp = finalRows[0];
 
-  const token = jwt.sign(
+  const COOKIE_SECURE = process.env.NODE_ENV === 'production';
+
+  const accessToken = jwt.sign(
     { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
     process.env.JWT_SECRET,
-    { expiresIn: '12h', issuer: 'worktrack', audience: 'employee', algorithm: 'HS256' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'employee', algorithm: 'HS256' }
   );
 
-  res.json({ token, employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: finalEmp.department_name === 'HR' || finalEmp.role === 'admin', is_global_ceo: isGlobalCeo } });
+  const refreshToken = await tokenService.generateRefreshToken(finalEmp.id, 'employee', finalEmp.tenant_id);
+
+  res.cookie('access_token', accessToken, {
+    httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+    maxAge: 15 * 60 * 1000, path: '/',
+  });
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, path: '/',
+  });
+
+  res.json({ employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: finalEmp.department_name === 'HR' || finalEmp.role === 'admin', is_global_ceo: isGlobalCeo } });
 }
 
 async function login(req, res) {

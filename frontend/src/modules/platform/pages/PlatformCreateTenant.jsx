@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformCreateTenant() {
   const navigate = useNavigate();
@@ -19,14 +20,8 @@ export default function PlatformCreateTenant() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const token = localStorage.getItem('platformToken');
-        const res = await fetch('/api/platform/plans', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setPlans(data.filter(p => p.is_active));
-        }
+        const res = await platformApi.get('/plans');
+        setPlans(res.data.filter(p => p.is_active));
       } catch {}
     };
     fetchPlans();
@@ -47,20 +42,11 @@ export default function PlatformCreateTenant() {
     setError('');
     setSaving(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch('/api/platform/tenants', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        navigate(`/platform/tenants/${data.tenantId}`);
-      } else {
-        setError(data.error || 'Failed to create tenant');
-      }
-    } catch {
-      setError('Failed to create tenant');
+      const res = await platformApi.post('/tenants', form);
+      const data = res.data;
+      navigate(`/platform/tenants/${data.tenantId}`);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create tenant');
     } finally {
       setSaving(false);
     }

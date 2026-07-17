@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 const STATUS_COLORS = {
   verified: '#22c55e',
@@ -16,16 +17,9 @@ export default function PlatformRevenue() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('platformToken');
-    fetch('/api/platform/revenue', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to load');
-        return res.json();
-      })
-      .then(d => setData(d))
-      .catch(e => setError(e.message))
+    platformApi.get('/revenue')
+      .then(res => setData(res.data))
+      .catch(e => setError(e.response?.data?.error || e.message || 'Failed to load'))
       .finally(() => setLoading(false));
   }, []);
 

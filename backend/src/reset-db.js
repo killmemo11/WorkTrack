@@ -5,7 +5,12 @@
 // Drops ALL tables and re-seeds from scratch.
 // Usage: node src/reset-db.js
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL: reset-db.js refuses to run in production. Set NODE_ENV=development to override.');
+  process.exit(1);
+}
+
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const pool = require('./shared/config/database');
 const { seed } = require('./seed');
 

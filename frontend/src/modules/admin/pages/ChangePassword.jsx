@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../../shared/context/AdminAuthContext';
+import adminApi from '../../../shared/api/adminApi';
 
 export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -44,25 +45,13 @@ export default function ChangePassword() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('adminToken') || localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Failed to change password');
-        return;
-      }
+      const res = await adminApi.post('/auth/change-password', { currentPassword, newPassword });
       // Recheck session to refresh must_change_password flag, then navigate.
       await recheck();
       setSuccess(true);
       setTimeout(() => navigate('/admin/settings', { replace: true }), 1200);
-    } catch {
-      setError('Network error');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to change password');
     } finally {
       setLoading(false);
     }

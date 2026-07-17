@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformTenantDetail() {
   const { id } = useParams();
@@ -14,25 +15,19 @@ export default function PlatformTenantDetail() {
   const fetchTenant = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await platformApi.get(`/tenants/${id}`);
+      const data = res.data;
+      setTenant(data);
+      setForm({
+        name: data.name || '',
+        contact_email: data.contact_email || '',
+        contact_phone: data.contact_phone || '',
+        plan: data.plan || 'trial',
+        max_employees: data.max_employees || 50,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setTenant(data);
-        setForm({
-          name: data.name || '',
-          contact_email: data.contact_email || '',
-          contact_phone: data.contact_phone || '',
-          plan: data.plan || 'trial',
-          max_employees: data.max_employees || 50,
-        });
-      } else {
-        navigate('/platform/tenants');
-      }
     } catch (err) {
       console.error(err);
+      navigate('/platform/tenants');
     } finally {
       setLoading(false);
     }
@@ -43,18 +38,9 @@ export default function PlatformTenantDetail() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        setEditing(false);
-        fetchTenant();
-      } else {
-        alert('Failed to update');
-      }
+      await platformApi.put(`/tenants/${id}`, form);
+      setEditing(false);
+      fetchTenant();
     } catch { alert('Failed to update'); }
     finally { setSaving(false); }
   };
@@ -63,37 +49,23 @@ export default function PlatformTenantDetail() {
     const reason = prompt(`Suspend "${tenant.name}"? Enter reason:`);
     if (reason === null) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}/suspend`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-      if (res.ok) fetchTenant();
+      await platformApi.post(`/tenants/${id}/suspend`, { reason });
+      fetchTenant();
     } catch { alert('Failed'); }
   };
 
   const handleActivate = async () => {
     if (!confirm(`Reactivate "${tenant.name}"?`)) return;
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/${id}/activate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchTenant();
+      await platformApi.post(`/tenants/${id}/activate`);
+      fetchTenant();
     } catch { alert('Failed'); }
   };
 
   const handleResendMagicLink = async (adminId) => {
     try {
-      const token = localStorage.getItem('platformToken');
-      const res = await fetch(`/api/platform/tenants/admins/${adminId}/resend-magic-link`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      alert(data.message || 'Magic link resent');
+      const res = await platformApi.post(`/tenants/admins/${adminId}/resend-magic-link`);
+      alert(res.data.message || 'Magic link resent');
     } catch { alert('Failed'); }
   };
 

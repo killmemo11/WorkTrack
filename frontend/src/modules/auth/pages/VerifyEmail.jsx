@@ -52,7 +52,6 @@ export default function VerifyEmail() {
         setError(data.error || 'Verification failed');
         return;
       }
-      localStorage.setItem('token', data.token);
       setEmployee(data.employee);
       navigate('/dashboard', { replace: true });
     } catch {

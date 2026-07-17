@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformClientAccounts() {
   const [accounts, setAccounts] = useState([]);
@@ -17,34 +18,22 @@ export default function PlatformClientAccounts() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem('platformToken');
-
   const fetchAccounts = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit: 20 });
-      if (filterTenant) params.append('tenant_id', filterTenant);
-      if (search) params.append('search', search);
-      const res = await fetch(`/api/platform/client-accounts?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAccounts(data.accounts);
-        setTotalPages(data.totalPages);
-      }
+      const params = { page, limit: 20 };
+      if (filterTenant) params.tenant_id = filterTenant;
+      if (search) params.search = search;
+      const res = await platformApi.get('/client-accounts', { params });
+      setAccounts(res.data.accounts);
+      setTotalPages(res.data.totalPages);
     } catch {} finally { setLoading(false); }
   };
 
   const fetchTenants = async () => {
     try {
-      const res = await fetch('/api/platform/tenants?limit=200', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTenants(data.tenants || []);
-      }
+      const res = await platformApi.get('/tenants', { params: { limit: 200 } });
+      setTenants(res.data.tenants || []);
     } catch {}
   };
 
@@ -76,73 +65,48 @@ export default function PlatformClientAccounts() {
     setError('');
     try {
       if (editAccount) {
-        const res = await fetch(`/api/platform/client-accounts/${editAccount.id}`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email }),
-        });
-        if (!res.ok) { const d = await res.json(); setError(d.error); return; }
+        await platformApi.put(`/client-accounts/${editAccount.id}`, { email: form.email });
       } else {
-        const res = await fetch('/api/platform/client-accounts', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-        if (!res.ok) { const d = await res.json(); setError(d.error); return; }
+        await platformApi.post('/client-accounts', form);
       }
       setShowModal(false);
       fetchAccounts();
-    } catch { setError('Failed'); }
+    } catch (err) { setError(err.response?.data?.error || 'Failed'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (account) => {
     if (!confirm(`Delete admin "${account.username}" from "${account.tenant_name}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/platform/client-accounts/${account.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) fetchAccounts();
-      else { const d = await res.json(); alert(d.error); }
-    } catch { alert('Failed'); }
+      await platformApi.delete(`/client-accounts/${account.id}`);
+      fetchAccounts();
+    } catch (err) { alert(err.response?.data?.error || 'Failed'); }
   };
 
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 8) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/platform/client-accounts/${resetPwId}/reset-password`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword }),
-      });
-      if (res.ok) { setResetPwId(null); setNewPassword(''); alert('Password reset successfully'); }
-      else { const d = await res.json(); alert(d.error); }
-    } catch { alert('Failed'); }
+      await platformApi.post(`/client-accounts/${resetPwId}/reset-password`, { password: newPassword });
+      setResetPwId(null);
+      setNewPassword('');
+      alert('Password reset successfully');
+    } catch (err) { alert(err.response?.data?.error || 'Failed'); }
     finally { setSaving(false); }
   };
 
   const handleToggleActive = async (account) => {
     try {
-      const res = await fetch(`/api/platform/client-accounts/${account.id}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !account.is_active }),
-      });
-      if (res.ok) fetchAccounts();
+      await platformApi.put(`/client-accounts/${account.id}`, { is_active: !account.is_active });
+      fetchAccounts();
     } catch {}
   };
 
   const handleSendMagicLink = async (account) => {
     try {
-      const res = await fetch(`/api/platform/tenants/admins/${account.id}/resend-magic-link`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) alert(`Magic link sent to ${account.email}`);
-      else { const d = await res.json(); alert(d.error); }
-    } catch { alert('Failed'); }
+      await platformApi.post(`/tenants/admins/${account.id}/resend-magic-link`);
+      alert(`Magic link sent to ${account.email}`);
+    } catch (err) { alert(err.response?.data?.error || 'Failed'); }
   };
 
   const getTenantName = (id) => {

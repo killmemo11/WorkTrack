@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 export default function PlatformDashboard() {
   const [stats, setStats] = useState(null);
@@ -12,19 +13,12 @@ export default function PlatformDashboard() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('platformToken');
       const [statsRes, activityRes] = await Promise.all([
-        fetch('/api/platform/stats', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/platform/activity', { headers: { Authorization: `Bearer ${token}` } }),
+        platformApi.get('/stats'),
+        platformApi.get('/activity'),
       ]);
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data);
-      }
-      if (activityRes.ok) {
-        const data = await activityRes.json();
-        setRecentActivity(data);
-      }
+      setStats(statsRes.data);
+      setRecentActivity(activityRes.data);
     } catch (err) {
       console.error('Failed to fetch platform stats:', err);
     } finally {

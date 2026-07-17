@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
+import platformApi from '../../../shared/api/platformApi';
 
 const DEFAULT_FEATURES = '{"items":[{"icon":"lucide:clock","title":"Attendance Tracking","desc":"Real-time attendance tracking with geofence support and missing sign-out alerts."},{"icon":"lucide:calendar","title":"Leave Management","desc":"Comprehensive leave management with approval workflows and balance tracking."},{"icon":"lucide:users","title":"HR & People Ops","desc":"Employee profiles, organization charts, documents, contracts, and checklists in one place."},{"icon":"lucide:briefcase","title":"Recruitment ATS","desc":"Full applicant tracking system with candidate pipeline, interview scheduling, and offer management."},{"icon":"lucide:bar-chart-3","title":"Reports & Analytics","desc":"Detailed reports and analytics for attendance, headcount, and audit compliance."},{"icon":"lucide:shield","title":"Security & RBAC","desc":"Role-based access control with granular permissions and audit trails for every action."}]}';
 const DEFAULT_STEPS = '{"steps":[{"icon":"lucide:user-plus","title":"Register Your Company","desc":"Create your account and tell us about your team."},{"icon":"lucide:check-circle","title":"Get Approved","desc":"Our team reviews and approves your workspace within 24 hours."},{"icon":"lucide:rocket","title":"Set Up & Go","desc":"Add your employees, configure settings, and start managing."}]}';
@@ -356,16 +357,12 @@ export default function PlatformSettings() {
   const [activeStepTab, setActiveStepTab] = useState(0);
   const [plans, setPlans] = useState([]);
 
-  const token = localStorage.getItem('platformToken');
-
   useEffect(() => {
-    fetch('/api/platform/settings', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => res.ok ? res.json() : [])
-      .then((data) => { setSettings(Array.isArray(data) ? data : []); setLoading(false); })
+    platformApi.get('/settings')
+      .then(res => { setSettings(Array.isArray(res.data) ? res.data : []); setLoading(false); })
       .catch(() => setLoading(false));
-    fetch('/api/platform/plans', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.ok ? res.json() : [])
-      .then(data => setPlans(Array.isArray(data) ? data : []))
+    platformApi.get('/plans')
+      .then(res => setPlans(Array.isArray(res.data) ? res.data : []))
       .catch(() => {});
   }, []);
 
@@ -389,14 +386,9 @@ export default function PlatformSettings() {
     setError('');
     setSuccess(false);
     try {
-      const res = await fetch('/api/platform/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ settings: settings.map((s) => ({ key: s.key, value: s.value })) }),
-      });
-      if (res.ok) { setSuccess(true); setTimeout(() => setSuccess(false), 3000); }
-      else { const data = await res.json(); setError(data.error || 'Failed to save'); }
-    } catch { setError('Network error'); }
+      await platformApi.put('/settings', { settings: settings.map((s) => ({ key: s.key, value: s.value })) });
+      setSuccess(true); setTimeout(() => setSuccess(false), 3000);
+    } catch (err) { setError(err.response?.data?.error || 'Failed to save'); }
     finally { setSaving(false); }
   };
 
@@ -404,12 +396,9 @@ export default function PlatformSettings() {
     if (!testEmail) return;
     setTesting(true); setTestResult('');
     try {
-      const res = await fetch('/api/platform/settings/test-smtp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email: testEmail }),
-      });
-      const data = await res.json(); setTestResult(res.ok ? 'ok' : (data.error || 'Failed'));
-    } catch { setTestResult('Network error'); }
+      const res = await platformApi.post('/settings/test-smtp', { email: testEmail });
+      setTestResult(res.data?.ok ? 'ok' : (res.data?.error || 'ok'));
+    } catch (err) { setTestResult(err.response?.data?.error || 'Network error'); }
     finally { setTesting(false); }
   };
 

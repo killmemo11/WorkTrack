@@ -59,27 +59,23 @@ export default function ITPortal({ initialTab }) {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/it/settings', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+      const res = await adminApi.get('/it/settings');
+      const data = res.data;
+      setSettings(prev => ({
+        ...prev,
+        smtp_host: data.smtp_host || '', smtp_port: data.smtp_port || '587',
+        smtp_user: data.smtp_user || '', smtp_pass: '',
+        office_lat: data.office_lat || '30.0444', office_lng: data.office_lng || '31.2357',
+        office_radius_meters: data.office_radius_meters || '200',
+      }));
+      setLogoData(data.logo_data || '');
+      setMeetingSettings({
+        meeting_google_service_email: data.meeting_google_service_email || '',
+        meeting_google_private_key: '',
+        meeting_teams_tenant_id: data.meeting_teams_tenant_id || '',
+        meeting_teams_client_id: data.meeting_teams_client_id || '',
+        meeting_teams_client_secret: '',
       });
-      if (res.ok) {
-        const data = await res.json();
-        setSettings(prev => ({
-          ...prev,
-          smtp_host: data.smtp_host || '', smtp_port: data.smtp_port || '587',
-          smtp_user: data.smtp_user || '', smtp_pass: '',
-          office_lat: data.office_lat || '30.0444', office_lng: data.office_lng || '31.2357',
-          office_radius_meters: data.office_radius_meters || '200',
-        }));
-        setLogoData(data.logo_data || '');
-        setMeetingSettings({
-          meeting_google_service_email: data.meeting_google_service_email || '',
-          meeting_google_private_key: '',
-          meeting_teams_tenant_id: data.meeting_teams_tenant_id || '',
-          meeting_teams_client_id: data.meeting_teams_client_id || '',
-          meeting_teams_client_secret: '',
-        });
-      }
     } catch (err) { console.error('Failed to fetch IT settings:', err); }
   };
 
@@ -91,19 +87,10 @@ export default function ITPortal({ initialTab }) {
     else if (section === 'meetings') payload = { ...meetingSettings };
 
     try {
-      const res = await fetch('/api/it/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        setMessage(`${section === 'smtp' ? 'SMTP' : section === 'branding' ? 'Branding' : 'Meeting'} settings saved successfully`);
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        const err = await res.json();
-        setMessage(err.error || 'Failed to save');
-      }
-    } catch (err) { setMessage('Network error'); }
+      await adminApi.put('/it/settings', payload);
+      setMessage(`${section === 'smtp' ? 'SMTP' : section === 'branding' ? 'Branding' : 'Meeting'} settings saved successfully`);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) { setMessage(err.response?.data?.error || 'Failed to save'); }
     setSaving(false);
   };
 
@@ -120,28 +107,18 @@ export default function ITPortal({ initialTab }) {
     if (!testEmail) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/it/test-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        body: JSON.stringify({ to: testEmail }),
-      });
-      const data = await res.json();
-      setMessage(res.ok ? `Test email sent to ${testEmail}` : (data.error || 'Failed'));
-    } catch { setMessage('Network error'); }
+      const res = await adminApi.post('/it/test-email', { to: testEmail });
+      setMessage(`Test email sent to ${testEmail}`);
+    } catch (err) { setMessage(err.response?.data?.error || 'Failed'); }
     setSaving(false);
   };
 
   const handleTestMeeting = async (provider) => {
     if (provider === 'google') setTestingGoogle(true); else setTestingTeams(true);
     try {
-      const res = await fetch('/api/it/test-meeting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
-        body: JSON.stringify({ provider }),
-      });
-      const data = await res.json();
-      setMessage(res.ok ? `${provider} connection successful` : (data.error || 'Failed'));
-    } catch { setMessage('Network error'); }
+      const res = await adminApi.post('/it/test-meeting', { provider });
+      setMessage(`${provider} connection successful`);
+    } catch (err) { setMessage(err.response?.data?.error || 'Failed'); }
     if (provider === 'google') setTestingGoogle(false); else setTestingTeams(false);
   };
 
