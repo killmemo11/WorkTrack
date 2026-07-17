@@ -40,8 +40,6 @@ const pool = require('./shared/config/database');
 
 const PORT = process.env.PORT || 5000;
 
-const { seed } = require('./seed');
-
 async function waitForDB(retries = 15, delay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -60,18 +58,36 @@ async function waitForDB(retries = 15, delay = 2000) {
 const { startMissingSignOutReminderJob, runMissingSignOutCheck } = require('./shared/jobs/missing-signout-reminder.job');
 const { startExpiryReminderJob } = require('./shared/jobs/expiry-reminder.job');
 
+let server;
+
 async function start() {
   try {
     await waitForDB();
-    await seed();
     runMissingSignOutCheck().catch(() => {});
     startMissingSignOutReminderJob();
     startExpiryReminderJob();
-    app.listen(PORT, () => logger.info(`Backend running on port ${PORT}`));
+    server = app.listen(PORT, () => logger.info(`Backend running on port ${PORT}`));
   } catch (err) {
     logger.error('Failed to connect to database:', err.message);
     process.exit(1);
   }
 }
+
+function shutdown(signal) {
+  logger.info(`${signal} received — shutting down gracefully`);
+  if (server) {
+    server.close(async () => {
+      try { await pool.end(); } catch {}
+      logger.info('Database pool closed');
+      process.exit(0);
+    });
+    setTimeout(() => { process.exit(1); }, 10000);
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 start();

@@ -6,7 +6,7 @@ export default function AdminRoute({ children }) {
   const { admin, loading, recheck } = useAdminAuth();
   const [rechecking, setRechecking] = useState(false);
   const location = useLocation();
-  const hasToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
+  const hasToken = document.cookie.includes('access_token=');
   const initialCheckDone = useRef(false);
 
   useEffect(() => {

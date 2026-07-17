@@ -9,6 +9,7 @@ const pinoHttp = require('pino-http');
 const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const pool = require('./shared/config/database');
@@ -143,6 +144,7 @@ app.use(cookieParser());
 
 // CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
 const isDev = process.env.NODE_ENV === 'development';
+const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
@@ -151,6 +153,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
 // Serve uploaded files — requires authentication
@@ -328,9 +331,13 @@ app.use('/api/ceo', ceoRoutes);
 app.use('/api/personnel', personnelRoutes);
 app.use('/api/tasks', tasksRoutes);
 
-app.get('/api/departments', async (req, res) => {
+app.get('/api/departments', authenticate, resolveTenant, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name FROM departments ORDER BY name ASC');
+    const tenantId = req.tenantId;
+    const [rows] = await pool.query(
+      'SELECT id, name FROM departments WHERE tenant_id = ? ORDER BY name ASC',
+      [tenantId]
+    );
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch departments' });

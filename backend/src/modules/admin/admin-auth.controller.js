@@ -21,47 +21,70 @@ async function login(req, res) {
 
   const [adminRows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [username]);
   if (adminRows.length > 0) {
-    const valid = await bcrypt.compare(password, adminRows[0].password_hash);
-    if (valid) {
-      const token = jwt.sign(
-        { id: adminRows[0].id, username: adminRows[0].username, type: 'admin' },
-        process.env.JWT_SECRET,
-        { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
-      );
+    const admin = adminRows[0];
 
-      const refreshToken = await tokenService.generateRefreshToken(
-        adminRows[0].id,
-        'admin',
-        adminRows[0].tenant_id
-      );
-
-      res.cookie('access_token', token, {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
-        path: '/',
-      });
-      res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/',
-      });
-
-      await logActivity(null, adminRows[0].id, 'admin_login', `Admin logged in: ${adminRows[0].username}`);
-      return res.json({
-        token,
-        admin: {
-          id: adminRows[0].id,
-          username: adminRows[0].username,
-          must_change_password: adminRows[0].must_change_password === 1
-        }
-      });
+    // Check lockout (5 failures in 15 minutes)
+    if ((admin.failed_attempts || 0) >= 5 && admin.last_failed_login) {
+      const elapsed = Date.now() - new Date(admin.last_failed_login).getTime();
+      if (elapsed < 15 * 60 * 1000) {
+        return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
+      }
     }
+
+    const valid = await bcrypt.compare(password, admin.password_hash);
+    if (!valid) {
+      await pool.query(
+        'UPDATE admin_users SET failed_attempts = COALESCE(failed_attempts, 0) + 1, last_failed_login = NOW() WHERE id = ?',
+        [admin.id]
+      ).catch(() => {});
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Reset failed attempts on success
+    await pool.query(
+      'UPDATE admin_users SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?',
+      [admin.id]
+    ).catch(() => {});
+
+    const token = jwt.sign(
+      { id: admin.id, username: admin.username, type: 'admin' },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
+    );
+
+    const refreshToken = await tokenService.generateRefreshToken(
+      admin.id,
+      'admin',
+      admin.tenant_id
+    );
+
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: COOKIE_SECURE,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/',
+    });
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: COOKIE_SECURE,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    await logActivity(null, admin.id, 'admin_login', `Admin logged in: ${admin.username}`);
+    return res.json({
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        must_change_password: admin.must_change_password === 1
+      }
+    });
   }
 
+  // Fall through to employee-admin accounts
   const [empRows] = await pool.query(
     `SELECT e.* FROM employees e WHERE e.username = ? AND e.role = 'admin'`,
     [username]
@@ -70,21 +93,41 @@ async function login(req, res) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const valid = await bcrypt.compare(password, empRows[0].password_hash);
+  const emp = empRows[0];
+
+  // Check lockout for employee-admins
+  if ((emp.failed_attempts || 0) >= 5 && emp.last_failed_login) {
+    const elapsed = Date.now() - new Date(emp.last_failed_login).getTime();
+    if (elapsed < 15 * 60 * 1000) {
+      return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
+    }
+  }
+
+  const valid = await bcrypt.compare(password, emp.password_hash);
   if (!valid) {
+    await pool.query(
+      'UPDATE employees SET failed_attempts = COALESCE(failed_attempts, 0) + 1, last_failed_login = NOW() WHERE id = ?',
+      [emp.id]
+    ).catch(() => {});
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  // Reset failed attempts on success
+  await pool.query(
+    'UPDATE employees SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?',
+    [emp.id]
+  ).catch(() => {});
+
   const token = jwt.sign(
-    { id: empRows[0].id, email: empRows[0].email, role: empRows[0].role, type: 'admin' },
+    { id: emp.id, email: emp.email, role: emp.role, type: 'admin' },
     process.env.JWT_SECRET,
     { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
   );
 
   const refreshToken = await tokenService.generateRefreshToken(
-    empRows[0].id,
+    emp.id,
     'admin',
-    empRows[0].tenant_id
+    emp.tenant_id
   );
 
   res.cookie('access_token', token, {
@@ -102,15 +145,14 @@ async function login(req, res) {
     path: '/',
   });
 
-  await logActivity(null, empRows[0].id, 'admin_login', `Admin logged in: ${empRows[0].name}`);
+  await logActivity(null, emp.id, 'admin_login', `Admin logged in: ${emp.name}`);
 
-  // Employee-admins have no must_change_password column.
   res.json({
     token,
     admin: {
-      id: empRows[0].id,
-      username: empRows[0].username,
-      name: empRows[0].name,
+      id: emp.id,
+      username: emp.username,
+      name: emp.name,
       must_change_password: false
     }
   });

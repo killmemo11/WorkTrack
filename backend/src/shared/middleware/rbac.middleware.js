@@ -121,6 +121,12 @@ async function attachPermissions(req, res, next) {
 }
 
 function clearPermissionCache(userId, tenantId) {
+  if (userId === null || userId === undefined) {
+    for (const key of permissionCache.keys()) {
+      if (key.endsWith(`:${tenantId}`)) permissionCache.delete(key);
+    }
+    return;
+  }
   const keys = [`${userId}:admin:${tenantId}`, `${userId}:employee:${tenantId}`];
   for (const key of keys) permissionCache.delete(key);
 }

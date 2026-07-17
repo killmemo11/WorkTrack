@@ -18,9 +18,13 @@ const ALLOWED_MIMES = [
 
 const memoryUpload = multer({ storage: multer.memoryStorage() });
 
+const crypto = require('crypto');
 const personnelStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getPersonnelDir()),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (req, file, cb) => {
+    const ext = require('path').extname(file.originalname).replace(/[^a-zA-Z0-9.]/g, '');
+    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`);
+  },
 });
 const personnelUpload = multer({
   storage: personnelStorage,

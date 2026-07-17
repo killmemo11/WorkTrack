@@ -293,7 +293,17 @@ async function deleteEmployee(req, res) {
   try {
     await conn.beginTransaction();
     const empLabel = rows[0].name || rows[0].email || id;
+
     await conn.query('DELETE FROM attendance_records WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM leave_requests WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM leave_balances WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM employee_documents WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM employee_profiles WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM user_roles WHERE user_id = ? AND user_type = \'employee\'', [id]);
+    await conn.query('DELETE FROM tasks WHERE assigned_to = ?', [id]);
+    await conn.query('DELETE FROM employee_status_log WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM employee_medical_family WHERE employee_id = ?', [id]);
+    await conn.query('DELETE FROM refresh_tokens WHERE user_id = ? AND user_type = \'employee\'', [id]);
     await conn.query('DELETE FROM employees WHERE id = ?', [id]);
     await conn.commit();
     await logActivity(parseInt(id), req.admin?.id || req.hr?.id || null, 'employee_deleted', `Deleted employee: ${empLabel}`);

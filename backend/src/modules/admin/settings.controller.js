@@ -6,11 +6,17 @@ const { logActivity } = require('../../shared/services/activity.service');
 const logger = require('../../shared/utils/logger');
 const { updateSettingsBody, testEmailBody, testMeetingBody } = require('../../shared/validations/schemas');
 
+const SENSITIVE_KEYS = ['smtp_pass', 'meeting_google_private_key', 'meeting_teams_client_secret'];
+
 async function getSettings(req, res) {
   const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
   const settings = {};
   for (const row of rows) {
-    settings[row.key] = row.value;
+    if (SENSITIVE_KEYS.includes(row.key)) {
+      settings[row.key] = row.value ? '••••••••' : '';
+    } else {
+      settings[row.key] = row.value;
+    }
   }
 
   // Merge service toggles from canonical service_toggles table

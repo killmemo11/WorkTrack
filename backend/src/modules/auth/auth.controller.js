@@ -15,7 +15,15 @@ const logger = require('../../shared/utils/logger');
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 function generateCode() {
-  return crypto.randomInt(100000, 999999).toString();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let code = '';
+  const bytes = crypto.randomBytes(8);
+  for (let i = 0; i < 8; i++) code += chars[bytes[i] % chars.length];
+  return code;
+}
+
+function hashCode(code) {
+  return crypto.createHash('sha256').update(code).digest('hex');
 }
 
 function validatePassword(password) {
@@ -65,6 +73,7 @@ async function register(req, res) {
 
   const password_hash = await bcrypt.hash(password, 12);
   const code = generateCode();
+  const codeHash = hashCode(code);
   const expires = new Date(Date.now() + 10 * 60 * 1000);
 
   await pool.query(
@@ -77,7 +86,7 @@ async function register(req, res) {
        verification_code = VALUES(verification_code),
        verification_expires = VALUES(verification_expires),
        department_id = VALUES(department_id)`,
-    [email, employee_id, name, username, password_hash, code, expires, department_id || null]
+    [email, employee_id, name, username, password_hash, codeHash, expires, department_id || null]
   );
 
   try {
@@ -95,14 +104,22 @@ async function verify(req, res) {
     return res.status(400).json({ error: 'Email and code are required' });
   }
 
+  const codeHash = hashCode(code);
+
   const [pending] = await pool.query(
     'SELECT * FROM pending_registrations WHERE email = ? AND verification_code = ? AND verification_expires > NOW()',
-    [email, code]
+    [email, codeHash]
   );
 
   let isNewRegistration = false;
   if (pending.length > 0) {
     const p = pending[0];
+
+    // Attempt limiting: max 10 per code
+    if ((p.attempts || 0) >= 10) {
+      return res.status(429).json({ error: 'Too many failed attempts. Please request a new code.' });
+    }
+
     const [insertResult] = await pool.query(
       `INSERT INTO employees (employee_id, name, email, username, password_hash, is_verified, department_id)
        VALUES (?, ?, ?, ?, ?, 1, ?)`,
@@ -121,9 +138,15 @@ async function verify(req, res) {
     }
     await pool.query('DELETE FROM pending_registrations WHERE id = ?', [p.id]);
   } else {
+    // Increment attempts on wrong code
+    await pool.query(
+      'UPDATE pending_registrations SET attempts = COALESCE(attempts, 0) + 1 WHERE email = ? AND verification_expires > NOW()',
+      [email]
+    ).catch(() => {});
+
     const [legacy] = await pool.query(
       'SELECT * FROM employees WHERE email = ? AND verification_code = ? AND verification_expires > NOW() AND is_verified = 0',
-      [email, code]
+      [email, codeHash]
     );
     if (legacy.length === 0) {
       return res.status(400).json({ error: 'Invalid or expired code' });
@@ -330,11 +353,12 @@ async function resendCode(req, res) {
   }
 
   const code = generateCode();
+  const codeHash = hashCode(code);
   const expires = new Date(Date.now() + 10 * 60 * 1000);
 
   await pool.query(
-    'UPDATE pending_registrations SET verification_code = ?, verification_expires = ? WHERE id = ?',
-    [code, expires, rows[0].id]
+    'UPDATE pending_registrations SET verification_code = ?, verification_expires = ?, attempts = 0 WHERE id = ?',
+    [codeHash, expires, rows[0].id]
   );
 
   try {
@@ -451,17 +475,18 @@ async function forgotPassword(req, res) {
     // Check admin_users (but don't allow password reset for them via email)
     const [adminRows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [email]);
     if (adminRows.length > 0) {
-      return res.status(400).json({ error: 'Admin accounts cannot reset password via email. Contact system administrator.' });
+      return res.status(400).json({ error: 'If this email exists, a reset link has been sent.' });
     }
-    return res.status(400).json({ error: 'No verified account found with this email' });
+    return res.status(400).json({ error: 'If this email exists, a reset link has been sent.' });
   }
 
   const code = generateCode();
+  const codeHash = hashCode(code);
   const expires = new Date(Date.now() + 10 * 60 * 1000);
 
   await pool.query(
     'UPDATE employees SET verification_code = ?, verification_expires = ? WHERE id = ?',
-    [code, expires, rows[0].id]
+    [codeHash, expires, rows[0].id]
   );
 
   try {
@@ -488,9 +513,11 @@ async function resetPassword(req, res) {
   const pwdErr = validatePassword(password);
   if (pwdErr) return res.status(400).json({ error: pwdErr });
 
+  const codeHash = hashCode(code);
+
   const [rows] = await pool.query(
     'SELECT * FROM employees WHERE email = ? AND verification_code = ? AND verification_expires > NOW()',
-    [email, code]
+    [email, codeHash]
   );
 
   if (rows.length === 0) {
