@@ -6,6 +6,7 @@ const router = express.Router();
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const { clearPermissionCache } = require('../../shared/middleware/rbac.middleware');
+const { createRoleBody, updateRoleBody, assignRoleBody, removeRoleBody, toggleServiceBody, bulkServicesBody } = require('../../shared/validations/schemas');
 
 // ============================================================
 // ROLES
@@ -26,6 +27,8 @@ router.get('/roles', async (req, res) => {
 
 // Create role
 router.post('/roles', async (req, res) => {
+  const { error } = createRoleBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { name, display_name, description, permission_ids } = req.body;
 
@@ -72,6 +75,8 @@ router.post('/roles', async (req, res) => {
 
 // Update role
 router.put('/roles/:id', async (req, res) => {
+  const { error } = updateRoleBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { id } = req.params;
   const { display_name, description, permission_ids } = req.body;
@@ -209,6 +214,8 @@ router.get('/users', async (req, res) => {
 
 // Assign role to user (auto-derives user_type from user_id)
 router.post('/assign-role', async (req, res) => {
+  const { error } = assignRoleBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { user_id, role_id, user_type: forcedType } = req.body;
 
@@ -250,6 +257,8 @@ router.post('/assign-role', async (req, res) => {
 
 // Remove role from user (auto-derives user_type from user_id)
 router.post('/remove-role', async (req, res) => {
+  const { error } = removeRoleBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { user_id, role_id, user_type: forcedType } = req.body;
 
@@ -299,6 +308,8 @@ router.get('/services', async (req, res) => {
 
 // Toggle service
 router.put('/services/:id', async (req, res) => {
+  const { error } = toggleServiceBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { id } = req.params;
   const { is_enabled } = req.body;
@@ -322,6 +333,8 @@ router.put('/services/:id', async (req, res) => {
 
 // Bulk update service visibility
 router.put('/services', async (req, res) => {
+  const { error } = bulkServicesBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const tenantId = req.tenantId || 1;
   const { updates } = req.body;
 

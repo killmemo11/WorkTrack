@@ -10,6 +10,7 @@ const pool = require('../../shared/config/database');
 const { getPaymentsDir } = require('../../shared/config/storage');
 const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
 const logger = require('../../shared/utils/logger');
+const { sendVerificationCodeBody, verifyEmailCodeBody, tenantSignupBody, trackRequestQuery } = require('../../shared/validations/schemas');
 
 // Free/personal email domains that are NOT allowed for company registration
 const PERSONAL_DOMAINS = new Set([
@@ -109,6 +110,8 @@ router.get('/payment-info', async (req, res) => {
 // ─────────────────────────────────────────────────────
 router.get('/track-request', async (req, res) => {
   try {
+    const { error } = trackRequestQuery.validate(req.query);
+    if (error) return res.status(400).json({ error: error.details[0].message });
     const { email } = req.query;
     if (!email || !email.trim()) {
       return res.status(400).json({ error: 'Email is required' });
@@ -177,6 +180,8 @@ router.get('/track-request', async (req, res) => {
 // ─────────────────────────────────────────────────────
 router.post('/send-verification-code', async (req, res) => {
   try {
+    const { error } = sendVerificationCodeBody.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
     const { email, company_name } = req.body;
 
     if (!email || !email.trim()) {
@@ -260,6 +265,8 @@ router.post('/send-verification-code', async (req, res) => {
 // ─────────────────────────────────────────────────────
 router.post('/verify-email-code', async (req, res) => {
   try {
+    const { error } = verifyEmailCodeBody.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
     const { email, code } = req.body;
 
     if (!email || !code) {
@@ -315,6 +322,8 @@ router.post('/verify-email-code', async (req, res) => {
 // ─────────────────────────────────────────────────────
 router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) => {
   try {
+    const { error } = tenantSignupBody.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
     const {
       company_name, contact_email, contact_phone,
       industry, website, contact_person_name, contact_person_title,

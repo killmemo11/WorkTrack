@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const { createDepartmentBody, updateDepartmentBody } = require('../../shared/validations/schemas');
 
 async function getDepartments(req, res) {
   const [rows] = await pool.query('SELECT * FROM departments ORDER BY name ASC');
@@ -10,6 +11,8 @@ async function getDepartments(req, res) {
 }
 
 async function createDepartment(req, res) {
+  const { error } = createDepartmentBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name, manager_email, c_level_email, parent_department_id } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Department name is required' });
@@ -40,6 +43,8 @@ async function createDepartment(req, res) {
 }
 
 async function updateDepartment(req, res) {
+  const { error } = updateDepartmentBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { name, manager_email, c_level_email, parent_department_id } = req.body;
 

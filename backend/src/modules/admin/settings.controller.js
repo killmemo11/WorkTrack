@@ -4,6 +4,7 @@
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const logger = require('../../shared/utils/logger');
+const { updateSettingsBody, testEmailBody, testMeetingBody } = require('../../shared/validations/schemas');
 
 async function getSettings(req, res) {
   const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
@@ -24,6 +25,8 @@ async function getSettings(req, res) {
 
 async function updateSettings(req, res) {
   try {
+    const { error } = updateSettingsBody.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
     const allowed = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'office_lat', 'office_lng', 'office_radius_meters', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'logo_data', 'allowed_email_domain', 'ceo_email', 'meeting_google_service_email', 'meeting_google_private_key', 'meeting_teams_tenant_id', 'meeting_teams_client_id', 'meeting_teams_client_secret'];
     const serviceKeys = ['service_wfh', 'service_office_attendance', 'service_leaves', 'service_recruitment', 'service_people', 'service_manager', 'service_it', 'service_audit'];
     const updates = req.body;
@@ -109,6 +112,8 @@ async function updateSettings(req, res) {
 }
 
 async function testEmail(req, res) {
+  const { error } = testEmailBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const nodemailer = require('nodemailer');
   const { to } = req.body;
 
@@ -173,6 +178,8 @@ async function getPublicSettings(req, res) {
 }
 
 async function testMeeting(req, res) {
+  const { error } = testMeetingBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { provider } = req.body;
   if (!provider) return res.status(400).json({ error: 'Provider is required' });
   try {

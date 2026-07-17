@@ -16,6 +16,12 @@ const {
   sendTenantRejectedEmail,
   sendPlatformAlert
 } = require('../../shared/services/platform-email.service');
+const {
+  createTenantBody, updateTenantBody, updatePlatformAdminBody,
+  rejectTenantRequestBody, approveTenantRequestBody,
+  createPlatformAdminBody, createClientAccountBody, updateClientAccountBody,
+  resetPasswordBody, changeOwnPasswordBody, suspendTenantBody, deleteTenantBody,
+} = require('../../shared/validations/schemas');
 
 // In-memory failed login attempts tracker (resets on server restart)
 const failedAttempts = new Map();
@@ -141,6 +147,8 @@ async function listPlatformAdmins(req, res) {
 }
 
 async function createPlatformAdmin(req, res) {
+  const { error } = createPlatformAdminBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required' });
@@ -170,6 +178,8 @@ async function createPlatformAdmin(req, res) {
 }
 
 async function updatePlatformAdmin(req, res) {
+  const { error } = updatePlatformAdminBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { email, is_active } = req.body;
 
@@ -201,6 +211,8 @@ async function updatePlatformAdmin(req, res) {
 }
 
 async function resetPlatformAdminPassword(req, res) {
+  const { error } = resetPasswordBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { password } = req.body;
 
@@ -249,6 +261,8 @@ async function deletePlatformAdmin(req, res) {
 }
 
 async function changeOwnPassword(req, res) {
+  const { error } = changeOwnPasswordBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { current_password, new_password } = req.body;
   if (!current_password || !new_password) {
     return res.status(400).json({ error: 'Current and new password are required' });
@@ -332,6 +346,8 @@ async function getTenantRequest(req, res) {
 }
 
 async function approveTenantRequest(req, res) {
+  const { error } = approveTenantRequestBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { plan: overridePlan, max_employees: overrideMaxEmp, trial_days: overrideTrialDays } = req.body;
 
@@ -462,6 +478,8 @@ async function approveTenantRequest(req, res) {
 }
 
 async function rejectTenantRequest(req, res) {
+  const { error } = rejectTenantRequestBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { rejection_reason } = req.body;
 
@@ -629,6 +647,8 @@ async function getTenant(req, res) {
 }
 
 async function updateTenant(req, res) {
+  const { error } = updateTenantBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { name, contact_email, contact_phone, plan, max_employees, status, trial_ends_at } = req.body;
 
@@ -662,6 +682,8 @@ async function updateTenant(req, res) {
 }
 
 async function suspendTenant(req, res) {
+  const { error } = suspendTenantBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { reason } = req.body;
 
@@ -696,6 +718,8 @@ async function activateTenant(req, res) {
 }
 
 async function deleteTenant(req, res) {
+  const { error } = deleteTenantBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { reason } = req.body || {};
 
@@ -1078,6 +1102,8 @@ async function seedTenantRBAC(conn, tenantId) {
 }
 
 async function createTenant(req, res) {
+  const { error } = createTenantBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { company_name, contact_email, contact_phone, plan, max_employees, trial_days } = req.body;
 
   if (!company_name || !contact_email) {
@@ -1252,6 +1278,8 @@ async function listClientAccounts(req, res) {
 }
 
 async function createClientAccount(req, res) {
+  const { error } = createClientAccountBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { tenant_id, username, email, password } = req.body;
 
   if (!tenant_id || !username || !email || !password) {
@@ -1284,6 +1312,8 @@ async function createClientAccount(req, res) {
 }
 
 async function updateClientAccount(req, res) {
+  const { error } = updateClientAccountBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { email, is_active } = req.body;
 
@@ -1311,6 +1341,8 @@ async function updateClientAccount(req, res) {
 }
 
 async function resetClientAccountPassword(req, res) {
+  const { error } = resetPasswordBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { password } = req.body;
 

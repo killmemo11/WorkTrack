@@ -202,6 +202,8 @@ app.get('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) =
 });
 
 app.put('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) => {
+  const { error } = companySettingsBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const allowed = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const entries = Object.entries(req.body).filter(([key]) => allowed.includes(key));
   if (entries.length > 0) {
@@ -221,6 +223,8 @@ app.put('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) =
 });
 
 app.put('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res) => {
+  const { error } = workWeekSettingsBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const allowed = ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email'];
   const updates = req.body;
 
@@ -326,14 +330,11 @@ app.get('/api/settings/public', async (req, res) => {
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Public contact form endpoint (from landing page)
+const { contactBody, companySettingsBody, workWeekSettingsBody } = require('./shared/validations/schemas');
 app.post('/api/contact', contactLimiter, async (req, res) => {
+  const { error } = contactBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name, email, company, message } = req.body;
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Name, email, and message are required.' });
-  }
-  if (typeof name !== 'string' || typeof email !== 'string' || typeof message !== 'string') {
-    return res.status(400).json({ error: 'Invalid input format.' });
-  }
   try {
     await pool.query(
       'INSERT INTO contacts (name, email, company, message) VALUES (?, ?, ?, ?)',

@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const { getRecruitmentDir } = require('../../shared/config/storage');
+const { createJobBody, updateJobBody, createCandidateBody, updateCandidateBody, moveCandidateBody, addScorecardBody, createOfferBody, createInterviewBody, publicApplyBody } = require('../../shared/validations/schemas');
 
 const UPLOAD_FOLDER = getRecruitmentDir();
 
@@ -54,6 +55,8 @@ async function listJobs(req, res) {
 }
 
 async function createJob(req, res) {
+  const { error } = createJobBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
   if (status === 'active') {
@@ -80,6 +83,8 @@ async function createJob(req, res) {
 }
 
 async function updateJob(req, res) {
+  const { error } = updateJobBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
   if (status === 'active') {
@@ -219,6 +224,8 @@ async function getCandidate(req, res) {
 }
 
 async function createCandidate(req, res) {
+  const { error } = createCandidateBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name, email, phone, job_id, job_title, stage, technical, notes, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
@@ -257,6 +264,8 @@ async function createCandidate(req, res) {
 }
 
 async function updateCandidate(req, res) {
+  const { error } = updateCandidateBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const allowed = ['name', 'email', 'phone', 'job_id', 'job_title', 'stage', 'notes', 'score_comm', 'score_tech', 'score_fit', 'test_done', 'education_level', 'experience_years', 'skills', 'certifications', 'current_salary', 'expected_salary', 'nationality', 'birth_date', 'national_id', 'current_job_title', 'last_work_place', 'reason_leaving', 'governorate', 'city', 'district'];
   const updates = [];
@@ -288,6 +297,8 @@ async function deleteCandidate(req, res) {
 // ── Stage Move ────────────────────────────────────────────────
 
 async function moveCandidate(req, res) {
+  const { error } = moveCandidateBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { stage, note } = req.body;
   if (!stage) return res.status(400).json({ error: 'stage is required' });
@@ -363,6 +374,8 @@ async function getScorecards(req, res) {
 }
 
 async function addScorecard(req, res) {
+  const { error } = addScorecardBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { interview, comm, technical, fit, overall, notes, decision } = req.body;
   const interviewer = req.admin?.username || req.admin?.name || 'HR';
@@ -385,6 +398,8 @@ async function addScorecard(req, res) {
 
 // ── Offers ─────────────────────────────────────────────────────
 async function createOffer(req, res) {
+  const { error } = createOfferBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { position, department, salary, start_date, reports_to, benefits } = req.body;
   const [result] = await pool.query(
@@ -440,6 +455,8 @@ async function createOffer(req, res) {
 
 // ── Public: Apply ──────────────────────────────────────────────
 async function publicApply(req, res) {
+  const { error } = publicApplyBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email || !job_title) return res.status(400).json({ error: 'name, email, and job_title are required' });
 
@@ -861,6 +878,8 @@ async function listInterviews(req, res) {
 }
 
 async function createInterview(req, res) {
+  const { error } = createInterviewBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const {
     candidate_id, interview_date, duration, mode, interviewer, location_or_link, notes,
     type, location_name, location_address, dress_code, what_to_bring, map_link,

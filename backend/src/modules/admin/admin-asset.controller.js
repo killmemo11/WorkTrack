@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const { createAssetBody, updateAssetBody, assignAssetBody, returnAssetBody, markDamagedBody, disposeAssetBody } = require('../../shared/validations/schemas');
 
 async function getAssets(req, res) {
   const page = parseInt(req.query.page) || 1;
@@ -56,6 +57,8 @@ async function getAsset(req, res) {
 }
 
 async function createAsset(req, res) {
+  const { error } = createAssetBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const adminId = req.admin?.id || req.hr?.id || null;
   const { name, category, serial_number, brand, model, purchase_date, purchase_price, notes } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Asset name is required' });
@@ -75,6 +78,8 @@ async function createAsset(req, res) {
 }
 
 async function updateAsset(req, res) {
+  const { error } = updateAssetBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { name, category, serial_number, brand, model, purchase_date, purchase_price, status, notes } = req.body;
@@ -121,6 +126,8 @@ async function deleteAsset(req, res) {
 }
 
 async function assignAsset(req, res) {
+  const { error } = assignAssetBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { employee_id, expected_return_date, condition_at_assign, notes } = req.body;
@@ -151,6 +158,8 @@ async function assignAsset(req, res) {
 }
 
 async function returnAsset(req, res) {
+  const { error } = returnAssetBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { condition_on_return, return_notes } = req.body;
@@ -182,6 +191,8 @@ async function returnAsset(req, res) {
 }
 
 async function markDamaged(req, res) {
+  const { error } = markDamagedBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { notes } = req.body;
@@ -202,6 +213,8 @@ async function markDamaged(req, res) {
 }
 
 async function disposeAsset(req, res) {
+  const { error } = disposeAssetBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { notes } = req.body;

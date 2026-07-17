@@ -1,6 +1,7 @@
 const pool = require('../../shared/config/database');
 const { createNotification } = require('../../shared/services/notification.service');
 const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
+const { createHeadcountRequestBody, rejectHeadcountBody } = require('../../shared/validations/schemas');
 
 async function getRequesterRole(requesterId, departmentId) {
   const [[emp]] = await pool.query(
@@ -15,6 +16,8 @@ async function getRequesterRole(requesterId, departmentId) {
 }
 
 async function createRequest(req, res) {
+  const { error } = createHeadcountRequestBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { department_id, title_id, quantity, job_type, reason, priority } = req.body;
   const deptId = department_id || req.employee?.department_id;
   if (!deptId || !title_id) return res.status(400).json({ error: 'Department and title are required' });
@@ -175,6 +178,8 @@ async function managerApproveRequest(req, res) {
 }
 
 async function managerRejectRequest(req, res) {
+  const { error } = rejectHeadcountBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const managerId = req.employee?.id;
   const { rejection_reason } = req.body;
@@ -246,6 +251,8 @@ async function ceoApproveRequest(req, res) {
 }
 
 async function ceoRejectRequest(req, res) {
+  const { error } = rejectHeadcountBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const ceoId = req.employee?.id;
   const { rejection_reason } = req.body;
@@ -373,6 +380,8 @@ async function approveRequest(req, res) {
 }
 
 async function rejectRequest(req, res) {
+  const { error } = rejectHeadcountBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { rejection_reason } = req.body;

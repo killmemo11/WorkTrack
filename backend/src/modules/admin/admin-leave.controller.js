@@ -7,6 +7,7 @@ const logger = require('../../shared/utils/logger');
 const { createNotification } = require('../../shared/services/notification.service');
 const { logBalanceChange } = require('../../shared/services/audit.service');
 const { logActivity } = require('../../shared/services/activity.service');
+const { updateLeaveBalanceBody, rejectLeaveBody } = require('../../shared/validations/schemas');
 
 async function getAllLeaves(req, res) {
   const page = parseInt(req.query.page) || 1;
@@ -107,6 +108,8 @@ async function approveLeave(req, res) {
 }
 
 async function rejectLeave(req, res) {
+  const { error } = rejectLeaveBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { rejection_reason } = req.body;
@@ -144,6 +147,8 @@ async function rejectLeave(req, res) {
 }
 
 async function updateLeaveBalance(req, res) {
+  const { error } = updateLeaveBalanceBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const adjustments = [];

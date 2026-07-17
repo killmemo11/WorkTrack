@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const pool = require('../../shared/config/database');
+const { addSalaryComponentBody, updateSalaryComponentBody } = require('../../shared/validations/schemas');
 
 async function getSalaryComponents(req, res) {
   const employeeId = req.params.id;
@@ -13,6 +14,8 @@ async function getSalaryComponents(req, res) {
 }
 
 async function addSalaryComponent(req, res) {
+  const { error } = addSalaryComponentBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const employeeId = req.params.id;
   const { component_name, amount } = req.body;
   if (!component_name || !component_name.trim()) return res.status(400).json({ error: 'Component name is required' });
@@ -25,6 +28,8 @@ async function addSalaryComponent(req, res) {
 }
 
 async function updateSalaryComponent(req, res) {
+  const { error } = updateSalaryComponentBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id: employeeId, compId } = req.params;
   const { component_name, amount } = req.body;
   const updates = []; const values = [];

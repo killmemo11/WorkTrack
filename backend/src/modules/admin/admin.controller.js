@@ -8,6 +8,7 @@ const { createNotification } = require('../../shared/services/notification.servi
 const { logActivity } = require('../../shared/services/activity.service');
 const { runMissingSignOutCheck } = require('../../shared/jobs/missing-signout-reminder.job');
 const { formatUpdatedFieldsSummary, formatUpdatedFieldChanges } = require('../../shared/utils/activity-log.util');
+const { updateEmployeeBody, rejectSignoutBody } = require('../../shared/validations/schemas');
 
 async function getEmployees(req, res) {
   const page = parseInt(req.query.page) || 1;
@@ -55,6 +56,8 @@ async function getEmployees(req, res) {
 }
 
 async function updateEmployee(req, res) {
+  const { error } = updateEmployeeBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const tenantId = req.tenantId;
   const { name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date } = req.body;
@@ -524,6 +527,8 @@ async function adminApproveSignoutRequest(req, res) {
 }
 
 async function adminRejectSignoutRequest(req, res) {
+  const { error } = rejectSignoutBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { rejection_reason } = req.body;
   const adminId = req.admin?.id || req.employee?.id;

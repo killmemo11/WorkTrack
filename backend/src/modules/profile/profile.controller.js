@@ -3,8 +3,11 @@
 
 const bcrypt = require('bcryptjs');
 const pool = require('../../shared/config/database');
+const { updateProfileBody, changePasswordBody } = require('../../shared/validations/schemas');
 
 async function updateProfile(req, res) {
+  const { error } = updateProfileBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const employeeId = req.employee.id;
   const { phone } = req.body;
 
@@ -17,6 +20,8 @@ async function updateProfile(req, res) {
 }
 
 async function changePassword(req, res) {
+  const { error } = changePasswordBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const employeeId = req.employee.id;
   const { current_password, new_password } = req.body;
 

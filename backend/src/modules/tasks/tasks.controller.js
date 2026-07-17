@@ -1,4 +1,5 @@
 const pool = require('../../shared/config/database');
+const { createTaskBody, updateTaskBody, updateTaskStatusBody } = require('../../shared/validations/schemas');
 
 const MANAGER_ROLES = ['manager', 'admin', 'ceo'];
 
@@ -25,6 +26,8 @@ async function canAssign(req, targetEmployeeId) {
 }
 
 async function createTask(req, res) {
+  const { error } = createTaskBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { title, description, assigned_to, priority, due_date } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
   if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required' });
@@ -118,6 +121,8 @@ async function getTask(req, res) {
 }
 
 async function updateTask(req, res) {
+  const { error } = updateTaskBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { title, description, priority, due_date, notes } = req.body;
   const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
   const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
@@ -155,6 +160,8 @@ async function updateTask(req, res) {
 }
 
 async function updateTaskStatus(req, res) {
+  const { error } = updateTaskStatusBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { status } = req.body;
   const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
   if (!validStatuses.includes(status)) {

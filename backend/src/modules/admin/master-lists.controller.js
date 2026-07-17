@@ -1,4 +1,5 @@
 const pool = require('../../shared/config/database');
+const { createMasterListItemBody, updateMasterListItemBody } = require('../../shared/validations/schemas');
 
 async function listSkills(req, res) {
   const [rows] = await pool.query('SELECT * FROM master_skills ORDER BY name');
@@ -6,6 +7,8 @@ async function listSkills(req, res) {
 }
 
 async function createSkill(req, res) {
+  const { error } = createMasterListItemBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   try {
@@ -18,6 +21,8 @@ async function createSkill(req, res) {
 }
 
 async function updateSkill(req, res) {
+  const { error } = updateMasterListItemBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
@@ -42,6 +47,8 @@ async function listCertifications(req, res) {
 }
 
 async function createCertification(req, res) {
+  const { error } = createMasterListItemBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   try {
@@ -54,6 +61,8 @@ async function createCertification(req, res) {
 }
 
 async function updateCertification(req, res) {
+  const { error } = updateMasterListItemBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });

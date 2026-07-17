@@ -1,5 +1,6 @@
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const { createTemplateBody, updateTemplateBody } = require('../../shared/validations/schemas');
 
 async function listTemplates(req, res) {
   const { channel } = req.query;
@@ -19,6 +20,8 @@ async function getTemplate(req, res) {
 }
 
 async function createTemplate(req, res) {
+  const { error } = createTemplateBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { template_key, name, channel, subject, body_template, placeholders } = req.body;
   if (!template_key || !name || !body_template) {
     return res.status(400).json({ error: 'template_key, name, and body_template are required' });
@@ -37,6 +40,8 @@ async function createTemplate(req, res) {
 }
 
 async function updateTemplate(req, res) {
+  const { error } = updateTemplateBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const allowed = ['template_key', 'name', 'channel', 'subject', 'body_template', 'placeholders', 'is_system'];
   const updates = []; const params = [];

@@ -5,6 +5,7 @@ const pool = require('../../shared/config/database');
 const { createNotification, notifyAllAdmins } = require('../../shared/services/notification.service');
 const logger = require('../../shared/utils/logger');
 const { logBalanceChange } = require('../../shared/services/audit.service');
+const { updateLeaveTypeBody } = require('../../shared/validations/schemas');
 
 async function getLeaveTypes(req, res) {
   const [rows] = await pool.query('SELECT * FROM leave_types ORDER BY id');
@@ -16,6 +17,8 @@ async function getLeaveTypes(req, res) {
 }
 
 async function updateLeaveType(req, res) {
+  const { error } = updateLeaveTypeBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { label, default_balance, is_active } = req.body;
   if (!label || label.trim() === '') {
