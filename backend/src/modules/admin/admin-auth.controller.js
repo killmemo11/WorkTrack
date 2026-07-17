@@ -5,6 +5,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const tokenService = require('../../shared/services/token.service');
+
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 // Known default value — rejected as a new password even if anyone tries to set it.
 // Public in the task brief, so we hardcode it as forbidden.
@@ -23,8 +26,30 @@ async function login(req, res) {
       const token = jwt.sign(
         { id: adminRows[0].id, username: adminRows[0].username, type: 'admin' },
         process.env.JWT_SECRET,
-        { expiresIn: '24h', issuer: 'worktrack', audience: 'admin' }
+        { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
       );
+
+      const refreshToken = await tokenService.generateRefreshToken(
+        adminRows[0].id,
+        'admin',
+        adminRows[0].tenant_id
+      );
+
+      res.cookie('access_token', token, {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000,
+        path: '/',
+      });
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
       await logActivity(null, adminRows[0].id, 'admin_login', `Admin logged in: ${adminRows[0].username}`);
       return res.json({
         token,
@@ -53,8 +78,29 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: empRows[0].id, email: empRows[0].email, role: empRows[0].role, type: 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '12h', issuer: 'worktrack', audience: 'admin' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
   );
+
+  const refreshToken = await tokenService.generateRefreshToken(
+    empRows[0].id,
+    'admin',
+    empRows[0].tenant_id
+  );
+
+  res.cookie('access_token', token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+  });
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
 
   await logActivity(null, empRows[0].id, 'admin_login', `Admin logged in: ${empRows[0].name}`);
 
@@ -96,8 +142,8 @@ async function changePassword(req, res) {
   }
 
   // Policy validation
-  if (typeof newPassword !== 'string' || newPassword.length < 10) {
-    return res.status(400).json({ code: 'PASSWORD_POLICY_VIOLATION', error: 'Password must be at least 10 characters' });
+  if (typeof newPassword !== 'string' || newPassword.length < 12) {
+    return res.status(400).json({ code: 'PASSWORD_POLICY_VIOLATION', error: 'Password must be at least 12 characters' });
   }
   if (newPassword === FORBIDDEN_DEFAULT) {
     return res.status(400).json({ code: 'PASSWORD_POLICY_VIOLATION', error: 'Please choose a different password' });

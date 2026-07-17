@@ -3,9 +3,11 @@
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const logger = require('../../shared/utils/logger');
 const crypto = require('crypto');
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
+const tokenService = require('../../shared/services/token.service');
 const { 
   sendPlatformEmail, 
   sendTenantAdminMagicLink,
@@ -19,6 +21,8 @@ const {
 const failedAttempts = new Map();
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 function isLockedOut(username) {
   const record = failedAttempts.get(username);
@@ -81,8 +85,29 @@ async function platformLogin(req, res) {
   const token = jwt.sign(
     { id: admin.id, username: admin.username, email: admin.email, type: 'platform_admin', is_platform_admin: true },
     process.env.JWT_SECRET,
-    { expiresIn: '12h', issuer: 'worktrack', audience: 'platform' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'platform' }
   );
+
+  const refreshToken = await tokenService.generateRefreshToken(
+    admin.id,
+    'platform',
+    null
+  );
+
+  res.cookie('access_token', token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+  });
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
 
   await logActivity(null, admin.id, 'platform_admin_login', `Platform admin logged in: ${admin.username}`);
   
@@ -429,8 +454,8 @@ async function approveTenantRequest(req, res) {
     });
   } catch (err) {
     await conn.rollback();
-    console.error('Approve tenant error:', err);
-    res.status(500).json({ error: err.message || 'Failed to approve tenant request' });
+    logger.error('Approve tenant error:', err);
+    res.status(500).json({ error: 'Failed to approve tenant request' });
   } finally {
     conn.release();
   }
@@ -871,7 +896,7 @@ async function getRevenueAnalytics(req, res) {
       byPlan,
     });
   } catch (err) {
-    console.error('Revenue analytics error:', err);
+    logger.error('Revenue analytics error:', err);
     res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 }
@@ -1140,8 +1165,8 @@ async function createTenant(req, res) {
     res.json({ message: 'Tenant created', tenantId, slug });
   } catch (err) {
     await conn.rollback();
-    console.error('Create tenant error:', err);
-    res.status(500).json({ error: err.message || 'Failed to create tenant' });
+    logger.error('Create tenant error:', err);
+    res.status(500).json({ error: 'Failed to create tenant' });
   } finally {
     conn.release();
   }

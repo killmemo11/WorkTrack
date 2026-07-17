@@ -9,6 +9,10 @@ const pool = require('../../shared/config/database');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../../shared/services/email.service');
 const { notifyAllAdmins } = require('../../shared/services/notification.service');
 const { logActivity } = require('../../shared/services/activity.service');
+const tokenService = require('../../shared/services/token.service');
+const logger = require('../../shared/utils/logger');
+
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 function generateCode() {
   return crypto.randomInt(100000, 999999).toString();
@@ -79,7 +83,7 @@ async function register(req, res) {
   try {
     await sendVerificationEmail({ name, email }, code);
   } catch (err) {
-    console.error('Failed to send verification email:', err.message);
+    logger.error('Failed to send verification email:', err.message);
   }
 
   res.status(201).json({ message: 'Verification code sent to your email.', email });
@@ -146,7 +150,7 @@ async function verify(req, res) {
         'info',
         '/admin/employees'
       );
-    } catch (e) { console.error('New employee notif error:', e); }
+    } catch (e) { logger.error('New employee notif error:', e); }
   }
 
   // Re-fetch in case role changed
@@ -264,8 +268,30 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: userId, email: user.email || user.username, role: user.role || 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: rememberMe ? '7d' : '12h', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee' }
   );
+
+  const userTenantId = user.tenant_id || null;
+  const refreshToken = await tokenService.generateRefreshToken(
+    userId,
+    user.role === 'admin' ? 'admin' : 'employee',
+    userTenantId
+  );
+
+  res.cookie('access_token', token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+  });
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
 
   const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
   const isHr = deptName === 'hr' || deptName === 'human resources';
@@ -314,7 +340,7 @@ async function resendCode(req, res) {
   try {
     await sendVerificationEmail(rows[0], code);
   } catch (err) {
-    console.error('Failed to send verification email:', err.message);
+    logger.error('Failed to send verification email:', err.message);
   }
 
   res.json({ message: 'Verification code resent. Check your email.' });
@@ -409,6 +435,9 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
+  await tokenService.revokeRefreshToken(req.cookies?.refresh_token);
+  res.clearCookie('refresh_token', { path: '/' });
+  res.clearCookie('access_token', { path: '/' });
   res.json({ message: 'Logged out' });
 }
 
@@ -439,7 +468,7 @@ async function forgotPassword(req, res) {
     await sendPasswordResetEmail(rows[0], code);
     res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
-    console.error('Failed to send password reset email:', err.message);
+    logger.error('Failed to send password reset email:', err.message);
     if (process.env.NODE_ENV !== 'production') {
       res.json({ message: 'Development mode - password reset code', email, code });
     } else {

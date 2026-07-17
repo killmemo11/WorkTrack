@@ -4,13 +4,16 @@
 require('express-async-errors');
 const express = require('express');
 const path = require('path');
+const logger = require('./shared/utils/logger');
 const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const pool = require('./shared/config/database');
 
 const authRoutes = require('./modules/auth/auth.routes');
+const refreshRoutes = require('./modules/auth/refresh.routes');
 const attendanceRoutes = require('./modules/attendance/attendance.routes');
 const managerRoutes = require('./modules/manager/manager.routes');
 const ceoRoutes = require('./modules/ceo/ceo.routes');
@@ -62,7 +65,21 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security headers
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'self'", "https://meet.jit.si"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 // Rate limiting — auth endpoints
 const authLimiter = rateLimit({
@@ -106,17 +123,20 @@ const jobApplyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Parse cookies before CORS/auth so refresh_token cookie is available
+app.use(cookieParser());
+
 // CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
 const isDev = process.env.NODE_ENV === 'development';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || isDev || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || !isProd || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // Serve uploaded files — requires authentication
 const { authenticate } = require('./shared/middleware/auth.middleware');
@@ -135,6 +155,7 @@ app.use('/api/platform/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', refreshRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/settings', requireITAuth, requirePasswordChangeGate, resolveTenant, settingsRoutes);
@@ -293,7 +314,7 @@ app.get('/api/departments', async (req, res) => {
     const [rows] = await pool.query('SELECT id, name FROM departments ORDER BY name ASC');
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Failed to fetch departments' });
   }
 });
 
@@ -334,7 +355,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     }
     res.status(201).json({ message: 'Message received. We\'ll get back to you within 24 hours.' });
   } catch (err) {
-    console.error('Contact form error:', err);
+    logger.error('Contact form error:', err);
     res.status(500).json({ error: 'Failed to save message. Please try again.' });
   }
 });
@@ -366,8 +387,8 @@ if (fs.existsSync(frontendDist)) {
 }
 
 app.use((err, req, res, next) => {
-  const isDev = process.env.NODE_ENV === 'development';
-  if (!isDev) console.error('Unhandled error:', err.message);
+const isProd = process.env.NODE_ENV === 'production';
+  if (!isDev) logger.error('Unhandled error:', err.message);
   res.status(err.status || 500).json({
     error: isDev ? (err.message || 'Internal server error') : 'Internal server error',
   });
