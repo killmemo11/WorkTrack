@@ -20,18 +20,20 @@ export default function NotificationBell() {
   const [toast, setToast] = useState(null);
   const ref = useRef(null);
   const navigate = useNavigate();
+  const prevCountRef = useRef(0);
 
   const fetchUnread = useCallback(async () => {
     try {
       const res = await api.get('/auth/notifications/unread-count');
       const count = res.data.count;
-      if (count > unreadCount && unreadCount > 0) {
-        setToast({ message: `${count - unreadCount} new notification${count - unreadCount > 1 ? 's' : ''}`, count: count - unreadCount });
+      if (count > prevCountRef.current && prevCountRef.current > 0) {
+        setToast({ message: `${count - prevCountRef.current} new notification${count - prevCountRef.current > 1 ? 's' : ''}`, count: count - prevCountRef.current });
         setTimeout(() => setToast(null), 4000);
       }
+      prevCountRef.current = count;
       setUnreadCount(count);
     } catch (err) { console.error('Failed to fetch unread count:', err); }
-  }, [unreadCount]);
+  }, []);
 
   const fetchNotifications = async () => {
     try {

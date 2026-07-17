@@ -10,6 +10,7 @@ import { PlatformAuthProvider } from './shared/context/PlatformAuthContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import AdminRoute from './shared/components/AdminRoute';
 import HrRoute from './shared/components/HrRoute';
+import ErrorBoundary from './shared/components/ErrorBoundary';
 import LandingLayout from './modules/landing/pages/LandingLayout';
 import LandingHome from './modules/landing/pages/LandingHome';
 import LandingFeatures from './modules/landing/pages/LandingFeatures';
@@ -118,6 +119,7 @@ export default function App() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <AdminAuthProvider>
       <Suspense fallback={
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -298,11 +300,6 @@ export default function App() {
           <Route path="/hr/jobs" element={<Navigate to="/hr/recruitment/jobs" />} />
           <Route path="/hr/headcount-requests" element={<Navigate to="/hr/recruitment/headcount-requests" />} />
           <Route path="/hr" element={<Navigate to="/hr/hr-settings" />} />
-          <Route path="/personnel/my-profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
-          <Route path="/personnel/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
-          <Route path="/personnel/organization-chart" element={<ProtectedRoute><OrganizationChart /></ProtectedRoute>} />
-          <Route path="/manager/dashboard" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
-          <Route path="/ceo/dashboard" element={<ProtectedRoute><CEODashboard /></ProtectedRoute>} />
           {/* ─── Platform Panel (Super-Admin only) ─── */}
           <Route path="/platform/login" element={
             <PlatformAuthProvider>
@@ -388,5 +385,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </AdminAuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -22,19 +22,19 @@ router.post('/refresh', async (req, res) => {
     newAccessToken = jwt.sign(
       { id: payload.userId, type: 'platform_admin', is_platform_admin: true },
       process.env.JWT_SECRET,
-      { expiresIn: '15m', issuer: 'worktrack', audience: 'platform' }
+      { expiresIn: '15m', issuer: 'worktrack', audience: 'platform', algorithm: 'HS256' }
     );
   } else if (payload.userType === 'admin') {
     newAccessToken = jwt.sign(
       { id: payload.userId, type: 'admin' },
       process.env.JWT_SECRET,
-      { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
+      { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
     );
   } else {
     newAccessToken = jwt.sign(
       { id: payload.userId, type: payload.userType },
       process.env.JWT_SECRET,
-      { expiresIn: '15m', issuer: 'worktrack', audience: 'employee' }
+      { expiresIn: '15m', issuer: 'worktrack', audience: 'employee', algorithm: 'HS256' }
     );
   }
 

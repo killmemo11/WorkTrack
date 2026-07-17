@@ -5,15 +5,19 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 
 const requirePlatformAuth = async (req, res, next) => {
+  let token;
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (header && header.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token;
+  }
+  if (!token) {
     return res.status(401).json({ error: 'No platform admin token provided' });
   }
 
-  const token = header.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     
     if (decoded.type !== 'platform_admin') {
       return res.status(403).json({ error: 'Platform admin token required' });

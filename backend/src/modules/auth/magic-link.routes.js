@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const pool = require('../../shared/config/database');
+const tokenService = require('../../shared/services/token.service');
 const { logActivity } = require('../../shared/services/activity.service');
 const { sendTenantAdminMagicLink } = require('../../shared/services/platform-email.service');
 
@@ -107,15 +108,27 @@ router.post('/verify-and-set-password', async (req, res) => {
 
   await logActivity(null, admin.id, 'password_set_via_magic_link', `Password set for ${admin.username} via magic link`);
 
-  const jwtToken = jwt.sign(
+  const COOKIE_SECURE = process.env.NODE_ENV === 'production';
+
+  const accessToken = jwt.sign(
     { id: admin.id, username: admin.username, tenant_id: admin.tenant_id, type: 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '24h', issuer: 'worktrack', audience: 'admin' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
   );
+
+  const refreshToken = await tokenService.generateRefreshToken(admin.id, 'admin', admin.tenant_id);
+
+  res.cookie('access_token', accessToken, {
+    httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+    maxAge: 15 * 60 * 1000, path: '/',
+  });
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, path: '/',
+  });
 
   res.json({
     message: 'Password set successfully',
-    token: jwtToken,
     admin: { id: admin.id, username: admin.username, must_change_password: admin.must_change_password === 1 ? true : false }
   });
 });

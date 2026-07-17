@@ -1,20 +1,25 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
+const JWT_VERIFY_OPTIONS = { algorithms: ['HS256'] };
 
 // Strict IT-admin gate — accepts admin_users tokens ("type":"admin") OR
 // employees tokens where employees.role === 'admin'. This is the LEGACY
 // "IT Admin employee" semantics retained by all callers that rely on
 // role='admin' employees being authorized here.
 const requireITAuth = async (req, res, next) => {
+  let token;
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (header && header.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token;
+  }
+  if (!token) {
     return res.status(401).json({ error: 'No admin token provided' });
   }
 
-  const token = header.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY_OPTIONS);
 
     if (decoded.type === 'admin') {
       const [rows] = await pool.query('SELECT id, tenant_id, is_active, must_change_password FROM admin_users WHERE id = ?', [decoded.id]);
@@ -47,15 +52,19 @@ const requireITAuth = async (req, res, next) => {
 // Fine-grained authorization moves to requirePermission() per route.
 // Used by /api/it and /api/audit (Phase 3 + 4). Legacy callers keep strict requireITAuth.
 const requireAnyActiveToken = async (req, res, next) => {
+  let token;
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (header && header.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token;
+  }
+  if (!token) {
     return res.status(401).json({ error: 'No admin token provided' });
   }
 
-  const token = header.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY_OPTIONS);
 
     if (decoded.type === 'admin') {
       const [rows] = await pool.query('SELECT id, tenant_id, is_active, must_change_password FROM admin_users WHERE id = ?', [decoded.id]);

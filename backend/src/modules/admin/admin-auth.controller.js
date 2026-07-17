@@ -49,7 +49,7 @@ async function login(req, res) {
     const token = jwt.sign(
       { id: admin.id, username: admin.username, type: 'admin' },
       process.env.JWT_SECRET,
-      { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
+      { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
     );
 
     const refreshToken = await tokenService.generateRefreshToken(
@@ -121,7 +121,7 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: emp.id, email: emp.email, role: emp.role, type: 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', issuer: 'worktrack', audience: 'admin' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
   );
 
   const refreshToken = await tokenService.generateRefreshToken(

@@ -189,7 +189,7 @@ async function verify(req, res) {
   const token = jwt.sign(
     { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
     process.env.JWT_SECRET,
-    { expiresIn: '12h', issuer: 'worktrack', audience: 'employee' }
+    { expiresIn: '12h', issuer: 'worktrack', audience: 'employee', algorithm: 'HS256' }
   );
 
   res.json({ token, employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: finalEmp.department_name === 'HR' || finalEmp.role === 'admin', is_global_ceo: isGlobalCeo } });
@@ -291,7 +291,7 @@ async function login(req, res) {
   const token = jwt.sign(
     { id: userId, email: user.email || user.username, role: user.role || 'admin' },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee', algorithm: 'HS256' }
   );
 
   const userTenantId = user.tenant_id || null;

@@ -22,8 +22,8 @@ export default function MagicLinkSetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters');
       return;
     }
     if (password !== confirmPassword) {
@@ -40,7 +40,6 @@ export default function MagicLinkSetPassword() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('adminToken', data.token);
         setSuccess(true);
         setTimeout(() => navigate('/admin'), 1500);
       } else {
@@ -95,7 +94,7 @@ export default function MagicLinkSetPassword() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="At least 12 characters"
                 required
                 autoComplete="new-password"
                 disabled={loading || success}

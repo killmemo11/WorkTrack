@@ -23,35 +23,38 @@ const {
   resetPasswordBody, changeOwnPasswordBody, suspendTenantBody, deleteTenantBody,
 } = require('../../shared/validations/schemas');
 
-// In-memory failed login attempts tracker (resets on server restart)
-const failedAttempts = new Map();
+// DB-backed lockout using admin_users.failed_attempts + admin_users.last_failed_login
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
-function isLockedOut(username) {
-  const record = failedAttempts.get(username);
-  if (!record) return false;
-  if (record.count >= LOCKOUT_THRESHOLD) {
-    if (Date.now() - record.lastAttempt < LOCKOUT_DURATION_MS) {
-      return true;
-    }
-    failedAttempts.delete(username);
+async function isLockedOut(username) {
+  const [rows] = await pool.query(
+    'SELECT failed_attempts, last_failed_login FROM admin_users WHERE username = ?',
+    [username]
+  );
+  if (rows.length === 0) return false;
+  const { failed_attempts, last_failed_login } = rows[0];
+  if (failed_attempts >= LOCKOUT_THRESHOLD && last_failed_login) {
+    const elapsed = Date.now() - new Date(last_failed_login).getTime();
+    if (elapsed < LOCKOUT_DURATION_MS) return true;
+    // Lockout expired — reset
+    await pool.query('UPDATE admin_users SET failed_attempts = 0, last_failed_login = NULL WHERE username = ?', [username]);
     return false;
   }
   return false;
 }
 
-function recordFailedAttempt(username) {
-  const record = failedAttempts.get(username) || { count: 0, lastAttempt: 0 };
-  record.count++;
-  record.lastAttempt = Date.now();
-  failedAttempts.set(username, record);
+async function recordFailedAttempt(username) {
+  await pool.query(
+    'UPDATE admin_users SET failed_attempts = failed_attempts + 1, last_failed_login = NOW() WHERE username = ?',
+    [username]
+  );
 }
 
-function clearFailedAttempts(username) {
-  failedAttempts.delete(username);
+async function clearFailedAttempts(username) {
+  await pool.query('UPDATE admin_users SET failed_attempts = 0, last_failed_login = NULL WHERE username = ?', [username]);
 }
 
 async function platformLogin(req, res) {
@@ -62,7 +65,7 @@ async function platformLogin(req, res) {
   }
 
   // Check account lockout
-  if (isLockedOut(username)) {
+  if (await isLockedOut(username)) {
     return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
   }
 
@@ -91,7 +94,7 @@ async function platformLogin(req, res) {
   const token = jwt.sign(
     { id: admin.id, username: admin.username, email: admin.email, type: 'platform_admin', is_platform_admin: true },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', issuer: 'worktrack', audience: 'platform' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: 'platform', algorithm: 'HS256' }
   );
 
   const refreshToken = await tokenService.generateRefreshToken(
