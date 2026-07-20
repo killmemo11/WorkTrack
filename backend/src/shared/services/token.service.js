@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const pool = require('../config/database');
 
-const REFRESH_EXPIRY_DAYS = 7;
+const REFRESH_EXPIRY_DAYS = 1;
 
 function hashToken(raw) {
   return crypto.createHash('sha256').update(raw).digest('hex');

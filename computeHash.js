@@ -1,0 +1,5 @@
+const crypto = require('crypto');
+const script = `\n  window.addEventListener('load', () => {\n    setTimeout(() => document.getElementById('splash')?.classList.add('hide'), 300);\n  });\n`;
+const style = `\n  #splash {\n    position: fixed; inset: 0; z-index: 99999;\n    display: flex; flex-direction: column;\n    align-items: center; justify-content: center;\n    background: #09090b;\n    opacity: 1; visibility: visible;\n    transition: opacity 0.4s ease, visibility 0.4s ease;\n  }\n  #splash.hide { opacity: 0; visibility: hidden; }\n  #splash-logo { width: 72px; height: 72px; margin-bottom: 20px; }\n  #splash-spinner {\n    width: 24px; height: 24px;\n    border: 2px solid rgba(255,255,255,0.1);\n    border-top-color: #6366f1;\n    border-radius: 50%;\n    animation: splash-spin 0.8s linear infinite;\n  }\n  @keyframes splash-spin {\n    to { transform: rotate(360deg); }\n  }\n`;
+console.log('Script hash:', 'sha256-' + crypto.createHash('sha256').update(script, 'utf8').digest('base64'));
+console.log('Style hash:', 'sha256-' + crypto.createHash('sha256').update(style, 'utf8').digest('base64'));

@@ -7,7 +7,7 @@ certbot/
 storage/
 tmp/
 
-# غير ضروري للسيرفر
+# غير الضروري للسيرفر
 Dockerfile
 docker-compose.yml
 jest.config.js
@@ -21,3 +21,4 @@ setup-ssl.sh
 update_pw.sql
 entrypoint.sh
 *.conf
+backend/.env.test

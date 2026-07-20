@@ -81,21 +81,32 @@ app.use(pinoHttp({
 }));
 
 // Security headers
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'self'", "https://meet.jit.si"],
-      frameAncestors: ["'none'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://unpkg.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'"],
+        frameSrc: ["'self'", "https://meet.jit.si"],
+        frameAncestors: ["'none'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    // Enable other secure defaults
+    dnsPrefetchControl: true,
+    frameguard: { action: 'deny' },
+    hidePoweredBy: true,
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    ieNoOpen: true,
+    noSniff: true,
+    referrerPolicy: { policy: 'same-origin' },
+    // xssFilter is deprecated but kept for compatibility
+    // crossOriginEmbedderPolicy: false // already set above
+  })
+);
 
 // Rate limiting — auth endpoints
 const authLimiter = rateLimit({
@@ -410,8 +421,8 @@ if (fs.existsSync(frontendDist)) {
 }
 
 app.use((err, req, res, next) => {
-const isProd = process.env.NODE_ENV === 'production';
-  if (!isDev) logger.error('Unhandled error:', err.message);
+  const isProd = process.env.NODE_ENV === 'production';
+  if (!isDev) logger.error({ err: { message: err.message, stack: err.stack, status: err.status, type: err.type, name: err.name } }, 'Unhandled error');
   res.status(err.status || 500).json({
     error: isDev ? (err.message || 'Internal server error') : 'Internal server error',
   });

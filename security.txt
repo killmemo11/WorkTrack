@@ -1,0 +1,5 @@
+Contact: mailto:security@worktrack.ddns.net
+Encryption: https://worktrack.ddns.net/security.txt
+Acknowledgements: https://worktrack.ddns.net/security/hall-of-fame
+Policy: https://worktrack.ddns.net/security/policy
+Hiring: https://worktrack.ddns.net/security/jobs
