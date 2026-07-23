@@ -315,7 +315,10 @@ export default function TenantRegister() {
           <label className="tr-label">Company Size *</label>
           <select value={form.employee_count} onChange={e => handleChange('employee_count', e.target.value)} className="login-field-input">
             <option value="">Select size</option>
-            {COMPANY_SIZES.map(s => <option key={s} value={s.split('-')[0].replace('+','')}>{s} employees</option>)}
+            {COMPANY_SIZES.map(s => {
+              const num = parseInt(s);
+              return <option key={s} value={num}>{s} employees</option>;
+            })}
           </select>
         </div>
         <div className="tr-field">

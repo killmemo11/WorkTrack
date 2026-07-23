@@ -20,6 +20,10 @@ const PAYMENT_STATUS_BADGE = {
   rejected: 'error',
 };
 
+const EMPLOYEE_RANGE_MAP = {
+  1: '1-10', 11: '11-50', 51: '51-200', 201: '201-500', 501: '501-1000', 1000: '1000+',
+};
+
 export default function PlatformTenantRequests() {
   const [data, setData] = useState({ requests: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -217,12 +221,11 @@ export default function PlatformTenantRequests() {
               <div className="platform-detail-grid">
                 <div><label>Company</label><span>{viewingRequest.company_name}</span></div>
                 <div><label>Contact Email</label><span>{viewingRequest.contact_email}</span></div>
-                <div><label>Contact Phone</label><span>{viewingRequest.contact_phone || '—'}</span></div>
                 <div><label>Contact Person</label><span>{viewingRequest.contact_person_name || '—'} {viewingRequest.contact_person_title ? `(${viewingRequest.contact_person_title})` : ''}</span></div>
                 <div><label>Industry</label><span>{viewingRequest.industry || '—'}</span></div>
                 <div><label>Website</label><span>{viewingRequest.website || '—'}</span></div>
                 <div><label>Requested Plan</label><span className="platform-capitalize">{viewingRequest.requested_plan || 'trial'}</span></div>
-                <div><label>Employees</label><span>{viewingRequest.employee_count}</span></div>
+                <div><label>Employees</label><span>{EMPLOYEE_RANGE_MAP[viewingRequest.employee_count] || viewingRequest.employee_count || '—'}</span></div>
                 <div><label>Status</label><span><span className={`glass-badge glass-badge-${STATUS_BADGE[viewingRequest.status] || 'default'}`}>{viewingRequest.status}</span></span></div>
                 <div><label>Payment Status</label><span><span className={`glass-badge glass-badge-${PAYMENT_STATUS_BADGE[viewingRequest.payment_status] || 'default'}`}>{viewingRequest.payment_status || 'N/A'}</span></span></div>
                 {viewingRequest.payment_amount && <div><label>Payment Amount</label><span>{viewingRequest.payment_amount} {viewingRequest.payment_currency || 'EGP'}</span></div>}
