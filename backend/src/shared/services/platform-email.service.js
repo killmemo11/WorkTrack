@@ -230,6 +230,13 @@ async function sendPlatformAlert(subject, message) {
   return sendPlatformEmail(adminEmail, `[WorkTrack Platform] ${subject}`, html);
 }
 
+function clearPlatformSmtpCache() {
+  platformTransporter = null;
+  cachedConfigHash = '';
+  cachedSettings = null;
+  settingsCacheTime = 0;
+}
+
 module.exports = {
   loadPlatformSmtpSettings,
   getPlatformTransporter,
@@ -240,4 +247,5 @@ module.exports = {
   sendTenantRejectedEmail,
   sendPlatformAlert,
   platformMailLayout,
+  clearPlatformSmtpCache,
 };

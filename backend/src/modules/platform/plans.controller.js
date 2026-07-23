@@ -152,6 +152,9 @@ async function updatePlatformSettings(req, res) {
     );
   }
 
+  const { clearPlatformSmtpCache } = require('../../shared/services/platform-email.service');
+  clearPlatformSmtpCache();
+
   await logActivity(null, req.platformAdmin.id, 'platform_settings_updated', `Updated ${settings.length} platform setting(s)`);
   res.json({ message: 'Settings updated' });
 }
