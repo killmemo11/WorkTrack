@@ -573,8 +573,8 @@ export default function TenantRegister() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             ) : (
-              <button type="submit" className="login-submit-btn" disabled={loading} style={{ flex: 1 }}>
-                {loading ? 'Submitting...' : isPaidPlan ? 'Submit Payment & Registration' : 'Submit Registration'}
+              <button type="submit" className="login-submit-btn" disabled={loading || (isPaidPlan && !paymentProof)} style={{ flex: 1 }}>
+                {loading ? 'Submitting...' : isPaidPlan ? (paymentProof ? 'Submit Payment & Registration' : 'Upload Payment Proof First') : 'Submit Registration'}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             )}

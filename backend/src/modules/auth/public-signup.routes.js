@@ -358,6 +358,12 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
       return res.status(400).json({ error: 'Email verification expired. Please verify your email again.' });
     }
 
+    // Paid plans require payment proof
+    const paidPlans = ['basic', 'professional', 'enterprise'];
+    if (paidPlans.includes(plan) && !req.file) {
+      return res.status(400).json({ error: 'Payment proof is required for paid plans. Please upload your payment screenshot.' });
+    }
+
     // Check for duplicate pending request
     const [existing] = await pool.query(
       `SELECT tr.status FROM tenant_requests tr WHERE tr.contact_email = ? AND tr.status = 'pending' LIMIT 1`,
