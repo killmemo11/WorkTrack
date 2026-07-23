@@ -173,6 +173,8 @@ export default function TenantRegister() {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (step !== totalSteps) return;
+    if (!form.email_verified) { setError('Please verify your email first'); setStep(3); return; }
     setError('');
     setLoading(true);
     try {
