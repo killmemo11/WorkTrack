@@ -248,7 +248,7 @@ const createTenantBody = Joi.object({
   company_name: name.required(),
   contact_email: email.required(),
   contact_phone: phone,
-  plan: Joi.string().valid('trial', 'starter', 'pro', 'enterprise').allow('', null),
+  plan: Joi.string().valid('trial', 'basic', 'professional', 'enterprise').allow('', null),
   max_employees: Joi.number().integer().min(1).max(50000).allow(null),
   trial_days: Joi.number().integer().min(1).max(365).allow(null),
 }).options({ stripUnknown: true });
@@ -258,7 +258,7 @@ const updateTenantBody = Joi.object({
   name,
   contact_email: email,
   contact_phone: phone,
-  plan: Joi.string().valid('trial', 'starter', 'pro', 'enterprise').allow('', null),
+  plan: Joi.string().valid('trial', 'basic', 'professional', 'enterprise').allow('', null),
   max_employees: Joi.number().integer().min(1).max(50000).allow(null),
   status: Joi.string().valid('active', 'trial', 'suspended', 'cancelled'),
   trial_ends_at: Joi.date().iso().allow(null, ''),
@@ -502,7 +502,7 @@ const tenantSignupBody = Joi.object({
   contact_person_title: name.allow('', null),
   employee_count: Joi.number().integer().min(1).max(50000).allow(null),
   message: Joi.string().max(5000).allow('', null),
-  plan: Joi.string().valid('trial', 'starter', 'pro', 'enterprise'),
+  plan: Joi.string().valid('trial', 'basic', 'professional', 'enterprise'),
   email_verified: Joi.boolean(),
   payment_amount: nonNegative.allow(null),
   payment_currency: Joi.string().max(10).allow('', null),
@@ -540,7 +540,7 @@ const rejectHeadcountBody = Joi.object({
 
 // ── Platform: Approve Tenant Request ───────────────────────────
 const approveTenantRequestBody = Joi.object({
-  plan: Joi.string().valid('trial', 'starter', 'pro', 'enterprise').allow('', null),
+  plan: Joi.string().valid('trial', 'basic', 'professional', 'enterprise').allow('', null),
   max_employees: Joi.number().integer().min(1).max(50000).allow(null),
   trial_days: Joi.number().integer().min(1).max(365).allow(null),
 }).min(1).options({ stripUnknown: true });
