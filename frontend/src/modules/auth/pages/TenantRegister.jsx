@@ -57,7 +57,7 @@ export default function TenantRegister() {
   useEffect(() => {
     if (codeCooldown <= 0) return;
     const t = setTimeout(() => setCodeCooldown(c => c - 1), 1000);
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(t);
   }, [codeCooldown]);
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
