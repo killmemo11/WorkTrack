@@ -12,7 +12,7 @@ const { updateEmployeeBody, rejectSignoutBody } = require('../../shared/validati
 
 async function getEmployees(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const { department_id } = req.query;
   const tenantId = req.tenantId;
@@ -147,7 +147,7 @@ async function updateEmployee(req, res) {
 
 async function getRecords(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
   const offset = (page - 1) * limit;
   const { employee_id, date_from, date_to } = req.query;
   const tenantId = req.tenantId;
@@ -457,7 +457,7 @@ async function getMonthlyReport(req, res) {
 
 async function getPendingSignoutRequests(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const tenantId = req.tenantId;
   const tenantFilter = tenantId ? ' AND sr.tenant_id = ?' : '';

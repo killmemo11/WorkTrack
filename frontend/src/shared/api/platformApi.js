@@ -14,9 +14,15 @@ const platformApi = axios.create({
 });
 
 platformApi.interceptors.request.use((config) => {
-  const token = getTokenFromCookie('access_token');
+  const token = getTokenFromCookie('platform_access_token') || getTokenFromCookie('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase())) {
+    const csrfToken = getTokenFromCookie('csrf_token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
   }
   return config;
 });
@@ -24,10 +30,10 @@ platformApi.interceptors.request.use((config) => {
 let isRefreshing = false;
 let failedQueue = [];
 
-function processQueue(error, token) {
+function processQueue(error) {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
-    else resolve(token);
+    else resolve();
   });
   failedQueue = [];
 }
@@ -41,23 +47,18 @@ platformApi.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return platformApi(originalRequest);
-        });
+        }).then(() => platformApi(originalRequest));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
-        const newToken = data.access_token;
-        processQueue(null, newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        processQueue(null);
         return platformApi(originalRequest);
       } catch (refreshErr) {
-        processQueue(refreshErr, null);
+        processQueue(refreshErr);
         window.location.href = '/platform/login';
         return Promise.reject(refreshErr);
       } finally {

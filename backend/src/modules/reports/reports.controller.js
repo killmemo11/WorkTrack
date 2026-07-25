@@ -193,7 +193,7 @@ async function exportLeaveReport(req, res) {
 
 async function getBalanceAudit(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const { employee_id, action } = req.query;
 
@@ -229,7 +229,7 @@ async function getBalanceAudit(req, res) {
 
 async function getActivityLog(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const { employee_id, action } = req.query;
 

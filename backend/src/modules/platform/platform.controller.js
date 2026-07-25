@@ -103,14 +103,14 @@ async function platformLogin(req, res) {
     null
   );
 
-  res.cookie('access_token', token, {
+  res.cookie('platform_access_token', token, {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
     maxAge: 15 * 60 * 1000,
     path: '/',
   });
-  res.cookie('refresh_token', refreshToken, {
+  res.cookie('platform_refresh_token', refreshToken, {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
@@ -121,7 +121,6 @@ async function platformLogin(req, res) {
   await logActivity(null, admin.id, 'platform_admin_login', `Platform admin logged in: ${admin.username}`);
   
   res.json({ 
-    token, 
     platformAdmin: { 
       id: admin.id, 
       username: admin.username, 
@@ -170,7 +169,7 @@ async function createPlatformAdmin(req, res) {
     return res.status(409).json({ error: 'Username already exists' });
   }
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 13);
   const [result] = await pool.query(
     'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
     [username, email, hash]
@@ -230,7 +229,7 @@ async function resetPlatformAdminPassword(req, res) {
     return res.status(404).json({ error: 'Platform admin not found' });
   }
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
 
   await logActivity(null, req.platformAdmin.id, 'platform_admin_password_reset', `Reset password for platform admin: ${existing[0].username}`);
@@ -287,7 +286,7 @@ async function changeOwnPassword(req, res) {
     return res.status(401).json({ error: 'Current password is incorrect' });
   }
 
-  const hash = await bcrypt.hash(new_password, 12);
+  const hash = await bcrypt.hash(new_password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, req.platformAdmin.id]);
 
   await logActivity(null, req.platformAdmin.id, 'platform_admin_password_changed', 'Changed own password');
@@ -392,7 +391,7 @@ async function approveTenantRequest(req, res) {
 
     // Create tenant admin user (will set password via magic link)
     const adminUsername = request.contact_email.split('@')[0];
-    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 13);
     const [adminResult] = await conn.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, ?, 0)',
       [adminUsername, request.contact_email, tempHash, tenantId]
@@ -1137,7 +1136,7 @@ async function createTenant(req, res) {
     const tenantId = tenantResult.insertId;
 
     const adminUsername = contact_email.split('@')[0];
-    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 13);
     const [adminResult] = await conn.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, ?, 0)',
       [adminUsername, contact_email, tempHash, tenantId]
@@ -1304,7 +1303,7 @@ async function createClientAccount(req, res) {
     return res.status(409).json({ error: 'Username already exists for this tenant' });
   }
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 13);
   const [result] = await pool.query(
     'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, ?, 0, 0)',
     [username, email, hash, tenant_id]
@@ -1360,7 +1359,7 @@ async function resetClientAccountPassword(req, res) {
     return res.status(404).json({ error: 'Client account not found' });
   }
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
 
   await logActivity(null, req.platformAdmin.id, 'client_account_password_reset', `Reset password for client admin: ${existing[0].username}`);

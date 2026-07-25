@@ -58,14 +58,14 @@ async function login(req, res) {
       admin.tenant_id
     );
 
-    res.cookie('access_token', token, {
+    res.cookie('admin_access_token', token, {
       httpOnly: true,
       secure: COOKIE_SECURE,
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
       path: '/',
     });
-    res.cookie('refresh_token', refreshToken, {
+    res.cookie('admin_refresh_token', refreshToken, {
       httpOnly: true,
       secure: COOKIE_SECURE,
       sameSite: 'strict',
@@ -75,7 +75,6 @@ async function login(req, res) {
 
     await logActivity(null, admin.id, 'admin_login', `Admin logged in: ${admin.username}`);
     return res.json({
-      token,
       admin: {
         id: admin.id,
         username: admin.username,
@@ -130,14 +129,14 @@ async function login(req, res) {
     emp.tenant_id
   );
 
-  res.cookie('access_token', token, {
+  res.cookie('admin_access_token', token, {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
     maxAge: 15 * 60 * 1000,
     path: '/',
   });
-  res.cookie('refresh_token', refreshToken, {
+  res.cookie('admin_refresh_token', refreshToken, {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
@@ -148,7 +147,6 @@ async function login(req, res) {
   await logActivity(null, emp.id, 'admin_login', `Admin logged in: ${emp.name}`);
 
   res.json({
-    token,
     admin: {
       id: emp.id,
       username: emp.username,
@@ -208,7 +206,7 @@ async function changePassword(req, res) {
     const valid = await bcrypt.compare(currentPassword, rows[0].password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
-    const newHash = await bcrypt.hash(newPassword, 12);
+    const newHash = await bcrypt.hash(newPassword, 13);
     await pool.query(
       'UPDATE admin_users SET password_hash = ?, must_change_password = 0 WHERE id = ?',
       [newHash, req.admin.id]

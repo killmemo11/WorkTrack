@@ -71,7 +71,7 @@ async function register(req, res) {
     return res.status(400).json({ error: 'Email, username, or employee ID already exists' });
   }
 
-  const password_hash = await bcrypt.hash(password, 12);
+  const password_hash = await bcrypt.hash(password, 13);
   const code = generateCode();
   const codeHash = hashCode(code);
   const expires = new Date(Date.now() + 10 * 60 * 1000);
@@ -230,8 +230,8 @@ async function login(req, res) {
 
   const user = rows[0];
 
-  // Check account lockout (5 failures in 15 minutes) — employees only
-  if (userSource === 'employees' && (user.failed_attempts || 0) >= 5 && user.last_failed_login) {
+  // Check account lockout (5 failures in 15 minutes) — applies to both admin_users and employees
+  if ((user.failed_attempts || 0) >= 5 && user.last_failed_login) {
     const lockoutElapsed = Date.now() - new Date(user.last_failed_login).getTime();
     if (lockoutElapsed < 15 * 60 * 1000) {
       return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.' });
@@ -246,22 +246,20 @@ async function login(req, res) {
 
   if (!valid) {
     // Track failed attempt on correct table
-    if (userSource === 'employees') {
-      await pool.query(
-        'UPDATE employees SET failed_attempts = COALESCE(failed_attempts, 0) + 1, last_failed_login = NOW() WHERE id = ?',
-        [user.id]
-      ).catch(() => {});
-    }
+    const lockoutTable = userSource === 'admin_users' ? 'admin_users' : 'employees';
+    await pool.query(
+      `UPDATE ${lockoutTable} SET failed_attempts = COALESCE(failed_attempts, 0) + 1, last_failed_login = NOW() WHERE id = ?`,
+      [user.id]
+    ).catch(() => {});
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
   // Reset failed attempts on successful login
-  if (userSource === 'employees') {
-    await pool.query(
-      'UPDATE employees SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?',
-      [user.id]
-    ).catch(() => {});
-  }
+  const lockoutTable = userSource === 'admin_users' ? 'admin_users' : 'employees';
+  await pool.query(
+    `UPDATE ${lockoutTable} SET failed_attempts = 0, last_failed_login = NULL WHERE id = ?`,
+    [user.id]
+  ).catch(() => {});
 
   // Check verification and status based on user type
   let isVerified = true;
@@ -314,21 +312,6 @@ async function login(req, res) {
     userTenantId
   );
 
-  res.cookie('access_token', token, {
-    httpOnly: true,
-    secure: COOKIE_SECURE,
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000,
-    path: '/',
-  });
-  res.cookie('refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: COOKIE_SECURE,
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
-
   const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
   const isHr = deptName === 'hr' || deptName === 'human resources';
   if (isHr) {
@@ -338,8 +321,26 @@ async function login(req, res) {
   const employeeName = user.name || user.username || 'IT Admin';
   const employeeEmail = user.email || user.username || 'admin@worktrack.local';
 
+  const isAdminSource = userSource === 'admin_users';
+  const accessCookieName = isAdminSource ? 'admin_access_token' : 'access_token';
+  const refreshCookieName = isAdminSource ? 'admin_refresh_token' : 'refresh_token';
+
+  res.cookie(accessCookieName, token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+  });
+  res.cookie(refreshCookieName, refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+
   res.json({ 
-    token, 
     employee: { 
       id: userId, 
       name: employeeName, 
@@ -472,9 +473,13 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
-  await tokenService.revokeRefreshToken(req.cookies?.refresh_token);
+  await tokenService.revokeRefreshToken(req.cookies?.refresh_token || req.cookies?.admin_refresh_token || req.cookies?.platform_refresh_token);
   res.clearCookie('refresh_token', { path: '/' });
+  res.clearCookie('admin_refresh_token', { path: '/' });
+  res.clearCookie('platform_refresh_token', { path: '/' });
   res.clearCookie('access_token', { path: '/' });
+  res.clearCookie('admin_access_token', { path: '/' });
+  res.clearCookie('platform_access_token', { path: '/' });
   res.json({ message: 'Logged out' });
 }
 
@@ -507,7 +512,7 @@ async function forgotPassword(req, res) {
     res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
     logger.error('Failed to send password reset email:', err.message);
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.EXPOSE_DEV_TOKENS === 'true') {
       res.json({ message: 'Development mode - password reset code', email, code });
     } else {
       res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
@@ -537,7 +542,7 @@ async function resetPassword(req, res) {
     return res.status(400).json({ error: 'Invalid or expired code' });
   }
 
-  const password_hash = await bcrypt.hash(password, 12);
+  const password_hash = await bcrypt.hash(password, 13);
   await pool.query(
     'UPDATE employees SET password_hash = ?, verification_code = NULL, verification_expires = NULL WHERE id = ?',
     [password_hash, rows[0].id]

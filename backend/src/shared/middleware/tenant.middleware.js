@@ -10,7 +10,14 @@ const resolveTenant = async (req, res, next) => {
   try {
     // Priority 1: Platform admin (no tenant context — accesses all tenants)
     if (req.platformAdmin) {
-      req.tenantId = req.body?.tenant_id || req.query?.tenant_id || null;
+      const requestedTenantId = req.body?.tenant_id || req.query?.tenant_id || null;
+      if (requestedTenantId) {
+        const [exists] = await pool.query('SELECT id FROM tenants WHERE id = ? AND is_active = 1', [requestedTenantId]);
+        if (exists.length === 0) {
+          return res.status(400).json({ error: 'Invalid or inactive tenant_id' });
+        }
+      }
+      req.tenantId = requestedTenantId;
       return next();
     }
 
@@ -22,7 +29,14 @@ const resolveTenant = async (req, res, next) => {
       );
       if (rows.length > 0) {
         if (rows[0].is_platform_admin === 1) {
-          req.tenantId = req.body?.tenant_id || req.query?.tenant_id || null;
+          const requestedTenantId = req.body?.tenant_id || req.query?.tenant_id || null;
+          if (requestedTenantId) {
+            const [exists] = await pool.query('SELECT id FROM tenants WHERE id = ? AND is_active = 1', [requestedTenantId]);
+            if (exists.length === 0) {
+              return res.status(400).json({ error: 'Invalid or inactive tenant_id' });
+            }
+          }
+          req.tenantId = requestedTenantId;
         } else if (rows[0].tenant_id) {
           req.tenantId = rows[0].tenant_id;
         } else {

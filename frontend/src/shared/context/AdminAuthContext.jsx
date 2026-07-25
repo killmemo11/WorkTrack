@@ -32,6 +32,7 @@ export function AdminAuthProvider({ children }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+      credentials: 'include',
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -43,7 +44,14 @@ export function AdminAuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
+    try {
+      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('csrf_token='))?.trim().split('=')[1] || '';
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+      });
+    } catch {}
     setAdmin(null);
     window.location.href = '/admin/login';
   };

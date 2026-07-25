@@ -9,8 +9,8 @@ const requireAdminAuth = async (req, res, next) => {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     token = header.split(' ')[1];
-  } else if (req.cookies && req.cookies.access_token) {
-    token = req.cookies.access_token;
+  } else if (req.cookies && (req.cookies.admin_access_token || req.cookies.access_token)) {
+    token = req.cookies.admin_access_token || req.cookies.access_token;
   }
   if (!token) {
     return res.status(401).json({ error: 'No admin token provided' });

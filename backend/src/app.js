@@ -38,6 +38,7 @@ const { requireITAuth, requireAnyActiveToken } = require('./shared/middleware/it
 const { requirePasswordChangeGate } = require('./shared/middleware/password-gate.middleware');
 const { requireService } = require('./shared/middleware/service.middleware');
 const { resolveTenant } = require('./shared/middleware/tenant.middleware');
+const { csrfProtection } = require('./shared/middleware/csrf.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
 const multer = require('multer');
 const cvUpload = multer({
@@ -64,7 +65,19 @@ function escapeHtml(str) {
 
 const app = express();
 
-app.set('trust proxy', 1);
+// Block known weak/default JWT secrets
+const WEAK_SECRETS = new Set([
+  'super-secret-key-change-in-production-123456',
+  'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2',
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+]);
+if (WEAK_SECRETS.has(process.env.JWT_SECRET)) {
+  console.error('FATAL: JWT_SECRET is a known weak value. Generate a random secret with:');
+  console.error('  node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  process.exit(1);
+}
+
+app.set('trust proxy', 1); // Requires reverse proxy (Nginx/Caddy) in production
 
 // Request logging + X-Request-Id
 app.use(pinoHttp({
@@ -86,8 +99,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://unpkg.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'"],
@@ -150,16 +163,27 @@ const jobApplyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const trackingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Parse cookies before CORS/auth so refresh_token cookie is available
 app.use(cookieParser());
 
-// CORS — in development allow any origin (ngrok, localhost, etc.); in production restrict to FRONTEND_URL
+// CSRF protection (Double-Submit Cookie pattern)
+app.use(csrfProtection);
+
+// CORS — restrict to FRONTEND_URL in all environments
 const isDev = process.env.NODE_ENV === 'development';
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || !isProd || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -378,7 +402,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     const adminEmail = settings.length > 0 ? settings[0].value : null;
     if (adminEmail) {
       const { mailLayout } = require('./shared/services/email.service');
-      await sendEmail(adminEmail, `New Contact: ${name}`, mailLayout(`
+      await sendEmail(adminEmail, `New Contact: ${name.replace(/[\r\n]/g, '')}`, mailLayout(`
         <h2>New Contact Form Submission</h2>
         <p><strong>Name:</strong> ${escapeHtml(name)}</p>
         <p><strong>Email:</strong> ${escapeHtml(email)}</p>
@@ -396,9 +420,9 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
 
 // Public recruitment routes
 app.post('/api/apply', jobApplyLimiter, cvUpload.single('cv'), publicApply);
-app.get('/api/track/:email', publicTrack);
+app.get('/api/track/:email', trackingLimiter, publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
-app.get('/api/interviews/:email', listPublicInterviews);
+app.get('/api/interviews/:email', trackingLimiter, listPublicInterviews);
 app.put('/api/interviews/respond', respondToInterview);
 
 // Master Lists (read for HR/Public, CRUD for Admin)
@@ -421,10 +445,9 @@ if (fs.existsSync(frontendDist)) {
 }
 
 app.use((err, req, res, next) => {
-  const isProd = process.env.NODE_ENV === 'production';
   if (!isDev) logger.error({ err: { message: err.message, stack: err.stack, status: err.status, type: err.type, name: err.name } }, 'Unhandled error');
   res.status(err.status || 500).json({
-    error: isDev ? (err.message || 'Internal server error') : 'Internal server error',
+    error: 'Internal server error',
   });
 });
 

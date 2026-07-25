@@ -48,13 +48,12 @@ router.post('/request-magic-link', async (req, res) => {
   await logActivity(null, admin.id, 'magic_link_requested', `Magic link requested for ${admin.username}`);
 
   // Dev/test convenience: expose the magic-link token in the API response body so
-  // local onboarding doesn't require a working SMTP server. STRICTLY gated —
-  // never reachable when NODE_ENV === 'production'. The token alone (without the
-  // user row) is also useless cross-tenant.
-  const isDev = process.env.NODE_ENV !== 'production';
+  // local onboarding doesn't require a working SMTP server. Gated behind
+  // EXPOSE_DEV_TOKENS=true — never reachable when NODE_ENV === 'production'.
+  const exposeToken = process.env.EXPOSE_DEV_TOKENS === 'true';
   res.json({
     message: 'Magic link sent to your email',
-    ...(isDev ? { dev_magic_link: magicLink, dev_token: token } : {})
+    ...(exposeToken ? { dev_magic_link: magicLink, dev_token: token } : {})
   });
 });
 
@@ -84,7 +83,7 @@ router.post('/verify-and-set-password', async (req, res) => {
   }
 
   const admin = admins[0];
-  const hash = bcrypt.hashSync(password, 12);
+  const hash = bcrypt.hashSync(password, 13);
 
   const conn = await pool.getConnection();
   try {
@@ -118,11 +117,11 @@ router.post('/verify-and-set-password', async (req, res) => {
 
   const refreshToken = await tokenService.generateRefreshToken(admin.id, 'admin', admin.tenant_id);
 
-  res.cookie('access_token', accessToken, {
+  res.cookie('admin_access_token', accessToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
     maxAge: 15 * 60 * 1000, path: '/',
   });
-  res.cookie('refresh_token', refreshToken, {
+  res.cookie('admin_refresh_token', refreshToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, path: '/',
   });

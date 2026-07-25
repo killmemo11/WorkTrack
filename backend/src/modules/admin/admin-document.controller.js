@@ -6,7 +6,7 @@ const { logActivity } = require('../../shared/services/activity.service');
 
 async function getPendingDocuments(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
 
   const [rows] = await pool.query(
@@ -33,7 +33,7 @@ async function getPendingDocuments(req, res) {
 
 async function getAllDocuments(req, res) {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = (page - 1) * limit;
   const { status, employee_id } = req.query;
 

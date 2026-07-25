@@ -42,7 +42,14 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
+    try {
+      const csrfToken = getTokenFromCookie('csrf_token');
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+      });
+    } catch {}
     setEmployee(null);
   };
 

@@ -4,6 +4,7 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const { authenticate: requireAuth } = require('../../shared/middleware/auth.middleware');
 const { requireReadWrite } = require('../../shared/middleware/readonly.middleware');
 const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
@@ -12,7 +13,7 @@ const { getPersonnelDir } = require('../../shared/config/storage');
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getPersonnelDir()),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${path.extname(file.originalname)}`),
 });
 const upload = multer({
   storage,

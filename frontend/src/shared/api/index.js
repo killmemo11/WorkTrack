@@ -19,16 +19,23 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Attach CSRF token for state-changing requests
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase())) {
+    const csrfToken = getTokenFromCookie('csrf_token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
   return config;
 });
 
 let isRefreshing = false;
 let failedQueue = [];
 
-function processQueue(error, token) {
+function processQueue(error) {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
-    else resolve(token);
+    else resolve();
   });
   failedQueue = [];
 }
@@ -42,23 +49,18 @@ api.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        });
+        }).then(() => api(originalRequest));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
-        const newToken = data.access_token;
-        processQueue(null, newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshErr) {
-        processQueue(refreshErr, null);
+        processQueue(refreshErr);
         window.location.href = '/login';
         return Promise.reject(refreshErr);
       } finally {

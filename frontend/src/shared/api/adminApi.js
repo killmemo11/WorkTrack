@@ -14,9 +14,15 @@ const adminApi = axios.create({
 });
 
 adminApi.interceptors.request.use((config) => {
-  const adminToken = getTokenFromCookie('access_token');
+  const adminToken = getTokenFromCookie('admin_access_token') || getTokenFromCookie('access_token');
   if (adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`;
+  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase())) {
+    const csrfToken = getTokenFromCookie('csrf_token');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
   }
   return config;
 });
@@ -24,10 +30,10 @@ adminApi.interceptors.request.use((config) => {
 let isRefreshing = false;
 let failedQueue = [];
 
-function processQueue(error, token) {
+function processQueue(error) {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
-    else resolve(token);
+    else resolve();
   });
   failedQueue = [];
 }
@@ -41,23 +47,18 @@ adminApi.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return adminApi(originalRequest);
-        });
+        }).then(() => adminApi(originalRequest));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
-        const newToken = data.access_token;
-        processQueue(null, newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        processQueue(null);
         return adminApi(originalRequest);
       } catch (refreshErr) {
-        processQueue(refreshErr, null);
+        processQueue(refreshErr);
         window.location.href = '/admin/login';
         return Promise.reject(refreshErr);
       } finally {

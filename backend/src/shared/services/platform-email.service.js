@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const pool = require('../config/database');
 const { decrypt } = require('../utils/encryption');
 const logger = require('../utils/logger');
+const { escapeHtml } = require('../utils/sanitize');
 
 let platformTransporter = null;
 let cachedConfigHash = '';
@@ -142,10 +143,10 @@ async function sendPlatformEmail(to, subject, htmlContent) {
 // Magic link for tenant admin first login
 async function sendTenantAdminMagicLink(email, username, tenantName, magicLink) {
   const html = `
-    <p>Welcome to <strong>${tenantName}</strong> on WorkTrack!</p>
-    <p>Your admin account <strong>${username}</strong> has been created. Click the button below to set your password and access your dashboard:</p>
+    <p>Welcome to <strong>${escapeHtml(tenantName)}</strong> on WorkTrack!</p>
+    <p>Your admin account <strong>${escapeHtml(username)}</strong> has been created. Click the button below to set your password and access your dashboard:</p>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${magicLink}" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(34,197,94,0.4);">
+      <a href="${magicLink}" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(34,197,94,0.4);">
         Set Password & Enter Dashboard
       </a>
     </div>
@@ -163,14 +164,14 @@ async function sendTenantRequestNotification(adminEmail, request) {
   const html = `
     <p>A new tenant signup request has been received:</p>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Company:</td><td style="padding: 8px 0; color: #1e293b;"><strong>${request.company_name}</strong></td></tr>
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Contact Email:</td><td style="padding: 8px 0; color: #1e293b;">${request.contact_email}</td></tr>
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Phone:</td><td style="padding: 8px 0; color: #1e293b;">${request.contact_phone || '—'}</td></tr>
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Employees:</td><td style="padding: 8px 0; color: #1e293b;">${request.employee_count}</td></tr>
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Message:</td><td style="padding: 8px 0; color: #1e293b;">${request.message || '—'}</td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Company:</td><td style="padding: 8px 0; color: #1e293b;"><strong>${escapeHtml(request.company_name)}</strong></td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Contact Email:</td><td style="padding: 8px 0; color: #1e293b;">${escapeHtml(request.contact_email)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Phone:</td><td style="padding: 8px 0; color: #1e293b;">${escapeHtml(request.contact_phone || '—')}</td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Employees:</td><td style="padding: 8px 0; color: #1e293b;">${escapeHtml(request.employee_count)}</td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Message:</td><td style="padding: 8px 0; color: #1e293b;">${escapeHtml(request.message || '—')}</td></tr>
     </table>
     <div style="text-align: center; margin: 24px 0;">
-      <a href="${process.env.FRONTEND_URL || 'https://worktrack.ddns.net'}/platform/tenants" style="display: inline-block; background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+      <a href="${process.env.FRONTEND_URL || 'https://worktrack.ddns.net'}/platform/tenants" rel="noopener noreferrer" style="display: inline-block; background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
         Review in Platform Admin
       </a>
     </div>
@@ -182,13 +183,13 @@ async function sendTenantRequestNotification(adminEmail, request) {
 // Tenant request approved notification
 async function sendTenantApprovedEmail(email, tenantName, adminUsername, loginUrl) {
   const html = `
-    <p>Great news! Your tenant request for <strong>${tenantName}</strong> has been <span style="color: #22c55e; font-weight: 600;">approved</span>.</p>
+    <p>Great news! Your tenant request for <strong>${escapeHtml(tenantName)}</strong> has been <span style="color: #22c55e; font-weight: 600;">approved</span>.</p>
     <p>An admin account has been created for you:</p>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Username:</td><td style="padding: 8px 0; color: #1e293b;"><strong>${adminUsername}</strong></td></tr>
+      <tr><td style="padding: 8px 0; color: #64748b; font-weight: 500;">Username:</td><td style="padding: 8px 0; color: #1e293b;"><strong>${escapeHtml(adminUsername)}</strong></td></tr>
     </table>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+      <a href="${loginUrl}" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
         Set Password & Login
       </a>
     </div>
@@ -202,10 +203,10 @@ async function sendTenantApprovedEmail(email, tenantName, adminUsername, loginUr
 async function sendTenantRejectedEmail(email, tenantName, reason) {
   const html = `
     <p>Thank you for your interest in WorkTrack.</p>
-    <p>After review, we're unable to approve your tenant request for <strong>${tenantName}</strong> at this time.</p>
+    <p>After review, we're unable to approve your tenant request for <strong>${escapeHtml(tenantName)}</strong> at this time.</p>
     ${reason ? `
       <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
-        <p style="color: #dc2626; margin: 0;"><strong>Reason:</strong> ${reason}</p>
+        <p style="color: #dc2626; margin: 0;"><strong>Reason:</strong> ${escapeHtml(reason)}</p>
       </div>
     ` : ''}
     <p>If you have questions, please reply to this email or contact our support team.</p>
