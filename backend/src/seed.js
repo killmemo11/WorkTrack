@@ -230,7 +230,7 @@ async function seed() {
   );
   
   if (platformAdmins.length === 0) {
-    const hash = await bcrypt.hash(platformAdminPassword, 12);
+    const hash = await bcrypt.hash(platformAdminPassword, 13);
     const [result] = await pool.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
       [platformAdminUsername, platformAdminEmail, hash]
@@ -239,7 +239,7 @@ async function seed() {
     console.log('Created Platform Super-Admin. Initial credential delivered via secure channel (see above/aside), never printed to stdout.');
   } else {
     // Update password if env changed
-    const newHash = await bcrypt.hash(platformAdminPassword, 12);
+    const newHash = await bcrypt.hash(platformAdminPassword, 13);
     await pool.query(
       'UPDATE admin_users SET password_hash = ?, email = ? WHERE id = ?',
       [newHash, platformAdminEmail, platformAdmins[0].id]
@@ -266,7 +266,7 @@ async function seed() {
   if (tenantAdmins.length === 0) {
     // Create with a temporary password hash (will be replaced on first login via magic link).
     // must_change_password stays 1 by default; magic-link set-password does NOT clear it.
-    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 13);
     await pool.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin) VALUES (?, ?, ?, 1, 1, 0)',
       [tenantAdminUsername, tenantAdminEmail, tempHash]

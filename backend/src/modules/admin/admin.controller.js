@@ -414,8 +414,10 @@ async function getMonthlyReport(req, res) {
     tenantId ? [year, month, tenantId, tenantId] : [year, month]
   );
 
-  // Fetch leave balances for the report
-  const [allBalances] = await pool.query('SELECT * FROM leave_balances');
+  // Fetch leave balances for the report (filtered by tenant)
+  const [allBalances] = tenantId
+    ? await pool.query('SELECT lb.* FROM leave_balances lb JOIN employees e ON lb.employee_id = e.id WHERE e.tenant_id = ?', [tenantId])
+    : await pool.query('SELECT * FROM leave_balances');
   const balanceMap = {};
   for (const b of allBalances) {
     if (!balanceMap[b.employee_id]) balanceMap[b.employee_id] = {};

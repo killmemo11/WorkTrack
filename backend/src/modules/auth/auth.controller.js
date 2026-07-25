@@ -512,7 +512,7 @@ async function forgotPassword(req, res) {
     res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
     logger.error('Failed to send password reset email:', err.message);
-    if (process.env.EXPOSE_DEV_TOKENS === 'true') {
+    if (process.env.NODE_ENV !== 'production' && process.env.EXPOSE_DEV_TOKENS === 'true') {
       res.json({ message: 'Development mode - password reset code', email, code });
     } else {
       res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });

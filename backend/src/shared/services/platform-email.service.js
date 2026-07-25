@@ -99,7 +99,7 @@ function platformMailLayout(contentHtml, title = 'WorkTrack Platform') {
         <p style="color: #94a3b8; margin: 12px 0 0; font-size: 14px;">Platform Administration</p>
       </div>
       <div style="background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 32px 24px; border-radius: 0 0 12px 12px;">
-        <h2 style="color: #1e293b; margin: 0 0 16px; font-size: 22px; font-weight: 600;">${title}</h2>
+        <h2 style="color: #1e293b; margin: 0 0 16px; font-size: 22px; font-weight: 600;">${escapeHtml(title)}</h2>
         <div style="color: #475569; line-height: 1.7; font-size: 15px;">
           ${contentHtml}
         </div>
@@ -125,7 +125,7 @@ async function sendPlatformEmail(to, subject, htmlContent) {
   const companyName = dbSettings.company_name || 'WorkTrack';
 
   try {
-    const html = platformMailLayout(htmlContent, subject).replace(/\{\{companyName\}\}/g, companyName);
+    const html = platformMailLayout(htmlContent, subject).replace(/\{\{companyName\}\}/g, escapeHtml(companyName));
     const info = await transporter.sendMail({
       from: fromAddress || `${companyName} Platform`,
       to,
@@ -156,7 +156,7 @@ async function sendTenantAdminMagicLink(email, username, tenantName, magicLink) 
     <p style="color: #94a3af; font-size: 12px;">Link: ${magicLink}</p>
   `;
 
-  return sendPlatformEmail(email, `Welcome to ${tenantName} — Set Your Password`, html);
+  return sendPlatformEmail(email, `Welcome to ${escapeHtml(tenantName)} — Set Your Password`, html);
 }
 
 // Tenant request notification to platform admin
@@ -177,7 +177,7 @@ async function sendTenantRequestNotification(adminEmail, request) {
     </div>
   `;
 
-  return sendPlatformEmail(adminEmail, `New Tenant Request: ${request.company_name}`, html);
+  return sendPlatformEmail(adminEmail, `New Tenant Request: ${escapeHtml(request.company_name)}`, html);
 }
 
 // Tenant request approved notification
@@ -196,7 +196,7 @@ async function sendTenantApprovedEmail(email, tenantName, adminUsername, loginUr
     <p style="color: #64748b; font-size: 14px;">This link expires in 24 hours.</p>
   `;
 
-  return sendPlatformEmail(email, `Your WorkTrack Tenant "${tenantName}" is Ready!`, html);
+  return sendPlatformEmail(email, `Your WorkTrack Tenant "${escapeHtml(tenantName)}" is Ready!`, html);
 }
 
 // Tenant request rejected notification
@@ -212,7 +212,7 @@ async function sendTenantRejectedEmail(email, tenantName, reason) {
     <p>If you have questions, please reply to this email or contact our support team.</p>
   `;
 
-  return sendPlatformEmail(email, `Update on Your WorkTrack Request: ${tenantName}`, html);
+  return sendPlatformEmail(email, `Update on Your WorkTrack Request: ${escapeHtml(tenantName)}`, html);
 }
 
 // Platform admin alert (system issues, etc.)
@@ -224,7 +224,7 @@ async function sendPlatformAlert(subject, message) {
     <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
       <p style="color: #92400e; margin: 0;"><strong>⚠️ Platform Alert</strong></p>
     </div>
-    <p>${message}</p>
+    <p>${escapeHtml(message)}</p>
     <p style="color: #64748b; font-size: 14px;">Time: ${new Date().toISOString()}</p>
   `;
 

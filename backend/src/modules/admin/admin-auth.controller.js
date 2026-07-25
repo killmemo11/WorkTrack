@@ -222,7 +222,7 @@ async function changePassword(req, res) {
   const valid = await bcrypt.compare(currentPassword, empRows[0].password_hash);
   if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
-  const newHash = await bcrypt.hash(newPassword, 12);
+  const newHash = await bcrypt.hash(newPassword, 13);
   await pool.query('UPDATE employees SET password_hash = ? WHERE id = ?', [newHash, req.admin.id]);
   await logActivity(null, req.admin.id, 'admin_password_changed', `Employee-admin changed password: ${req.admin.username}`);
   res.json({ message: 'Password updated', must_change_password: false });

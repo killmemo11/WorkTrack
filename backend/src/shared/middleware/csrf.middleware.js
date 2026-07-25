@@ -22,6 +22,8 @@ const EXCLUDED_PATHS = new Set([
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/health',
+  '/api/apply',
+  '/api/interviews/respond',
 ]);
 
 function csrfProtection(req, res, next) {

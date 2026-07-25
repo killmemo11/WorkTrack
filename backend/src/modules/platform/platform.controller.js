@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const tokenService = require('../../shared/services/token.service');
+const { escapeHtml } = require('../../shared/utils/sanitize');
 const { 
   sendPlatformEmail, 
   sendTenantAdminMagicLink,
@@ -459,8 +460,8 @@ async function approveTenantRequest(req, res) {
     // Notify platform admin
     await sendPlatformEmail(
       req.platformAdmin.email,
-      `Tenant Approved: ${request.company_name}`,
-      `Tenant "${request.company_name}" has been approved and created (ID: ${tenantId}). Magic link sent to ${request.contact_email}.`
+      `Tenant Approved: ${escapeHtml(request.company_name)}`,
+      `Tenant "${escapeHtml(request.company_name)}" has been approved and created (ID: ${tenantId}). Magic link sent to ${escapeHtml(request.contact_email)}.`
     );
 
     await logActivity(null, req.platformAdmin.id, 'tenant_approved', `Approved tenant request: ${request.company_name} (ID: ${tenantId})`);
@@ -524,13 +525,13 @@ async function verifyPayment(req, res) {
   // Send email to applicant
   const html = `
     <p style="color:#52525b;font-size:14px;">
-      Your payment of <strong>${request.payment_amount} ${request.payment_currency || 'EGP'}</strong> for <strong>${request.company_name}</strong> has been <strong style="color:#22c55e;">verified</strong>.
+      Your payment of <strong>${escapeHtml(String(request.payment_amount))} ${escapeHtml(request.payment_currency || 'EGP')}</strong> for <strong>${escapeHtml(request.company_name)}</strong> has been <strong style="color:#22c55e;">verified</strong>.
     </p>
     <p style="color:#52525b;font-size:14px;margin-top:16px;">
       Your registration is now being reviewed. You will receive another email once your account is fully approved.
     </p>
   `;
-  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Verified for ${request.company_name}`, html);
+  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Verified for ${escapeHtml(request.company_name)}`, html);
 
   await logActivity(null, req.platformAdmin.id, 'payment_verified', `Verified payment for: ${request.company_name} (${request.payment_amount} ${request.payment_currency || 'EGP'})`);
 
@@ -556,18 +557,18 @@ async function rejectPayment(req, res) {
   // Send email to applicant
   const html = `
     <p style="color:#52525b;font-size:14px;">
-      Your payment for <strong>${request.company_name}</strong> could not be verified.
+      Your payment for <strong>${escapeHtml(request.company_name)}</strong> could not be verified.
     </p>
     ${rejection_reason ? `
     <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px 0;">
-      <p style="color:#dc2626;font-size:13px;margin:0;"><strong>Reason:</strong> ${rejection_reason}</p>
+      <p style="color:#dc2626;font-size:13px;margin:0;"><strong>Reason:</strong> ${escapeHtml(rejection_reason)}</p>
     </div>
     ` : ''}
     <p style="color:#52525b;font-size:14px;margin-top:16px;">
       Please try again by registering with a valid payment proof, or contact our support team for assistance.
     </p>
   `;
-  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Issue for ${request.company_name}`, html);
+  await sendPlatformEmail(request.contact_email, `WorkTrack — Payment Issue for ${escapeHtml(request.company_name)}`, html);
 
   await logActivity(null, req.platformAdmin.id, 'payment_rejected', `Rejected payment for: ${request.company_name} - ${rejection_reason || 'No reason'}`);
 
@@ -696,7 +697,7 @@ async function suspendTenant(req, res) {
   const [admins] = await pool.query('SELECT email FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0 AND is_active = 1', [id]);
   for (const admin of admins) {
     await sendPlatformEmail(admin.email, 'Your WorkTrack Account Has Been Suspended', 
-      `Your tenant account has been suspended. Reason: ${reason || 'Not specified'}. Please contact WorkTrack support.`
+      `Your tenant account has been suspended. Reason: ${escapeHtml(reason || 'Not specified')}. Please contact WorkTrack support.`
     );
   }
 
@@ -740,7 +741,7 @@ async function deleteTenant(req, res) {
   const [admins] = await pool.query('SELECT email FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0 AND is_active = 1', [id]);
   for (const admin of admins) {
     await sendPlatformEmail(admin.email, 'Your WorkTrack Account Has Been Deleted',
-      `Your tenant account has been deleted. Reason: ${reason || 'Not specified'}. If you believe this is an error, please contact WorkTrack support.`
+      `Your tenant account has been deleted. Reason: ${escapeHtml(reason || 'Not specified')}. If you believe this is an error, please contact WorkTrack support.`
     );
   }
 

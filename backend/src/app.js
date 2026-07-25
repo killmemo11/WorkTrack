@@ -423,7 +423,7 @@ app.post('/api/apply', jobApplyLimiter, cvUpload.single('cv'), publicApply);
 app.get('/api/track/:email', trackingLimiter, publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
 app.get('/api/interviews/:email', trackingLimiter, listPublicInterviews);
-app.put('/api/interviews/respond', respondToInterview);
+app.put('/api/interviews/respond', trackingLimiter, respondToInterview);
 
 // Master Lists (read for HR/Public, CRUD for Admin)
 app.get('/api/master-skills', listSkills);

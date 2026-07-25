@@ -398,17 +398,17 @@ async function sendInterviewInvitation(candidateEmail, candidateName, interview)
 
   let detailsHtml = '';
   if (interview.type === 'online' && interview.meeting_link) {
-    detailsHtml += `<p><strong>Meeting Link:</strong> <a href="${interview.meeting_link}" rel="noopener noreferrer" style="color:#4f46e5;">${escapeHtml(interview.meeting_link)}</a></p>`;
+    detailsHtml += `<p><strong>Meeting Link:</strong> <a href="${escapeHtml(interview.meeting_link)}" rel="noopener noreferrer" style="color:#4f46e5;">${escapeHtml(interview.meeting_link)}</a></p>`;
   }
   if (interview.type === 'offline') {
-    if (interview.location_name) detailsHtml += `<p><strong>Location:</strong> ${interview.location_name}</p>`;
-    if (interview.location_address) detailsHtml += `<p><strong>Address:</strong> ${interview.location_address}</p>`;
-    if (interview.dress_code) detailsHtml += `<p><strong>Dress Code:</strong> ${interview.dress_code}</p>`;
-    if (interview.what_to_bring) detailsHtml += `<p><strong>Please bring:</strong> ${interview.what_to_bring}</p>`;
-    if (interview.map_link) detailsHtml += `<p><a href="${interview.map_link}" rel="noopener noreferrer" style="color:#4f46e5;">View on Google Maps</a></p>`;
+    if (interview.location_name) detailsHtml += `<p><strong>Location:</strong> ${escapeHtml(interview.location_name)}</p>`;
+    if (interview.location_address) detailsHtml += `<p><strong>Address:</strong> ${escapeHtml(interview.location_address)}</p>`;
+    if (interview.dress_code) detailsHtml += `<p><strong>Dress Code:</strong> ${escapeHtml(interview.dress_code)}</p>`;
+    if (interview.what_to_bring) detailsHtml += `<p><strong>Please bring:</strong> ${escapeHtml(interview.what_to_bring)}</p>`;
+    if (interview.map_link) detailsHtml += `<p><a href="${escapeHtml(interview.map_link)}" rel="noopener noreferrer" style="color:#4f46e5;">View on Google Maps</a></p>`;
   }
-  if (interview.interviewer) detailsHtml += `<p><strong>Interviewer:</strong> ${interview.interviewer}</p>`;
-  if (interview.notes) detailsHtml += `<p><strong>Notes:</strong> ${interview.notes}</p>`;
+  if (interview.interviewer) detailsHtml += `<p><strong>Interviewer:</strong> ${escapeHtml(interview.interviewer)}</p>`;
+  if (interview.notes) detailsHtml += `<p><strong>Notes:</strong> ${escapeHtml(interview.notes)}</p>`;
 
   await sendEmail(candidateEmail, `Interview Invitation — ${interview.job_title || 'Job Interview'}`, mailLayout(`
     <div style="font-family:Arial;max-width:520px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:10px;">

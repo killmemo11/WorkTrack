@@ -18,7 +18,7 @@ const logger = pino({
     },
   },
   redact: {
-    paths: ['req.headers.authorization', 'req.headers.cookie', 'password', 'current_password', 'new_password', 'token'],
+    paths: ['req.headers.authorization', 'req.headers.cookie', 'password', 'current_password', 'new_password', 'token', 'temp_password', 'password_hash', 'smtp_pass', 'verification_code', 'cv_filename'],
     censor: '[REDACTED]',
   },
   timestamp: pino.stdTimeFunctions.isoTime,

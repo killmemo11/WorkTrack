@@ -246,7 +246,7 @@ router.post('/send-verification-code', async (req, res) => {
 
     if (!result.success && result.reason === 'SMTP not configured') {
       // In dev mode, return the code in response (gated behind EXPOSE_DEV_TOKENS)
-      if (process.env.EXPOSE_DEV_TOKENS === 'true') {
+      if (process.env.NODE_ENV !== 'production' && process.env.EXPOSE_DEV_TOKENS === 'true') {
         return res.json({ message: 'Verification code sent (dev mode)', dev_code: code });
       }
       return res.status(500).json({ error: 'Email service not configured. Please contact support.' });

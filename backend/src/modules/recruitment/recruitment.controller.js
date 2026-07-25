@@ -6,6 +6,7 @@ const { logActivity } = require('../../shared/services/activity.service');
 const logger = require('../../shared/utils/logger');
 const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { getRecruitmentDir } = require('../../shared/config/storage');
@@ -352,11 +353,11 @@ async function moveCandidate(req, res) {
 async function uploadCv(req, res) {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
   if (!allowedFile(req.file.originalname)) return res.status(400).json({ error: 'Invalid file type. Allowed: PDF, DOC, DOCX' });
-  const filename = `${Date.now()}_${req.file.originalname}`;
-  const fpath = path.join(UPLOAD_FOLDER, filename);
-  fs.writeFileSync(fpath, req.file.buffer);
-  const sizeKb = Math.ceil(fs.statSync(fpath).size / 1024);
-  res.json({ filename, path: `/uploads/recruitment/${filename}`, size_kb: sizeKb });
+    const filename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${path.extname(req.file.originalname)}`;
+    const fpath = path.join(UPLOAD_FOLDER, filename);
+    fs.writeFileSync(fpath, req.file.buffer);
+    const sizeKb = Math.ceil(fs.statSync(fpath).size / 1024);
+    res.json({ filename, path: `/uploads/recruitment/${filename}`, size_kb: sizeKb });
 }
 
 async function attachCv(req, res) {
@@ -478,7 +479,7 @@ async function publicApply(req, res) {
   let cvFilename = null, cvPath = null;
   if (req.file) {
     if (!allowedFile(req.file.originalname)) return res.status(400).json({ error: 'Invalid file type. Allowed: PDF, DOC, DOCX' });
-    cvFilename = `${Date.now()}_${req.file.originalname}`;
+    cvFilename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${path.extname(req.file.originalname)}`;
     const fpath = path.join(UPLOAD_FOLDER, cvFilename);
     fs.writeFileSync(fpath, req.file.buffer);
     cvPath = `/uploads/recruitment/${cvFilename}`;
@@ -569,9 +570,9 @@ async function publicTrack(req, res) {
       a.history = byCandidate[a.id] || [];
     }
 
-    // Attach screening results
+    // Attach screening results (public-safe: omit internal details)
     const [screeningRows] = await pool.query(
-      `SELECT sr.* FROM screening_results sr
+      `SELECT sr.candidate_id, sr.stage, sr.result, sr.created_at FROM screening_results sr
        WHERE sr.candidate_id IN (${placeholders})
        ORDER BY sr.candidate_id, sr.created_at DESC`,
       ids
@@ -579,8 +580,6 @@ async function publicTrack(req, res) {
     const byCandidateScreening = {};
     for (const s of screeningRows) {
       if (!byCandidateScreening[s.candidate_id]) {
-        if (s.details && typeof s.details === 'string') s.details = JSON.parse(s.details);
-        if (s.requirement_results && typeof s.requirement_results === 'string') s.requirement_results = JSON.parse(s.requirement_results);
         byCandidateScreening[s.candidate_id] = s;
       }
     }
@@ -779,7 +778,7 @@ async function hireCandidate(req, res) {
     const nextEmployeeId = (maxRow[0].max_id || 0) + 1;
     const username = candidate.email.split('@')[0] + Math.floor(Math.random() * 1000);
     const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
-    const password_hash = await bcrypt.hash(tempPassword, 12);
+    const password_hash = await bcrypt.hash(tempPassword, 13);
 
     const [insertResult] = await pool.query(
       `INSERT INTO employees (tenant_id, employee_id, name, email, phone, username, password_hash, is_verified, department_id, title_id, can_wfh, employment_status)
@@ -797,11 +796,29 @@ async function hireCandidate(req, res) {
 
     logActivity(eid, req.admin?.id || req.hr?.id || null, 'hired_from_recruitment', `Created employee from recruitment: ${candidate.name}`);
 
+    // Send temp password via email to the new employee
+    try {
+      const emailService = require('../../shared/services/email.service');
+      const { mailLayout } = emailService;
+      const { escapeHtml } = require('../../shared/utils/sanitize');
+      await emailService.sendEmail(candidate.email, 'Your WorkTrack Account Credentials', mailLayout(`
+        <div style="font-family:Arial;max-width:500px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
+          <h2 style="color:#4f46e5;">Welcome to WorkTrack!</h2>
+          <p>Hi <strong>${escapeHtml(candidate.name)}</strong>,</p>
+          <p>Your account has been created. Here are your temporary credentials:</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:6px;color:#666;">Username</td><td style="padding:6px;"><strong>${username}</strong></td></tr>
+            <tr><td style="padding:6px;color:#666;">Temporary Password</td><td style="padding:6px;"><strong>${tempPassword}</strong></td></tr>
+          </table>
+          <p style="color:#ef4444;font-weight:600;">You will be required to change your password on first login.</p>
+        </div>
+      `)).catch(() => {});
+    } catch (e) { /* non-critical */ }
+
     return res.json({
       message: 'Candidate hired and employee created',
       candidate_id: parseInt(id),
       employee_id: nextEmployeeId,
-      temp_password: tempPassword,
     });
   }
 

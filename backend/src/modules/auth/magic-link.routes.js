@@ -50,7 +50,7 @@ router.post('/request-magic-link', async (req, res) => {
   // Dev/test convenience: expose the magic-link token in the API response body so
   // local onboarding doesn't require a working SMTP server. Gated behind
   // EXPOSE_DEV_TOKENS=true — never reachable when NODE_ENV === 'production'.
-  const exposeToken = process.env.EXPOSE_DEV_TOKENS === 'true';
+  const exposeToken = process.env.NODE_ENV !== 'production' && process.env.EXPOSE_DEV_TOKENS === 'true';
   res.json({
     message: 'Magic link sent to your email',
     ...(exposeToken ? { dev_magic_link: magicLink, dev_token: token } : {})
