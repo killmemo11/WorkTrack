@@ -10,6 +10,7 @@ const pool = require('../../shared/config/database');
 const { getPaymentsDir } = require('../../shared/config/storage');
 const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
 const logger = require('../../shared/utils/logger');
+const { escapeHtml } = require('../../shared/utils/sanitize');
 const { sendVerificationCodeBody, verifyEmailCodeBody, tenantSignupBody, trackRequestQuery } = require('../../shared/validations/schemas');
 
 // Free/personal email domains that are NOT allowed for company registration
@@ -237,7 +238,7 @@ router.post('/send-verification-code', async (req, res) => {
         </p>
       </div>
       <p style="color: #52525b; font-size: 14px; margin-top: 20px;">
-        You requested an email verification code for <strong>${company}</strong> registration on WorkTrack.
+        You requested an email verification code for <strong>${escapeHtml(company)}</strong> registration on WorkTrack.
         If you did not request this, please ignore this email.
       </p>
     `;

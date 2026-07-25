@@ -118,6 +118,12 @@ app.use(
     referrerPolicy: { policy: 'same-origin' },
     // xssFilter is deprecated but kept for compatibility
     // crossOriginEmbedderPolicy: false // already set above
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: ['self'],
+    },
   })
 );
 

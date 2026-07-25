@@ -1,4 +1,5 @@
 const pool = require('../../../shared/config/database');
+const { escapeHtml } = require('../../../shared/utils/sanitize');
 
 async function render(templateKey, context, channel) {
   const [templates] = await pool.query(
@@ -16,14 +17,15 @@ async function render(templateKey, context, channel) {
     let subject = tpl.subject;
     for (const [key, val] of Object.entries(context || {})) {
       const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-      body = body.replace(placeholder, String(val ?? ''));
-      subject = subject.replace(placeholder, String(val ?? ''));
+      const safeVal = escapeHtml(String(val ?? ''));
+      body = body.replace(placeholder, safeVal);
+      subject = subject.replace(placeholder, safeVal);
     }
     return { subject, html: body };
   }
   for (const [key, val] of Object.entries(context || {})) {
     const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-    body = body.replace(placeholder, String(val ?? ''));
+    body = body.replace(placeholder, escapeHtml(String(val ?? '')));
   }
   return { html: body };
 }

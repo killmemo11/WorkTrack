@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { getRecruitmentDir } = require('../../shared/config/storage');
-const { createJobBody, updateJobBody, createCandidateBody, updateCandidateBody, moveCandidateBody, addScorecardBody, createOfferBody, createInterviewBody, publicApplyBody } = require('../../shared/validations/schemas');
+const { createJobBody, updateJobBody, createCandidateBody, updateCandidateBody, moveCandidateBody, addScorecardBody, createOfferBody, createInterviewBody, publicApplyBody, respondToInterviewBody } = require('../../shared/validations/schemas');
 
 const UPLOAD_FOLDER = getRecruitmentDir();
 
@@ -1156,10 +1156,9 @@ async function listPublicInterviews(req, res) {
 }
 
 async function respondToInterview(req, res) {
+  const { error } = respondToInterviewBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
   const { interview_id, email, status } = req.body;
-  if (!interview_id || !email || !['accepted', 'declined'].includes(status)) {
-    return res.status(400).json({ error: 'interview_id, email, and status (accepted/declined) are required' });
-  }
   const [[interview]] = await pool.query(
     `SELECT i.id, i.candidate_id
      FROM interview_stages i

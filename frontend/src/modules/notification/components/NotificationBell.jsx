@@ -68,7 +68,7 @@ export default function NotificationBell() {
     } catch (err) { console.error('Failed to mark notification as read:', err); }
     setUnreadCount((c) => Math.max(0, c - 1));
     setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, is_read: 1 } : x));
-    if (n.link) navigate(n.link);
+    if (n.link && n.link.startsWith('/') && !n.link.startsWith('//')) navigate(n.link);
     setOpen(false);
   };
 

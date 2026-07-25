@@ -587,6 +587,13 @@ const deleteTenantBody = Joi.object({
   reason: Joi.string().max(2000).allow('', null),
 }).options({ stripUnknown: true });
 
+// ── Public Interview Response ──────────────────────────────────
+const respondToInterviewBody = Joi.object({
+  interview_id: Joi.number().integer().positive().required(),
+  email: email.required(),
+  status: Joi.string().valid('accepted', 'declined').required(),
+}).options({ stripUnknown: true });
+
 module.exports = {
   // Contact
   contactBody,
@@ -595,6 +602,7 @@ module.exports = {
   workWeekSettingsBody,
   // Recruitment - public
   publicApplyBody,
+  respondToInterviewBody,
   // Admin
   updateEmployeeBody,
   // Settings

@@ -77,7 +77,7 @@ export default function NotificationsPage() {
 
   const handleClick = (n) => {
     if (!n.is_read) handleMarkAsRead(n.id);
-    if (n.link) navigate(n.link);
+    if (n.link && n.link.startsWith('/') && !n.link.startsWith('//')) navigate(n.link);
   };
 
   const unreadCount = data.notifications.filter((n) => !n.is_read).length;
