@@ -108,7 +108,8 @@ INSERT INTO phone_screening_templates (tenant_id, name, description, is_default,
 SELECT 1, 'General Phone Screening',
        'Default phone screening questionnaire covering communication, experience, technical skills, and culture fit.',
        1, 1
-WHERE NOT EXISTS (
+WHERE EXISTS (SELECT 1 FROM tenants WHERE id = 1)
+  AND NOT EXISTS (
   SELECT 1 FROM phone_screening_templates WHERE tenant_id = 1 AND is_default = 1
 );
 
