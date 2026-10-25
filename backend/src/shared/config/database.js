@@ -24,4 +24,31 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+// SQL date functions (CURDATE, DATE(), NOW()) must use the business timezone,
+// otherwise the "today" used for attendance flips at UTC midnight instead of
+// Cairo midnight. Named zones need the tz tables loaded; fall back to the
+// current numeric offset when they are not.
+pool.on('connection', (connection) => {
+  connection.query("SET time_zone = 'Africa/Cairo'", (err) => {
+    if (!err) return;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Africa/Cairo', hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }).formatToParts(new Date());
+    const map = {};
+    for (const part of parts) map[part.type] = part.value;
+    const asUTC = Date.UTC(
+      Number(map.year), Number(map.month) - 1, Number(map.day),
+      Number(map.hour) % 24, Number(map.minute), Number(map.second)
+    );
+    const offsetMinutes = Math.round((asUTC - Date.now()) / 60000);
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMinutes);
+    const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+    const mm = String(abs % 60).padStart(2, '0');
+    connection.query(`SET time_zone = '${sign}${hh}:${mm}'`);
+  });
+});
+
 module.exports = pool;

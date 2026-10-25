@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
 import adminApi from '../../../shared/api/adminApi';
+import { toDateInputValue, formatDateTime, todayInCairo } from '../../../shared/utils/date';
 
 const actionLabels = {
   admin_login: 'Admin Login', settings_updated: 'Settings Updated', profile_updated: 'Profile Updated',
@@ -123,8 +124,8 @@ export default function AuditPortal({ initialTab }) {
     start.setDate(start.getDate() - days);
     setFilter(f => ({
       ...f,
-      date_from: start.toISOString().split('T')[0],
-      date_to: end.toISOString().split('T')[0],
+      date_from: toDateInputValue(start),
+      date_to: toDateInputValue(end),
     }));
     setDatePreset(`${days}d`);
   };
@@ -152,7 +153,7 @@ export default function AuditPortal({ initialTab }) {
       const blobUrl = URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `${type}_audit_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `${type}_audit_${todayInCairo()}.xlsx`;
       a.click();
       URL.revokeObjectURL(blobUrl);
     } catch { alert('Export failed'); }
@@ -164,13 +165,13 @@ export default function AuditPortal({ initialTab }) {
       const blobUrl = URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `compliance_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `compliance_report_${todayInCairo()}.pdf`;
       a.click();
       URL.revokeObjectURL(blobUrl);
     } catch { alert('Failed to generate compliance report'); }
   };
 
-  const formatDate = (dateStr) => new Date(dateStr).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (dateStr) => formatDateTime(dateStr);
 
   const getCategoryForAction = (action) => {
     for (const [cat, actions] of Object.entries(actionCategories)) {

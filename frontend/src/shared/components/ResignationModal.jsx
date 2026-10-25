@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import Icon from './Icon';
 import api from '../api';
+import { formatDate as formatDateShared } from '../utils/date';
+import useModalA11y from '../hooks/useModalA11y';
 
 export default function ResignationModal({ onClose, onSubmitted }) {
   const [step, setStep] = useState('form');
   const [form, setForm] = useState({ resignation_date: '', reason: '' });
   const [error, setError] = useState('');
+  const titleId = useId();
+  const fieldId = useId();
+  const dialogRef = useModalA11y(onClose);
 
   const formatDate = (d) => {
     if (!d) return '';
-    const dt = new Date(d);
-    return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+    return formatDateShared(d);
   };
 
   async function handleSubmit(e) {
@@ -29,12 +33,21 @@ export default function ResignationModal({ onClose, onSubmitted }) {
 
   return (
     <div className="glass-modal-overlay" onClick={onClose}>
-      <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+      <div
+        className="glass-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        ref={dialogRef}
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: 460 }}
+      >
         <div className="glass-modal-header">
-          <h3 className="glass-modal-title">
+          <h3 className="glass-modal-title" id={titleId}>
             {step === 'form' ? 'Submit Resignation' : 'Confirm Resignation'}
           </h3>
-          <button className="glass-modal-close" onClick={onClose}>
+          <button type="button" className="glass-modal-close" onClick={onClose} aria-label="Close dialog">
             <Icon icon="lucide:x" />
           </button>
         </div>
@@ -44,16 +57,16 @@ export default function ResignationModal({ onClose, onSubmitted }) {
             <p className="glass-form-hint" style={{ marginBottom: 16 }}>
               Please provide your last working day and reason for leaving. Your manager will review your request.
             </p>
-            {error && <div className="glass-alert glass-alert-danger">{error}</div>}
+            {error && <div className="glass-alert glass-alert-danger" role="alert">{error}</div>}
             <form onSubmit={handleSubmit}>
               <div className="glass-form-group">
-                <label className="glass-label">Last Working Day *</label>
-                <input type="date" className="glass-input" value={form.resignation_date}
+                <label className="glass-label" htmlFor={`${fieldId}-date`}>Last Working Day *</label>
+                <input id={`${fieldId}-date`} type="date" className="glass-input" value={form.resignation_date}
                   onChange={e => setForm({ ...form, resignation_date: e.target.value })} required />
               </div>
               <div className="glass-form-group">
-                <label className="glass-label">Reason for Leaving</label>
-                <textarea className="glass-textarea" rows={4} value={form.reason}
+                <label className="glass-label" htmlFor={`${fieldId}-reason`}>Reason for Leaving</label>
+                <textarea id={`${fieldId}-reason`} className="glass-textarea" rows={4} value={form.reason}
                   onChange={e => setForm({ ...form, reason: e.target.value })} placeholder="Share your reason (optional)…" />
               </div>
               <div className="glass-modal-footer" style={{ marginTop: 16 }}>
@@ -64,7 +77,7 @@ export default function ResignationModal({ onClose, onSubmitted }) {
           </>
         ) : (
           <>
-            {error && <div className="glass-alert glass-alert-danger">{error}</div>}
+            {error && <div className="glass-alert glass-alert-danger" role="alert">{error}</div>}
             <div className="glass-form-preview" style={{ marginBottom: 16 }}>
               <div className="glass-detail-row">
                 <span className="glass-detail-label">Last Working Day</span>

@@ -7,6 +7,7 @@ import hrApi from '../../../shared/api/hrApi';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate, formatTime as formatTimeCairo } from '../../../shared/utils/date';
 
 export default function AdminSignoutRequests() {
   const [data, setData] = useState({ requests: [], total: 0, page: 1, totalPages: 1 });
@@ -56,7 +57,7 @@ export default function AdminSignoutRequests() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatTime = (t) => t ? formatTimeCairo(t) : '—';
 
   if (loading) return (
     <div className="glass-loading">
@@ -109,12 +110,12 @@ export default function AdminSignoutRequests() {
                 <tr key={r.id}>
                   <td><strong>{r.employee_name}</strong></td>
                   <td>{r.department_name || '—'}</td>
-                  <td className="cell-mono">{r.date ? new Date(r.date).toLocaleDateString() : '—'}</td>
+                  <td className="cell-mono">{r.date ? formatDate(r.date) : '—'}</td>
                   <td>{formatTime(r.sign_in_time)}</td>
                   <td>{formatTime(r.sign_out_time)}</td>
                   <td className="notes-cell">{r.notes || '—'}</td>
                   <td className="cell-mono" style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                    {new Date(r.created_at).toLocaleDateString()}
+                    {formatDate(r.created_at)}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -137,7 +138,7 @@ export default function AdminSignoutRequests() {
         {actionTarget && actionType === 'approve' && (
           <ConfirmModal
             title="Approve Sign-Out Request"
-            message={`Approve ${actionTarget.employee_name}'s sign-out request for ${actionTarget.date ? new Date(actionTarget.date).toLocaleDateString() : '—'} at ${formatTime(actionTarget.sign_out_time)}?`}
+            message={`Approve ${actionTarget.employee_name}'s sign-out request for ${actionTarget.date ? formatDate(actionTarget.date) : '—'} at ${formatTime(actionTarget.sign_out_time)}?`}
             confirmText="Approve"
             confirmClass="glass-btn glass-btn-primary"
             onConfirm={() => handleApprove(actionTarget.id)}

@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import hrApi from '../../../shared/api/hrApi';
 import { useAuth } from '../../../shared/context/AuthContext';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const PRIORITY_BADGE = { normal: 'glass-badge-default', urgent: 'glass-badge-danger' };
 const STATUS_BADGE_MAP = { pending: 'glass-badge-warning', approved: 'glass-badge-success', rejected: 'glass-badge-danger' };
@@ -194,7 +195,7 @@ export default function TeamRequests() {
                         </span>
                       </td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-                        {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDateShort(r.created_at)}
                       </td>
                       {showNote && (
                         <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.rejection_reason || '—'}</td>

@@ -7,6 +7,7 @@ import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
 import { isValidHttpUrl } from '../../../shared/utils/sanitize';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const STATUS_BADGE = {
   pending: 'warning',
@@ -94,7 +95,7 @@ export default function PlatformTenantRequests() {
     }
   };
 
-  const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (dateStr) => formatDateShort(dateStr);
 
   return (
     <div className="platform-page">

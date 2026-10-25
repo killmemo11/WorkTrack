@@ -3,7 +3,10 @@
 
 const bcrypt = require('bcryptjs');
 const pool = require('../../shared/config/database');
+const tokenService = require('../../shared/services/token.service');
 const { updateProfileBody, changePasswordBody } = require('../../shared/validations/schemas');
+
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 async function updateProfile(req, res) {
   const { error } = updateProfileBody.validate(req.body);
@@ -40,6 +43,17 @@ async function changePassword(req, res) {
 
   const password_hash = await bcrypt.hash(new_password, 13);
   await pool.query('UPDATE employees SET password_hash = ? WHERE id = ?', [password_hash, employeeId]);
+
+  // Invalidate refresh tokens on every other device, keep this session alive.
+  await tokenService.revokeAllUserTokens(employeeId, 'employee', req.employee.tenant_id);
+  const refreshToken = await tokenService.generateRefreshToken(employeeId, 'employee', req.employee.tenant_id);
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/',
+  });
 
   res.json({ message: 'Password changed successfully' });
 }

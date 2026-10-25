@@ -10,6 +10,11 @@ const nonNegative = Joi.number().min(0);
 const percent = Joi.number().min(0).max(100);
 const date = Joi.date().iso().allow(null, '');
 const dayOfWeek = Joi.string().valid('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
+// Candidates store the range label the UI selects; legacy rows may hold raw years.
+const experienceRange = Joi.alternatives().try(
+  Joi.string().valid('0-1', '1-2', '2-3', '3-5', '5-7', '7-10', '10-15', '15-20', '20+', ''),
+  Joi.number().integer().min(0).max(60)
+).allow(null);
 const password = Joi.string().min(12).max(128);
 const notes = Joi.string().max(5000).allow('', null);
 const description = Joi.string().max(5000).allow('', null);
@@ -54,7 +59,7 @@ const publicApplyBody = Joi.object({
   cover: Joi.string().max(5000).allow('', null),
   source: Joi.string().max(100).allow('', null),
   education_level: Joi.string().max(100).allow('', null),
-  experience_years: Joi.number().integer().min(0).max(60).allow(null),
+  experience_years: experienceRange,
   skills: Joi.any().allow(null),
   certifications: Joi.any().allow(null),
   current_salary: nonNegative.allow(null),
@@ -317,6 +322,7 @@ const createJobBody = Joi.object({
   description: Joi.string().max(50000).allow('', null),
   position_id: positiveInt.allow(null),
   title_id: positiveInt.allow(null),
+  workflow_template_id: positiveInt.allow(null),
   key_responsibilities: Joi.string().max(50000).allow('', null),
   qualifications: Joi.string().max(50000).allow('', null),
   technical_skills: Joi.string().max(50000).allow('', null),
@@ -332,6 +338,7 @@ const updateJobBody = Joi.object({
   description: Joi.string().max(50000).allow('', null),
   position_id: positiveInt.allow(null),
   title_id: positiveInt.allow(null),
+  workflow_template_id: positiveInt.allow(null),
   key_responsibilities: Joi.string().max(50000).allow('', null),
   qualifications: Joi.string().max(50000).allow('', null),
   technical_skills: Joi.string().max(50000).allow('', null),
@@ -350,7 +357,7 @@ const createCandidateBody = Joi.object({
   notes,
   source: Joi.string().max(100).allow('', null),
   education_level: Joi.string().max(100).allow('', null),
-  experience_years: Joi.number().integer().min(0).max(60).allow(null),
+  experience_years: experienceRange,
   skills: Joi.any().allow(null),
   certifications: Joi.any().allow(null),
   current_salary: nonNegative.allow(null),
@@ -380,7 +387,7 @@ const updateCandidateBody = Joi.object({
   score_fit: percent.allow(null),
   test_done: Joi.boolean(),
   education_level: Joi.string().max(100).allow('', null),
-  experience_years: Joi.number().integer().min(0).max(60).allow(null),
+  experience_years: experienceRange,
   skills: Joi.any().allow(null),
   certifications: Joi.any().allow(null),
   current_salary: nonNegative.allow(null),
@@ -444,7 +451,7 @@ const createInterviewBody = Joi.object({
 
 // ── Message Templates ──────────────────────────────────────────
 const createTemplateBody = Joi.object({
-  template_key: Joi.string().max(100).alphanum().required(),
+  template_key: Joi.string().max(100).pattern(/^[a-zA-Z0-9_-]+$/).required(),
   name: name.required(),
   channel: Joi.string().valid('email', 'sms', 'portal'),
   subject: Joi.string().max(255).allow('', null),
@@ -453,7 +460,7 @@ const createTemplateBody = Joi.object({
 }).options({ stripUnknown: true });
 
 const updateTemplateBody = Joi.object({
-  template_key: Joi.string().max(100).alphanum(),
+  template_key: Joi.string().max(100).pattern(/^[a-zA-Z0-9_-]+$/),
   name,
   channel: Joi.string().valid('email', 'sms', 'portal'),
   subject: Joi.string().max(255).allow('', null),

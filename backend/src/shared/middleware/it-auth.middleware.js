@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
+const { TENANT_INACTIVE_MESSAGE } = require('../services/tenant.service');
 const JWT_VERIFY_OPTIONS = { algorithms: ['HS256'] };
 
 // Strict IT-admin gate — accepts admin_users tokens ("type":"admin") OR
@@ -11,8 +12,8 @@ const requireITAuth = async (req, res, next) => {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     token = header.split(' ')[1];
-  } else if (req.cookies && req.cookies.access_token) {
-    token = req.cookies.access_token;
+  } else if (req.cookies && (req.cookies.access_token || req.cookies.admin_access_token)) {
+    token = req.cookies.access_token || req.cookies.admin_access_token;
   }
   if (!token) {
     return res.status(401).json({ error: 'No admin token provided' });
@@ -21,22 +22,41 @@ const requireITAuth = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY_OPTIONS);
 
+    if (decoded.type === 'platform_admin') {
+      return res.status(403).json({ error: 'Employee or tenant-admin token required' });
+    }
+
     if (decoded.type === 'admin') {
-      const [rows] = await pool.query('SELECT id, tenant_id, is_active, must_change_password FROM admin_users WHERE id = ?', [decoded.id]);
-      if (rows.length === 0) return res.status(401).json({ error: 'IT admin account not found' });
-      if (rows[0].is_active === 0) return res.status(403).json({ error: 'IT admin account is deactivated' });
-      req.admin = { ...decoded, tenant_id: rows[0].tenant_id, must_change_password: rows[0].must_change_password === 1 };
-      return next();
+      const [rows] = await pool.query(
+        `SELECT au.id, au.tenant_id, au.is_active, au.is_platform_admin, au.must_change_password,
+                t.status AS tenant_status
+         FROM admin_users au
+         LEFT JOIN tenants t ON au.tenant_id = t.id AND t.deleted_at IS NULL
+         WHERE au.id = ?`,
+        [decoded.id]
+      );
+      if (rows.length > 0) {
+        if (rows[0].is_platform_admin === 1) return res.status(403).json({ error: 'Employee or tenant-admin token required' });
+        if (rows[0].is_active === 0) return res.status(403).json({ error: 'IT admin account is deactivated' });
+        if (rows[0].tenant_id && rows[0].tenant_status !== 'active') {
+          return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+        }
+        req.admin = { ...decoded, tenant_id: rows[0].tenant_id, must_change_password: rows[0].must_change_password === 1 };
+        return next();
+      }
+      // No admin_users row: this is an employee-admin token issued to employees.role='admin'.
     }
 
     const [rows] = await pool.query(
-      `SELECT e.id, e.name, e.email, e.username, e.role, e.is_active, e.tenant_id
+      `SELECT e.id, e.name, e.email, e.username, e.role, e.is_active, e.tenant_id, t.status AS tenant_status
        FROM employees e
-       WHERE e.id = ?`,
+       JOIN tenants t ON e.tenant_id = t.id
+       WHERE e.id = ? AND t.deleted_at IS NULL`,
       [decoded.id]
     );
 
     if (rows.length === 0) return res.status(401).json({ error: 'Account not found' });
+    if (rows[0].tenant_status !== 'active') return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
     if (!rows[0].is_active) return res.status(403).json({ error: 'Account is deactivated' });
     if (rows[0].role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
 
@@ -56,8 +76,8 @@ const requireAnyActiveToken = async (req, res, next) => {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     token = header.split(' ')[1];
-  } else if (req.cookies && req.cookies.access_token) {
-    token = req.cookies.access_token;
+  } else if (req.cookies && (req.cookies.access_token || req.cookies.admin_access_token)) {
+    token = req.cookies.access_token || req.cookies.admin_access_token;
   }
   if (!token) {
     return res.status(401).json({ error: 'No admin token provided' });
@@ -66,22 +86,40 @@ const requireAnyActiveToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY_OPTIONS);
 
+    if (decoded.type === 'platform_admin') {
+      return res.status(403).json({ error: 'Employee or tenant-admin token required' });
+    }
+
     if (decoded.type === 'admin') {
-      const [rows] = await pool.query('SELECT id, tenant_id, is_active, must_change_password FROM admin_users WHERE id = ?', [decoded.id]);
-      if (rows.length === 0) return res.status(401).json({ error: 'Account not found' });
-      if (rows[0].is_active === 0) return res.status(403).json({ error: 'Account is deactivated' });
-      req.admin = { ...decoded, tenant_id: rows[0].tenant_id, must_change_password: rows[0].must_change_password === 1 };
-      return next();
+      const [rows] = await pool.query(
+        `SELECT au.id, au.tenant_id, au.is_active, au.is_platform_admin, au.must_change_password,
+                t.status AS tenant_status
+         FROM admin_users au
+         LEFT JOIN tenants t ON au.tenant_id = t.id AND t.deleted_at IS NULL
+         WHERE au.id = ?`,
+        [decoded.id]
+      );
+      if (rows.length > 0) {
+        if (rows[0].is_platform_admin === 1) return res.status(403).json({ error: 'Employee or tenant-admin token required' });
+        if (rows[0].is_active === 0) return res.status(403).json({ error: 'Account is deactivated' });
+        if (rows[0].tenant_id && rows[0].tenant_status !== 'active') {
+          return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+        }
+        req.admin = { ...decoded, tenant_id: rows[0].tenant_id, must_change_password: rows[0].must_change_password === 1 };
+        return next();
+      }
     }
 
     const [rows] = await pool.query(
-      `SELECT e.id, e.name, e.email, e.username, e.role, e.is_active, e.tenant_id
+      `SELECT e.id, e.name, e.email, e.username, e.role, e.is_active, e.tenant_id, t.status AS tenant_status
        FROM employees e
-       WHERE e.id = ?`,
+       JOIN tenants t ON e.tenant_id = t.id
+       WHERE e.id = ? AND t.deleted_at IS NULL`,
       [decoded.id]
     );
 
     if (rows.length === 0) return res.status(401).json({ error: 'Account not found' });
+    if (rows[0].tenant_status !== 'active') return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
     if (!rows[0].is_active) return res.status(403).json({ error: 'Account is deactivated' });
     // NOTE: no role gate. Authorization deferred to per-route requirePermission().
 

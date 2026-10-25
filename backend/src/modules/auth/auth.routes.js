@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { authenticate } = require('../../shared/middleware/auth.middleware');
 const { requireReadWrite } = require('../../shared/middleware/readonly.middleware');
 const { requireLeaveService } = require('../../shared/middleware/leave-service.middleware');
+const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 const { register, verify, login, resendCode, me, logout, forgotPassword, resetPassword, hasEmployees } = require('./auth.controller');
 const { updateProfile, changePassword } = require('../profile/profile.controller');
 const { getMyLeaves, createLeave, cancelLeave } = require('../leave/leave.controller');
@@ -22,20 +23,20 @@ router.post('/resend-code', authLimiter, resendCode);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
 router.get('/has-employees', hasEmployees);
-router.get('/me', authenticate, me);
-router.post('/logout', authenticate, logout);
+router.get('/me', authenticate, resolveTenant, me);
+router.post('/logout', logout);
 
-router.put('/profile', authenticate, updateProfile);
-router.put('/change-password', authenticate, changePassword);
+router.put('/profile', authenticate, resolveTenant, updateProfile);
+router.put('/change-password', authenticate, resolveTenant, changePassword);
 
-router.get('/leaves', authenticate, requireLeaveService, getMyLeaves);
-router.post('/leaves', authenticate, requireLeaveService, requireReadWrite, createLeave);
-router.delete('/leaves/:id', authenticate, requireLeaveService, cancelLeave);
+router.get('/leaves', authenticate, resolveTenant, requireLeaveService, getMyLeaves);
+router.post('/leaves', authenticate, resolveTenant, requireLeaveService, requireReadWrite, createLeave);
+router.delete('/leaves/:id', authenticate, resolveTenant, requireLeaveService, cancelLeave);
 
-router.get('/notifications', authenticate, getNotifications);
-router.get('/notifications/unread-count', authenticate, getUnreadCount);
-router.put('/notifications/read-all', authenticate, markAllAsRead);
-router.put('/notifications/:id/read', authenticate, markAsRead);
+router.get('/notifications', authenticate, resolveTenant, getNotifications);
+router.get('/notifications/unread-count', authenticate, resolveTenant, getUnreadCount);
+router.put('/notifications/read-all', authenticate, resolveTenant, markAllAsRead);
+router.put('/notifications/:id/read', authenticate, resolveTenant, markAsRead);
 
 module.exports = router;
 

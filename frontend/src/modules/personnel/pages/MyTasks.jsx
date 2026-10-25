@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
+import { formatDateShort, formatMonthYear } from '../../../shared/utils/date';
 
 // Toast notification component
 const Toast = ({ message, type = 'error', onClose }) => {
@@ -16,7 +17,7 @@ const Toast = ({ message, type = 'error', onClose }) => {
   };
 
   return (
-    <div className={`glass-toast glass-toast-${type}`} onClick={onClose}>
+    <div className={`glass-toast glass-toast-${type}`} role="status" aria-live="polite" onClick={onClose}>
       <Icon icon={icons[type]} />
       {message}
     </div>
@@ -66,13 +67,7 @@ const TaskCard = ({ task, onUpdateStatus, onViewDetails, isSelected, onSelect, p
     if (!dateString) return 'Not set';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return formatDateShort(date);
     } catch (e) {
       return dateString;
     }
@@ -183,13 +178,7 @@ const TaskDetailsModal = ({ task, onClose, onViewHistory }) => {
     if (!dateString) return 'Not set';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return formatDateShort(date);
     } catch (e) {
       return dateString;
     }
@@ -304,13 +293,7 @@ const TaskHistoryModal = ({ task, onClose }) => {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return formatDateShort(date);
     } catch (e) {
       return dateString;
     }
@@ -464,7 +447,7 @@ const CalendarView = ({ tasks }) => {
   };
 
   const days = getDaysInMonth(currentDate);
-  const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = formatMonthYear(currentDate);
 
   const getTasksForDate = (day) => {
     if (!day) return [];

@@ -7,6 +7,7 @@ import hrApi from '../../../shared/api/hrApi';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate } from '../../../shared/utils/date';
 
 const CATEGORIES = ['laptop', 'phone', 'badge', 'accessory', 'other'];
 const STATUSES = ['available', 'assigned', 'damaged', 'disposed'];
@@ -391,7 +392,7 @@ export default function AssetCatalog() {
                     <tbody>
                       {historyData.map(h => (
                         <tr key={h.id}>
-                          <td>{new Date(h.created_at).toLocaleDateString()}</td>
+                          <td>{formatDate(h.created_at)}</td>
                           <td><span className={`glass-badge glass-badge-${h.action === 'assigned' ? 'info' : h.action === 'returned' ? 'success' : h.action === 'damaged' ? 'danger' : 'default'}`}>{h.action}</span></td>
                           <td>{h.employee_name || '—'}</td>
                           <td>{h.performed_by_name || '—'}</td>

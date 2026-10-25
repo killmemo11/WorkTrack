@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 const crypto = require('crypto');
-const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
 const pool = require('../../shared/config/database');
 const { getPaymentsDir } = require('../../shared/config/storage');
+const { PAYMENT_EXTENSIONS, extensionAllowed, invalidFileType, safeExtension, singleFile } = require('../../shared/utils/upload-security');
 const { sendPlatformEmail } = require('../../shared/services/platform-email.service');
 const logger = require('../../shared/utils/logger');
 const { escapeHtml } = require('../../shared/utils/sanitize');
@@ -51,18 +51,15 @@ function generateCode() {
 const storage = multer.diskStorage({
   destination: () => getPaymentsDir(),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `proof-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
+    cb(null, `proof-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${safeExtension(file.originalname)}`);
   },
 });
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp|pdf/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype) || file.mimetype === 'application/pdf';
-    cb(null, extOk && mimeOk);
+    if (extensionAllowed(file.originalname, PAYMENT_EXTENSIONS)) return cb(null, true);
+    cb(invalidFileType(PAYMENT_EXTENSIONS));
   },
 });
 
@@ -321,7 +318,7 @@ router.post('/verify-email-code', async (req, res) => {
 // POST /api/public/tenant-signup
 // Submit a complete tenant signup request (with optional payment proof)
 // ─────────────────────────────────────────────────────
-router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) => {
+router.post('/tenant-signup', singleFile(upload, 'payment_proof', PAYMENT_EXTENSIONS), async (req, res) => {
   try {
     const { error } = tenantSignupBody.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
@@ -329,7 +326,7 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
       company_name, contact_email, contact_phone,
       industry, website, contact_person_name, contact_person_title,
       employee_count, message, plan, email_verified,
-      payment_amount, payment_currency, payment_method,
+      payment_method,
     } = req.body;
 
     if (!company_name || !contact_email) {
@@ -359,9 +356,23 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
       return res.status(400).json({ error: 'Email verification expired. Please verify your email again.' });
     }
 
+    // Price is resolved server-side; any client-supplied amount is ignored.
+    const requestedPlan = plan || 'trial';
+    let planDetails = null;
+    if (requestedPlan !== 'trial') {
+      const [planRows] = await pool.query(
+        'SELECT price_monthly, currency FROM subscription_plans WHERE slug = ? AND is_active = 1',
+        [requestedPlan]
+      );
+      if (planRows.length === 0) {
+        return res.status(400).json({ error: 'Invalid subscription plan' });
+      }
+      planDetails = planRows[0];
+    }
+
     // Paid plans require payment proof
     const paidPlans = ['basic', 'professional', 'enterprise'];
-    if (paidPlans.includes(plan) && !req.file) {
+    if (paidPlans.includes(requestedPlan) && !req.file) {
       return res.status(400).json({ error: 'Payment proof is required for paid plans. Please upload your payment screenshot.' });
     }
 
@@ -388,7 +399,9 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
 
     // Payment proof file path
     const paymentProofUrl = req.file ? `/uploads/payments/${req.file.filename}` : null;
-    const hasPayment = paymentProofUrl && payment_amount;
+    const paymentAmount = planDetails ? Number(planDetails.price_monthly) : 0;
+    const paymentCurrency = planDetails?.currency || 'EGP';
+    const hasPayment = Boolean(paymentProofUrl) && paidPlans.includes(requestedPlan);
 
     const conn = await pool.getConnection();
     try {
@@ -409,7 +422,7 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
         ]
       );
 
-      await conn.query(
+      const [requestInsert] = await conn.query(
         `INSERT INTO tenant_requests
          (company_name, contact_email, contact_phone, industry, website,
           contact_person_name, contact_person_title,
@@ -420,14 +433,23 @@ router.post('/tenant-signup', upload.single('payment_proof'), async (req, res) =
           company_name.trim(), trimmedEmail, contact_phone || null,
           industry || null, website || null,
           contact_person_name || null, contact_person_title || null,
-          employee_count || 10, message || null, plan || 'trial',
-          hasPayment ? parseFloat(payment_amount) : null,
-          payment_currency || 'EGP',
+          employee_count || 10, message || null, requestedPlan,
+          hasPayment ? paymentAmount : null,
+          paymentCurrency,
           payment_method || 'instapay',
           paymentProofUrl,
           hasPayment ? 'pending' : null,
         ]
       );
+
+      if (hasPayment) {
+        await conn.query(
+          `INSERT INTO payment_history
+           (tenant_request_id, amount, currency, payment_method, payment_proof_url, status)
+           VALUES (?, ?, ?, ?, ?, 'pending')`,
+          [requestInsert.insertId, paymentAmount, paymentCurrency, payment_method || 'instapay', paymentProofUrl]
+        );
+      }
 
       await conn.commit();
 

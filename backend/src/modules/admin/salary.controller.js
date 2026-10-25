@@ -7,8 +7,8 @@ const { addSalaryComponentBody, updateSalaryComponentBody } = require('../../sha
 async function getSalaryComponents(req, res) {
   const employeeId = req.params.id;
   const [rows] = await pool.query(
-    'SELECT * FROM salary_components WHERE employee_id = ? AND is_active = 1 ORDER BY id',
-    [employeeId]
+    'SELECT * FROM salary_components WHERE employee_id = ? AND tenant_id = ? AND is_active = 1 ORDER BY id',
+    [employeeId, req.tenantId]
   );
   res.json(rows);
 }
@@ -21,8 +21,8 @@ async function addSalaryComponent(req, res) {
   if (!component_name || !component_name.trim()) return res.status(400).json({ error: 'Component name is required' });
   if (amount === undefined || amount === null || isNaN(amount)) return res.status(400).json({ error: 'Valid amount is required' });
   const [result] = await pool.query(
-    'INSERT INTO salary_components (employee_id, component_name, amount) VALUES (?, ?, ?)',
-    [employeeId, component_name.trim(), parseFloat(amount)]
+    'INSERT INTO salary_components (employee_id, component_name, amount, tenant_id) VALUES (?, ?, ?, ?)',
+    [employeeId, component_name.trim(), parseFloat(amount), req.tenantId]
   );
   res.status(201).json({ id: result.insertId, message: 'Component added' });
 }
@@ -36,9 +36,9 @@ async function updateSalaryComponent(req, res) {
   if (component_name !== undefined) { updates.push('component_name = ?'); values.push(component_name.trim()); }
   if (amount !== undefined) { updates.push('amount = ?'); values.push(parseFloat(amount)); }
   if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
-  values.push(compId, employeeId);
+  values.push(compId, employeeId, req.tenantId);
   await pool.query(
-    `UPDATE salary_components SET ${updates.join(', ')} WHERE id = ? AND employee_id = ?`,
+    `UPDATE salary_components SET ${updates.join(', ')} WHERE id = ? AND employee_id = ? AND tenant_id = ?`,
     values
   );
   res.json({ message: 'Component updated' });
@@ -46,7 +46,7 @@ async function updateSalaryComponent(req, res) {
 
 async function deleteSalaryComponent(req, res) {
   const { id: employeeId, compId } = req.params;
-  await pool.query('UPDATE salary_components SET is_active = 0 WHERE id = ? AND employee_id = ?', [compId, employeeId]);
+  await pool.query('UPDATE salary_components SET is_active = 0 WHERE id = ? AND employee_id = ? AND tenant_id = ?', [compId, employeeId, req.tenantId]);
   res.json({ message: 'Component deleted' });
 }
 

@@ -8,7 +8,12 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "cross-env NODE_ENV=test jest --forceExit --detectOpenHandles --verbose",
-    "test:watch": "jest --watch"
+    "test:smoke": "node scripts/ci-smoke.js",
+    "test:isolation": "node --test scripts/ci-tenant-isolation.js",
+    "test:watch": "jest --watch",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js --status",
+    "test:load": "node scripts/load-test.js"
   },
   "dependencies": {
     "axios": "^1.7.0",
@@ -22,7 +27,7 @@
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^8.6.0",
     "full-icu": "^1.6.0",
-    "googleapis": "^140.0.1",
+    "googleapis": "^188.0.0",
     "helmet": "^8.2.0",
     "ical-generator": "^11.0.0",
     "joi": "^18.2.3",
@@ -30,7 +35,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.9.0",
     "node-cron": "^4.4.1",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.2.1",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "puppeteer": "^25.1.0",

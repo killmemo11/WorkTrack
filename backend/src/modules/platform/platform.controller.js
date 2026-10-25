@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const tokenService = require('../../shared/services/token.service');
+const { clearOtherAuthCookies } = require('../../shared/utils/auth-cookies');
 const { escapeHtml } = require('../../shared/utils/sanitize');
 const { 
   sendPlatformEmail, 
@@ -27,6 +28,19 @@ const {
 // DB-backed lockout using admin_users.failed_attempts + admin_users.last_failed_login
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+async function tenantHasOtherAdmin(conn, tenantId, excludeAdminUserId) {
+  const [[adminRow]] = await conn.query(
+    'SELECT COUNT(*) AS count FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0 AND is_active = 1 AND id <> ?',
+    [tenantId, excludeAdminUserId]
+  );
+  if (adminRow.count > 0) return true;
+  const [[empRow]] = await conn.query(
+    "SELECT COUNT(*) AS count FROM employees WHERE tenant_id = ? AND role = 'admin' AND is_active = 1",
+    [tenantId]
+  );
+  return empRow.count > 0;
+}
 
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
@@ -104,6 +118,7 @@ async function platformLogin(req, res) {
     null
   );
 
+  clearOtherAuthCookies(res, ['platform_access_token', 'platform_refresh_token']);
   res.cookie('platform_access_token', token, {
     httpOnly: true,
     secure: COOKIE_SECURE,
@@ -115,7 +130,7 @@ async function platformLogin(req, res) {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   });
 
@@ -186,13 +201,6 @@ async function updatePlatformAdmin(req, res) {
   const { id } = req.params;
   const { email, is_active } = req.body;
 
-  const [existing] = await pool.query(
-    'SELECT id FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
-  );
-  if (existing.length === 0) {
-    return res.status(404).json({ error: 'Platform admin not found' });
-  }
-
   if (id == req.platformAdmin.id && is_active === false) {
     return res.status(400).json({ error: 'Cannot deactivate yourself' });
   }
@@ -206,8 +214,42 @@ async function updatePlatformAdmin(req, res) {
     return res.status(400).json({ error: 'No fields to update' });
   }
 
-  values.push(id);
-  await pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('SELECT id FROM admin_users WHERE is_platform_admin = 1 FOR UPDATE');
+
+    const [existing] = await conn.query(
+      'SELECT id FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
+    );
+    if (existing.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Platform admin not found' });
+    }
+
+    if (is_active === false) {
+      const [[{ activeCount }]] = await conn.query(
+        'SELECT COUNT(*) AS activeCount FROM admin_users WHERE is_platform_admin = 1 AND is_active = 1'
+      );
+      if (activeCount <= 1) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Cannot deactivate the last active platform admin' });
+      }
+    }
+
+    values.push(id);
+    await conn.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  if (is_active === false) {
+    await tokenService.revokeAllUserTokens(id, 'platform');
+  }
 
   await logActivity(null, req.platformAdmin.id, 'platform_admin_updated', `Updated platform admin ID ${id}`);
   res.json({ message: 'Platform admin updated' });
@@ -232,6 +274,7 @@ async function resetPlatformAdminPassword(req, res) {
 
   const hash = await bcrypt.hash(password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
+  await tokenService.revokeAllUserTokens(id, 'platform');
 
   await logActivity(null, req.platformAdmin.id, 'platform_admin_password_reset', `Reset password for platform admin: ${existing[0].username}`);
   res.json({ message: 'Password reset successfully' });
@@ -244,21 +287,37 @@ async function deletePlatformAdmin(req, res) {
     return res.status(400).json({ error: 'Cannot delete yourself' });
   }
 
-  const [existing] = await pool.query(
-    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
-  );
-  if (existing.length === 0) {
-    return res.status(404).json({ error: 'Platform admin not found' });
-  }
+  const conn = await pool.getConnection();
+  let existing;
+  try {
+    await conn.beginTransaction();
+    await conn.query('SELECT id FROM admin_users WHERE is_platform_admin = 1 FOR UPDATE');
 
-  const [count] = await pool.query(
-    'SELECT COUNT(*) as total FROM admin_users WHERE is_platform_admin = 1'
-  );
-  if (count[0].total <= 1) {
-    return res.status(400).json({ error: 'Cannot delete the last platform admin' });
-  }
+    const [rows] = await conn.query(
+      'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 1', [id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Platform admin not found' });
+    }
+    existing = rows;
 
-  await pool.query('DELETE FROM admin_users WHERE id = ?', [id]);
+    const [count] = await conn.query(
+      'SELECT COUNT(*) as total FROM admin_users WHERE is_platform_admin = 1'
+    );
+    if (count[0].total <= 1) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Cannot delete the last platform admin' });
+    }
+
+    await conn.query('DELETE FROM admin_users WHERE id = ?', [id]);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
   await logActivity(null, req.platformAdmin.id, 'platform_admin_deleted', `Deleted platform admin: ${existing[0].username}`);
   res.json({ message: 'Platform admin deleted' });
 }
@@ -289,6 +348,15 @@ async function changeOwnPassword(req, res) {
 
   const hash = await bcrypt.hash(new_password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, req.platformAdmin.id]);
+  await tokenService.revokeAllUserTokens(req.platformAdmin.id, 'platform');
+  const refreshToken = await tokenService.generateRefreshToken(req.platformAdmin.id, 'platform', null);
+  res.cookie('platform_refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/',
+  });
 
   await logActivity(null, req.platformAdmin.id, 'platform_admin_password_changed', 'Changed own password');
   res.json({ message: 'Password changed successfully' });
@@ -437,6 +505,7 @@ async function approveTenantRequest(req, res) {
 
     // Seed default permissions and roles
     await seedTenantRBAC(conn, tenantId);
+    await seedTenantPhoneScreening(conn, tenantId);
 
     // Update request
     await conn.query(
@@ -510,17 +579,51 @@ async function rejectTenantRequest(req, res) {
 async function verifyPayment(req, res) {
   const { id } = req.params;
 
-  const [requests] = await pool.query('SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending"', [id]);
-  if (requests.length === 0) {
-    return res.status(400).json({ error: 'Request not found or payment already processed' });
+  const conn = await pool.getConnection();
+  let request;
+  try {
+    await conn.beginTransaction();
+    const [requests] = await conn.query(
+      'SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending" FOR UPDATE',
+      [id]
+    );
+    if (requests.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Request not found or payment already processed' });
+    }
+    request = requests[0];
+
+    await conn.query(
+      'UPDATE tenant_requests SET payment_status = "verified", payment_verified_by = ?, payment_verified_at = NOW() WHERE id = ?',
+      [req.platformAdmin.id, id]
+    );
+
+    const [history] = await conn.query(
+      'SELECT id FROM payment_history WHERE tenant_request_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE',
+      [id]
+    );
+    if (history.length > 0) {
+      await conn.query(
+        'UPDATE payment_history SET status = "verified", verified_by = ?, verified_at = NOW(), rejection_reason = NULL WHERE id = ?',
+        [req.platformAdmin.id, history[0].id]
+      );
+    } else {
+      await conn.query(
+        `INSERT INTO payment_history
+         (tenant_request_id, amount, currency, payment_method, payment_proof_url, status, verified_by, verified_at)
+         VALUES (?, ?, ?, ?, ?, 'verified', ?, NOW())`,
+        [id, request.payment_amount || 0, request.payment_currency || 'EGP',
+         request.payment_method || 'instapay', request.payment_proof_url || null, req.platformAdmin.id]
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-
-  const request = requests[0];
-
-  await pool.query(
-    'UPDATE tenant_requests SET payment_status = "verified", payment_verified_by = ?, payment_verified_at = NOW() WHERE id = ?',
-    [req.platformAdmin.id, id]
-  );
 
   // Send email to applicant
   const html = `
@@ -542,17 +645,52 @@ async function rejectPayment(req, res) {
   const { id } = req.params;
   const { rejection_reason } = req.body;
 
-  const [requests] = await pool.query('SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending"', [id]);
-  if (requests.length === 0) {
-    return res.status(400).json({ error: 'Request not found or payment already processed' });
+  const conn = await pool.getConnection();
+  let request;
+  try {
+    await conn.beginTransaction();
+    const [requests] = await conn.query(
+      'SELECT * FROM tenant_requests WHERE id = ? AND payment_status = "pending" FOR UPDATE',
+      [id]
+    );
+    if (requests.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Request not found or payment already processed' });
+    }
+    request = requests[0];
+
+    await conn.query(
+      'UPDATE tenant_requests SET payment_status = "rejected", payment_verified_by = ?, payment_verified_at = NOW(), payment_rejection_reason = ? WHERE id = ?',
+      [req.platformAdmin.id, rejection_reason || null, id]
+    );
+
+    const [history] = await conn.query(
+      'SELECT id FROM payment_history WHERE tenant_request_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE',
+      [id]
+    );
+    if (history.length > 0) {
+      await conn.query(
+        'UPDATE payment_history SET status = "rejected", verified_by = ?, verified_at = NOW(), rejection_reason = ? WHERE id = ?',
+        [req.platformAdmin.id, rejection_reason || null, history[0].id]
+      );
+    } else {
+      await conn.query(
+        `INSERT INTO payment_history
+         (tenant_request_id, amount, currency, payment_method, payment_proof_url, status, verified_by, verified_at, rejection_reason)
+         VALUES (?, ?, ?, ?, ?, 'rejected', ?, NOW(), ?)`,
+        [id, request.payment_amount || 0, request.payment_currency || 'EGP',
+         request.payment_method || 'instapay', request.payment_proof_url || null,
+         req.platformAdmin.id, rejection_reason || null]
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-
-  const request = requests[0];
-
-  await pool.query(
-    'UPDATE tenant_requests SET payment_status = "rejected", payment_verified_by = ?, payment_verified_at = NOW(), payment_rejection_reason = ? WHERE id = ?',
-    [req.platformAdmin.id, rejection_reason || null, id]
-  );
 
   // Send email to applicant
   const html = `
@@ -678,6 +816,30 @@ async function updateTenant(req, res) {
   values.push(id);
   await pool.query(`UPDATE tenants SET ${updates.join(', ')} WHERE id = ?`, values);
 
+  // Reactivating a trial workspace (or switching a live tenant to trial) must
+  // also extend an expired trial, otherwise the tenant gate rejects it immediately.
+  const resultingStatus = status !== undefined ? status : rows[0].status;
+  const resolvedPlan = plan !== undefined ? plan : rows[0].plan;
+  if (resultingStatus === 'active' && resolvedPlan === 'trial') {
+    const effectiveEnd = trial_ends_at !== undefined ? trial_ends_at : rows[0].trial_ends_at;
+    const endDate = effectiveEnd ? new Date(effectiveEnd) : null;
+    if (!endDate || Number.isNaN(endDate.getTime()) || endDate < new Date(new Date().toDateString())) {
+      const [[planRow]] = await pool.query(
+        'SELECT trial_days FROM subscription_plans WHERE slug = ?',
+        [resolvedPlan]
+      );
+      const days = Number(planRow?.trial_days) || 14;
+      await pool.query(
+        'UPDATE tenants SET trial_ends_at = DATE_ADD(CURDATE(), INTERVAL ? DAY) WHERE id = ?',
+        [days, id]
+      );
+    }
+  }
+
+  if (status !== undefined && status !== 'active') {
+    await tokenService.revokeAllTenantTokens(id);
+  }
+
   await logActivity(null, req.platformAdmin.id, 'tenant_updated', `Updated tenant ${id}: ${updates.join(', ')}`);
 
   const [updated] = await pool.query('SELECT * FROM tenants WHERE id = ?', [id]);
@@ -691,6 +853,7 @@ async function suspendTenant(req, res) {
   const { reason } = req.body;
 
   await pool.query('UPDATE tenants SET status = "suspended" WHERE id = ?', [id]);
+  await tokenService.revokeAllTenantTokens(id);
   await logActivity(null, req.platformAdmin.id, 'tenant_suspended', `Suspended tenant ${id}: ${reason || 'No reason provided'}`);
 
   // Notify tenant admins
@@ -736,6 +899,7 @@ async function deleteTenant(req, res) {
   }
 
   await pool.query('UPDATE tenants SET deleted_at = NOW(), status = "cancelled" WHERE id = ?', [id]);
+  await tokenService.revokeAllTenantTokens(id);
   await logActivity(null, req.platformAdmin.id, 'tenant_deleted', `Soft-deleted tenant ${id} (${rows[0].name}): ${reason || 'No reason'}`);
 
   const [admins] = await pool.query('SELECT email FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0 AND is_active = 1', [id]);
@@ -807,28 +971,84 @@ async function getPaymentTransactions(req, res) {
 
 async function verifyPaymentTransaction(req, res) {
   const { id } = req.params;
+  const conn = await pool.getConnection();
+  let transaction;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query('SELECT * FROM payment_history WHERE id = ? FOR UPDATE', [id]);
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    transaction = rows[0];
+    if (transaction.status === 'verified') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Transaction already verified' });
+    }
 
-  const [rows] = await pool.query('SELECT * FROM payment_history WHERE id = ?', [id]);
-  if (rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    await conn.query(
+      'UPDATE payment_history SET status = "verified", verified_by = ?, verified_at = NOW(), rejection_reason = NULL WHERE id = ?',
+      [req.platformAdmin.id, id]
+    );
 
-  await pool.query('UPDATE payment_history SET status = "verified", verified_by = ?, verified_at = NOW() WHERE id = ?',
-    [req.platformAdmin.id, id]);
+    if (transaction.tenant_request_id) {
+      await conn.query(
+        'UPDATE tenant_requests SET payment_status = "verified", payment_verified_by = ?, payment_verified_at = NOW(), payment_rejection_reason = NULL WHERE id = ?',
+        [req.platformAdmin.id, transaction.tenant_request_id]
+      );
+    }
 
-  await logActivity(null, req.platformAdmin.id, 'payment_verified', `Verified payment #${id}: ${rows[0].amount} ${rows[0].currency}`);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  await logActivity(null, req.platformAdmin.id, 'payment_verified', `Verified payment #${id}: ${transaction.amount} ${transaction.currency}`);
   res.json({ message: 'Payment verified' });
 }
 
 async function rejectPaymentTransaction(req, res) {
   const { id } = req.params;
   const { rejection_reason } = req.body || {};
+  const conn = await pool.getConnection();
+  let transaction;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query('SELECT * FROM payment_history WHERE id = ? FOR UPDATE', [id]);
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    transaction = rows[0];
+    if (transaction.status === 'rejected') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Transaction already rejected' });
+    }
 
-  const [rows] = await pool.query('SELECT * FROM payment_history WHERE id = ?', [id]);
-  if (rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
+    await conn.query(
+      'UPDATE payment_history SET status = "rejected", verified_by = ?, verified_at = NOW(), rejection_reason = ? WHERE id = ?',
+      [req.platformAdmin.id, rejection_reason || null, id]
+    );
 
-  await pool.query('UPDATE payment_history SET status = "rejected", verified_by = ?, verified_at = NOW(), rejection_reason = ? WHERE id = ?',
-    [req.platformAdmin.id, rejection_reason || null, id]);
+    if (transaction.tenant_request_id) {
+      await conn.query(
+        'UPDATE tenant_requests SET payment_status = "rejected", payment_verified_by = ?, payment_verified_at = NOW(), payment_rejection_reason = ? WHERE id = ? AND payment_status = "pending"',
+        [req.platformAdmin.id, rejection_reason || null, transaction.tenant_request_id]
+      );
+    }
 
-  await logActivity(null, req.platformAdmin.id, 'payment_rejected', `Rejected payment #${id}: ${rows[0].amount} ${rows[0].currency} - ${rejection_reason || 'No reason'}`);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  await logActivity(null, req.platformAdmin.id, 'payment_rejected', `Rejected payment #${id}: ${transaction.amount} ${transaction.currency} - ${rejection_reason || 'No reason'}`);
   res.json({ message: 'Payment rejected' });
 }
 
@@ -1104,6 +1324,27 @@ async function seedTenantRBAC(conn, tenantId) {
   }
 }
 
+async function seedTenantPhoneScreening(conn, tenantId) {
+  const [[source]] = await conn.query(
+    'SELECT * FROM phone_screening_templates WHERE tenant_id = 1 AND is_default = 1 ORDER BY id LIMIT 1'
+  );
+  if (!source) return;
+  const [tpl] = await conn.query(
+    'INSERT INTO phone_screening_templates (tenant_id, name, description, is_default, is_active) VALUES (?, ?, ?, 1, 1)',
+    [tenantId, source.name, source.description]
+  );
+  const [questions] = await conn.query(
+    'SELECT * FROM phone_screening_questions WHERE template_id = ? ORDER BY sort_order',
+    [source.id]
+  );
+  for (const q of questions) {
+    await conn.query(
+      'INSERT INTO phone_screening_questions (template_id, question, weight, max_rating, category, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      [tpl.insertId, q.question, q.weight, q.max_rating, q.category, q.sort_order]
+    );
+  }
+}
+
 async function createTenant(req, res) {
   const { error } = createTenantBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
@@ -1177,6 +1418,7 @@ async function createTenant(req, res) {
     }
 
     await seedTenantRBAC(conn, tenantId);
+    await seedTenantPhoneScreening(conn, tenantId);
     await conn.commit();
 
     const mlToken = crypto.randomBytes(32).toString('hex');
@@ -1320,13 +1562,6 @@ async function updateClientAccount(req, res) {
   const { id } = req.params;
   const { email, is_active } = req.body;
 
-  const [existing] = await pool.query(
-    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
-  );
-  if (existing.length === 0) {
-    return res.status(404).json({ error: 'Client account not found' });
-  }
-
   const updates = [];
   const values = [];
   if (email !== undefined) { updates.push('email = ?'); values.push(email); }
@@ -1336,8 +1571,39 @@ async function updateClientAccount(req, res) {
     return res.status(400).json({ error: 'No fields to update' });
   }
 
-  values.push(id);
-  await pool.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+  const conn = await pool.getConnection();
+  let existing;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, username, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Client account not found' });
+    }
+    existing = rows;
+
+    await conn.query('SELECT id FROM tenants WHERE id = ? FOR UPDATE', [existing[0].tenant_id]);
+
+    if (is_active === false && !(await tenantHasOtherAdmin(conn, existing[0].tenant_id, id))) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Cannot deactivate the last active admin of this tenant' });
+    }
+
+    values.push(id);
+    await conn.query(`UPDATE admin_users SET ${updates.join(', ')} WHERE id = ?`, values);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  if (is_active === false) {
+    await tokenService.revokeAllUserTokens(id, 'admin', existing[0].tenant_id);
+  }
 
   await logActivity(null, req.platformAdmin.id, 'client_account_updated', `Updated client account ID ${id} (${existing[0].username})`);
   res.json({ message: 'Account updated' });
@@ -1354,7 +1620,7 @@ async function resetClientAccountPassword(req, res) {
   }
 
   const [existing] = await pool.query(
-    'SELECT id, username FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+    'SELECT id, username, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
   );
   if (existing.length === 0) {
     return res.status(404).json({ error: 'Client account not found' });
@@ -1362,6 +1628,7 @@ async function resetClientAccountPassword(req, res) {
 
   const hash = await bcrypt.hash(password, 13);
   await pool.query('UPDATE admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
+  await tokenService.revokeAllUserTokens(id, 'admin', existing[0].tenant_id);
 
   await logActivity(null, req.platformAdmin.id, 'client_account_password_reset', `Reset password for client admin: ${existing[0].username}`);
   res.json({ message: 'Password reset successfully' });
@@ -1370,22 +1637,34 @@ async function resetClientAccountPassword(req, res) {
 async function deleteClientAccount(req, res) {
   const { id } = req.params;
 
-  const [existing] = await pool.query(
-    'SELECT id, username, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
-  );
-  if (existing.length === 0) {
-    return res.status(404).json({ error: 'Client account not found' });
-  }
+  const conn = await pool.getConnection();
+  let existing;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id, username, tenant_id FROM admin_users WHERE id = ? AND is_platform_admin = 0', [id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Client account not found' });
+    }
+    existing = rows;
 
-  const [count] = await pool.query(
-    'SELECT COUNT(*) as total FROM admin_users WHERE tenant_id = ? AND is_platform_admin = 0',
-    [existing[0].tenant_id]
-  );
-  if (count[0].total <= 1) {
-    return res.status(400).json({ error: 'Cannot delete the last admin of this tenant' });
-  }
+    await conn.query('SELECT id FROM tenants WHERE id = ? FOR UPDATE', [existing[0].tenant_id]);
 
-  await pool.query('DELETE FROM admin_users WHERE id = ?', [id]);
+    if (!(await tenantHasOtherAdmin(conn, existing[0].tenant_id, id))) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Cannot delete the last admin of this tenant' });
+    }
+
+    await conn.query('DELETE FROM admin_users WHERE id = ?', [id]);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
   await logActivity(null, req.platformAdmin.id, 'client_account_deleted', `Deleted client admin: ${existing[0].username}`);
   res.json({ message: 'Account deleted' });
 }

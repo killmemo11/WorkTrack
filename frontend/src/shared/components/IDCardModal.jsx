@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import Icon from './Icon';
 import hrApi from '../api/hrApi';
 import { formatDate } from '../utils/date';
+import useModalA11y from '../hooks/useModalA11y';
 
 export default function IDCardModal({ employeeId, onClose }) {
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const titleId = useId();
+  const dialogRef = useModalA11y(onClose);
 
   useEffect(() => {
     hrApi.get(`/employees/${employeeId}/id-card`)
@@ -17,7 +20,8 @@ export default function IDCardModal({ employeeId, onClose }) {
   const handlePrint = () => {
     const w = window.open('', '_blank');
     if (!w) return;
-    
+    w.opener = null;
+
     const s = (str) => String(str || '').replace(/[&<>"']/g, c => 
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
     );
@@ -45,18 +49,29 @@ export default function IDCardModal({ employeeId, onClose }) {
         </div>
         <div class="company">${s(card.company_name || '')}</div>
       </div>
-      <script>window.print();<\/script></body></html>`);
+      </body></html>`);
     w.document.close();
+    w.focus();
+    w.print();
   };
 
   if (loading) return null;
 
   return (
     <div className="glass-modal-overlay" onClick={onClose}>
-      <div className="glass-modal" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+      <div
+        className="glass-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        ref={dialogRef}
+        onClick={e => e.stopPropagation()}
+        style={{ textAlign: 'center' }}
+      >
         <div className="glass-modal-header">
-          <h3 className="glass-modal-title">Employee ID Card</h3>
-          <button className="glass-modal-close" onClick={onClose}>
+          <h3 className="glass-modal-title" id={titleId}>Employee ID Card</h3>
+          <button type="button" className="glass-modal-close" onClick={onClose} aria-label="Close dialog">
             <Icon icon="lucide:x" />
           </button>
         </div>
@@ -83,8 +98,8 @@ export default function IDCardModal({ employeeId, onClose }) {
               <div style={{ fontSize: 10, color: '#999', marginTop: 12, borderTop: '1px solid #eee', paddingTop: 6 }}>{card.company_name || ''}</div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16 }}>
-              <button className="glass-btn glass-btn-primary" onClick={handlePrint}>Print</button>
-              <button className="glass-btn glass-btn-ghost" onClick={onClose}>Close</button>
+              <button type="button" className="glass-btn glass-btn-primary" onClick={handlePrint}>Print</button>
+              <button type="button" className="glass-btn glass-btn-ghost" onClick={onClose}>Close</button>
             </div>
           </>
         )}

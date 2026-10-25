@@ -2,28 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
-
-function loadLeafletCss() {
-  if (!document.querySelector('#leaflet-css')) {
-    const link = document.createElement('link');
-    link.id = 'leaflet-css';
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-  }
-}
-
-function loadLeaflet() {
-  return new Promise((resolve) => {
-    if (window.L) { resolve(window.L); return; }
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => resolve(window.L);
-    document.head.appendChild(script);
-  });
-}
 
 export default function ITPortal({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'smtp');
@@ -123,27 +105,24 @@ export default function ITPortal({ initialTab }) {
   };
 
   useEffect(() => {
-    if (activeTab === 'geofence' && mapRef.current) {
-      loadLeafletCss(); loadLeaflet().then((L) => {
-        if (mapInstance.current) return;
-        const lat = parseFloat(settings.office_lat) || 30.0444;
-        const lng = parseFloat(settings.office_lng) || 31.2357;
-        const radius = Math.min(parseInt(settings.office_radius_meters) || 200, 2000);
-        mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([lat, lng], 16);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapInstance.current);
-        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapInstance.current);
-        circleRef.current = L.circle([lat, lng], { radius, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.1 }).addTo(mapInstance.current);
+    if (activeTab === 'geofence' && mapRef.current && !mapInstance.current) {
+      const lat = parseFloat(settings.office_lat) || 30.0444;
+      const lng = parseFloat(settings.office_lng) || 31.2357;
+      const radius = Math.min(parseInt(settings.office_radius_meters) || 200, 2000);
+      mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapInstance.current);
+      markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapInstance.current);
+      circleRef.current = L.circle([lat, lng], { radius, color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.1 }).addTo(mapInstance.current);
 
-        markerRef.current.on('dragend', (e) => {
-          const ll = e.target.getLatLng();
-          setSettings(s => ({ ...s, office_lat: ll.lat.toFixed(6), office_lng: ll.lng.toFixed(6) }));
-        });
-        mapInstance.current.on('click', (e) => {
-          const ll = e.latlng;
-          setSettings(s => ({ ...s, office_lat: ll.lat.toFixed(6), office_lng: ll.lng.toFixed(6) }));
-          markerRef.current.setLatLng(ll);
-          circleRef.current.setLatLng(ll);
-        });
+      markerRef.current.on('dragend', (e) => {
+        const ll = e.target.getLatLng();
+        setSettings(s => ({ ...s, office_lat: ll.lat.toFixed(6), office_lng: ll.lng.toFixed(6) }));
+      });
+      mapInstance.current.on('click', (e) => {
+        const ll = e.latlng;
+        setSettings(s => ({ ...s, office_lat: ll.lat.toFixed(6), office_lng: ll.lng.toFixed(6) }));
+        markerRef.current.setLatLng(ll);
+        circleRef.current.setLatLng(ll);
       });
     }
   }, [activeTab]);

@@ -4,15 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatDate as formatDateShared, formatTime } from '../../../shared/utils/date';
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = months[date.getMonth()];
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${month} ${day}, ${year}`;
-};
+const formatDate = (dateString) => formatDateShared(dateString);
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#3b82f6'];
 
@@ -141,18 +135,18 @@ export default function EmployeeDashboard() {
                   <div className="stat-details">
                     <span>
                       <Icon icon="lucide:log-in" style={{ marginRight: 4, fontSize: 12 }}></Icon>
-                      In: {new Date(today.attendance.sign_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      In: {formatTime(today.attendance.sign_in_time)}
                     </span>
                     {today.attendance.sign_out_time && (
                       <span>
                         <Icon icon="lucide:log-out" style={{ marginRight: 4, fontSize: 12 }}></Icon>
-                        Out: {new Date(today.attendance.sign_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        Out: {formatTime(today.attendance.sign_out_time)}
                       </span>
                     )}
                   </div>
                 )}
               </div>
-              <span className="iconify stat-card-icon" data-icon={statusInfo.icon}></span>
+              <Icon icon={statusInfo.icon} className="stat-card-icon" />
             </div>
 
             <div className="stat-card gradient-green card-hover fade-in-up delay-3">
@@ -162,7 +156,7 @@ export default function EmployeeDashboard() {
                 <div className="stat-value">{leaveBalance.annual}</div>
                 <div className="stat-details">days remaining</div>
               </div>
-              <span className="iconify stat-card-icon" data-icon="lucide:umbrella"></span>
+              <Icon icon="lucide:umbrella" className="stat-card-icon" />
             </div>
 
             <div className="stat-card gradient-pink card-hover fade-in-up delay-4">
@@ -172,7 +166,7 @@ export default function EmployeeDashboard() {
                 <div className="stat-value">{leaveBalance.sick}</div>
                 <div className="stat-details">days available</div>
               </div>
-              <span className="iconify stat-card-icon" data-icon="lucide:heart-pulse"></span>
+              <Icon icon="lucide:heart-pulse" className="stat-card-icon" />
             </div>
           </div>
 
@@ -221,7 +215,7 @@ export default function EmployeeDashboard() {
               ) : (
                 goals.map((goal) => (
                   <div key={goal.id} className="goal-card glass-detail-row">
-                    <span className="iconify goal-icon" data-icon={goal.icon || 'lucide:target'} style={{ fontSize: 28, color: goal.color || '#818cf8' }}></span>
+                    <Icon icon={goal.icon || 'lucide:target'} className="goal-icon" style={{ fontSize: 28, color: goal.color || '#818cf8' }} />
                     <div className="goal-body">
                       <div className="goal-header-row">
                         <h4>{goal.title}</h4>
@@ -245,7 +239,7 @@ export default function EmployeeDashboard() {
             <div className="glass-card-body">
               <div className="goals-grid">
                 <div className="goal-card glass-detail-row">
-                  <span className="iconify goal-icon" data-icon="lucide:check-circle" style={{ fontSize: 28, color: '#22c55e' }}></span>
+                  <Icon icon="lucide:check-circle" className="goal-icon" style={{ fontSize: 28, color: '#22c55e' }} />
                   <div className="goal-body">
                     <div className="goal-header-row">
                       <h4>Tasks Completed</h4>
@@ -268,7 +262,7 @@ export default function EmployeeDashboard() {
                   </div>
                 </div>
                 <div className="goal-card glass-detail-row">
-                  <span className="iconify goal-icon" data-icon="lucide:activity" style={{ fontSize: 28, color: '#818cf8' }}></span>
+                  <Icon icon="lucide:activity" className="goal-icon" style={{ fontSize: 28, color: '#818cf8' }} />
                   <div className="goal-body">
                     <div className="goal-header-row">
                       <h4>Active Tasks</h4>
@@ -287,7 +281,7 @@ export default function EmployeeDashboard() {
                   </div>
                 </div>
                 <div className="goal-card glass-detail-row">
-                  <span className="iconify goal-icon" data-icon="lucide:bell" style={{ fontSize: 28, color: '#f59e0b' }}></span>
+                  <Icon icon="lucide:bell" className="goal-icon" style={{ fontSize: 28, color: '#f59e0b' }} />
                   <div className="goal-body">
                     <div className="goal-header-row">
                       <h4>Recent Updates</h4>

@@ -64,7 +64,6 @@ export default function CEODashboard() {
   }
 
   const { month, is_current_month, today, summary, departments } = dashboardData;
-  const [openDept, setOpenDept] = useState(null);
   const recruitment_metrics = summary.recruitment_metrics;
   const headcount_metrics = summary.headcount_metrics;
   const performance_metrics = summary.performance_metrics;
@@ -108,7 +107,7 @@ export default function CEODashboard() {
             <div className="glass-card-body">
               <div className="stats-grid">
                 <div className={`stat-card ${GRADIENTS[0]} fade-in-up`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:users"></span>
+                  <Icon icon="lucide:users" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Total Employees</h3>
                     <p className="stat-value">{summary.total_employees}</p>
@@ -116,7 +115,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[1]} fade-in-up delay-1`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:check-circle"></span>
+                  <Icon icon="lucide:check-circle" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Present Today</h3>
                     <p className="stat-value">{summary.present_today}</p>
@@ -124,7 +123,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[2]} fade-in-up delay-2`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:clock"></span>
+                  <Icon icon="lucide:clock" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>On Leave Today</h3>
                     <p className="stat-value">{summary.on_leave_today}</p>
@@ -132,7 +131,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[3]} fade-in-up delay-3`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:x-circle"></span>
+                  <Icon icon="lucide:x-circle" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Absent Today</h3>
                     <p className="stat-value">{summary.absent_today}</p>
@@ -140,7 +139,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[4]} fade-in-up`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:bar-chart-2"></span>
+                  <Icon icon="lucide:bar-chart-2" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Overall Attendance</h3>
                     <p className="stat-value">{summary.attendance_rate}%</p>
@@ -151,7 +150,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[0]} fade-in-up delay-1`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:target"></span>
+                  <Icon icon="lucide:target" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Recruitment Rate</h3>
                     <p className="stat-value">{recruitment_metrics.hiring_rate}%</p>
@@ -162,7 +161,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[1]} fade-in-up delay-2`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:trending-up"></span>
+                  <Icon icon="lucide:trending-up" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Headcount Utilization</h3>
                     <p className="stat-value">{headcount_metrics.utilization_rate}%</p>
@@ -173,7 +172,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card ${GRADIENTS[2]} fade-in-up delay-3`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:clipboard-list"></span>
+                  <Icon icon="lucide:clipboard-list" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Performance Reviews</h3>
                     <p className="stat-value">{performance_metrics.completion_rate}%</p>
@@ -184,7 +183,7 @@ export default function CEODashboard() {
                 </div>
 
                 <div className={`stat-card gradient-purple fade-in-up delay-4`}>
-                  <span className="iconify stat-card-icon" data-icon="lucide:target"></span>
+                  <Icon icon="lucide:target" className="stat-card-icon" />
                   <div className="stat-card-content">
                     <h3>Department Goals</h3>
                     <p className="stat-value">{departments.filter(d => d.goals?.total > 0).length}/{departments.length}</p>

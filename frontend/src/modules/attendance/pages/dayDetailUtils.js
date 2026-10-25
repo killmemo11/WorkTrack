@@ -1,3 +1,4 @@
+import { formatTime } from '../../../shared/utils/date';
 function parseAttendanceValue(value) {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -22,12 +23,7 @@ export function formatAttendanceTime(value) {
   const date = parseAttendanceValue(value);
   if (!date || Number.isNaN(date.getTime())) return '—';
 
-  return date.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Africa/Cairo'
-  });
+  return formatTime(date);
 }
 
 function calcDuration(signInTime, signOutTime) {

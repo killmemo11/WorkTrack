@@ -1,10 +1,16 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { fetchWithSession, getCsrfHeader } from '../api/session';
 
 const AdminAuthContext = createContext();
 
+const ADMIN_AREA = /^\/(admin|it|audit)(\/|$)/;
+
 const checkAuth = async () => {
+  // The provider wraps the whole app; only probe the admin realm while on an
+  // admin/IT/audit route so employee pages don't emit a spurious 403.
+  if (!ADMIN_AREA.test(window.location.pathname)) return null;
   try {
-    const res = await fetch('/api/admin/auth/me', { credentials: 'include' });
+    const res = await fetchWithSession('/api/admin/auth/me', { realm: 'admin' });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -45,11 +51,10 @@ export function AdminAuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('csrf_token='))?.trim().split('=')[1] || '';
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
-        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+        headers: getCsrfHeader(),
       });
     } catch {}
     setAdmin(null);

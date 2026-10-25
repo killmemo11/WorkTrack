@@ -123,7 +123,7 @@ export default function AdminLeaves() {
                     </span>
                   </td>
                   <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
-                    {new Date(l.created_at).toLocaleDateString()}
+                    {formatDate(l.created_at)}
                   </td>
                   <td>
                     {l.status === 'pending' && (

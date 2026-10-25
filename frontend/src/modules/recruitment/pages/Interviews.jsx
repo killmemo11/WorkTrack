@@ -4,6 +4,7 @@ import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
 import { isValidHttpUrl } from '../../../shared/utils/sanitize';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const defaultForm = {
   candidate_id: '', workflow_stage_id: '', interview_date: '', duration: 60, mode: 'video',
@@ -204,7 +205,7 @@ export default function Interviews() {
                     )}
                   </td>
                   <td>
-                    {new Date(iv.interview_date).toLocaleDateString()} {new Date(iv.interview_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatDate(iv.interview_date)} {formatTime(iv.interview_date)}
                     <br /><span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>{iv.duration} min</span>
                   </td>
                   <td>

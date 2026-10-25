@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const typeIconMap = { success: 'lucide:check-circle-2', warning: 'lucide:alert-triangle', error: 'lucide:x-circle', info: 'lucide:info' };
 
@@ -153,7 +154,7 @@ export default function NotificationsPage() {
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>{n.message}</div>
                     </td>
                     <td onClick={() => handleClick(n)} className="cell-mono" style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                      {new Date(n.created_at).toLocaleDateString()} {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(n.created_at)} {formatTime(n.created_at)}
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       {!n.is_read && (

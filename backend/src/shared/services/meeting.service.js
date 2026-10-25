@@ -3,9 +3,10 @@
 
 const { google } = require('googleapis');
 const pool = require('../config/database');
+const { getTenantId } = require('../utils/tenant-context');
 
 async function getSetting(key) {
-  const [rows] = await pool.query('SELECT `value` FROM settings WHERE `key` = ?', [key]);
+  const [rows] = await pool.query('SELECT `value` FROM settings WHERE `key` = ? AND tenant_id = ?', [key, getTenantId() || 1]);
   return rows[0]?.value || '';
 }
 

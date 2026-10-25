@@ -4,10 +4,11 @@
 const { Router } = require('express');
 const { authenticate } = require('../../shared/middleware/auth.middleware');
 const { requireCeo } = require('../../shared/middleware/ceo-auth.middleware');
+const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 const { getCeoDashboard } = require('./ceo.controller');
 
 const router = Router();
 
-router.get('/dashboard', authenticate, requireCeo, getCeoDashboard);
+router.get('/dashboard', authenticate, requireCeo, resolveTenant, getCeoDashboard);
 
 module.exports = router;

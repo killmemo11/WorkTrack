@@ -111,7 +111,7 @@ export default function ManagerDashboard() {
       {/* Summary Stats */}
       <div className="stats-grid">
         <div className="stat-card gradient-purple fade-in-up delay-1 card-hover">
-          <span className="iconify stat-card-icon" data-icon="lucide:users"></span>
+          <Icon icon="lucide:users" className="stat-card-icon" />
           <div className="stat-card-content">
             <h3>Total Team Members</h3>
             <p className="stat-value">{summary.total_members}</p>
@@ -119,7 +119,7 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="stat-card gradient-green fade-in-up delay-2 card-hover">
-          <span className="iconify stat-card-icon" data-icon="lucide:check-circle"></span>
+          <Icon icon="lucide:check-circle" className="stat-card-icon" />
           <div className="stat-card-content">
             <h3>Present Today</h3>
             <p className="stat-value">{summary.signed_in}</p>
@@ -127,7 +127,7 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="stat-card gradient-blue fade-in-up delay-3 card-hover">
-          <span className="iconify stat-card-icon" data-icon="lucide:clock"></span>
+          <Icon icon="lucide:clock" className="stat-card-icon" />
           <div className="stat-card-content">
             <h3>On Leave Today</h3>
             <p className="stat-value">{summary.on_leave}</p>
@@ -135,7 +135,7 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="stat-card gradient-pink fade-in-up delay-4 card-hover">
-          <span className="iconify stat-card-icon" data-icon="lucide:x-circle"></span>
+          <Icon icon="lucide:x-circle" className="stat-card-icon" />
           <div className="stat-card-content">
             <h3>Absent Today</h3>
             <p className="stat-value">{summary.absent}</p>
@@ -143,7 +143,7 @@ export default function ManagerDashboard() {
         </div>
 
         <div className="stat-card gradient-amber fade-in-up delay-5 card-hover">
-          <span className="iconify stat-card-icon" data-icon="lucide:building"></span>
+          <Icon icon="lucide:building" className="stat-card-icon" />
           <div className="stat-card-content">
             <h3>Department</h3>
             <p className="stat-value">{summary.department_name}</p>

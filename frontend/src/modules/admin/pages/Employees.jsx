@@ -9,6 +9,7 @@ import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
 import IDCardModal from '../../../shared/components/IDCardModal';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function AdminEmployees() {
   const navigate = useNavigate();
@@ -237,7 +238,7 @@ export default function AdminEmployees() {
                     </span>
                     {emp.employment_status === 'resigned' && emp.resignation_date && (
                       <span className="cell-mono" style={{ fontSize: '0.75rem', display: 'block', color: 'var(--text-faint)' }}>
-                        since {new Date(emp.resignation_date).toLocaleDateString()}
+                        since {formatDate(emp.resignation_date)}
                       </span>
                     )}
                   </td>
@@ -249,17 +250,17 @@ export default function AdminEmployees() {
                       <Icon icon={emp.can_wfh ? 'lucide:circle-dot' : 'lucide:circle'} />
                     </button>
                   </td>
-                  <td className="cell-mono">{emp.created_at ? new Date(emp.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="cell-mono">{emp.created_at ? formatDate(emp.created_at) : '—'}</td>
                   <td>
                     <div className="action-btns">
                       <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => navigate(`/hr/employees/${emp.id}/profile`)}><Icon icon="lucide:user" /> Profile</button>
                       <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => openEdit(emp)}><Icon icon="lucide:pencil" /> Edit</button>
                       <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => setIdCardEmployeeId(emp.id)}><Icon icon="lucide:id-card" /> ID Card</button>
                       {emp.role !== 'admin' && (
-                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'admin')}><Icon icon="lucide:shield-up" /> Promote</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'admin')}><Icon icon="lucide:shield-check" /> Promote</button>
                       )}
                       {emp.role === 'admin' && (
-                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'employee')}><Icon icon="lucide:shield-down" /> Demote</button>
+                        <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={() => updateRole(emp.id, 'employee')}><Icon icon="lucide:shield-x" /> Demote</button>
                       )}
                       <button className="glass-btn glass-btn-sm glass-btn-danger" onClick={() => setConfirm(emp)}><Icon icon="lucide:trash-2" /> Delete</button>
                     </div>

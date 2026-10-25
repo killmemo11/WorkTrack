@@ -5,6 +5,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import HrNotificationBell from '../../../modules/notification/components/HrNotificationBell';
 import Footer from '../Footer';
+import useMobileDrawer from '../../hooks/useMobileDrawer';
+import SkipLink from '../SkipLink';
 
 const NAV = [
   { path: '/hr/attendance/records', label: 'Records', icon: 'lucide:clipboard-list' },
@@ -19,6 +21,7 @@ export default function TimeAttendanceLayout() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [logo, setLogo] = useState('');
+  const { open: menuOpen, setOpen: setMenuOpen, triggerRef: menuButtonRef } = useMobileDrawer();
 
   useEffect(() => {
     axios.get('/api/settings/public').then(r => {
@@ -40,8 +43,9 @@ export default function TimeAttendanceLayout() {
   const isActive = (path) => location.pathname.startsWith(path);
 
   return (
-    <div className="sub-layout">
-      <aside className="sub-sidebar">
+    <div className={`sub-layout${menuOpen ? ' menu-open' : ''}`}>
+      <SkipLink />
+      <aside className="sub-sidebar" id="sub-sidebar">
         <div className="sub-brand">
           <img src={logo || '/logo.svg'} alt="" />
           <span>Time & Attendance</span>
@@ -71,9 +75,21 @@ export default function TimeAttendanceLayout() {
           </button>
         </div>
       </aside>
+      <button type="button" className="sub-menu-backdrop" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="sub-main">
         <div className="sub-topbar">
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className="sub-menu-toggle"
+            aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={menuOpen}
+            aria-controls="sub-sidebar"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <Icon icon={menuOpen ? 'lucide:x' : 'lucide:menu'} />
+          </button>
           <span className="sub-topbar-title">{pageTitle}</span>
 
           <form onSubmit={handleSearch} className="sub-search">
@@ -89,9 +105,9 @@ export default function TimeAttendanceLayout() {
           <HrNotificationBell />
         </div>
 
-        <div className="sub-content">
+        <main className="sub-content" id="main-content" tabIndex={-1}>
           <Outlet />
-        </div>
+        </main>
         <Footer />
       </div>
     </div>

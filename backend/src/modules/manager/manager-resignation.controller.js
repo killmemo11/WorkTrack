@@ -14,10 +14,12 @@ async function getManagerPendingResignations(req, res) {
      FROM resignation_requests rr
      JOIN employees e ON rr.employee_id = e.id
      WHERE rr.status = 'pending'
+       AND rr.tenant_id = ?
+       AND e.tenant_id = ?
        AND e.department_id = ?
        AND e.id != ?
      ORDER BY rr.created_at DESC`,
-    [deptId, req.employee.id]
+    [req.tenantId, req.tenantId, deptId, req.employee.id]
   );
   res.json(rows);
 }
@@ -25,14 +27,27 @@ async function getManagerPendingResignations(req, res) {
 async function managerApproveResignation(req, res) {
   try {
     const { id } = req.params;
-    const [request] = await pool.query('SELECT * FROM resignation_requests WHERE id = ? AND status = ?', [id, 'pending']);
+    const [request] = await pool.query(
+      `SELECT rr.* FROM resignation_requests rr
+       JOIN employees e ON rr.employee_id = e.id
+       WHERE rr.id = ? AND rr.status = 'pending'
+         AND rr.tenant_id = ? AND e.tenant_id = ?
+         AND e.department_id = ? AND e.id != ?`,
+      [id, req.tenantId, req.tenantId, req.employee.department_id, req.employee.id]
+    );
     if (request.length === 0) return res.status(404).json({ error: 'Pending resignation request not found' });
     const r = request[0];
-    await pool.query('UPDATE resignation_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?', ['approved', req.employee.id, id]);
-    await pool.query('UPDATE employees SET employment_status = ?, resignation_date = ? WHERE id = ?', ['resigned', r.resignation_date, r.employee_id]);
     await pool.query(
-      'INSERT INTO employee_status_log (employee_id, action, effective_date, performed_by, reason) VALUES (?, ?, ?, ?, ?)',
-      [r.employee_id, 'resigned', r.resignation_date, req.employee.id, r.reason || 'Resignation approved by manager']
+      'UPDATE resignation_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ? AND tenant_id = ?',
+      ['approved', req.employee.id, id, req.tenantId]
+    );
+    await pool.query(
+      'UPDATE employees SET employment_status = ?, resignation_date = ? WHERE id = ? AND tenant_id = ?',
+      ['resigned', r.resignation_date, r.employee_id, req.tenantId]
+    );
+    await pool.query(
+      'INSERT INTO employee_status_log (employee_id, action, effective_date, performed_by, reason, tenant_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [r.employee_id, 'resigned', r.resignation_date, req.employee.id, r.reason || 'Resignation approved by manager', req.tenantId]
     );
     try {
       await logActivity(r.employee_id, null, 'resignation_approved', `Resignation approved by manager: ${req.employee.name}`);
@@ -54,9 +69,19 @@ async function managerRejectResignation(req, res) {
     if (!rejection_reason || !rejection_reason.trim()) {
       return res.status(400).json({ error: 'Rejection reason is required' });
     }
-    const [request] = await pool.query('SELECT * FROM resignation_requests WHERE id = ? AND status = ?', [id, 'pending']);
+    const [request] = await pool.query(
+      `SELECT rr.* FROM resignation_requests rr
+       JOIN employees e ON rr.employee_id = e.id
+       WHERE rr.id = ? AND rr.status = 'pending'
+         AND rr.tenant_id = ? AND e.tenant_id = ?
+         AND e.department_id = ? AND e.id != ?`,
+      [id, req.tenantId, req.tenantId, req.employee.department_id, req.employee.id]
+    );
     if (request.length === 0) return res.status(404).json({ error: 'Pending resignation request not found' });
-    await pool.query('UPDATE resignation_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?', ['rejected', req.employee.id, rejection_reason, id]);
+    await pool.query(
+      'UPDATE resignation_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ? AND tenant_id = ?',
+      ['rejected', req.employee.id, rejection_reason, id, req.tenantId]
+    );
     try {
       await logActivity(request[0].employee_id, null, 'resignation_rejected', `Resignation rejected by manager: ${req.employee.name} - ${rejection_reason}`);
     } catch (e) { logger.error('Resignation rejected activity log error:', e); }

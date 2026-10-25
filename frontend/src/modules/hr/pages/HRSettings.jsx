@@ -784,7 +784,7 @@ export default function HRSettings() {
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 12 }}>
                     Reset all employees&apos; leave balances to the default values configured above.
-                    {lastReset && <span> Last reset: <strong>{new Date(lastReset).toLocaleDateString()}</strong></span>}
+                    {lastReset && <span> Last reset: <strong>{formatDate(lastReset)}</strong></span>}
                   </p>
                   <button className="glass-btn glass-btn-danger" onClick={() => setResetConfirm(true)}>
                     Reset All Balances to Defaults

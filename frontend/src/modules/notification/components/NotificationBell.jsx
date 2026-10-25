@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const typeIcons = {
   success: { icon: 'lucide:check-circle', color: 'var(--success)' },
@@ -19,6 +20,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const ref = useRef(null);
+  const buttonRef = useRef(null);
   const navigate = useNavigate();
   const prevCountRef = useRef(0);
 
@@ -56,6 +58,18 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKey = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open]);
+
   const toggleOpen = () => {
     if (!open) fetchNotifications();
     setOpen(!open);
@@ -82,20 +96,32 @@ export default function NotificationBell() {
 
   return (
     <div className="notif-bell" ref={ref}>
-      <button className="notif-bell-btn" onClick={toggleOpen} title="Notifications">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="notif-bell-btn"
+        onClick={toggleOpen}
+        title="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        aria-expanded={open}
+        aria-controls="notification-panel"
+        aria-haspopup="true"
+      >
         <Icon icon="lucide:bell" />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
       {toast && (
-        <div className="notif-toast" onClick={() => { setToast(null); toggleOpen(); }}>
-          <Icon icon="lucide:bell" style={{ color: 'var(--brand-primary)' }} />
-          <span>{toast.message}</span>
+        <div role="status" aria-live="polite">
+          <button type="button" className="notif-toast" onClick={() => { setToast(null); toggleOpen(); }}>
+            <Icon icon="lucide:bell" style={{ color: 'var(--brand-primary)' }} />
+            <span>{toast.message}</span>
+          </button>
         </div>
       )}
 
       {open && (
-        <div className="notif-dropdown">
+        <div className="notif-dropdown" id="notification-panel">
           <div className="notif-header">
             <span>Notifications</span>
             {unreadCount > 0 && (
@@ -109,7 +135,8 @@ export default function NotificationBell() {
             {notifications.slice(0, 10).map((n) => {
               const typeInfo = typeIcons[n.type] || typeIcons.info;
               return (
-                <div key={n.id}
+                <button key={n.id}
+                  type="button"
                   className={`notif-item ${!n.is_read ? 'notif-unread' : ''}`}
                   onClick={() => handleClick(n)}>
                   <span className="notif-item-icon">
@@ -119,21 +146,21 @@ export default function NotificationBell() {
                     <div className="notif-item-title">{n.title}</div>
                     <div className="notif-item-msg">{n.message}</div>
                     <div className="notif-item-time">
-                      {n.created_at ? new Date(n.created_at).toLocaleDateString() + ' ' + new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      {n.created_at ? formatDate(n.created_at) + ' ' + formatTime(n.created_at) : ''}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
             {notifications.length > 10 && (
-              <div className="notif-view-all" onClick={() => { setOpen(false); navigate('/notifications'); }}>
+              <button type="button" className="notif-view-all" onClick={() => { setOpen(false); navigate('/notifications'); }}>
                 View all {notifications.length} notifications →
-              </div>
+              </button>
             )}
             {notifications.length > 0 && notifications.length <= 10 && (
-              <div className="notif-view-all" onClick={() => { setOpen(false); navigate('/notifications'); }}>
+              <button type="button" className="notif-view-all" onClick={() => { setOpen(false); navigate('/notifications'); }}>
                 View all →
-              </div>
+              </button>
             )}
           </div>
         </div>

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function MyAssets() {
   const [assets, setAssets] = useState([]);
@@ -79,8 +80,8 @@ export default function MyAssets() {
                   <td>{a.serial_number || '—'}</td>
                   <td>{[a.brand, a.model].filter(Boolean).join(' / ') || '—'}</td>
                   <td>{statusBadge(a.status)}</td>
-                  <td>{a.assigned_date ? new Date(a.assigned_date).toLocaleDateString() : '—'}</td>
-                  <td>{a.expected_return_date ? new Date(a.expected_return_date).toLocaleDateString() : '—'}</td>
+                  <td>{a.assigned_date ? formatDate(a.assigned_date) : '—'}</td>
+                  <td>{a.expected_return_date ? formatDate(a.expected_return_date) : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -116,7 +117,7 @@ export default function MyAssets() {
                   <tbody>
                     {history.map(h => (
                       <tr key={h.created_at + h.asset_name}>
-                        <td>{new Date(h.created_at).toLocaleDateString()}</td>
+                        <td>{formatDate(h.created_at)}</td>
                         <td>{h.asset_name}</td>
                         <td><span className={`glass-badge ${h.action === 'assigned' ? 'glass-badge-info' : h.action === 'returned' ? 'glass-badge-success' : 'glass-badge-default'}`}>{h.action}</span></td>
                         <td>{h.description}</td>

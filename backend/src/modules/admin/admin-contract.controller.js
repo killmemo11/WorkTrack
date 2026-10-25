@@ -7,7 +7,7 @@ const logger = require('../../shared/utils/logger');
 const { arabicNumberToWords, formatSalaryBreakdown, getTotalSalary } = require('../../shared/utils/arabic-number-to-words');
 
 async function getTemplates(req, res) {
-  const [rows] = await pool.query('SELECT * FROM contract_templates ORDER BY name');
+  const [rows] = await pool.query('SELECT * FROM contract_templates WHERE tenant_id = ? ORDER BY name', [req.tenantId]);
   res.json(rows);
 }
 
@@ -16,8 +16,8 @@ async function createTemplate(req, res) {
   const { name, type, content_html, placeholders } = req.body;
   if (!name || !content_html) return res.status(400).json({ error: 'Name and content are required' });
   const [result] = await pool.query(
-    'INSERT INTO contract_templates (name, type, content_html, placeholders) VALUES (?, ?, ?, ?)',
-    [name.trim(), type || 'permanent', content_html, placeholders ? JSON.stringify(placeholders) : null]
+    'INSERT INTO contract_templates (name, type, content_html, placeholders, tenant_id) VALUES (?, ?, ?, ?, ?)',
+    [name.trim(), type || 'permanent', content_html, placeholders ? JSON.stringify(placeholders) : null, req.tenantId]
   );
   logActivity(null, adminId, 'contract_template_created', `Created template: ${name}`);
   res.status(201).json({ id: result.insertId, message: 'Template created' });
@@ -34,8 +34,9 @@ async function updateTemplate(req, res) {
   if (placeholders !== undefined) { fields.push('placeholders = ?'); values.push(JSON.stringify(placeholders)); }
   if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
   if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
-  values.push(id);
-  await pool.query(`UPDATE contract_templates SET ${fields.join(', ')} WHERE id = ?`, values);
+  values.push(id, req.tenantId);
+  const [result] = await pool.query(`UPDATE contract_templates SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`, values);
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Template not found' });
   logActivity(null, adminId, 'contract_template_updated', `Updated template #${id}`);
   res.json({ message: 'Template updated' });
 }
@@ -43,7 +44,7 @@ async function updateTemplate(req, res) {
 async function deleteTemplate(req, res) {
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
-  await pool.query('DELETE FROM contract_templates WHERE id = ?', [id]);
+  await pool.query('DELETE FROM contract_templates WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   logActivity(null, adminId, 'contract_template_deleted', `Deleted template #${id}`);
   res.json({ message: 'Template deleted' });
 }
@@ -54,7 +55,7 @@ async function generateContract(req, res) {
   const { template_id, start_date, end_date, extra_values } = req.body;
   if (!template_id) return res.status(400).json({ error: 'Template ID is required' });
 
-  const [template] = await pool.query('SELECT * FROM contract_templates WHERE id = ?', [template_id]);
+  const [template] = await pool.query('SELECT * FROM contract_templates WHERE id = ? AND tenant_id = ?', [template_id, req.tenantId]);
   if (template.length === 0) return res.status(404).json({ error: 'Template not found' });
 
   const [rows] = await pool.query(
@@ -65,24 +66,24 @@ async function generateContract(req, res) {
             ep.id_number AS national_id, ep.national_id_place, ep.mother_name,
             ep.insurance_number, ep.marital_status, ep.military_status
      FROM employees e
-     LEFT JOIN departments d ON e.department_id = d.id
+     LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
      LEFT JOIN positions p ON e.position_id = p.id
      LEFT JOIN employee_profiles ep ON e.id = ep.employee_id
-     WHERE e.id = ?`, [employeeId]
+     WHERE e.id = ? AND e.tenant_id = ?`, [employeeId, req.tenantId]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
   const emp = rows[0];
 
   const [compRows] = await pool.query(
-    'SELECT component_name, amount FROM salary_components WHERE employee_id = ? AND is_active = 1 ORDER BY id',
-    [employeeId]
+    'SELECT component_name, amount FROM salary_components WHERE employee_id = ? AND tenant_id = ? AND is_active = 1 ORDER BY id',
+    [employeeId, req.tenantId]
   );
   const salaryComponents = compRows || [];
   const totalSalary = getTotalSalary(salaryComponents);
 
   const companyKeys = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card'];
   const companyPlaceholders = companyKeys.map(() => '?').join(',');
-  const [companyRows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${companyPlaceholders})`, companyKeys);
+  const [companyRows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE tenant_id = ? AND \`key\` IN (${companyPlaceholders})`, [req.tenantId, ...companyKeys]);
   const companySettings = {};
   for (const row of companyRows) companySettings[row.key] = row.value;
 
@@ -148,8 +149,8 @@ async function generateContract(req, res) {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO employee_contracts (employee_id, template_id, start_date, end_date, content_html, status) VALUES (?, ?, ?, ?, ?, ?)',
-    [employeeId, template_id, start_date || null, end_date || null, content, 'draft']
+    'INSERT INTO employee_contracts (employee_id, template_id, start_date, end_date, content_html, status, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [employeeId, template_id, start_date || null, end_date || null, content, 'draft', req.tenantId]
   );
 
   logActivity(employeeId, adminId, 'contract_generated', `Generated contract from template: ${template[0].name}`);
@@ -161,14 +162,14 @@ async function signContract(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const { signed_by_employee, signed_by_company } = req.body;
 
-  const [contract] = await pool.query('SELECT * FROM employee_contracts WHERE id = ? AND employee_id = ?', [cid, employeeId]);
+  const [contract] = await pool.query('SELECT * FROM employee_contracts WHERE id = ? AND employee_id = ? AND tenant_id = ?', [cid, employeeId, req.tenantId]);
   if (contract.length === 0) return res.status(404).json({ error: 'Contract not found' });
 
   const updates = [];
   if (signed_by_employee) updates.push('signed_by_employee = 1, signed_date = CURDATE()');
   if (signed_by_company) updates.push('signed_by_company = 1');
   if (updates.length > 0) {
-    await pool.query(`UPDATE employee_contracts SET status = 'signed', ${updates.join(', ')} WHERE id = ?`, [cid]);
+    await pool.query(`UPDATE employee_contracts SET status = 'signed', ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`, [cid, req.tenantId]);
   }
 
   logActivity(employeeId, adminId, 'contract_signed', `Signed contract #${cid}`);
@@ -180,9 +181,9 @@ async function getEmployeeContracts(req, res) {
   const [rows] = await pool.query(
     `SELECT ec.*, ct.name AS template_name
      FROM employee_contracts ec
-     LEFT JOIN contract_templates ct ON ec.template_id = ct.id
-     WHERE ec.employee_id = ?
-     ORDER BY ec.created_at DESC`, [employeeId]
+     LEFT JOIN contract_templates ct ON ec.template_id = ct.id AND ct.tenant_id = ec.tenant_id
+     WHERE ec.employee_id = ? AND ec.tenant_id = ?
+     ORDER BY ec.created_at DESC`, [employeeId, req.tenantId]
   );
   res.json(rows);
 }
@@ -192,9 +193,9 @@ async function getMyContracts(req, res) {
   const [rows] = await pool.query(
     `SELECT ec.id, ct.name AS template_name, ec.start_date, ec.end_date, ec.status, ec.signed_by_employee, ec.signed_by_company, ec.created_at
      FROM employee_contracts ec
-     LEFT JOIN contract_templates ct ON ec.template_id = ct.id
-     WHERE ec.employee_id = ?
-     ORDER BY ec.created_at DESC`, [employeeId]
+     LEFT JOIN contract_templates ct ON ec.template_id = ct.id AND ct.tenant_id = ec.tenant_id
+     WHERE ec.employee_id = ? AND ec.tenant_id = ?
+     ORDER BY ec.created_at DESC`, [employeeId, req.tenantId]
   );
   res.json(rows);
 }
@@ -203,15 +204,33 @@ async function getMyContractContent(req, res) {
   const employeeId = req.employee.id;
   const { id } = req.params;
   const [rows] = await pool.query(
-    'SELECT content_html FROM employee_contracts WHERE id = ? AND employee_id = ?', [id, employeeId]
+    'SELECT content_html FROM employee_contracts WHERE id = ? AND employee_id = ? AND tenant_id = ?', [id, employeeId, req.tenantId]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Contract not found' });
   res.json({ content: rows[0].content_html });
 }
 
+// Chrome's sandbox needs unprivileged user namespaces (or a setuid helper).
+// Fall back to --no-sandbox only when the host cannot provide either, and let
+// operators opt out of that fallback entirely with PUPPETEER_REQUIRE_SANDBOX=true.
+async function launchBrowser(puppeteer) {
+  const commonArgs = ['--disable-dev-shm-usage'];
+  try {
+    return await puppeteer.launch({ headless: true, timeout: 30000, args: commonArgs });
+  } catch (err) {
+    if (process.env.PUPPETEER_REQUIRE_SANDBOX === 'true') throw err;
+    logger.warn({ err }, 'Chrome sandbox unavailable; retrying with --no-sandbox');
+    return puppeteer.launch({
+      headless: true,
+      timeout: 30000,
+      args: [...commonArgs, '--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
+}
+
 async function downloadContractPdf(req, res) {
   const { id: employeeId, cid } = req.params;
-  const [contract] = await pool.query('SELECT content_html, employee_id, template_id FROM employee_contracts WHERE id = ? AND employee_id = ?', [cid, employeeId]);
+  const [contract] = await pool.query('SELECT content_html, employee_id, template_id FROM employee_contracts WHERE id = ? AND employee_id = ? AND tenant_id = ?', [cid, employeeId, req.tenantId]);
   if (contract.length === 0) return res.status(404).json({ error: 'Contract not found' });
 
   let html = contract[0].content_html;
@@ -223,8 +242,14 @@ async function downloadContractPdf(req, res) {
   let browser;
   try {
     const { default: puppeteer } = await import('puppeteer');
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    browser = await launchBrowser(puppeteer);
     const page = await browser.newPage();
+    await page.setJavaScriptEnabled(false);
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (request.url().startsWith('data:')) request.continue();
+      else request.abort();
+    });
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdf = await page.pdf({ format: 'A4', margin: { top: '20mm', bottom: '20mm', right: '15mm', left: '15mm' }, printBackground: true });
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="contract-${cid}.pdf"`, 'Content-Length': pdf.length });

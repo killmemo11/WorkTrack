@@ -5,17 +5,9 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import { formatDate, formatTime as formatTimeCairo } from '../../../shared/utils/date';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
-
-const formatDate = (d) => {
-  if (!d) return '—';
-  const dt = new Date(d);
-  const dd = String(dt.getDate()).padStart(2, '0');
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const yyyy = dt.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
 
 export default function ManagerApprovals() {
   const [tab, setTab] = useState('leaves');
@@ -149,7 +141,7 @@ export default function ManagerApprovals() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatTime = (t) => t ? formatTimeCairo(t) : '—';
 
   if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
 

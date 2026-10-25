@@ -4,15 +4,25 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
-import { formatDate } from '../../../shared/utils/date';
+import { formatDate, formatTime as formatTimeCairo, todayInCairo } from '../../../shared/utils/date';
 
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
+import { blobErrorMessage } from '../../../shared/utils/download';
+
+function shiftDate(dateStr, days) {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 export default function AdminRecords() {
   const [data, setData] = useState({ records: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ date_from: '', date_to: '', employee_id: '' });
+  const [filters, setFilters] = useState(() => {
+    const today = todayInCairo();
+    return { date_from: shiftDate(today, -29), date_to: today, employee_id: '' };
+  });
   const [employees, setEmployees] = useState([]);
   const [confirm, setConfirm] = useState(null);
   const [message, setMessage] = useState('');
@@ -40,19 +50,23 @@ export default function AdminRecords() {
   useEffect(() => { fetchRecords(); }, []);
 
   const handleExport = async () => {
+    if (!filters.date_from || !filters.date_to) {
+      setMessage('Select From and To dates before exporting (maximum one year)');
+      return;
+    }
     try {
       const res = await hrApi.get('/export', { params: filters, responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `attendance_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `attendance_export_${todayInCairo()}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      setMessage('Failed to export');
+      setMessage(await blobErrorMessage(err, 'Failed to export'));
     }
   };
 
@@ -86,7 +100,7 @@ export default function AdminRecords() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatTime = (t) => t ? formatTimeCairo(t) : '—';
 
   const calcDuration = (r) => {
     if (!r.sign_out_time) return '—';

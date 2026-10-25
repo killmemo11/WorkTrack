@@ -9,7 +9,7 @@ const pool = require('../config/database');
 function requireService(serviceKey, errorMsg) {
   return async (req, res, next) => {
     const toggleKey = serviceKey.replace(/^service_/, '');
-    const tenantId = req.tenantId || 1;
+    const tenantId = req.tenantId;
     const [rows] = await pool.query(
       'SELECT is_enabled FROM service_toggles WHERE service_key = ? AND tenant_id = ?',
       [toggleKey, tenantId]

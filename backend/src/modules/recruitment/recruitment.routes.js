@@ -7,8 +7,17 @@ const { requireITAuth } = require('../../shared/middleware/it-auth.middleware');
 const { requirePasswordChangeGate } = require('../../shared/middleware/password-gate.middleware');
 const { requireHR } = require('../../shared/middleware/hr.middleware');
 const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
+const { CV_EXTENSIONS, extensionAllowed, invalidFileType, singleFile } = require('../../shared/utils/upload-security');
+const exportLimiter = require('../../shared/middleware/export-limit.middleware');
 
-const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const memoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (extensionAllowed(file.originalname, CV_EXTENSIONS)) return cb(null, true);
+    cb(invalidFileType(CV_EXTENSIONS));
+  },
+});
 
 const {
   listJobs, createJob, updateJob, deleteJob,
@@ -76,7 +85,7 @@ adminRouter.get('/candidates/:id/scorecards', getScorecards);
 adminRouter.post('/candidates/:id/scorecards', addScorecard);
 adminRouter.post('/candidates/:id/offer', createOffer);
 adminRouter.post('/candidates/:id/hire', hireCandidate);
-adminRouter.get('/candidates/export', exportCandidates);
+adminRouter.get('/candidates/export', exportLimiter, exportCandidates);
 adminRouter.get('/offers', listOffers);
 adminRouter.put('/offers/:id', updateOffer);
 adminRouter.get('/interviews', listInterviews);
@@ -85,7 +94,7 @@ adminRouter.put('/interviews/:id', updateInterview);
 
 adminRouter.get('/hr-staff', listHRStaff);
 adminRouter.get('/meeting-status', getMeetingStatus);
-adminRouter.post('/upload/cv', memoryUpload.single('file'), uploadCv);
+adminRouter.post('/upload/cv', singleFile(memoryUpload, 'file', CV_EXTENSIONS), uploadCv);
 adminRouter.get('/stats', getRecruitmentStats);
 
 // ── Phone Screening routes (admin) ───────────────────────────
@@ -172,11 +181,11 @@ hrRouter.get('/candidates/:id/scorecards', getScorecards);
 hrRouter.post('/candidates/:id/scorecards', addScorecard);
 hrRouter.post('/candidates/:id/offer', createOffer);
 hrRouter.post('/candidates/:id/hire', hireCandidate);
-hrRouter.get('/candidates/export', exportCandidates);
+hrRouter.get('/candidates/export', exportLimiter, exportCandidates);
 
 hrRouter.get('/hr-staff', listHRStaff);
 hrRouter.get('/meeting-status', getMeetingStatus);
-hrRouter.post('/upload/cv', memoryUpload.single('file'), uploadCv);
+hrRouter.post('/upload/cv', singleFile(memoryUpload, 'file', CV_EXTENSIONS), uploadCv);
 hrRouter.get('/stats', getRecruitmentStats);
 hrRouter.get('/offers', listOffers);
 hrRouter.put('/offers/:id', updateOffer);

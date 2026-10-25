@@ -1,33 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+// Copyright (c) 2026 Mohamed Yehia
+// SPDX-License-Identifier: AGPL-3.0
+
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function AdminRoute({ children }) {
-  const { admin, loading, recheck } = useAdminAuth();
-  const [rechecking, setRechecking] = useState(false);
+  const { admin, loading } = useAdminAuth();
   const location = useLocation();
-  const hasToken = document.cookie.includes('access_token=');
-  const initialCheckDone = useRef(false);
 
-  useEffect(() => {
-    if (!initialCheckDone.current && !admin && hasToken) {
-      initialCheckDone.current = true;
-      setRechecking(true);
-      recheck().finally(() => setRechecking(false));
-    }
-  }, [admin, hasToken, recheck]);
-
-  if (loading || rechecking) return (
+  if (loading) return (
     <div className="glass-loading">
       <div className="spinner" />
       <span>Loading...</span>
     </div>
   );
 
-  if (!admin) return hasToken ? <Navigate to="/dashboard" /> : <Navigate to="/admin/login" />;
+  if (!admin) return <Navigate to="/login" replace />;
 
-  // Phase 1: if the admin must change their password, force-redirect to the
-  // change-password page — but only if we're not already on it (avoids redirect loop).
+  // Force a password change before anything else — but not on the
+  // change-password page itself (avoids a redirect loop).
   if (admin.must_change_password && location.pathname !== '/admin/change-password') {
     return <Navigate to="/admin/change-password" replace />;
   }

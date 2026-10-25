@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../../shared/api';
-import { formatDate } from '../../../shared/utils/date';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 function calcDuration(r) {
   if (!r.sign_out_time) return '\u2014';
@@ -104,8 +104,8 @@ export default function History() {
                   <tr key={r.id}>
                     <td>{formatDate(r.date)}</td>
                     <td><span className={`glass-badge ${r.type === 'office' ? 'glass-badge-warning' : 'glass-badge-info'}`}>{(r.type || 'wfh').toUpperCase()}</span></td>
-                    <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
-                    <td>{r.sign_out_time ? new Date(r.sign_out_time).toLocaleTimeString() : '\u2014'}</td>
+                    <td>{formatTime(r.sign_in_time)}</td>
+                    <td>{r.sign_out_time ? formatTime(r.sign_out_time) : '\u2014'}</td>
                     <td>{calcDuration(r)}</td>
                     <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.notes || '\u2014'}</td>
                   </tr>

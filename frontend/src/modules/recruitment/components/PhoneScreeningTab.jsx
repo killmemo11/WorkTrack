@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
+import { formatTime, formatDateTime } from '../../../shared/utils/date';
 
 const PASS_THRESHOLD = 75;
 
@@ -275,7 +276,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
       const nextCall = new Date(lastTime + 30 * 60000);
       return {
         type: 'wait',
-        message: `Last no answer ${Math.round(minsSince)} min ago. Try again after ${nextCall.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${remaining} min)`,
+        message: `Last no answer ${Math.round(minsSince)} min ago. Try again after ${formatTime(nextCall)} (${remaining} min)`,
         nextCallAt: nextCall,
       };
     }
@@ -493,7 +494,7 @@ export default function PhoneScreeningTab({ candidateId, candidateStage, onStage
                   {log.notes && <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: 2 }}>{log.notes}</div>}
                 </div>
                 <span style={{ color: 'var(--text-faint)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                  {new Date(log.attempted_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {formatDateTime(log.attempted_at)}
                 </span>
                 <button onClick={async () => {
                   if (!confirm('Delete this call log entry?')) return;

@@ -86,7 +86,7 @@ export default function EmployeeProfile() {
             {profile.profile?.avatar_path
               ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-glass)' }} />
               : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-dim)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
-            <input type="file" accept="image/*" id="avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" id="avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
             <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', backdropFilter: 'blur(8px)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1 }} title="Upload avatar">
               <Icon icon={uploading ? 'lucide:loader-2' : 'lucide:camera'} style={{ fontSize: 11 }} />
             </label>

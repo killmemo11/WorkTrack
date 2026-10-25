@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateTime } from '../../../shared/utils/date';
 
 export default function PlatformActivity() {
   const [activities, setActivities] = useState([]);
@@ -21,7 +22,7 @@ export default function PlatformActivity() {
     ? activities.filter(a => a.action.includes(actionFilter))
     : activities;
 
-  const formatDate = (d) => d ? new Date(d).toLocaleString() : '—';
+  const formatDate = (d) => d ? formatDateTime(d) : '—';
 
   const uniqueActions = [...new Set(activities.map(a => a.action))].sort();
 

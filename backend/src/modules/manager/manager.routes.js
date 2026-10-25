@@ -5,6 +5,7 @@ const { Router } = require('express');
 const { authenticate } = require('../../shared/middleware/auth.middleware');
 const { requireManager } = require('../../shared/middleware/manager-auth.middleware');
 const { requireLeaveService } = require('../../shared/middleware/leave-service.middleware');
+const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 const { getManagerPendingLeaves, managerApproveLeave, managerRejectLeave, getManagerPendingSignoutRequests, managerApproveSignoutRequest, managerRejectSignoutRequest, getManagerApprovalsCount } = require('./manager-leave.controller');
 const { getManagerTeamDashboard } = require('./manager.controller');
 const { getDepartments } = require('../admin/department.controller');
@@ -19,7 +20,7 @@ const { getManagerPendingResignations, managerApproveResignation, managerRejectR
 
 const router = Router();
 
-router.use(authenticate, requireManager);
+router.use(authenticate, requireManager, resolveTenant);
 
 router.get('/approvals/count', getManagerApprovalsCount);
 router.get('/approvals', requireLeaveService, getManagerPendingLeaves);

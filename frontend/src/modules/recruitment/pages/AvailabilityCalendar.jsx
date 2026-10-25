@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -197,7 +198,7 @@ export default function AvailabilityCalendar() {
                   }}>
                     <Icon icon="lucide:calendar-x" style={{ color: 'var(--error)', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{bd.blocked_date ? new Date(bd.blocked_date + 'T00:00:00').toLocaleDateString() : bd.blocked_date}</div>
+                      <div style={{ fontWeight: 600 }}>{bd.blocked_date ? formatDate(bd.blocked_date + 'T00:00:00') : bd.blocked_date}</div>
                       {bd.reason && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{bd.reason}</div>}
                     </div>
                     <button className="glass-btn glass-btn-xs glass-btn-ghost" onClick={() => handleUnblock(bd.blocked_date)}

@@ -7,12 +7,13 @@ const { sendMissingSignOutReminderEmail } = require('../services/email.service')
 const { createNotification } = require('../services/notification.service');
 const { getTodayDateString } = require('../utils/work-day.util');
 const logger = require('../utils/logger');
+const { runWithTenant } = require('../utils/tenant-context');
 
 let lastScanDate = null;
 
-async function runMissingSignOutCheck() {
+async function runMissingSignOutCheck(tenantId = null) {
   const today = getTodayDateString();
-  if (lastScanDate === today) {
+  if (!tenantId && lastScanDate === today) {
     logger.info('[MissingSignOut] Already ran today — skipping duplicate');
     return { skipped: true };
   }
@@ -20,18 +21,19 @@ async function runMissingSignOutCheck() {
   logger.info('[MissingSignOut] Running missing sign-out reminder check...');
   try {
     const [records] = await pool.query(
-      `SELECT a.*, e.name as employee_name, e.email as employee_email, e.id as employee_id
+      `SELECT a.*, e.name as employee_name, e.email as employee_email, e.id as employee_id, e.tenant_id as employee_tenant_id
        FROM attendance_records a
-       JOIN employees e ON a.employee_id = e.id
+       JOIN employees e ON a.employee_id = e.id AND e.tenant_id = a.tenant_id
        WHERE a.sign_out_time IS NULL AND a.date < CURDATE()
-       AND (e.is_system IS NULL OR e.is_system = 0)`
+       AND (e.is_system IS NULL OR e.is_system = 0)` + (tenantId ? ' AND a.tenant_id = ?' : ''),
+      tenantId ? [tenantId] : []
     );
 
     const byEmployee = {};
     for (const r of records) {
       if (!byEmployee[r.employee_id]) {
         byEmployee[r.employee_id] = {
-          employee: { id: r.employee_id, name: r.employee_name, email: r.employee_email },
+          employee: { id: r.employee_id, name: r.employee_name, email: r.employee_email, tenant_id: r.employee_tenant_id },
           records: [],
         };
       }
@@ -55,7 +57,7 @@ async function runMissingSignOutCheck() {
       if (unsentRecords.length === 0) continue;
 
       try {
-        await sendMissingSignOutReminderEmail(employee, unsentRecords);
+        await runWithTenant(employee.tenant_id, () => sendMissingSignOutReminderEmail(employee, unsentRecords));
         logger.info(`[MissingSignOut] Sent reminder email to ${employee.email} (${employee.name})`);
         emailsSent++;
       } catch (e) {
@@ -78,7 +80,7 @@ async function runMissingSignOutCheck() {
     }
 
     logger.info(`[MissingSignOut] Check complete: ${Object.keys(byEmployee).length} employees, ${emailsSent} emails sent, ${emailsFailed} failed`);
-    lastScanDate = today;
+    if (!tenantId) lastScanDate = today;
     return { employees: Object.keys(byEmployee).length, sent: emailsSent, failed: emailsFailed };
   } catch (err) {
     logger.error('[MissingSignOut] Error in missing sign-out reminder:', err);

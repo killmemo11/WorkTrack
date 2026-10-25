@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const STATUS_BADGE = {
   pending: 'warning',
@@ -69,7 +70,7 @@ export default function PlatformPayments() {
     return `${Number(amt).toLocaleString()} ${cur || 'EGP'}`;
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatDate = (d) => d ? formatDateShort(d) : '—';
 
   return (
     <div className="platform-page">

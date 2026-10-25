@@ -10,7 +10,10 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { getRecruitmentDir } = require('../../shared/config/storage');
+const { safeExtension } = require('../../shared/utils/upload-security');
 const { createJobBody, updateJobBody, createCandidateBody, updateCandidateBody, moveCandidateBody, addScorecardBody, createOfferBody, createInterviewBody, publicApplyBody, respondToInterviewBody } = require('../../shared/validations/schemas');
+const { resolvePublicTenantId, checkEmployeeQuota } = require('../../shared/services/tenant.service');
+const { runWithTenant } = require('../../shared/utils/tenant-context');
 
 const UPLOAD_FOLDER = getRecruitmentDir();
 
@@ -31,13 +34,12 @@ async function listJobs(req, res) {
     `SELECT j.*,
             COUNT(c.id) AS applicants,
             hcr.id AS hc_request_id,
-            hcr.requester_name AS hc_requester_name,
+            hcr_emp.name AS hc_requester_name,
             hcr.status AS hc_status
      FROM recruitment_jobs j
-     LEFT JOIN recruitment_candidates c ON c.job_id = j.id OR c.job_title = j.title
-     LEFT JOIN (SELECT hcr2.id, hcr2.requester_id, hcr2.status, e.name AS requester_name
-                FROM headcount_requests hcr2
-                JOIN employees e ON hcr2.requester_id = e.id) hcr ON hcr.id = j.headcount_request_id
+     LEFT JOIN recruitment_candidates c ON (c.job_id = j.id OR c.job_title = j.title) AND c.tenant_id = j.tenant_id
+     LEFT JOIN headcount_requests hcr ON hcr.id = j.headcount_request_id AND hcr.tenant_id = j.tenant_id
+     LEFT JOIN employees hcr_emp ON hcr_emp.id = hcr.requester_id AND hcr_emp.tenant_id = hcr.tenant_id
      ${tenantFilter}
      GROUP BY j.id
      ORDER BY j.created_at DESC
@@ -58,16 +60,23 @@ async function listJobs(req, res) {
 async function createJob(req, res) {
   const { error } = createJobBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
+  const { title, department, type, technical, status, description, position_id, title_id, workflow_template_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
   if (!title) return res.status(400).json({ error: 'title is required' });
+  if (workflow_template_id) {
+    const [templates] = await pool.query(
+      'SELECT id FROM workflow_templates WHERE id = ? AND tenant_id = ?',
+      [workflow_template_id, req.tenantId]
+    );
+    if (templates.length === 0) return res.status(400).json({ error: 'Workflow template not found' });
+  }
   if (status === 'active') {
     if (!description) return res.status(400).json({ error: 'Job Summary is required before publishing' });
     if (!key_responsibilities) return res.status(400).json({ error: 'Key Responsibilities is required before publishing' });
     if (!qualifications) return res.status(400).json({ error: 'Qualifications & Skills is required before publishing' });
     if (!title_id) return res.status(400).json({ error: 'Position title is required before publishing' });
     const [[titleData]] = await pool.query(
-      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?',
-      [title_id]
+      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?' + (req.tenantId ? ' AND dt.tenant_id = ?' : ''),
+      req.tenantId ? [title_id, req.tenantId] : [title_id]
     );
     if (!titleData) return res.status(400).json({ error: 'Position title not found' });
     if (!titleData.grade_id) return res.status(400).json({ error: 'Grade (salary scale) is required for this position before publishing' });
@@ -75,10 +84,13 @@ async function createJob(req, res) {
     if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
   }
   const [result] = await pool.query(
-    'INSERT INTO recruitment_jobs (tenant_id,position_id,title_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    [req.tenantId || null, position_id || null, title_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
+    'INSERT INTO recruitment_jobs (tenant_id,position_id,title_id,workflow_template_id,title,department,type,technical,status,description,key_responsibilities,qualifications,technical_skills,core_competencies) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    [req.tenantId || null, position_id || null, title_id || null, workflow_template_id || null, title, department || '', type || 'Full-Time', technical ? 1 : 0, status || 'active', description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null]
   );
-  const [[job]] = await pool.query('SELECT * FROM recruitment_jobs WHERE id = ?', [result.insertId]);
+  const [[job]] = await pool.query(
+    'SELECT * FROM recruitment_jobs WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [result.insertId, req.tenantId] : [result.insertId]
+  );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'job_created', `Created job: ${title}`);
   res.status(201).json(job);
 }
@@ -87,27 +99,52 @@ async function updateJob(req, res) {
   const { error } = updateJobBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
-  const { title, department, type, technical, status, description, position_id, title_id, key_responsibilities, qualifications, technical_skills, core_competencies } = req.body;
+  const { status, description, title_id, workflow_template_id, key_responsibilities, qualifications } = req.body;
+  if (workflow_template_id) {
+    const [templates] = await pool.query(
+      'SELECT id FROM workflow_templates WHERE id = ? AND tenant_id = ?',
+      [workflow_template_id, req.tenantId]
+    );
+    if (templates.length === 0) return res.status(400).json({ error: 'Workflow template not found' });
+  }
   if (status === 'active') {
     if (!description) return res.status(400).json({ error: 'Job Summary is required before publishing' });
     if (!key_responsibilities) return res.status(400).json({ error: 'Key Responsibilities is required before publishing' });
     if (!qualifications) return res.status(400).json({ error: 'Qualifications & Skills is required before publishing' });
     if (!title_id) return res.status(400).json({ error: 'Position title is required before publishing' });
     const [[titleData]] = await pool.query(
-      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?',
-      [title_id]
+      'SELECT dt.grade_id, dt.min_education_level, dt.min_experience_years FROM department_titles dt WHERE dt.id = ?' + (req.tenantId ? ' AND dt.tenant_id = ?' : ''),
+      req.tenantId ? [title_id, req.tenantId] : [title_id]
     );
     if (!titleData) return res.status(400).json({ error: 'Position title not found' });
     if (!titleData.grade_id) return res.status(400).json({ error: 'Grade (salary scale) is required for this position before publishing' });
     if (!titleData.min_education_level) return res.status(400).json({ error: 'Minimum Education Level is required for this position before publishing' });
     if (!titleData.min_experience_years) return res.status(400).json({ error: 'Minimum Years of Experience is required for this position before publishing' });
   }
-  await pool.query(
-    'UPDATE recruitment_jobs SET position_id=?, title_id=?, title=?, department=?, type=?, technical=?, status=?, description=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=? WHERE id=?' + (req.tenantId ? ' AND tenant_id=?' : ''),
-    [position_id || null, title_id || null, title, department, type, technical ? 1 : 0, status, description || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, id].concat(req.tenantId ? [req.tenantId] : [])
+  // Partial updates must not blank out fields the caller omitted. The
+  // regression path exposed this: PUT { title } cleared title_id, so
+  // candidates created for the job lost auto-screening.
+  const allowed = ['title', 'department', 'type', 'technical', 'status', 'description', 'position_id', 'title_id', 'workflow_template_id', 'key_responsibilities', 'qualifications', 'technical_skills', 'core_competencies'];
+  const updates = [];
+  const args = [];
+  for (const col of allowed) {
+    if (req.body[col] !== undefined) {
+      updates.push(`${col} = ?`);
+      args.push(req.body[col]);
+    }
+  }
+  if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+  args.push(id);
+  const [updateResult] = await pool.query(
+    `UPDATE recruitment_jobs SET ${updates.join(', ')} WHERE id = ?` + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    args.concat(req.tenantId ? [req.tenantId] : [])
   );
-  const [[job]] = await pool.query('SELECT * FROM recruitment_jobs WHERE id = ?', [id]);
-  logActivity(null, req.admin?.id || req.hr?.id || null, 'job_updated', `Updated job: ${title}`);
+  if (updateResult.affectedRows === 0) return res.status(404).json({ error: 'Job not found' });
+  const [[job]] = await pool.query(
+    'SELECT * FROM recruitment_jobs WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
+  logActivity(null, req.admin?.id || req.hr?.id || null, 'job_updated', `Updated job: ${job.title}`);
   res.json(job);
 }
 
@@ -230,6 +267,14 @@ async function createCandidate(req, res) {
   const { name, email, phone, job_id, job_title, stage, technical, notes, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
+  if (job_id) {
+    const [job] = await pool.query(
+      'SELECT id FROM recruitment_jobs WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+      req.tenantId ? [job_id, req.tenantId] : [job_id]
+    );
+    if (job.length === 0) return res.status(400).json({ error: 'Job not found' });
+  }
+
   const [result] = await pool.query(
     `INSERT INTO recruitment_candidates (tenant_id,name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -240,11 +285,17 @@ async function createCandidate(req, res) {
     'INSERT INTO recruitment_history (tenant_id,candidate_id,stage,note,created_by) VALUES (?,?,?,?,?)',
     [req.tenantId || null, result.insertId, stage || 'applied', 'Candidate added manually', req.admin?.username || 'HR']
   );
-  const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [result.insertId]);
+  const [[candidate]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [result.insertId, req.tenantId] : [result.insertId]
+  );
 
   try {
     if (job_id) {
-      const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      const [jobs] = await pool.query(
+        'SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+        req.tenantId ? [job_id, req.tenantId] : [job_id]
+      );
       if (jobs.length > 0 && jobs[0].workflow_template_id) {
         const { initCandidateState, publishEvent, transition } = require('./engines/workflow.engine');
         await initCandidateState(result.insertId, jobs[0].workflow_template_id);
@@ -279,8 +330,12 @@ async function updateCandidate(req, res) {
   }
   if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
   args.push(id);
-  await pool.query(`UPDATE recruitment_candidates SET ${updates.join(', ')} WHERE id = ?` + (req.tenantId ? ' AND tenant_id = ?' : ''), args.concat(req.tenantId ? [req.tenantId] : []));
-  const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
+  const [updateResult] = await pool.query(`UPDATE recruitment_candidates SET ${updates.join(', ')} WHERE id = ?` + (req.tenantId ? ' AND tenant_id = ?' : ''), args.concat(req.tenantId ? [req.tenantId] : []));
+  if (updateResult.affectedRows === 0) return res.status(404).json({ error: 'Candidate not found' });
+  const [[candidate]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
   res.json(candidate);
 }
 
@@ -317,7 +372,8 @@ async function moveCandidate(req, res) {
   let state = await getCandidateState(id);
   if (!state) {
     const [[defaultTpl]] = await pool.query(
-      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+      'SELECT id FROM workflow_templates WHERE is_active = 1' + (req.tenantId ? ' AND tenant_id = ?' : '') + ' ORDER BY id LIMIT 1',
+      req.tenantId ? [req.tenantId] : []
     );
     if (defaultTpl) {
       state = await initCandidateState(id, defaultTpl.id);
@@ -353,9 +409,9 @@ async function moveCandidate(req, res) {
 async function uploadCv(req, res) {
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
   if (!allowedFile(req.file.originalname)) return res.status(400).json({ error: 'Invalid file type. Allowed: PDF, DOC, DOCX' });
-    const filename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${path.extname(req.file.originalname)}`;
+    const filename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${safeExtension(req.file.originalname)}`;
     const fpath = path.join(UPLOAD_FOLDER, filename);
-    fs.writeFileSync(fpath, req.file.buffer);
+    fs.writeFileSync(fpath, req.file.buffer, { mode: 0o600 });
     const sizeKb = Math.ceil(fs.statSync(fpath).size / 1024);
     res.json({ filename, path: `/uploads/recruitment/${filename}`, size_kb: sizeKb });
 }
@@ -363,13 +419,33 @@ async function uploadCv(req, res) {
 async function attachCv(req, res) {
   const { id } = req.params;
   const { filename, path: cvPath } = req.body;
-  await pool.query('UPDATE recruitment_candidates SET cv_filename=?, cv_path=? WHERE id=?', [filename, cvPath, id]);
+  const safeName = typeof filename === 'string' ? path.basename(filename) : '';
+  const validName = safeName === filename &&
+    /^[A-Za-z0-9._-]+$/.test(safeName) &&
+    !safeName.includes('..') &&
+    allowedFile(safeName);
+  if (!validName || cvPath !== `/uploads/recruitment/${safeName}`) {
+    return res.status(400).json({ error: 'Invalid CV reference' });
+  }
+  if (!fs.existsSync(path.join(UPLOAD_FOLDER, safeName))) {
+    return res.status(404).json({ error: 'CV file not found' });
+  }
+  const [result] = await pool.query(
+    'UPDATE recruitment_candidates SET cv_filename=?, cv_path=? WHERE id=?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [filename, cvPath, id, req.tenantId] : [filename, cvPath, id]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Candidate not found' });
   res.json({ cv_path: cvPath });
 }
 
 // ── Scorecards ────────────────────────────────────────────────
 async function getScorecards(req, res) {
   const { id } = req.params;
+  const [[candidate]] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
+  if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
   const [rows] = await pool.query('SELECT * FROM recruitment_scorecards WHERE candidate_id = ? ORDER BY created_at', [id]);
   res.json(rows);
 }
@@ -380,9 +456,14 @@ async function addScorecard(req, res) {
   const { id } = req.params;
   const { interview, comm, technical, fit, overall, notes, decision } = req.body;
   const interviewer = req.admin?.username || req.admin?.name || 'HR';
+  const [[candidate]] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
+  if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
   const [result] = await pool.query(
-    'INSERT INTO recruitment_scorecards (candidate_id,interview,interviewer,comm,technical,fit,overall,notes,decision) VALUES (?,?,?,?,?,?,?,?,?)',
-    [id, interview || '1st Interview', interviewer, comm || 0, technical || 0, fit || 0, overall || 0, notes || '', decision || 'pending']
+    'INSERT INTO recruitment_scorecards (candidate_id,interview,interviewer,comm,technical,fit,overall,notes,decision,tenant_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    [id, interview || '1st Interview', interviewer, comm || 0, technical || 0, fit || 0, overall || 0, notes || '', decision || 'pending', req.tenantId || null]
   );
 
   const [[sc]] = await pool.query(
@@ -390,8 +471,8 @@ async function addScorecard(req, res) {
     [id]
   );
   await pool.query(
-    'UPDATE recruitment_candidates SET score_comm=?, score_tech=?, score_fit=? WHERE id=?',
-    [Math.round(sc.ac || 0), Math.round(sc.at || 0), Math.round(sc.af || 0), id]
+    'UPDATE recruitment_candidates SET score_comm=?, score_tech=?, score_fit=? WHERE id=?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [Math.round(sc.ac || 0), Math.round(sc.at || 0), Math.round(sc.af || 0), id, req.tenantId] : [Math.round(sc.ac || 0), Math.round(sc.at || 0), Math.round(sc.af || 0), id]
   );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'scorecard_added', `Added scorecard for candidate #${id}`);
   res.status(201).json({ id: result.insertId });
@@ -403,9 +484,14 @@ async function createOffer(req, res) {
   if (error) return res.status(400).json({ error: error.details[0].message });
   const { id } = req.params;
   const { position, department, salary, start_date, reports_to, benefits } = req.body;
+  const [[candidateRow]] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
+  if (!candidateRow) return res.status(404).json({ error: 'Candidate not found' });
   const [result] = await pool.query(
-    'INSERT INTO recruitment_offers (candidate_id,position,department,salary,start_date,reports_to,benefits,status) VALUES (?,?,?,?,?,?,?,?)',
-    [id, position || '', department || '', salary || '', start_date || '', reports_to || '', benefits || '', 'sent']
+    'INSERT INTO recruitment_offers (candidate_id,position,department,salary,start_date,reports_to,benefits,status,tenant_id) VALUES (?,?,?,?,?,?,?,?,?)',
+    [id, position || '', department || '', salary || '', start_date || '', reports_to || '', benefits || '', 'sent', req.tenantId || null]
   );
 
   // Advance candidate via workflow engine
@@ -413,7 +499,8 @@ async function createOffer(req, res) {
   let state = await getCandidateState(id);
   if (!state) {
     const [[defaultTpl]] = await pool.query(
-      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+      'SELECT id FROM workflow_templates WHERE is_active = 1' + (req.tenantId ? ' AND tenant_id = ?' : '') + ' ORDER BY id LIMIT 1',
+      req.tenantId ? [req.tenantId] : []
     );
     if (defaultTpl) state = await initCandidateState(id, defaultTpl.id);
   }
@@ -423,12 +510,18 @@ async function createOffer(req, res) {
       createdBy: req.admin?.username || req.hr?.username || 'HR',
     });
   } else {
-    await pool.query("UPDATE recruitment_candidates SET stage='offer' WHERE id=?", [id]);
-    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
-      [id, 'offer', 'Job offer generated and sent']);
+    await pool.query(
+      "UPDATE recruitment_candidates SET stage='offer' WHERE id=?" + (req.tenantId ? ' AND tenant_id = ?' : ''),
+      req.tenantId ? [id, req.tenantId] : [id]
+    );
+    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,tenant_id) VALUES (?,?,?,?)",
+      [id, 'offer', 'Job offer generated and sent', req.tenantId || null]);
   }
 
-  const [[c]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
+  const [[c]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
   if (c) {
     // Publish offer_sent workflow event
     const { publishEvent } = require('./engines/workflow.engine');
@@ -461,7 +554,23 @@ async function publicApply(req, res) {
   const { name, email, phone, job_id, job_title, technical, cover, source, education_level, experience_years, skills, certifications, current_salary, expected_salary, nationality, birth_date, national_id, current_job_title, last_work_place, reason_leaving, governorate, city, district } = req.body;
   if (!name || !email || !job_title) return res.status(400).json({ error: 'name, email, and job_title are required' });
 
-  const [existing] = await pool.query('SELECT id, stage, created_at FROM recruitment_candidates WHERE email=? AND job_title=? ORDER BY created_at DESC LIMIT 1', [email, job_title]);
+  // The job owns the tenant for portal applications. Without a job, fall back to
+  // the workspace resolved from ?tenant=<slug> / hostname.
+  let tenantId = null;
+  if (job_id) {
+    const [jobRows] = await pool.query(
+      "SELECT tenant_id FROM recruitment_jobs WHERE id = ? AND status = 'active'",
+      [job_id]
+    );
+    if (jobRows.length === 0) return res.status(400).json({ error: 'Job not found or no longer accepting applications' });
+    tenantId = jobRows[0].tenant_id;
+  }
+  if (!tenantId) tenantId = await resolvePublicTenantId(req);
+
+  const [existing] = await pool.query(
+    'SELECT id, stage, created_at FROM recruitment_candidates WHERE email=? AND job_title=? AND tenant_id=? ORDER BY created_at DESC LIMIT 1',
+    [email, job_title, tenantId]
+  );
   if (existing.length > 0) {
     const rec = existing[0];
     if (rec.stage !== 'rejected') {
@@ -479,24 +588,24 @@ async function publicApply(req, res) {
   let cvFilename = null, cvPath = null;
   if (req.file) {
     if (!allowedFile(req.file.originalname)) return res.status(400).json({ error: 'Invalid file type. Allowed: PDF, DOC, DOCX' });
-    cvFilename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${path.extname(req.file.originalname)}`;
+    cvFilename = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${safeExtension(req.file.originalname)}`;
     const fpath = path.join(UPLOAD_FOLDER, cvFilename);
-    fs.writeFileSync(fpath, req.file.buffer);
+    fs.writeFileSync(fpath, req.file.buffer, { mode: 0o600 });
     cvPath = `/uploads/recruitment/${cvFilename}`;
   }
 
   const [result] = await pool.query(
-    `INSERT INTO recruitment_candidates (name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district,cv_filename,cv_path)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years || null, skills ? (typeof skills === 'string' ? skills : JSON.stringify(skills)) : null, certifications ? (typeof certifications === 'string' ? certifications : JSON.stringify(certifications)) : null,
+    `INSERT INTO recruitment_candidates (tenant_id,name,email,phone,job_id,job_title,stage,technical,notes,source,education_level,experience_years,skills,certifications,current_salary,expected_salary,nationality,birth_date,national_id,current_job_title,last_work_place,reason_leaving,governorate,city,district,cv_filename,cv_path)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [tenantId, name, email, phone || '', job_id || null, job_title, 'applied', technical ? 1 : 0, cover || '', source || 'Portal', education_level || null, experience_years || null, skills ? (typeof skills === 'string' ? skills : JSON.stringify(skills)) : null, certifications ? (typeof certifications === 'string' ? certifications : JSON.stringify(certifications)) : null,
      current_salary || null, expected_salary || null, nationality || null, birth_date || null, national_id || null, current_job_title || null, last_work_place || null, reason_leaving || null, governorate || null, city || null, district || null, cvFilename, cvPath]
   );
-  await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note) VALUES (?,?,?)",
-    [result.insertId, 'applied', 'Application submitted via candidate portal']);
+  await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,tenant_id) VALUES (?,?,?,?)",
+    [result.insertId, 'applied', 'Application submitted via candidate portal', tenantId]);
 
   try {
     if (job_id) {
-      const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ?', [job_id]);
+      const [jobs] = await pool.query('SELECT title_id, workflow_template_id FROM recruitment_jobs WHERE id = ? AND tenant_id = ?', [job_id, tenantId]);
       if (jobs.length > 0 && jobs[0].workflow_template_id) {
         const { initCandidateState, publishEvent } = require('./engines/workflow.engine');
         await initCandidateState(result.insertId, jobs[0].workflow_template_id);
@@ -527,14 +636,14 @@ async function publicApply(req, res) {
         job_title: job_title,
         reference_number: ref,
       });
-      await emailService.sendEmail(email, result2.subject, result2.html);
+      await runWithTenant(tenantId, () => emailService.sendEmail(email, result2.subject, result2.html));
     } else {
       const result2 = await renderEmail('applied_confirmation', {
         candidate_name: name,
         job_title: job_title,
         reference_number: ref,
       });
-      await emailService.sendEmail(email, result2.subject, result2.html);
+      await runWithTenant(tenantId, () => emailService.sendEmail(email, result2.subject, result2.html));
     }
     emailSent = true;
   } catch (e) { logger.error('Confirmation/rejection email error:', e); }
@@ -549,16 +658,22 @@ async function publicTrack(req, res) {
   const perPage = Math.min(parseInt(req.query.per_page) || 20, 100);
   const offset = (page - 1) * perPage;
 
+  res.set('Cache-Control', 'no-store');
+  const tenantId = await resolvePublicTenantId(req);
+
   const [apps] = await pool.query(
-    'SELECT * FROM recruitment_candidates WHERE email=? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [email, perPage, offset]
+    `SELECT id, job_id, job_title, stage, created_at
+     FROM recruitment_candidates
+     WHERE email=? AND tenant_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [email, tenantId, perPage, offset]
   );
 
   if (apps.length > 0) {
     const ids = apps.map(a => a.id);
     const placeholders = ids.map(() => '?').join(',');
     const [historyRows] = await pool.query(
-      `SELECT * FROM recruitment_history WHERE candidate_id IN (${placeholders}) ORDER BY created_at`,
+      `SELECT id, candidate_id, stage, created_at FROM recruitment_history
+       WHERE candidate_id IN (${placeholders}) ORDER BY created_at`,
       ids
     );
     const byCandidate = {};
@@ -570,18 +685,30 @@ async function publicTrack(req, res) {
       a.history = byCandidate[a.id] || [];
     }
 
-    // Attach screening results (public-safe: omit internal details)
+    // Attach screening results (public-safe: only requirement labels/status)
     const [screeningRows] = await pool.query(
-      `SELECT sr.candidate_id, sr.stage, sr.result, sr.created_at FROM screening_results sr
-       WHERE sr.candidate_id IN (${placeholders})
-       ORDER BY sr.candidate_id, sr.created_at DESC`,
+      `SELECT candidate_id, overall_status, requirement_results, created_at FROM screening_results
+       WHERE candidate_id IN (${placeholders})
+       ORDER BY candidate_id, created_at DESC`,
       ids
     );
     const byCandidateScreening = {};
     for (const s of screeningRows) {
-      if (!byCandidateScreening[s.candidate_id]) {
-        byCandidateScreening[s.candidate_id] = s;
-      }
+      if (byCandidateScreening[s.candidate_id]) continue;
+      let requirements = [];
+      try {
+        const parsed = Array.isArray(s.requirement_results)
+          ? s.requirement_results
+          : JSON.parse(s.requirement_results || '[]');
+        requirements = parsed
+          .filter((r) => r && typeof r === 'object')
+          .map((r) => ({ requirement: String(r.requirement || ''), status: r.status === 'rejected' ? 'rejected' : 'passed' }));
+      } catch { requirements = []; }
+      byCandidateScreening[s.candidate_id] = {
+        overall_status: s.overall_status,
+        requirement_results: requirements,
+        created_at: s.created_at,
+      };
     }
     for (const a of apps) {
       a.screening = byCandidateScreening[a.id] || null;
@@ -622,7 +749,7 @@ async function publicTrack(req, res) {
     }
   }
 
-  const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM recruitment_candidates WHERE email=?', [email]);
+  const [[{ total }]] = await pool.query('SELECT COUNT(*) AS total FROM recruitment_candidates WHERE email=? AND tenant_id=?', [email, tenantId]);
   res.json({
     data: apps,
     pagination: { page, per_page: perPage, total, pages: Math.ceil(total / perPage) },
@@ -631,6 +758,7 @@ async function publicTrack(req, res) {
 
 // ── Get active jobs (public) ───────────────────────────────────
 async function getActiveJobs(req, res) {
+  const tenantId = await resolvePublicTenantId(req);
   const [[allSkills], [allCerts]] = await Promise.all([
     pool.query('SELECT id, name FROM master_skills'),
     pool.query('SELECT id, name FROM master_certifications'),
@@ -650,9 +778,9 @@ async function getActiveJobs(req, res) {
          'preferred_certs', dt.preferred_certs
        ) AS min_requirements
      FROM recruitment_jobs j
-     LEFT JOIN department_titles dt ON j.title_id = dt.id
-     WHERE j.status = 'active'
-     ORDER BY j.created_at DESC`
+     LEFT JOIN department_titles dt ON j.title_id = dt.id AND dt.tenant_id = j.tenant_id
+     WHERE j.status = 'active' AND j.tenant_id = ?
+     ORDER BY j.created_at DESC`, [tenantId]
   );
   const parseArr = v => {
     if (Array.isArray(v)) return v;
@@ -727,8 +855,26 @@ async function hireCandidate(req, res) {
   const { id } = req.params;
   const { employee_id, start_date, department_id, title_id } = req.body;
 
-  const [[candidate]] = await pool.query('SELECT * FROM recruitment_candidates WHERE id = ?', [id]);
+  const [[candidate]] = await pool.query(
+    'SELECT * FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
+  );
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+  if (department_id) {
+    const [dept] = await pool.query(
+      'SELECT id FROM departments WHERE id = ? AND tenant_id = ?',
+      [department_id, req.tenantId]
+    );
+    if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
+  if (title_id) {
+    const [titleRow] = await pool.query(
+      'SELECT id FROM department_titles WHERE id = ? AND tenant_id = ?',
+      [title_id, req.tenantId]
+    );
+    if (titleRow.length === 0) return res.status(400).json({ error: 'Invalid title' });
+  }
 
   // Validate headcount capacity before hiring
   if (department_id || title_id) {
@@ -741,12 +887,23 @@ async function hireCandidate(req, res) {
     }
   }
 
+  // Hiring without an existing employee record creates a new seat.
+  if (!employee_id) {
+    const quota = await checkEmployeeQuota(req.tenantId);
+    if (!quota.allowed) {
+      return res.status(403).json({
+        error: `Cannot hire — this workspace has reached its employee limit (${quota.limit}). Upgrade the plan to add more employees.`,
+      });
+    }
+  }
+
   // Advance candidate via workflow engine
   const { getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
   let state = await getCandidateState(id);
   if (!state) {
     const [[defaultTpl]] = await pool.query(
-      'SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1'
+      'SELECT id FROM workflow_templates WHERE is_active = 1' + (req.tenantId ? ' AND tenant_id = ?' : '') + ' ORDER BY id LIMIT 1',
+      req.tenantId ? [req.tenantId] : []
     );
     if (defaultTpl) state = await initCandidateState(id, defaultTpl.id);
   }
@@ -756,41 +913,56 @@ async function hireCandidate(req, res) {
       createdBy: req.admin?.username || req.hr?.username || 'HR',
     });
   } else {
-    await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [id]);
-    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,?,?,?)",
-      [id, 'hired', 'Candidate hired and converted to employee', req.admin?.username || 'HR']);
+    await pool.query(
+      "UPDATE recruitment_candidates SET stage='hired' WHERE id=?" + (req.tenantId ? ' AND tenant_id = ?' : ''),
+      req.tenantId ? [id, req.tenantId] : [id]
+    );
+    await pool.query("INSERT INTO recruitment_history (candidate_id,stage,note,created_by,tenant_id) VALUES (?,?,?,?,?)",
+      [id, 'hired', 'Candidate hired and converted to employee', req.admin?.username || 'HR', req.tenantId || null]);
   }
 
   if (employee_id) {
-    const [empRows] = await pool.query('SELECT id FROM employees WHERE employee_id = ?', [String(employee_id)]);
+    const [empRows] = await pool.query(
+      'SELECT id FROM employees WHERE employee_id = ? AND tenant_id = ?',
+      [String(employee_id), req.tenantId]
+    );
     if (empRows.length > 0) {
       const eid = empRows[0].id;
       await pool.query(
-        'UPDATE employees SET name=?, email=?, phone=?, department_id=?, title_id=? WHERE id=?',
-        [candidate.name, candidate.email, candidate.phone || '', department_id || null, title_id || null, eid]
+        'UPDATE employees SET name=?, email=?, phone=?, department_id=?, title_id=? WHERE id=? AND tenant_id=?',
+        [candidate.name, candidate.email, candidate.phone || '', department_id || null, title_id || null, eid, req.tenantId]
       );
       logActivity(eid, req.admin?.id || req.hr?.id || null, 'hired_from_recruitment', `Hired from recruitment: ${candidate.name}`);
     } else {
       return res.status(404).json({ error: 'Employee not found' });
     }
   } else {
-    const [maxRow] = await pool.query('SELECT MAX(employee_id) AS max_id FROM employees');
+    const [maxRow] = await pool.query(
+      'SELECT MAX(employee_id) AS max_id FROM employees WHERE tenant_id = ?',
+      [req.tenantId]
+    );
     const nextEmployeeId = (maxRow[0].max_id || 0) + 1;
-    const username = candidate.email.split('@')[0] + Math.floor(Math.random() * 1000);
-    const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+    const username = candidate.email.split('@')[0] + crypto.randomInt(100000, 1000000);
+    const tempPassword = `${crypto.randomBytes(12).toString('base64url')}A1!`;
     const password_hash = await bcrypt.hash(tempPassword, 13);
 
     const [insertResult] = await pool.query(
       `INSERT INTO employees (tenant_id, employee_id, name, email, phone, username, password_hash, is_verified, department_id, title_id, can_wfh, employment_status)
        VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 1, 'active')`,
-      [req.tenantId || 1, nextEmployeeId, candidate.name, candidate.email, candidate.phone || '', username, password_hash, department_id || null, title_id || null]
+      [req.tenantId, nextEmployeeId, candidate.name, candidate.email, candidate.phone || '', username, password_hash, department_id || null, title_id || null]
     );
     const eid = insertResult.insertId;
 
     try {
-      const [typeRows] = await pool.query('SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL');
+      const [typeRows] = await pool.query(
+        'SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL AND tenant_id = ?',
+        [req.tenantId]
+      );
       for (const t of typeRows) {
-        await pool.query('INSERT IGNORE INTO leave_balances (employee_id, leave_type, balance) VALUES (?, ?, ?)', [eid, t.name, t.default_balance]);
+        await pool.query(
+          'INSERT IGNORE INTO leave_balances (employee_id, leave_type, balance, tenant_id) VALUES (?, ?, ?, ?)',
+          [eid, t.name, t.default_balance, req.tenantId]
+        );
       }
     } catch (e) { /* non-critical */ }
 
@@ -905,6 +1077,11 @@ async function createInterview(req, res) {
   if (!candidate_id || !interview_date) {
     return res.status(400).json({ error: 'candidate_id and interview_date are required' });
   }
+  const [[candidateRow]] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [candidate_id, req.tenantId] : [candidate_id]
+  );
+  if (!candidateRow) return res.status(404).json({ error: 'Candidate not found' });
   let generatedLink = meeting_link || '';
   if (type === 'online' && !generatedLink && (meeting_platform === 'Google Meet' || meeting_platform === 'Microsoft Teams')) {
     try {
@@ -933,13 +1110,19 @@ async function createInterview(req, res) {
   );
 
   // Auto-move candidate to first stage
-  await pool.query("UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?", [candidate_id]);
   await pool.query(
-    "INSERT INTO recruitment_history (candidate_id,stage,note,created_by) VALUES (?,'first','Interview scheduled — moved to first stage',?)",
-    [candidate_id, req.admin?.username || req.hr?.username || 'HR']
+    "UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?" + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [candidate_id, req.tenantId] : [candidate_id]
+  );
+  await pool.query(
+    "INSERT INTO recruitment_history (candidate_id,stage,note,created_by,tenant_id) VALUES (?,'first','Interview scheduled — moved to first stage',?,?)",
+    [candidate_id, req.admin?.username || req.hr?.username || 'HR', req.tenantId || null]
   );
 
-  const [[candidate]] = await pool.query('SELECT name, email, job_title FROM recruitment_candidates WHERE id = ?', [candidate_id]);
+  const [[candidate]] = await pool.query(
+    'SELECT name, email, job_title FROM recruitment_candidates WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [candidate_id, req.tenantId] : [candidate_id]
+  );
   if (candidate) {
     try {
       const { sendInterviewInvitation } = require('../../shared/services/email.service');
@@ -983,7 +1166,12 @@ async function updateInterview(req, res) {
   if (candidate_status !== undefined) { fields.push('candidate_status = ?'); params.push(candidate_status); }
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
   params.push(id);
-  await pool.query(`UPDATE recruitment_interviews SET ${fields.join(', ')} WHERE id = ?`, params);
+  if (req.tenantId) params.push(req.tenantId);
+  const [result] = await pool.query(
+    `UPDATE recruitment_interviews SET ${fields.join(', ')} WHERE id = ?` + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    params
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Interview not found' });
   res.json({ message: 'Interview updated' });
 }
 
@@ -1043,19 +1231,24 @@ async function getRecruitmentStats(req, res) {
   const [workflowStageCounts] = await pool.query(
     `SELECT ws.display_name, ws.stage_key, COUNT(cws.candidate_id) AS count
      FROM candidate_workflow_state cws
+     JOIN recruitment_candidates rc ON rc.id = cws.candidate_id
      JOIN workflow_stages ws ON ws.id = cws.current_stage_id
-     WHERE cws.is_completed = 0
+     WHERE cws.is_completed = 0${tenantId ? ' AND rc.tenant_id = ?' : ''}
      GROUP BY ws.id, ws.display_name, ws.stage_key
-     ORDER BY ws.stage_order`
+     ORDER BY ws.stage_order`,
+    tenantId ? [tenantId] : []
   );
 
   const [avgDaysPerStage] = await pool.query(
     `SELECT ws.display_name, ws.stage_key,
        ROUND(AVG(TIMESTAMPDIFF(HOUR, cws.stage_entered_at, COALESCE(cws.previous_stage_exited_at, NOW()))) / 24, 1) AS avg_days
      FROM candidate_workflow_state cws
+     JOIN recruitment_candidates rc ON rc.id = cws.candidate_id
      JOIN workflow_stages ws ON ws.id = cws.current_stage_id
+     ${tenantId ? 'WHERE rc.tenant_id = ?' : ''}
      GROUP BY ws.id, ws.display_name, ws.stage_key
-     ORDER BY ws.stage_order`
+     ORDER BY ws.stage_order`,
+    tenantId ? [tenantId] : []
   );
 
   const hiredCount = stageCounts.find(s => s.stage === 'hired')?.count || 0;
@@ -1087,12 +1280,15 @@ async function updateOffer(req, res) {
     `SELECT o.*, c.id AS candidate_id, c.name AS candidate_name, c.email, c.job_title
      FROM recruitment_offers o
      JOIN recruitment_candidates c ON c.id = o.candidate_id
-     WHERE o.id = ?`,
-    [id]
+     WHERE o.id = ?` + (req.tenantId ? ' AND c.tenant_id = ?' : ''),
+    req.tenantId ? [id, req.tenantId] : [id]
   );
   if (!offer) return res.status(404).json({ error: 'Offer not found' });
 
-  await pool.query('UPDATE recruitment_offers SET status = ? WHERE id = ?', [status, id]);
+  await pool.query(
+    'UPDATE recruitment_offers SET status = ? WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [status, id, req.tenantId] : [status, id]
+  );
 
   const { publishEvent, getCandidateState, initCandidateState, transition } = require('./engines/workflow.engine');
   const emailService = require('../../shared/services/email.service');
@@ -1105,13 +1301,19 @@ async function updateOffer(req, res) {
       await publishEvent(cid, 'offer_accepted', { offer_id: parseInt(id), position: offer.position }, null, req.admin?.username || 'HR');
       let state = await getCandidateState(cid);
       if (!state) {
-        const [[defaultTpl]] = await pool.query('SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1');
+        const [[defaultTpl]] = await pool.query(
+          'SELECT id FROM workflow_templates WHERE is_active = 1' + (req.tenantId ? ' AND tenant_id = ?' : '') + ' ORDER BY id LIMIT 1',
+          req.tenantId ? [req.tenantId] : []
+        );
         if (defaultTpl) state = await initCandidateState(cid, defaultTpl.id);
       }
       if (state) {
         await transition(cid, 'hired', { note: 'Offer accepted by candidate', createdBy: req.admin?.username || 'HR' });
       } else {
-        await pool.query("UPDATE recruitment_candidates SET stage='hired' WHERE id=?", [cid]);
+        await pool.query(
+          "UPDATE recruitment_candidates SET stage='hired' WHERE id=?" + (req.tenantId ? ' AND tenant_id = ?' : ''),
+          req.tenantId ? [cid, req.tenantId] : [cid]
+        );
       }
       try {
         const result = await renderEmail('offer_accepted', { candidate_name: offer.candidate_name, position: offer.position });
@@ -1214,7 +1416,8 @@ async function listHRStaff(req, res) {
 
 async function getMeetingStatus(req, res) {
   const [rows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('meeting_google_service_email','meeting_google_private_key','meeting_teams_tenant_id','meeting_teams_client_id','meeting_teams_client_secret')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('meeting_google_service_email','meeting_google_private_key','meeting_teams_tenant_id','meeting_teams_client_id','meeting_teams_client_secret')" + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [req.tenantId] : []
   );
   const s = {};
   for (const r of rows) s[r.key] = r.value;

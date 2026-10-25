@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatDate } from '../../../shared/utils/date';
 
 const GRADE_COLORS = {
   low:    { bg: '#ecfdf5', border: '#10b981', text: '#065f46', label: 'Junior' },
@@ -64,7 +65,7 @@ function Tooltip({ title, grade, gradeLevel, description, technical, filled, max
         </div>
         {technical && <div style={{ color: '#60a5fa' }}>⚙️ Technical position</div>}
         {hasCriteria && <div style={{ color: '#a78bfa' }}>📊 Has evaluation criteria</div>}
-        {created_at && <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: 2 }}>📅 Created {new Date(created_at).toLocaleDateString('en-GB')}</div>}
+        {created_at && <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: 2 }}>📅 Created {formatDate(created_at)}</div>}
       </div>
     </div>
   );

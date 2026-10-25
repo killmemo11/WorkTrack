@@ -3,6 +3,7 @@ import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { isValidHttpUrl } from '../../../shared/utils/sanitize';
+import { formatWeekdayDate, formatTime } from '../../../shared/utils/date';
 
 export default function PublicInterviews() {
   const [email, setEmail] = useState('');
@@ -144,9 +145,9 @@ export default function PublicInterviews() {
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{iv.job_title || 'Interview'}</div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                        {dt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        {formatWeekdayDate(dt)}
                         {' \u00b7 '}
-                        {dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {formatTime(dt)}
                         {' \u00b7 '}
                         {iv.duration} min
                       </div>

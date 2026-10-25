@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import Pagination from '../../../shared/components/Pagination';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDate as formatDateCairo } from '../../../shared/utils/date';
 
 const STATUS_CONFIG = {
   active: { label: 'Active', color: 'success' },
@@ -75,7 +76,7 @@ export default function PlatformTenants() {
     }
   };
 
-  const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : '—';
+  const formatDate = (dateStr) => dateStr ? formatDateCairo(dateStr) : '—';
 
   return (
     <div className="platform-page">

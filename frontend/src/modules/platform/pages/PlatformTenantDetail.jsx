@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDate as formatDateCairo } from '../../../shared/utils/date';
 
 export default function PlatformTenantDetail() {
   const { id } = useParams();
@@ -69,7 +70,7 @@ export default function PlatformTenantDetail() {
     } catch { alert('Failed'); }
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
+  const formatDate = (d) => d ? formatDateCairo(d) : '—';
 
   if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading...</span></div>;
   if (!tenant) return null;

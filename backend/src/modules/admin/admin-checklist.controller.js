@@ -6,14 +6,14 @@ const { logActivity } = require('../../shared/services/activity.service');
 
 async function getChecklistTemplates(req, res) {
   const { type } = req.query;
-  let where = '1=1'; let params = [];
-  if (type) { where = 'type = ?'; params.push(type); }
+  let where = 'tenant_id = ?'; let params = [req.tenantId];
+  if (type) { where += ' AND type = ?'; params.push(type); }
   const [templates] = await pool.query(`SELECT * FROM checklist_templates WHERE ${where} ORDER BY name`, params);
   if (templates.length > 0) {
     const ids = templates.map(t => t.id);
     const [allItems] = await pool.query(
-      `SELECT * FROM checklist_items WHERE template_id IN (${ids.map(() => '?').join(',')}) ORDER BY template_id, order_index`,
-      ids
+      `SELECT * FROM checklist_items WHERE tenant_id = ? AND template_id IN (${ids.map(() => '?').join(',')}) ORDER BY template_id, order_index`,
+      [req.tenantId, ...ids]
     );
     const itemsByTemplate = {};
     for (const item of allItems) {
@@ -31,9 +31,13 @@ async function createChecklistTemplate(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const { name, type, department_id } = req.body;
   if (!name || !type) return res.status(400).json({ error: 'Name and type are required' });
+  if (department_id) {
+    const [dept] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [department_id, req.tenantId]);
+    if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
   const [result] = await pool.query(
-    'INSERT INTO checklist_templates (name, type, department_id) VALUES (?, ?, ?)',
-    [name.trim(), type, department_id || null]
+    'INSERT INTO checklist_templates (name, type, department_id, tenant_id) VALUES (?, ?, ?, ?)',
+    [name.trim(), type, department_id || null, req.tenantId]
   );
   logActivity(null, adminId, 'checklist_template_created', `Created ${type} template: ${name}`);
   res.status(201).json({ id: result.insertId, message: 'Template created' });
@@ -46,11 +50,18 @@ async function updateChecklistTemplate(req, res) {
   const fields = []; const values = [];
   if (name !== undefined) { fields.push('name = ?'); values.push(name.trim()); }
   if (type !== undefined) { fields.push('type = ?'); values.push(type); }
-  if (department_id !== undefined) { fields.push('department_id = ?'); values.push(department_id || null); }
+  if (department_id !== undefined) {
+    if (department_id) {
+      const [dept] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [department_id, req.tenantId]);
+      if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+    }
+    fields.push('department_id = ?'); values.push(department_id || null);
+  }
   if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
   if (fields.length === 0) return res.status(400).json({ error: 'No fields' });
-  values.push(id);
-  await pool.query(`UPDATE checklist_templates SET ${fields.join(', ')} WHERE id = ?`, values);
+  values.push(id, req.tenantId);
+  const [result] = await pool.query(`UPDATE checklist_templates SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`, values);
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Template not found' });
   logActivity(null, adminId, 'checklist_template_updated', `Updated template #${id}`);
   res.json({ message: 'Template updated' });
 }
@@ -58,7 +69,7 @@ async function updateChecklistTemplate(req, res) {
 async function deleteChecklistTemplate(req, res) {
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
-  await pool.query('DELETE FROM checklist_templates WHERE id = ?', [id]);
+  await pool.query('DELETE FROM checklist_templates WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   logActivity(null, adminId, 'checklist_template_deleted', `Deleted template #${id}`);
   res.json({ message: 'Template deleted' });
 }
@@ -67,9 +78,11 @@ async function addChecklistItem(req, res) {
   const { template_id } = req.params;
   const { task_name, assigned_to, order_index, is_required, days_offset } = req.body;
   if (!task_name) return res.status(400).json({ error: 'Task name is required' });
+  const [tpl] = await pool.query('SELECT id FROM checklist_templates WHERE id = ? AND tenant_id = ?', [template_id, req.tenantId]);
+  if (tpl.length === 0) return res.status(404).json({ error: 'Template not found' });
   const [result] = await pool.query(
-    'INSERT INTO checklist_items (template_id, task_name, assigned_to, order_index, is_required, days_offset) VALUES (?, ?, ?, ?, ?, ?)',
-    [template_id, task_name, assigned_to || 'admin', order_index || 0, is_required !== undefined ? is_required : 1, days_offset || 0]
+    'INSERT INTO checklist_items (template_id, task_name, assigned_to, order_index, is_required, days_offset, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [template_id, task_name, assigned_to || 'admin', order_index || 0, is_required !== undefined ? is_required : 1, days_offset || 0, req.tenantId]
   );
   res.status(201).json({ id: result.insertId, message: 'Item added' });
 }
@@ -84,14 +97,15 @@ async function updateChecklistItem(req, res) {
   if (is_required !== undefined) { fields.push('is_required = ?'); values.push(is_required); }
   if (days_offset !== undefined) { fields.push('days_offset = ?'); values.push(days_offset); }
   if (fields.length === 0) return res.status(400).json({ error: 'No fields' });
-  values.push(item_id);
-  await pool.query(`UPDATE checklist_items SET ${fields.join(', ')} WHERE id = ?`, values);
+  values.push(item_id, req.tenantId);
+  const [result] = await pool.query(`UPDATE checklist_items SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`, values);
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Item not found' });
   res.json({ message: 'Item updated' });
 }
 
 async function deleteChecklistItem(req, res) {
   const { item_id } = req.params;
-  await pool.query('DELETE FROM checklist_items WHERE id = ?', [item_id]);
+  await pool.query('DELETE FROM checklist_items WHERE id = ? AND tenant_id = ?', [item_id, req.tenantId]);
   res.json({ message: 'Item deleted' });
 }
 
@@ -101,23 +115,31 @@ async function startEmployeeChecklist(req, res) {
   const { template_id } = req.body;
   if (!template_id) return res.status(400).json({ error: 'Template ID is required' });
 
+  const [tpl] = await pool.query('SELECT id FROM checklist_templates WHERE id = ? AND tenant_id = ?', [template_id, req.tenantId]);
+  if (tpl.length === 0) return res.status(404).json({ error: 'Template not found' });
+
+  const [emp] = await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
+  if (emp.length === 0) return res.status(404).json({ error: 'Employee not found' });
+
   const [existing] = await pool.query(
-    'SELECT id FROM employee_checklists WHERE employee_id = ? AND template_id = ? AND status = ?',
-    [employeeId, template_id, 'in_progress']
+    'SELECT id FROM employee_checklists WHERE employee_id = ? AND template_id = ? AND status = ? AND tenant_id = ?',
+    [employeeId, template_id, 'in_progress', req.tenantId]
   );
   if (existing.length > 0) return res.status(400).json({ error: 'An active checklist already exists for this template' });
 
   const [result] = await pool.query(
-    'INSERT INTO employee_checklists (employee_id, template_id, started_date) VALUES (?, ?, CURDATE())',
-    [employeeId, template_id]
+    'INSERT INTO employee_checklists (employee_id, template_id, started_date, tenant_id) VALUES (?, ?, CURDATE(), ?)',
+    [employeeId, template_id, req.tenantId]
   );
   const checklistId = result.insertId;
 
-  const [items] = await pool.query('SELECT * FROM checklist_items WHERE template_id = ? ORDER BY order_index', [template_id]);
+  const [items] = await pool.query('SELECT * FROM checklist_items WHERE template_id = ? AND tenant_id = ? ORDER BY order_index', [template_id, req.tenantId]);
   if (items.length > 0) {
-    const values = items.map(item => `(${checklistId}, ${item.id}, 'pending')`).join(',');
+    const values = items.map(() => `(?, ?, 'pending', ?)`).join(',');
+    const params = items.flatMap(item => [checklistId, item.id, req.tenantId]);
     await pool.query(
-      `INSERT INTO employee_checklist_tasks (checklist_id, item_id, status) VALUES ${values}`
+      `INSERT INTO employee_checklist_tasks (checklist_id, item_id, status, tenant_id) VALUES ${values}`,
+      params
     );
   }
 
@@ -130,9 +152,9 @@ async function getEmployeeChecklists(req, res) {
   const [rows] = await pool.query(
     `SELECT ec.*, ct.name AS template_name, ct.type
      FROM employee_checklists ec
-     JOIN checklist_templates ct ON ec.template_id = ct.id
-     WHERE ec.employee_id = ?
-     ORDER BY ec.created_at DESC`, [employeeId]
+     JOIN checklist_templates ct ON ec.template_id = ct.id AND ct.tenant_id = ec.tenant_id
+     WHERE ec.employee_id = ? AND ec.tenant_id = ?
+     ORDER BY ec.created_at DESC`, [employeeId, req.tenantId]
   );
   res.json(rows);
 }
@@ -142,8 +164,8 @@ async function getChecklistDetail(req, res) {
   const [chk] = await pool.query(
     `SELECT ec.*, ct.name AS template_name, ct.type
      FROM employee_checklists ec
-     JOIN checklist_templates ct ON ec.template_id = ct.id
-     WHERE ec.id = ?`, [checklist_id]
+     JOIN checklist_templates ct ON ec.template_id = ct.id AND ct.tenant_id = ec.tenant_id
+     WHERE ec.id = ? AND ec.tenant_id = ?`, [checklist_id, req.tenantId]
   );
   if (chk.length === 0) return res.status(404).json({ error: 'Checklist not found' });
   const [tasks] = await pool.query(
@@ -153,8 +175,8 @@ async function getChecklistDetail(req, res) {
      JOIN checklist_items ci ON eck.item_id = ci.id
      LEFT JOIN employees e ON eck.assigned_to_employee_id = e.id
      LEFT JOIN admin_users au ON eck.completed_by = au.id
-     WHERE eck.checklist_id = ?
-     ORDER BY ci.order_index`, [checklist_id]
+     WHERE eck.checklist_id = ? AND eck.tenant_id = ?
+     ORDER BY ci.order_index`, [checklist_id, req.tenantId]
   );
   res.json({ checklist: chk[0], tasks });
 }
@@ -164,17 +186,20 @@ async function completeTask(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const { notes } = req.body;
 
+  const [chk] = await pool.query('SELECT id FROM employee_checklists WHERE id = ? AND tenant_id = ?', [checklist_id, req.tenantId]);
+  if (chk.length === 0) return res.status(404).json({ error: 'Checklist not found' });
+
   await pool.query(
-    "UPDATE employee_checklist_tasks SET status = 'completed', completed_date = CURDATE(), notes = ?, completed_by = ? WHERE id = ? AND checklist_id = ?",
-    [notes || null, adminId, task_id, checklist_id]
+    "UPDATE employee_checklist_tasks SET status = 'completed', completed_date = CURDATE(), notes = ?, completed_by = ? WHERE id = ? AND checklist_id = ? AND tenant_id = ?",
+    [notes || null, adminId, task_id, checklist_id, req.tenantId]
   );
 
   // Check if all tasks completed → update checklist status
   const [pending] = await pool.query(
-    "SELECT COUNT(*) as cnt FROM employee_checklist_tasks WHERE checklist_id = ? AND status != 'completed'", [checklist_id]
+    "SELECT COUNT(*) as cnt FROM employee_checklist_tasks WHERE checklist_id = ? AND tenant_id = ? AND status != 'completed'", [checklist_id, req.tenantId]
   );
   if (pending[0].cnt === 0) {
-    await pool.query("UPDATE employee_checklists SET status = 'completed' WHERE id = ?", [checklist_id]);
+    await pool.query("UPDATE employee_checklists SET status = 'completed' WHERE id = ? AND tenant_id = ?", [checklist_id, req.tenantId]);
   }
 
   logActivity(null, adminId, 'checklist_task_completed', `Completed task #${task_id} in checklist #${checklist_id}`);
@@ -187,13 +212,13 @@ async function getMyPendingTasks(req, res) {
     `SELECT eck.*, ci.task_name, ci.assigned_to, ec.employee_id AS target_employee_id,
             e.name AS target_employee_name, ct.name AS template_name, ct.type
      FROM employee_checklist_tasks eck
-     JOIN employee_checklists ec ON eck.checklist_id = ec.id
-     JOIN checklist_items ci ON eck.item_id = ci.id
-     JOIN checklist_templates ct ON ec.template_id = ct.id
-     JOIN employees e ON ec.employee_id = e.id
+     JOIN employee_checklists ec ON eck.checklist_id = ec.id AND ec.tenant_id = eck.tenant_id
+     JOIN checklist_items ci ON eck.item_id = ci.id AND ci.tenant_id = eck.tenant_id
+     JOIN checklist_templates ct ON ec.template_id = ct.id AND ct.tenant_id = ec.tenant_id
+     JOIN employees e ON ec.employee_id = e.id AND e.tenant_id = ec.tenant_id
      WHERE (eck.assigned_to_employee_id = ? OR (eck.assigned_to_employee_id IS NULL AND ci.assigned_to = 'admin'))
-       AND eck.status = 'pending'
-     ORDER BY ec.created_at ASC`, [employeeId]
+       AND eck.status = 'pending' AND eck.tenant_id = ?
+     ORDER BY ec.created_at ASC`, [employeeId, req.tenantId]
   );
   res.json(rows);
 }

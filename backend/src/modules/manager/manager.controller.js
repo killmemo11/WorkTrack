@@ -15,7 +15,8 @@ async function getManagerTeamDashboard(req, res) {
 
   // Get work week settings
   const [settingsRows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+    [req.tenantId]
   );
   const s = {};
   for (const row of settingsRows) s[row.key] = row.value;
@@ -94,7 +95,8 @@ async function getManagerTeamDashboard(req, res) {
 
   // Get this period summary stats
   const [periodRows] = await pool.query(
-    "SELECT `value` FROM settings WHERE `key` = 'period_start_day'"
+    "SELECT `value` FROM settings WHERE `key` = 'period_start_day' AND tenant_id = ?",
+    [req.tenantId]
   );
   const periodStartDay = parseInt(periodRows.length > 0 ? periodRows[0].value : 15);
   const year = today.getFullYear();

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatDateLong } from '../../../shared/utils/date';
 
 export default function ProfileField({ label, value, icon, editing, type = 'text', options, onChange, placeholder, error, hint, required }) {
   const [focused, setFocused] = useState(false);
@@ -49,7 +50,7 @@ export default function ProfileField({ label, value, icon, editing, type = 'text
 
   const formatDisplayValue = (val) => {
     if (!val) return <span className="profile-field-empty">Not set</span>;
-    if (type === 'date') return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    if (type === 'date') return formatDateLong(val);
     return val;
   };
 

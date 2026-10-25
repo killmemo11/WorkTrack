@@ -8,7 +8,7 @@ const { requirePermission } = require('../../shared/middleware/rbac.middleware')
 
 // Get IT settings (SMTP, GPS, Branding, Meetings)
 router.get('/settings', requirePermission('it.view_settings'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const keys = [
     'smtp_host','smtp_port','smtp_user','smtp_from',
     'office_lat','office_lng','office_radius_meters',
@@ -29,7 +29,7 @@ router.get('/settings', requirePermission('it.view_settings'), async (req, res) 
 
 // Update IT settings
 router.put('/settings', requirePermission('it.manage_smtp'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const allowed = [
     'smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from',
     'office_lat','office_lng','office_radius_meters',
@@ -63,7 +63,7 @@ router.post('/test-email', requirePermission('it.manage_smtp'), async (req, res)
   const { to } = req.body;
   if (!to) return res.status(400).json({ error: 'Recipient email required' });
 
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
     `SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN ('smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from') AND tenant_id = ?`,
     [tenantId]

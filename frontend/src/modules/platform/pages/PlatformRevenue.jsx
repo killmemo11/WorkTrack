@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const STATUS_COLORS = {
   verified: '#22c55e',
@@ -28,7 +29,7 @@ export default function PlatformRevenue() {
     return Number(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const formatDate = (d) => d ? formatDateShort(d) : '—';
 
   const formatMonth = (m) => {
     if (!m) return '';

@@ -41,13 +41,13 @@ const { resolveTenant } = require('./shared/middleware/tenant.middleware');
 const { csrfProtection } = require('./shared/middleware/csrf.middleware');
 const { STORAGE_DIR } = require('./shared/config/storage');
 const multer = require('multer');
+const { CV_EXTENSIONS, extensionAllowed, invalidFileType, singleFile } = require('./shared/utils/upload-security');
 const cvUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ext = require('path').extname(file.originalname).toLowerCase();
-    if (['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'].includes(ext)) return cb(null, true);
-    cb(new Error('Invalid file type. Allowed: PDF, DOC, DOCX, PNG, JPG'));
+    if (extensionAllowed(file.originalname, CV_EXTENSIONS)) return cb(null, true);
+    cb(invalidFileType(CV_EXTENSIONS));
   },
 });
 const { adminRouter: recAdminRouter, hrRouter: recHrRouter } = require('./modules/recruitment/recruitment.routes');
@@ -101,7 +101,7 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "blob:"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'"],
         frameSrc: ["'self'", "https://meet.jit.si"],
@@ -118,16 +118,21 @@ app.use(
     referrerPolicy: { policy: 'same-origin' },
     // xssFilter is deprecated but kept for compatibility
     // crossOriginEmbedderPolicy: false // already set above
-    permissionsPolicy: {
-      camera: [],
-      microphone: [],
-      geolocation: [],
-      payment: ['self'],
-    },
   })
 );
 
-// Rate limiting — auth endpoints
+// Helmet v8 no longer ships Permissions-Policy; set it explicitly.
+app.use((req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(self), camera=(self "https://meet.jit.si"), microphone=(self "https://meet.jit.si"), payment=(self)'
+  );
+  next();
+});
+
+// Rate limiting — credential endpoints only. Authenticated app traffic under
+// /api/auth (me, leaves, notifications, profile) is covered by apiLimiter;
+// applying the login budget to those reads throttles normal usage.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
@@ -136,12 +141,23 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { error: 'Too many refresh attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: parseInt(process.env.API_RATE_LIMIT_MAX, 10) || 500,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Health probes come from the reverse proxy and monitoring; they must not
+  // consume (or be blocked by) the per-IP API budget.
+  skip: (req) => req.path === '/health',
 });
 
 const platformLoginLimiter = rateLimit({
@@ -185,7 +201,6 @@ app.use(csrfProtection);
 
 // CORS — restrict to FRONTEND_URL in all environments
 const isDev = process.env.NODE_ENV === 'development';
-const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
@@ -197,20 +212,37 @@ app.use(cors({
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
-// Serve uploaded files — requires authentication
+// Serve uploaded files — requires authentication. The restrictive CSP keeps
+// a malicious upload (for example a polyglot file) from executing same-origin.
 const { authenticate } = require('./shared/middleware/auth.middleware');
-app.use('/uploads', authenticate, express.static(STORAGE_DIR));
+app.use('/uploads', authenticate, (req, res, next) => {
+  res.set({
+    'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    'Cache-Control': 'private, no-store',
+  });
+  next();
+}, express.static(STORAGE_DIR));
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
 }
 
 // Apply rate limiters
-app.use('/api/auth', authLimiter);
-app.use('/api/admin/auth', authLimiter);
-app.use('/api/magic-link', authLimiter);
+const authProtectedPaths = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/verify',
+  '/api/auth/resend-code',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/admin/auth/login',
+  '/api/magic-link',
+];
+for (const authPath of authProtectedPaths) {
+  app.use(authPath, authLimiter);
+}
+app.use('/api/auth/refresh', refreshLimiter);
 app.use('/api/platform/auth/login', platformLoginLimiter);
-app.use('/api/platform/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
@@ -245,7 +277,7 @@ app.get('/api/hr/activity-log', requireHR, resolveTenant, async (req, res) => {
 app.get('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res) => {
   const keys = ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email'];
   const placeholders = keys.map(() => '?').join(',');
-  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
+  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders}) AND tenant_id = ?`, [...keys, req.tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
@@ -254,7 +286,7 @@ app.get('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res)
 app.get('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) => {
   const keys = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const placeholders = keys.map(() => '?').join(',');
-  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
+  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders}) AND tenant_id = ?`, [...keys, req.tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
@@ -266,16 +298,16 @@ app.put('/api/hr/settings/company', requireHR, resolveTenant, async (req, res) =
   const allowed = ['company_name', 'company_address', 'company_representative', 'company_representative_title', 'company_phone', 'company_fax', 'company_commercial_register', 'company_tax_card', 'company_location_url'];
   const entries = Object.entries(req.body).filter(([key]) => allowed.includes(key));
   if (entries.length > 0) {
-    const values = entries.map(() => '(?, ?)').join(',');
-    const params = entries.flatMap(([k, v]) => [k, String(v)]);
+    const values = entries.map(() => '(?, ?, ?)').join(',');
+    const params = entries.flatMap(([k, v]) => [k, String(v), req.tenantId]);
     await pool.query(
-      `INSERT INTO settings (\`key\`, \`value\`) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+      `INSERT INTO settings (\`key\`, \`value\`, tenant_id) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
       params
     );
   }
   const keys = allowed;
   const placeholders = keys.map(() => '?').join(',');
-  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
+  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders}) AND tenant_id = ?`, [...keys, req.tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
@@ -289,16 +321,16 @@ app.put('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res)
 
   let oldCeoEmail = '';
   if (updates.ceo_email !== undefined) {
-    const [oldSetting] = await pool.query("SELECT \`value\` FROM settings WHERE \`key\` = 'ceo_email'");
+    const [oldSetting] = await pool.query("SELECT \`value\` FROM settings WHERE \`key\` = 'ceo_email' AND tenant_id = ?", [req.tenantId]);
     oldCeoEmail = oldSetting.length > 0 ? oldSetting[0].value.trim().toLowerCase() : '';
   }
 
   const entries = Object.entries(updates).filter(([key]) => allowed.includes(key));
   if (entries.length > 0) {
-    const values = entries.map(() => '(?, ?)').join(',');
-    const params = entries.flatMap(([k, v]) => [k, String(v)]);
+    const values = entries.map(() => '(?, ?, ?)').join(',');
+    const params = entries.flatMap(([k, v]) => [k, String(v), req.tenantId]);
     await pool.query(
-      `INSERT INTO settings (\`key\`, \`value\`) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+      `INSERT INTO settings (\`key\`, \`value\`, tenant_id) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
       params
     );
   }
@@ -308,29 +340,29 @@ app.put('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res)
 
     if (newCeoEmail) {
       await pool.query(
-        "UPDATE employees SET role = 'ceo', department_id = NULL WHERE email = ? AND role != 'admin'",
-        [newCeoEmail]
+        "UPDATE employees SET role = 'ceo', department_id = NULL WHERE email = ? AND tenant_id = ? AND role != 'admin'",
+        [newCeoEmail, req.tenantId]
       );
     }
 
     if (oldCeoEmail && oldCeoEmail !== newCeoEmail) {
-      const [cleDepts] = await pool.query('SELECT id FROM departments WHERE c_level_email = ?', [oldCeoEmail]);
-      const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ?', [oldCeoEmail]);
+      const [cleDepts] = await pool.query('SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?', [oldCeoEmail, req.tenantId]);
+      const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?', [oldCeoEmail, req.tenantId]);
       if (cleDepts.length === 0 && mgrDepts.length === 0) {
         await pool.query(
-          "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'ceo'",
-          [oldCeoEmail]
+          "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+          [oldCeoEmail, req.tenantId]
         );
       } else if (mgrDepts.length > 0) {
         await pool.query(
-          "UPDATE employees SET role = 'manager' WHERE email = ? AND role = 'ceo'",
-          [oldCeoEmail]
+          "UPDATE employees SET role = 'manager' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+          [oldCeoEmail, req.tenantId]
         );
       }
     }
   }
 
-  const [rows] = await pool.query('SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (?,?,?,?,?)', ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email']);
+  const [rows] = await pool.query('SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (?,?,?,?,?) AND tenant_id = ?', ['work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'ceo_email', req.tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
@@ -392,6 +424,16 @@ app.get('/api/settings/public', async (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+app.get('/api/health/ready', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    await pool.query({ sql: 'SELECT 1', timeout: 3000 });
+    res.json({ status: 'ok', database: 'up' });
+  } catch {
+    res.status(503).json({ status: 'degraded', database: 'down' });
+  }
+});
+
 // Public contact form endpoint (from landing page)
 const { contactBody, companySettingsBody, workWeekSettingsBody } = require('./shared/validations/schemas');
 app.post('/api/contact', contactLimiter, async (req, res) => {
@@ -404,8 +446,11 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
       [name.trim(), email.trim(), (company || '').trim(), message.trim()]
     );
     const { sendEmail } = require('./shared/services/email.service');
-    const [settings] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' LIMIT 1");
-    const adminEmail = settings.length > 0 ? settings[0].value : null;
+    const [settings] = await pool.query(
+      "SELECT `key`, `value` FROM platform_settings WHERE `key` IN ('contact_email', 'company_email')"
+    );
+    const platformContacts = Object.fromEntries(settings.map(row => [row.key, row.value]));
+    const adminEmail = platformContacts.contact_email || platformContacts.company_email || null;
     if (adminEmail) {
       const { mailLayout } = require('./shared/services/email.service');
       await sendEmail(adminEmail, `New Contact: ${name.replace(/[\r\n]/g, '')}`, mailLayout(`
@@ -425,7 +470,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
 });
 
 // Public recruitment routes
-app.post('/api/apply', jobApplyLimiter, cvUpload.single('cv'), publicApply);
+app.post('/api/apply', jobApplyLimiter, singleFile(cvUpload, 'cv', CV_EXTENSIONS), publicApply);
 app.get('/api/track/:email', trackingLimiter, publicTrack);
 app.get('/api/jobs/active', getActiveJobs);
 app.get('/api/interviews/:email', trackingLimiter, listPublicInterviews);
@@ -451,10 +496,16 @@ if (fs.existsSync(frontendDist)) {
 }
 
 app.use((err, req, res, next) => {
-  if (!isDev) logger.error({ err: { message: err.message, stack: err.stack, status: err.status, type: err.type, name: err.name } }, 'Unhandled error');
-  res.status(err.status || 500).json({
-    error: 'Internal server error',
-  });
+  if (err instanceof multer.MulterError) {
+    const error = err.code === 'LIMIT_FILE_SIZE' ? 'Uploaded file is too large' : 'Invalid upload';
+    return res.status(400).json({ error });
+  }
+  const status = err.status || 500;
+  if (status >= 500) {
+    logger.error({ err: { message: err.message, stack: err.stack, status, type: err.type, name: err.name } }, 'Unhandled error');
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  res.status(status).json({ error: err.message || 'Bad request' });
 });
 
 module.exports = app;

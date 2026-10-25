@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 import ProfileSection from './ProfileSection';
 import '../styles/profile.css';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const DOC_TYPE_CONFIG = {
   contract:  { label: 'Contract',  icon: '📄', color: '#818cf8' },
@@ -14,7 +15,7 @@ const DOC_TYPE_CONFIG = {
 const getExt = (path) => (path || '').split('.').pop().toUpperCase();
 const getIcon = (type) => DOC_TYPE_CONFIG[type]?.icon || '📁';
 const getColor = (type) => DOC_TYPE_CONFIG[type]?.color || '#a1a1aa';
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const fmtDate = (d) => d ? formatDateShort(d) : '';
 
 export default function ProfileDocuments({ profile, onUpdate }) {
   const [documents, setDocuments] = useState(profile.documents || []);

@@ -12,6 +12,22 @@ const EXP_LEVELS = {
 
 const POINTS = { rejected: 0, recommended: 1, most_recommended: 2 };
 
+function experienceRank(value) {
+  if (value === undefined || value === null || value === '') return 0;
+  if (EXP_LEVELS[value] !== undefined) return EXP_LEVELS[value];
+  const years = Number(value);
+  if (!Number.isFinite(years)) return 0;
+  if (years < 1) return 1;
+  if (years < 2) return 2;
+  if (years < 3) return 3;
+  if (years < 5) return 4;
+  if (years < 7) return 5;
+  if (years < 10) return 6;
+  if (years < 15) return 7;
+  if (years < 20) return 8;
+  return 9;
+}
+
 function parseArray(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val;
@@ -58,8 +74,8 @@ async function autoScreen(candidateId, titleId, jobId, options = {}) {
 
   // ── Experience ────────────────────────────────────────────────
   if (t.min_experience_years) {
-    const minRank = EXP_LEVELS[t.min_experience_years] || 0;
-    const candRank = EXP_LEVELS[c.experience_years] || 0;
+    const minRank = experienceRank(t.min_experience_years);
+    const candRank = experienceRank(c.experience_years);
     const cmp = candRank - minRank;
     const st = statusFor(cmp);
     reqResults.push({ requirement: 'experience_years', expected: t.min_experience_years, provided: c.experience_years || 'none', comparison: cmp, status: st });
@@ -145,7 +161,15 @@ async function autoScreen(candidateId, titleId, jobId, options = {}) {
       if (overallStatus === 'rejected') {
         await transition(candidateId, 'rejected', { note: 'Application did not meet minimum requirements', createdBy: 'system' });
       } else if (reqsMet > 0) {
-        await transition(candidateId, 'phone_screening', { note: 'Auto-screened — passed minimum requirements', createdBy: 'system' });
+        // Workflows are allowed to omit phone screening; the screening result
+        // is still valid, so only advance when the stage is configured.
+        const [[nextStage]] = await pool.query(
+          'SELECT id FROM workflow_stages WHERE template_id = ? AND stage_key = ?',
+          [state.workflow_template_id, 'phone_screening']
+        );
+        if (nextStage) {
+          await transition(candidateId, 'phone_screening', { note: 'Auto-screened — passed minimum requirements', createdBy: 'system' });
+        }
       }
     }
   } else {

@@ -2,9 +2,28 @@ const pool = require('../../shared/config/database');
 
 const PASS_THRESHOLD = 75;
 
+async function candidateInTenant(candidateId, tenantId) {
+  const [rows] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ? AND tenant_id = ?',
+    [candidateId, tenantId]
+  );
+  return rows.length > 0;
+}
+
+async function templateInTenant(templateId, tenantId) {
+  const [rows] = await pool.query(
+    'SELECT id FROM phone_screening_templates WHERE id = ? AND tenant_id = ?',
+    [templateId, tenantId]
+  );
+  return rows.length > 0;
+}
+
 // ── Get phone screening data for a candidate ──
 async function getPhoneScreening(req, res) {
   const { id } = req.params;
+  if (!await candidateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
   const [callLog] = await pool.query(
     'SELECT * FROM phone_screening_call_log WHERE candidate_id = ? ORDER BY attempted_at DESC',
     [id]
@@ -17,11 +36,12 @@ async function getPhoneScreening(req, res) {
     [id]
   );
   const [templates] = await pool.query(
-    'SELECT * FROM phone_screening_templates WHERE is_active = 1 ORDER BY is_default DESC, name ASC'
+    'SELECT * FROM phone_screening_templates WHERE is_active = 1 AND tenant_id = ? ORDER BY is_default DESC, name ASC',
+    [req.tenantId]
   );
   const [[candidate]] = await pool.query(
-    'SELECT id, stage, name, email, phone FROM recruitment_candidates WHERE id = ?',
-    [id]
+    'SELECT id, stage, name, email, phone FROM recruitment_candidates WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
   );
 
   let autoRejectStatus = { shouldReject: false, reason: null };
@@ -76,6 +96,9 @@ async function logCallAttempt(req, res) {
   if (!validOutcomes.includes(outcome)) {
     return res.status(400).json({ error: `Invalid outcome. Must be one of: ${validOutcomes.join(', ')}` });
   }
+  if (!await candidateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
   const adminName = req.admin?.username || req.admin?.name || req.hr?.username || req.hr?.name || 'HR';
   await pool.query(
     'INSERT INTO phone_screening_call_log (candidate_id, attempted_by, attempted_at, outcome, notes) VALUES (?, ?, NOW(), ?, ?)',
@@ -84,8 +107,8 @@ async function logCallAttempt(req, res) {
 
   if (outcome === 'wrong_number') {
     await pool.query(
-      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, 'phone', ?, ?)",
-      [id, `Wrong number reported — ${notes || 'Phone number may be incorrect'}`, adminName]
+      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, 'phone', ?, ?, ?)",
+      [id, `Wrong number reported — ${notes || 'Phone number may be incorrect'}`, adminName, req.tenantId]
     );
   }
 
@@ -111,7 +134,13 @@ async function logCallAttempt(req, res) {
 // ── Delete a call log entry ──
 async function deleteCallLogEntry(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM phone_screening_call_log WHERE id = ?', [id]);
+  const [result] = await pool.query(
+    `DELETE p FROM phone_screening_call_log p
+     JOIN recruitment_candidates c ON c.id = p.candidate_id AND c.tenant_id = ?
+     WHERE p.id = ?`,
+    [req.tenantId, id]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Call log not found' });
   res.json({ message: 'Call log deleted' });
 }
 
@@ -121,6 +150,12 @@ async function submitEvaluation(req, res) {
   const { template_id, answers, notes, action } = req.body;
   if (!answers || !Array.isArray(answers) || answers.length === 0) {
     return res.status(400).json({ error: 'answers are required (array of { question_id, rating })' });
+  }
+  if (!await candidateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
+  if (!template_id || !await templateInTenant(template_id, req.tenantId)) {
+    return res.status(400).json({ error: 'Template not found or has no questions' });
   }
 
   const [questions] = await pool.query(
@@ -164,25 +199,31 @@ async function submitEvaluation(req, res) {
   }
 
   await pool.query(
-    "INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, 'phone', ?, ?)",
-    [id, `Phone screening completed — Score: ${percentage}% — Decision: ${decision}`, adminName]
+    "INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, 'phone', ?, ?, ?)",
+    [id, `Phone screening completed — Score: ${percentage}% — Decision: ${decision}`, adminName, req.tenantId]
   );
 
   const passed = percentage >= PASS_THRESHOLD;
 
   if (action === 'reject' && !passed) {
-    await pool.query("UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ?", [id]);
     await pool.query(
-      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, 'rejected', ?, ?)",
-      [id, 'Failed phone screening: score below threshold', adminName]
+      "UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ? AND tenant_id = ?",
+      [id, req.tenantId]
+    );
+    await pool.query(
+      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, 'rejected', ?, ?, ?)",
+      [id, 'Failed phone screening: score below threshold', adminName, req.tenantId]
     );
   }
 
   if (action === 'proceed' && !passed) {
-    await pool.query("UPDATE recruitment_candidates SET stage = 'first' WHERE id = ?", [id]);
     await pool.query(
-      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, 'first', ?)",
-      [id, `Phone screening score ${percentage}% (below threshold) but proceed.`, adminName]
+      "UPDATE recruitment_candidates SET stage = 'first' WHERE id = ? AND tenant_id = ?",
+      [id, req.tenantId]
+    );
+    await pool.query(
+      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, 'first', ?, ?, ?)",
+      [id, `Phone screening score ${percentage}% (below threshold) but proceed.`, adminName, req.tenantId]
     );
   }
 
@@ -202,6 +243,9 @@ async function submitEvaluation(req, res) {
 // ── Auto-reject if 24h passed ──
 async function checkAutoReject(req, res) {
   const { id } = req.params;
+  if (!await candidateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
   const [callLog] = await pool.query(
     "SELECT * FROM phone_screening_call_log WHERE candidate_id = ? AND outcome = 'no_answer' ORDER BY attempted_at ASC",
     [id]
@@ -214,10 +258,13 @@ async function checkAutoReject(req, res) {
 
   if (hoursSinceFirstAttempt >= 24) {
     const adminName = req.admin?.username || req.admin?.name || req.hr?.username || req.hr?.name || 'system';
-    await pool.query("UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ?", [id]);
     await pool.query(
-      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, 'rejected', ?, ?)",
-      [id, 'Auto-rejected: unable to reach candidate after 24 hours of no answer', adminName]
+      "UPDATE recruitment_candidates SET stage = 'rejected' WHERE id = ? AND tenant_id = ?",
+      [id, req.tenantId]
+    );
+    await pool.query(
+      "INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, 'rejected', ?, ?, ?)",
+      [id, 'Auto-rejected: unable to reach candidate after 24 hours of no answer', adminName, req.tenantId]
     );
     return res.json({ rejected: true, reason: 'Unable to reach candidate after 24 hours of no answer' });
   }
@@ -242,14 +289,18 @@ async function checkAutoReject(req, res) {
 async function listTemplates(req, res) {
   const [rows] = await pool.query(
     `SELECT t.*, (SELECT COUNT(*) FROM phone_screening_questions WHERE template_id = t.id) AS question_count
-     FROM phone_screening_templates t ORDER BY t.is_default DESC, t.name ASC`
+     FROM phone_screening_templates t WHERE t.tenant_id = ? ORDER BY t.is_default DESC, t.name ASC`,
+    [req.tenantId]
   );
   res.json(rows);
 }
 
 async function getTemplate(req, res) {
   const { id } = req.params;
-  const [[template]] = await pool.query('SELECT * FROM phone_screening_templates WHERE id = ?', [id]);
+  const [[template]] = await pool.query(
+    'SELECT * FROM phone_screening_templates WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
   if (!template) return res.status(404).json({ error: 'Template not found' });
   const [questions] = await pool.query(
     'SELECT * FROM phone_screening_questions WHERE template_id = ? ORDER BY sort_order ASC',
@@ -262,8 +313,8 @@ async function createTemplate(req, res) {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ error: 'name is required' });
   const [result] = await pool.query(
-    'INSERT INTO phone_screening_templates (name, description) VALUES (?, ?)',
-    [name, description || null]
+    'INSERT INTO phone_screening_templates (tenant_id, name, description) VALUES (?, ?, ?)',
+    [req.tenantId, name, description || null]
   );
   res.json({ id: result.insertId, name, description });
 }
@@ -277,14 +328,24 @@ async function updateTemplate(req, res) {
   if (description !== undefined) { fields.push('description = ?'); params.push(description); }
   if (is_active !== undefined) { fields.push('is_active = ?'); params.push(is_active); }
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
-  params.push(id);
-  await pool.query(`UPDATE phone_screening_templates SET ${fields.join(', ')} WHERE id = ?`, params);
+  if (!await templateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Template not found' });
+  }
+  params.push(id, req.tenantId);
+  await pool.query(
+    `UPDATE phone_screening_templates SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`,
+    params
+  );
   res.json({ message: 'Template updated' });
 }
 
 async function deleteTemplate(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM phone_screening_templates WHERE id = ?', [id]);
+  const [result] = await pool.query(
+    'DELETE FROM phone_screening_templates WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Template not found' });
   res.json({ message: 'Template deleted' });
 }
 
@@ -292,6 +353,9 @@ async function addQuestion(req, res) {
   const { id } = req.params;
   const { question, weight, max_rating, category, sort_order } = req.body;
   if (!question) return res.status(400).json({ error: 'question is required' });
+  if (!await templateInTenant(id, req.tenantId)) {
+    return res.status(404).json({ error: 'Template not found' });
+  }
   const [result] = await pool.query(
     'INSERT INTO phone_screening_questions (template_id, question, weight, max_rating, category, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
     [id, question, weight || 1.0, max_rating || 5, category || 'general', sort_order || 0]
@@ -303,21 +367,37 @@ async function updateQuestion(req, res) {
   const { id } = req.params;
   const { question, weight, max_rating, category, sort_order } = req.body;
   const fields = [];
-  const params = [];
-  if (question !== undefined) { fields.push('question = ?'); params.push(question); }
-  if (weight !== undefined) { fields.push('weight = ?'); params.push(weight); }
-  if (max_rating !== undefined) { fields.push('max_rating = ?'); params.push(max_rating); }
-  if (category !== undefined) { fields.push('category = ?'); params.push(category); }
-  if (sort_order !== undefined) { fields.push('sort_order = ?'); params.push(sort_order); }
+  const values = [];
+  if (question !== undefined) { fields.push('question = ?'); values.push(question); }
+  if (weight !== undefined) { fields.push('weight = ?'); values.push(weight); }
+  if (max_rating !== undefined) { fields.push('max_rating = ?'); values.push(max_rating); }
+  if (category !== undefined) { fields.push('category = ?'); values.push(category); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(sort_order); }
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
-  params.push(id);
-  await pool.query(`UPDATE phone_screening_questions SET ${fields.join(', ')} WHERE id = ?`, params);
+  const [owned] = await pool.query(
+    `SELECT q.id FROM phone_screening_questions q
+     JOIN phone_screening_templates t ON t.id = q.template_id AND t.tenant_id = ?
+     WHERE q.id = ?`,
+    [req.tenantId, id]
+  );
+  if (owned.length === 0) return res.status(404).json({ error: 'Question not found' });
+  values.push(id);
+  await pool.query(
+    `UPDATE phone_screening_questions SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  );
   res.json({ message: 'Question updated' });
 }
 
 async function deleteQuestion(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM phone_screening_questions WHERE id = ?', [id]);
+  const [result] = await pool.query(
+    `DELETE q FROM phone_screening_questions q
+     JOIN phone_screening_templates t ON t.id = q.template_id AND t.tenant_id = ?
+     WHERE q.id = ?`,
+    [req.tenantId, id]
+  );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Question not found' });
   res.json({ message: 'Question deleted' });
 }
 

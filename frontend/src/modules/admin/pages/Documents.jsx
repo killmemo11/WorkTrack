@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function AdminDocuments() {
   const [data, setData] = useState({ documents: [], total: 0, page: 1, totalPages: 1 });
@@ -107,7 +108,7 @@ export default function AdminDocuments() {
                     <td><span className="glass-badge glass-badge-info">{doc.doc_type}</span></td>
                     <td>{doc.uploaded_by_name || '—'}</td>
                     <td>{statusBadge(doc.status)}</td>
-                    <td>{new Date(doc.created_at).toLocaleDateString()}</td>
+                    <td>{formatDate(doc.created_at)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {doc.status === 'pending' && <>

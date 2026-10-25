@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDateShort } from '../../../shared/utils/date';
 
 const STATUS_ICONS = {
   submitted: (
@@ -70,7 +71,7 @@ export default function TrackRequest() {
 
   const formatDate = (d) => {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatDateShort(d);
   };
 
   return (

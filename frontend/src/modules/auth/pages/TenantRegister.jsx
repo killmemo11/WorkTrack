@@ -494,7 +494,7 @@ export default function TenantRegister() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,.pdf"
+          accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />

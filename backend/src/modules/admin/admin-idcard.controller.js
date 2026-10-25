@@ -12,15 +12,15 @@ async function getIdCard(req, res) {
             ep.birth_date, ep.nationality, ep.gender,
             e.employment_status
      FROM employees e
-     LEFT JOIN departments d ON e.department_id = d.id
+     LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
      LEFT JOIN positions p ON e.position_id = p.id
      LEFT JOIN employee_profiles ep ON e.id = ep.employee_id
-     WHERE e.id = ?`, [employeeId]
+     WHERE e.id = ? AND e.tenant_id = ?`, [employeeId, req.tenantId]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
   const emp = rows[0];
 
-  const [[setting]] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'company_name'");
+  const [[setting]] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'company_name' AND tenant_id = ?", [req.tenantId]);
   const companyName = setting?.value || '';
 
   const photoUrl = emp.avatar_path ? `/${emp.avatar_path}` : null;

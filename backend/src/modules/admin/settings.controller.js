@@ -5,11 +5,12 @@ const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const logger = require('../../shared/utils/logger');
 const { updateSettingsBody, testEmailBody, testMeetingBody } = require('../../shared/validations/schemas');
+const { resolvePublicTenantId } = require('../../shared/services/tenant.service');
 
 const SENSITIVE_KEYS = ['smtp_pass', 'meeting_google_private_key', 'meeting_teams_client_secret'];
 
 async function getSettings(req, res) {
-  const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
+  const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE tenant_id = ?', [req.tenantId]);
   const settings = {};
   for (const row of rows) {
     if (SENSITIVE_KEYS.includes(row.key)) {
@@ -20,7 +21,7 @@ async function getSettings(req, res) {
   }
 
   // Merge service toggles from canonical service_toggles table
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [tenantId]);
   for (const svc of svcRows) {
     settings[`service_${svc.service_key}`] = svc.is_enabled ? '1' : '0';
@@ -40,16 +41,16 @@ async function updateSettings(req, res) {
     // Write non-service settings to the settings table
     const settingEntries = Object.entries(updates).filter(([key]) => allowed.includes(key));
     if (settingEntries.length > 0) {
-      const values = settingEntries.map(() => '(?, ?)').join(',');
-      const flatParams = settingEntries.flatMap(([k, v]) => [k, String(v)]);
+      const values = settingEntries.map(() => '(?, ?, ?)').join(',');
+      const flatParams = settingEntries.flatMap(([k, v]) => [k, String(v), req.tenantId]);
       await pool.query(
-        `INSERT INTO settings (\`key\`, \`value\`) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
+        `INSERT INTO settings (\`key\`, \`value\`, tenant_id) VALUES ${values} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
         flatParams
       );
     }
 
     // Write service toggles to the canonical service_toggles table
-    const tenantId = req.tenantId || 1;
+    const tenantId = req.tenantId;
     const svcEntries = Object.entries(updates).filter(([key]) => serviceKeys.includes(key));
     for (const [key, value] of svcEntries) {
       const toggleKey = key.replace(/^service_/, '');
@@ -66,28 +67,28 @@ async function updateSettings(req, res) {
     if (updates.ceo_email !== undefined) {
       const newCeoEmail = (updates.ceo_email || '').trim().toLowerCase();
 
-      const [oldRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+      const [oldRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?", [tenantId]);
       const oldCeoEmail = oldRows.length > 0 ? oldRows[0].value.trim().toLowerCase() : '';
 
       if (newCeoEmail) {
         await pool.query(
-          "UPDATE employees SET role = 'ceo', department_id = NULL WHERE email = ? AND role != 'admin'",
-          [newCeoEmail]
+          "UPDATE employees SET role = 'ceo', department_id = NULL WHERE email = ? AND tenant_id = ? AND role != 'admin'",
+          [newCeoEmail, tenantId]
         );
       }
 
       if (oldCeoEmail && oldCeoEmail !== newCeoEmail) {
-        const [cleDepts] = await pool.query('SELECT id FROM departments WHERE c_level_email = ?', [oldCeoEmail]);
-        const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ?', [oldCeoEmail]);
+        const [cleDepts] = await pool.query('SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?', [oldCeoEmail, tenantId]);
+        const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?', [oldCeoEmail, tenantId]);
         if (cleDepts.length === 0 && mgrDepts.length === 0) {
           await pool.query(
-            "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'ceo'",
-            [oldCeoEmail]
+            "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+            [oldCeoEmail, tenantId]
           );
         } else if (mgrDepts.length > 0) {
           await pool.query(
-            "UPDATE employees SET role = 'manager' WHERE email = ? AND role = 'ceo'",
-            [oldCeoEmail]
+            "UPDATE employees SET role = 'manager' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+            [oldCeoEmail, tenantId]
           );
         }
       }
@@ -95,9 +96,9 @@ async function updateSettings(req, res) {
 
     const changedKeys = Object.keys(updates).filter(k => allowed.includes(k));
     const adminId = req.admin?.id || req.hr?.id || null;
-    await logActivity(null, adminId, 'settings_updated', `Updated settings: ${changedKeys.join(', ')}`);
+    await logActivity(null, adminId, 'settings_updated', `Updated settings: ${changedKeys.join(', ')}`, { tenant_id: tenantId });
 
-    const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
+    const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE tenant_id = ?', [tenantId]);
     const settings = {};
     for (const row of rows) {
       settings[row.key] = row.value;
@@ -127,7 +128,7 @@ async function testEmail(req, res) {
     return res.status(400).json({ error: 'Recipient email is required' });
   }
 
-  const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
+  const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE tenant_id = ?', [req.tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
 
@@ -168,14 +169,15 @@ async function testEmail(req, res) {
 }
 
 async function getPublicSettings(req, res) {
+  const tenantId = await resolvePublicTenantId(req);
   const keys = ['logo_data', 'work_week_start', 'work_week_end', 'period_start_day', 'period_end_day', 'allowed_email_domain'];
   const placeholders = keys.map(() => '?').join(',');
-  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders})`, keys);
+  const [rows] = await pool.query(`SELECT \`key\`, \`value\` FROM settings WHERE \`key\` IN (${placeholders}) AND tenant_id = ?`, [...keys, tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
 
   // Read service toggles from canonical service_toggles table
-  const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [req.tenantId || 1]);
+  const [svcRows] = await pool.query('SELECT service_key, is_enabled FROM service_toggles WHERE tenant_id = ?', [tenantId]);
   for (const svc of svcRows) {
     settings[`service_${svc.service_key}`] = svc.is_enabled ? '1' : '0';
   }

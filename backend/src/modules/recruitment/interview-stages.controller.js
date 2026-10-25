@@ -10,11 +10,11 @@ async function listInterviewStages(req, res) {
   const offset = (page - 1) * perPage;
   const { candidate_id, status, workflow_stage_id } = req.query;
 
-  let where = []; const params = [];
+  let where = ['is2.tenant_id = ?']; const params = [req.tenantId];
   if (candidate_id) { where.push('is2.candidate_id = ?'); params.push(parseInt(candidate_id)); }
   if (status) { where.push('is2.status = ?'); params.push(status); }
   if (workflow_stage_id) { where.push('is2.workflow_stage_id = ?'); params.push(parseInt(workflow_stage_id)); }
-  const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const whereClause = 'WHERE ' + where.join(' AND ');
 
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM interview_stages is2 ${whereClause}`, params
@@ -24,8 +24,8 @@ async function listInterviewStages(req, res) {
     `SELECT is2.*, c.name AS candidate_name, c.email AS candidate_email, c.job_title,
             ws.display_name AS stage_name
      FROM interview_stages is2
-     JOIN recruitment_candidates c ON c.id = is2.candidate_id
-     LEFT JOIN workflow_stages ws ON ws.id = is2.workflow_stage_id
+     JOIN recruitment_candidates c ON c.id = is2.candidate_id AND c.tenant_id = is2.tenant_id
+     LEFT JOIN workflow_stages ws ON ws.id = is2.workflow_stage_id AND ws.tenant_id = is2.tenant_id
      ${whereClause}
      ORDER BY is2.interview_date DESC
      LIMIT ? OFFSET ?`,
@@ -44,9 +44,9 @@ async function getInterviewStage(req, res) {
     `SELECT is2.*, c.name AS candidate_name, c.email AS candidate_email, c.job_title,
             ws.display_name AS stage_name
      FROM interview_stages is2
-     JOIN recruitment_candidates c ON c.id = is2.candidate_id
-     LEFT JOIN workflow_stages ws ON ws.id = is2.workflow_stage_id
-     WHERE is2.id = ?`, [id]
+     JOIN recruitment_candidates c ON c.id = is2.candidate_id AND c.tenant_id = is2.tenant_id
+     LEFT JOIN workflow_stages ws ON ws.id = is2.workflow_stage_id AND ws.tenant_id = is2.tenant_id
+     WHERE is2.id = ? AND is2.tenant_id = ?`, [id, req.tenantId]
   );
   if (!stage) return res.status(404).json({ error: 'Interview stage not found' });
   res.json(stage);
@@ -60,6 +60,20 @@ async function createInterviewStage(req, res) {
   } = req.body;
   if (!candidate_id || !interview_date) {
     return res.status(400).json({ error: 'candidate_id and interview_date are required' });
+  }
+
+  const [candidates] = await pool.query(
+    'SELECT id FROM recruitment_candidates WHERE id = ? AND tenant_id = ?',
+    [candidate_id, req.tenantId]
+  );
+  if (candidates.length === 0) return res.status(404).json({ error: 'Candidate not found' });
+
+  if (workflow_stage_id) {
+    const [stages] = await pool.query(
+      'SELECT id FROM workflow_stages WHERE id = ? AND tenant_id = ?',
+      [workflow_stage_id, req.tenantId]
+    );
+    if (stages.length === 0) return res.status(404).json({ error: 'Workflow stage not found' });
   }
 
   let generatedLink = meeting_link || '';
@@ -76,20 +90,21 @@ async function createInterviewStage(req, res) {
 
   const [result] = await pool.query(
     `INSERT INTO interview_stages
-     (candidate_id, workflow_stage_id, interview_date, duration, mode, interviewer, location_or_link,
+     (tenant_id, candidate_id, workflow_stage_id, interview_date, duration, mode, interviewer, location_or_link,
       type, location_name, location_address, dress_code, what_to_bring, map_link,
       meeting_platform, meeting_link, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [candidate_id, workflow_stage_id || null, interview_date, duration || 60, mode || 'video',
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [req.tenantId, candidate_id, workflow_stage_id || null, interview_date, duration || 60, mode || 'video',
      interviewer || '', location_or_link || '', type || 'online', location_name || '',
      location_address || '', dress_code || '', what_to_bring || '', map_link || '',
      meeting_platform || '', generatedLink, notes || '']
   );
 
+  const actorName = req.admin?.username || req.admin?.name || req.hr?.username || req.hr?.name || 'HR';
   await publishEvent(candidate_id, 'interview_scheduled', {
     interview_stage_id: result.insertId,
     interview_date, interviewer,
-  }, req.admin?.id || req.hr?.id || 'HR');
+  }, null, actorName);
 
   logActivity(null, req.admin?.id || req.hr?.id || null, 'interview_scheduled', `Scheduled interview for candidate #${candidate_id}`);
   res.status(201).json({ id: result.insertId });
@@ -111,33 +126,59 @@ async function updateInterviewStage(req, res) {
     }
   }
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
-  params.push(id);
 
-  await pool.query(`UPDATE interview_stages SET ${updates.join(', ')} WHERE id = ?`, params);
+  if (req.body.workflow_stage_id) {
+    const [stages] = await pool.query(
+      'SELECT id FROM workflow_stages WHERE id = ? AND tenant_id = ?',
+      [req.body.workflow_stage_id, req.tenantId]
+    );
+    if (stages.length === 0) return res.status(404).json({ error: 'Workflow stage not found' });
+  }
 
-  const [[stage]] = await pool.query('SELECT * FROM interview_stages WHERE id = ?', [id]);
+  params.push(id, req.tenantId);
+  await pool.query(
+    `UPDATE interview_stages SET ${updates.join(', ')} WHERE id = ? AND tenant_id = ?`,
+    params
+  );
+  const [[stage]] = await pool.query(
+    'SELECT * FROM interview_stages WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
+  if (!stage) return res.status(404).json({ error: 'Interview stage not found' });
   res.json(stage);
 }
 
 async function deleteInterviewStage(req, res) {
   const { id } = req.params;
-  const [[stage]] = await pool.query('SELECT candidate_id FROM interview_stages WHERE id = ?', [id]);
+  const [[stage]] = await pool.query(
+    'SELECT candidate_id FROM interview_stages WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
   if (!stage) return res.status(404).json({ error: 'Interview stage not found' });
-  await pool.query('DELETE FROM interview_stages WHERE id = ?', [id]);
-  await publishEvent(stage.candidate_id, 'interview_cancelled', { interview_stage_id: parseInt(id) }, req.admin?.id || req.hr?.id || 'HR');
+  await pool.query(
+    'DELETE FROM interview_stages WHERE id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
+  const actorName = req.admin?.username || req.admin?.name || req.hr?.username || req.hr?.name || 'HR';
+  await publishEvent(stage.candidate_id, 'interview_cancelled', { interview_stage_id: parseInt(id) }, null, actorName);
   res.json({ deleted: parseInt(id) });
 }
 
 // ── Evaluations CRUD ──────────────────────────────────────────
 async function listEvaluations(req, res) {
   const { interview_stage_id } = req.params;
+  const [stages] = await pool.query(
+    'SELECT id FROM interview_stages WHERE id = ? AND tenant_id = ?',
+    [interview_stage_id, req.tenantId]
+  );
+  if (stages.length === 0) return res.status(404).json({ error: 'Interview stage not found' });
   const [rows] = await pool.query(
     `SELECT ie.*, e.name AS evaluator_name
      FROM interview_evaluations ie
-     LEFT JOIN employees e ON e.id = ie.evaluated_by_id
+     LEFT JOIN employees e ON e.id = ie.evaluated_by_id AND e.tenant_id = ?
      WHERE ie.interview_stage_id = ?
      ORDER BY ie.evaluated_at DESC`,
-    [interview_stage_id]
+    [req.tenantId, interview_stage_id]
   );
   res.json(rows);
 }
@@ -152,7 +193,10 @@ async function createEvaluation(req, res) {
     return res.status(400).json({ error: 'interview_stage_id and decision are required' });
   }
 
-  const [[stage]] = await pool.query('SELECT candidate_id FROM interview_stages WHERE id = ?', [interview_stage_id]);
+  const [[stage]] = await pool.query(
+    'SELECT candidate_id FROM interview_stages WHERE id = ? AND tenant_id = ?',
+    [interview_stage_id, req.tenantId]
+  );
   if (!stage) return res.status(404).json({ error: 'Interview stage not found' });
 
   const [result] = await pool.query(
@@ -178,14 +222,15 @@ async function createEvaluation(req, res) {
   );
   if (avg) {
     await pool.query(
-      'UPDATE recruitment_candidates SET score_comm=?, score_tech=?, score_fit=? WHERE id=?',
-      [Math.round(avg.ac || 0), Math.round(avg.at || 0), Math.round(avg.af || 0), stage.candidate_id]
+      'UPDATE recruitment_candidates SET score_comm=?, score_tech=?, score_fit=? WHERE id=? AND tenant_id=?',
+      [Math.round(avg.ac || 0), Math.round(avg.at || 0), Math.round(avg.af || 0), stage.candidate_id, req.tenantId]
     );
   }
 
+  const actorName = req.admin?.username || req.admin?.name || req.hr?.username || req.hr?.name || 'HR';
   await publishEvent(stage.candidate_id, 'evaluation_submitted', {
     interview_stage_id: parseInt(interview_stage_id), decision,
-  }, req.admin?.id || req.hr?.id || 'HR');
+  }, null, actorName);
 
   logActivity(null, req.admin?.id || req.hr?.id || null, 'evaluation_submitted', `Evaluation for interview stage #${interview_stage_id}`);
   res.status(201).json({ id: result.insertId });
@@ -202,22 +247,40 @@ async function updateEvaluation(req, res) {
     }
   }
   if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
+  const [[ev]] = await pool.query(
+    `SELECT ie.id FROM interview_evaluations ie
+     JOIN interview_stages is2 ON is2.id = ie.interview_stage_id AND is2.tenant_id = ?
+     WHERE ie.id = ?`,
+    [req.tenantId, id]
+  );
+  if (!ev) return res.status(404).json({ error: 'Evaluation not found' });
   params.push(id);
   await pool.query(`UPDATE interview_evaluations SET ${updates.join(', ')} WHERE id = ?`, params);
-  const [[ev]] = await pool.query('SELECT * FROM interview_evaluations WHERE id = ?', [id]);
-  res.json(ev);
+  const [[updated]] = await pool.query('SELECT * FROM interview_evaluations WHERE id = ?', [id]);
+  res.json(updated);
 }
 
 async function deleteEvaluation(req, res) {
   const { id } = req.params;
+  const [[ev]] = await pool.query(
+    `SELECT ie.id FROM interview_evaluations ie
+     JOIN interview_stages is2 ON is2.id = ie.interview_stage_id AND is2.tenant_id = ?
+     WHERE ie.id = ?`,
+    [req.tenantId, id]
+  );
+  if (!ev) return res.status(404).json({ error: 'Evaluation not found' });
   await pool.query('DELETE FROM interview_evaluations WHERE id = ?', [id]);
   res.json({ deleted: parseInt(id) });
 }
 
 // ── Data Migration ─────────────────────────────────────────────
 async function migrateInterviews(req, res) {
-  const [oldInterviews] = await pool.query('SELECT * FROM recruitment_interviews');
-  const [scorecards] = await pool.query('SELECT * FROM recruitment_scorecards');
+  const [oldInterviews] = await pool.query(
+    'SELECT * FROM recruitment_interviews WHERE tenant_id = ?', [req.tenantId]
+  );
+  const [scorecards] = await pool.query(
+    'SELECT * FROM recruitment_scorecards WHERE tenant_id = ?', [req.tenantId]
+  );
   let migrated = 0; let evaluationsMigrated = 0; let errors = [];
 
   for (const iv of oldInterviews) {
@@ -227,11 +290,11 @@ async function migrateInterviews(req, res) {
       const att = iv.status === 'completed' ? 'attended' : 'pending';
       await pool.query(
         `INSERT IGNORE INTO interview_stages
-         (candidate_id, workflow_stage_id, interview_date, duration, mode, interviewer, location_or_link,
+         (tenant_id, candidate_id, workflow_stage_id, interview_date, duration, mode, interviewer, location_or_link,
           status, type, location_name, location_address, dress_code, what_to_bring, map_link,
           meeting_platform, meeting_link, candidate_status, attendance, notes)
-         VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [iv.candidate_id, iv.interview_date, iv.duration || 60, iv.mode || 'video',
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.tenantId, iv.candidate_id, iv.interview_date, iv.duration || 60, iv.mode || 'video',
          iv.interviewer || '', iv.location_or_link || '',
          iv.status || 'scheduled', iv.type || 'online', iv.location_name || '',
          iv.location_address || '', iv.dress_code || '', iv.what_to_bring || '',
@@ -246,8 +309,8 @@ async function migrateInterviews(req, res) {
   for (const sc of scorecards) {
     try {
       const [[stage]] = await pool.query(
-        `SELECT id FROM interview_stages WHERE candidate_id = ? ORDER BY interview_date DESC LIMIT 1`,
-        [sc.candidate_id]
+        `SELECT id FROM interview_stages WHERE candidate_id = ? AND tenant_id = ? ORDER BY interview_date DESC LIMIT 1`,
+        [sc.candidate_id, req.tenantId]
       );
       if (!stage) continue;
       await pool.query(
@@ -271,10 +334,16 @@ async function migrateInterviews(req, res) {
 async function migrateCandidateWorkflows(req, res) {
   // Backfill candidate_workflow_state for all existing candidates missing it
   const [candidates] = await pool.query(
-    `SELECT rc.id, rc.job_id, rc.stage, COALESCE(rj.workflow_template_id, (SELECT id FROM workflow_templates WHERE is_active = 1 ORDER BY id LIMIT 1)) AS template_id
+    `SELECT rc.id, rc.job_id, rc.stage,
+            COALESCE(
+              (SELECT wt.id FROM workflow_templates wt WHERE wt.id = rj.workflow_template_id AND wt.tenant_id = ?),
+              (SELECT wt.id FROM workflow_templates wt WHERE wt.is_active = 1 AND wt.tenant_id = ? ORDER BY wt.id LIMIT 1)
+            ) AS template_id
      FROM recruitment_candidates rc
-     LEFT JOIN recruitment_jobs rj ON rc.job_id = rj.id
-     WHERE NOT EXISTS (SELECT 1 FROM candidate_workflow_state cws WHERE cws.candidate_id = rc.id)`
+     LEFT JOIN recruitment_jobs rj ON rc.job_id = rj.id AND rj.tenant_id = rc.tenant_id
+     WHERE rc.tenant_id = ?
+       AND NOT EXISTS (SELECT 1 FROM candidate_workflow_state cws WHERE cws.candidate_id = rc.id)`,
+    [req.tenantId, req.tenantId, req.tenantId]
   );
 
   if (candidates.length === 0) {
@@ -287,8 +356,8 @@ async function migrateCandidateWorkflows(req, res) {
     try {
       // Find the stage matching the candidate's current stage, or use first stage
       const [stages] = await pool.query(
-        'SELECT id, stage_key FROM workflow_stages WHERE template_id = ? ORDER BY stage_order',
-        [c.template_id]
+        'SELECT id, stage_key FROM workflow_stages WHERE template_id = ? AND tenant_id = ? ORDER BY stage_order',
+        [c.template_id, req.tenantId]
       );
       const match = stages.find(s => s.stage_key === c.stage);
       const stageId = match ? match.id : stages[0]?.id;

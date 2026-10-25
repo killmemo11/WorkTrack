@@ -7,20 +7,19 @@ const { isWorkDay, formatDateCairo } = require('../../shared/utils/work-day.util
 const { getFullProfile, getOrganizationTree, getHeadcountReport, getHeadcountSummary } = require('./personnel.service');
 const { formatUpdatedFieldChanges, formatUpdatedFieldsSummary } = require('../../shared/utils/activity-log.util');
 const { checkHeadcountCapacity, recalcDepartmentMaxHeadcount } = require('../../shared/utils/headcount.util');
+const { MAX_EXPORT_ROWS, validateExportRows } = require('../../shared/utils/export-guard.util');
 const XLSX = require('xlsx');
 const logger = require('../../shared/utils/logger');
 const path = require('path');
 
 async function getPositions(req, res) {
-  const tenantId = req.tenantId;
-  const tenantFilter = tenantId ? ' WHERE d.tenant_id = ?' : '';
   const [rows] = await pool.query(
     `SELECT p.*, d.name AS department_name
      FROM positions p
      LEFT JOIN departments d ON p.department_id = d.id
-     ${tenantFilter}
+     WHERE p.tenant_id = ?
      ORDER BY p.title`,
-    tenantId ? [tenantId] : []
+    [req.tenantId]
   );
   res.json(rows);
 }
@@ -52,7 +51,8 @@ async function getEmployeeDashboard(req, res) {
 
     // Get work week settings
     const [settingsRows] = await pool.query(
-      "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+      [req.tenantId]
     );
     const settings = {};
     for (const row of settingsRows) settings[row.key] = row.value;
@@ -64,8 +64,8 @@ async function getEmployeeDashboard(req, res) {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const [holidayRows] = await pool.query(
-      'SELECT date FROM holidays WHERE date >= ? AND date <= ?',
-      [formatDateCairo(firstDay), formatDateCairo(lastDay)]
+      'SELECT date FROM holidays WHERE tenant_id = ? AND date >= ? AND date <= ?',
+      [req.tenantId, formatDateCairo(firstDay), formatDateCairo(lastDay)]
     );
     const holidaySet = new Set(holidayRows.map(r => {
       const d = r.date;
@@ -183,9 +183,13 @@ async function createPosition(req, res) {
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Position title is required' });
   }
+  if (department_id) {
+    const [dept] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [department_id, req.tenantId]);
+    if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
   const [result] = await pool.query(
     'INSERT INTO positions (tenant_id, title, department_id, description, technical) VALUES (?, ?, ?, ?, ?)',
-    [req.tenantId || 1, title.trim(), department_id || null, description || null, technical ? 1 : 0]
+    [req.tenantId, title.trim(), department_id || null, description || null, technical ? 1 : 0]
   );
   logActivity(null, req.admin?.id || req.hr?.id || null, 'position_created', `Created position: ${title}`);
   res.status(201).json({ id: result.insertId, message: 'Position created' });
@@ -197,26 +201,31 @@ async function updatePosition(req, res) {
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Position title is required' });
   }
-  await pool.query(
-    'UPDATE positions SET title = ?, department_id = ?, description = ?, technical = ? WHERE id = ?',
-    [title.trim(), department_id || null, description || null, technical ? 1 : 0, id]
+  if (department_id) {
+    const [dept] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [department_id, req.tenantId]);
+    if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
+  const [result] = await pool.query(
+    'UPDATE positions SET title = ?, department_id = ?, description = ?, technical = ? WHERE id = ? AND tenant_id = ?',
+    [title.trim(), department_id || null, description || null, technical ? 1 : 0, id, req.tenantId]
   );
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Position not found' });
   logActivity(null, req.admin?.id || req.hr?.id || null, 'position_updated', `Updated position: ${title}`);
   res.json({ message: 'Position updated' });
 }
 
 async function deletePosition(req, res) {
   const { id } = req.params;
-  const [pos] = await pool.query('SELECT title FROM positions WHERE id = ?', [id]);
+  const [pos] = await pool.query('SELECT title FROM positions WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   if (pos.length === 0) return res.status(404).json({ error: 'Position not found' });
-  await pool.query('DELETE FROM positions WHERE id = ?', [id]);
+  await pool.query('DELETE FROM positions WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'position_deleted', `Deleted position: ${pos[0].title}`);
   res.json({ message: 'Position deleted' });
 }
 
 async function getEmployeeProfile(req, res) {
   const employeeId = req.params.id;
-  const profile = await getFullProfile(employeeId);
+  const profile = await getFullProfile(employeeId, req.tenantId);
   if (!profile) return res.status(404).json({ error: 'Employee not found' });
   res.json(profile);
 }
@@ -226,8 +235,30 @@ async function updateEmployeeProfile(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const data = req.body;
 
-  const [emp] = await pool.query('SELECT id, department_id, title_id FROM employees WHERE id = ?', [employeeId]);
+  const [emp] = await pool.query('SELECT id, department_id, title_id FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
   if (emp.length === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  // Every referenced org unit must belong to the same tenant.
+  if (data.department_id) {
+    const [d] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [data.department_id, req.tenantId]);
+    if (d.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
+  if (data.title_id) {
+    const [t] = await pool.query('SELECT id FROM department_titles WHERE id = ? AND tenant_id = ?', [data.title_id, req.tenantId]);
+    if (t.length === 0) return res.status(400).json({ error: 'Invalid title' });
+  }
+  if (data.grade_id) {
+    const [g] = await pool.query('SELECT id FROM grades WHERE id = ? AND tenant_id = ?', [data.grade_id, req.tenantId]);
+    if (g.length === 0) return res.status(400).json({ error: 'Invalid grade' });
+  }
+  if (data.position_id) {
+    const [p] = await pool.query('SELECT id FROM positions WHERE id = ? AND tenant_id = ?', [data.position_id, req.tenantId]);
+    if (p.length === 0) return res.status(400).json({ error: 'Invalid position' });
+  }
+  if (data.supervisor_id) {
+    const [s] = await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [data.supervisor_id, req.tenantId]);
+    if (s.length === 0) return res.status(400).json({ error: 'Invalid supervisor' });
+  }
 
   // Validate headcount when changing department or title
   if (data.department_id !== undefined && Number(data.department_id) !== Number(emp[0].department_id)) {
@@ -267,11 +298,11 @@ async function updateEmployeeProfile(req, res) {
   }
   if (empUpdates.length > 0) {
     const [oldEmp] = await pool.query(
-      `SELECT ${empFields.join(', ')} FROM employees WHERE id = ?`, [employeeId]
+      `SELECT ${empFields.join(', ')} FROM employees WHERE id = ? AND tenant_id = ?`, [employeeId, req.tenantId]
     );
     oldEmpData = oldEmp[0] || {};
-    empParams.push(employeeId);
-    await pool.query(`UPDATE employees SET ${empUpdates.join(', ')} WHERE id = ?`, empParams);
+    empParams.push(employeeId, req.tenantId);
+    await pool.query(`UPDATE employees SET ${empUpdates.join(', ')} WHERE id = ? AND tenant_id = ?`, empParams);
   }
 
   // Fetch old profile data
@@ -283,23 +314,23 @@ async function updateEmployeeProfile(req, res) {
 
   if (Object.keys(profileData).length > 0) {
     const [oldProfile] = await pool.query(
-      `SELECT ${profileFields.join(', ')} FROM employee_profiles WHERE employee_id = ?`, [employeeId]
+      `SELECT ${profileFields.join(', ')} FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?`, [employeeId, req.tenantId]
     );
     oldProfileData = oldProfile[0] || {};
 
-    const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ?', [employeeId]);
+    const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
     if (existing.length > 0) {
       const setClause = Object.keys(profileData).map(k => `${k} = ?`).join(', ');
       await pool.query(
-        `UPDATE employee_profiles SET ${setClause} WHERE employee_id = ?`,
-        [...Object.values(profileData), employeeId]
+        `UPDATE employee_profiles SET ${setClause} WHERE employee_id = ? AND tenant_id = ?`,
+        [...Object.values(profileData), employeeId, req.tenantId]
       );
     } else {
       const keys = Object.keys(profileData);
       const values = Object.values(profileData);
       await pool.query(
-        `INSERT INTO employee_profiles (employee_id, ${keys.join(', ')}) VALUES (?, ${keys.map(() => '?').join(', ')})`,
-        [employeeId, ...values]
+        `INSERT INTO employee_profiles (employee_id, ${keys.join(', ')}, tenant_id) VALUES (?, ${keys.map(() => '?').join(', ')}, ?)`,
+        [employeeId, ...values, req.tenantId]
       );
     }
   }
@@ -363,8 +394,8 @@ async function uploadDocument(req, res) {
   const filePath = 'uploads/personnel/' + req.file.filename;
 
   await pool.query(
-    'INSERT INTO employee_documents (employee_id, doc_type, doc_name, file_path, notes, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
-    [employeeId, doc_type || 'other', doc_name || req.file.originalname, filePath, notes || null, adminId]
+    'INSERT INTO employee_documents (employee_id, doc_type, doc_name, file_path, notes, uploaded_by, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [employeeId, doc_type || 'other', doc_name || req.file.originalname, filePath, notes || null, adminId, req.tenantId]
   );
   
   // Get file size for frontend display
@@ -379,9 +410,9 @@ async function uploadDocument(req, res) {
 
 async function deleteDocument(req, res) {
   const { id: employeeId, docId } = req.params;
-  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ? AND employee_id = ?', [docId, employeeId]);
+  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ? AND employee_id = ? AND tenant_id = ?', [docId, employeeId, req.tenantId]);
   if (doc.length === 0) return res.status(404).json({ error: 'Document not found' });
-  await pool.query('DELETE FROM employee_documents WHERE id = ?', [docId]);
+  await pool.query('DELETE FROM employee_documents WHERE id = ? AND tenant_id = ?', [docId, req.tenantId]);
   logActivity(employeeId, req.admin?.id || req.hr?.id || null, 'document_deleted', `Deleted document: ${doc[0].doc_name}`);
   res.json({ message: 'Document deleted' });
 }
@@ -391,11 +422,11 @@ async function uploadInsuranceCard(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
   const filePath = 'uploads/personnel/' + req.file.filename;
-  const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ?', [employeeId]);
+  const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
   if (existing.length > 0) {
-    await pool.query('UPDATE employee_profiles SET insurance_card_image = ? WHERE employee_id = ?', [filePath, employeeId]);
+    await pool.query('UPDATE employee_profiles SET insurance_card_image = ? WHERE employee_id = ? AND tenant_id = ?', [filePath, employeeId, req.tenantId]);
   } else {
-    await pool.query('INSERT INTO employee_profiles (employee_id, insurance_card_image) VALUES (?, ?)', [employeeId, filePath]);
+    await pool.query('INSERT INTO employee_profiles (employee_id, insurance_card_image, tenant_id) VALUES (?, ?, ?)', [employeeId, filePath, req.tenantId]);
   }
   logActivity(employeeId, adminId, 'insurance_card_uploaded', 'Uploaded insurance card image');
   res.json({ message: 'Insurance card uploaded', path: filePath });
@@ -406,11 +437,11 @@ async function uploadAvatar(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
   const filePath = 'uploads/personnel/' + req.file.filename;
-  const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ?', [employeeId]);
+  const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
   if (existing.length > 0) {
-    await pool.query('UPDATE employee_profiles SET avatar_path = ? WHERE employee_id = ?', [filePath, employeeId]);
+    await pool.query('UPDATE employee_profiles SET avatar_path = ? WHERE employee_id = ? AND tenant_id = ?', [filePath, employeeId, req.tenantId]);
   } else {
-    await pool.query('INSERT INTO employee_profiles (employee_id, avatar_path) VALUES (?, ?)', [employeeId, filePath]);
+    await pool.query('INSERT INTO employee_profiles (employee_id, avatar_path, tenant_id) VALUES (?, ?, ?)', [employeeId, filePath, req.tenantId]);
   }
   logActivity(employeeId, adminId, 'avatar_uploaded', 'Uploaded profile avatar');
   res.json({ message: 'Avatar uploaded', path: filePath });
@@ -421,8 +452,8 @@ async function addEducation(req, res) {
   const { degree, institution, field_of_study, graduation_year, grade } = req.body;
   if (!degree || !institution) return res.status(400).json({ error: 'Degree and institution are required' });
   const [result] = await pool.query(
-    'INSERT INTO employee_education (employee_id, degree, institution, field_of_study, graduation_year, grade) VALUES (?, ?, ?, ?, ?, ?)',
-    [employeeId, degree, institution, field_of_study || null, graduation_year || null, grade || null]
+    'INSERT INTO employee_education (employee_id, degree, institution, field_of_study, graduation_year, grade, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [employeeId, degree, institution, field_of_study || null, graduation_year || null, grade || null, req.tenantId]
   );
   res.status(201).json({ id: result.insertId, message: 'Education added' });
 }
@@ -431,15 +462,15 @@ async function updateEducation(req, res) {
   const { id: employeeId, eduId } = req.params;
   const { degree, institution, field_of_study, graduation_year, grade } = req.body;
   await pool.query(
-    'UPDATE employee_education SET degree = ?, institution = ?, field_of_study = ?, graduation_year = ?, grade = ? WHERE id = ? AND employee_id = ?',
-    [degree, institution, field_of_study || null, graduation_year || null, grade || null, eduId, employeeId]
+    'UPDATE employee_education SET degree = ?, institution = ?, field_of_study = ?, graduation_year = ?, grade = ? WHERE id = ? AND employee_id = ? AND tenant_id = ?',
+    [degree, institution, field_of_study || null, graduation_year || null, grade || null, eduId, employeeId, req.tenantId]
   );
   res.json({ message: 'Education updated' });
 }
 
 async function deleteEducation(req, res) {
   const { id: employeeId, eduId } = req.params;
-  await pool.query('DELETE FROM employee_education WHERE id = ? AND employee_id = ?', [eduId, employeeId]);
+  await pool.query('DELETE FROM employee_education WHERE id = ? AND employee_id = ? AND tenant_id = ?', [eduId, employeeId, req.tenantId]);
   res.json({ message: 'Education deleted' });
 }
 
@@ -448,8 +479,8 @@ async function addWorkHistory(req, res) {
   const { company, position, from_date, to_date, reason_leaving } = req.body;
   if (!company || !position) return res.status(400).json({ error: 'Company and position are required' });
   const [result] = await pool.query(
-    'INSERT INTO employee_work_history (employee_id, company, position, from_date, to_date, reason_leaving) VALUES (?, ?, ?, ?, ?, ?)',
-    [employeeId, company, position, from_date || null, to_date || null, reason_leaving || null]
+    'INSERT INTO employee_work_history (employee_id, company, position, from_date, to_date, reason_leaving, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [employeeId, company, position, from_date || null, to_date || null, reason_leaving || null, req.tenantId]
   );
   res.status(201).json({ id: result.insertId, message: 'Work history added' });
 }
@@ -458,15 +489,15 @@ async function updateWorkHistory(req, res) {
   const { id: employeeId, whId } = req.params;
   const { company, position, from_date, to_date, reason_leaving } = req.body;
   await pool.query(
-    'UPDATE employee_work_history SET company = ?, position = ?, from_date = ?, to_date = ?, reason_leaving = ? WHERE id = ? AND employee_id = ?',
-    [company, position, from_date || null, to_date || null, reason_leaving || null, whId, employeeId]
+    'UPDATE employee_work_history SET company = ?, position = ?, from_date = ?, to_date = ?, reason_leaving = ? WHERE id = ? AND employee_id = ? AND tenant_id = ?',
+    [company, position, from_date || null, to_date || null, reason_leaving || null, whId, employeeId, req.tenantId]
   );
   res.json({ message: 'Work history updated' });
 }
 
 async function deleteWorkHistory(req, res) {
   const { id: employeeId, whId } = req.params;
-  await pool.query('DELETE FROM employee_work_history WHERE id = ? AND employee_id = ?', [whId, employeeId]);
+  await pool.query('DELETE FROM employee_work_history WHERE id = ? AND employee_id = ? AND tenant_id = ?', [whId, employeeId, req.tenantId]);
   res.json({ message: 'Work history deleted' });
 }
 
@@ -475,15 +506,15 @@ async function addCertification(req, res) {
   const { name, issuing_authority, issue_date, expiry_date, credential_url } = req.body;
   if (!name) return res.status(400).json({ error: 'Certification name is required' });
   const [result] = await pool.query(
-    'INSERT INTO employee_certifications (employee_id, name, issuing_authority, issue_date, expiry_date, credential_url) VALUES (?, ?, ?, ?, ?, ?)',
-    [employeeId, name, issuing_authority || null, issue_date || null, expiry_date || null, credential_url || null]
+    'INSERT INTO employee_certifications (employee_id, name, issuing_authority, issue_date, expiry_date, credential_url, tenant_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [employeeId, name, issuing_authority || null, issue_date || null, expiry_date || null, credential_url || null, req.tenantId]
   );
   res.status(201).json({ id: result.insertId, message: 'Certification added' });
 }
 
 async function deleteCertification(req, res) {
   const { id: employeeId, certId } = req.params;
-  await pool.query('DELETE FROM employee_certifications WHERE id = ? AND employee_id = ?', [certId, employeeId]);
+  await pool.query('DELETE FROM employee_certifications WHERE id = ? AND employee_id = ? AND tenant_id = ?', [certId, employeeId, req.tenantId]);
   res.json({ message: 'Certification deleted' });
 }
 
@@ -492,13 +523,13 @@ async function addMedicalFamily(req, res) {
   const { name, relation, medical_insurance_number } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   const [result] = await pool.query(
-    'INSERT INTO employee_medical_family (employee_id, name, relation, medical_insurance_number) VALUES (?, ?, ?, ?)',
-    [employeeId, name, relation || null, medical_insurance_number || null]
+    'INSERT INTO employee_medical_family (employee_id, name, relation, medical_insurance_number, tenant_id) VALUES (?, ?, ?, ?, ?)',
+    [employeeId, name, relation || null, medical_insurance_number || null, req.tenantId]
   );
   const famId = result.insertId;
   if (req.file) {
     const filePath = 'uploads/personnel/' + req.file.filename;
-    await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ?', [filePath, famId]);
+    await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ? AND tenant_id = ?', [filePath, famId, req.tenantId]);
   }
   res.status(201).json({ id: famId, message: 'Family member added' });
 }
@@ -507,19 +538,19 @@ async function updateMedicalFamily(req, res) {
   const { id: employeeId, famId } = req.params;
   const { name, relation, medical_insurance_number } = req.body;
   await pool.query(
-    'UPDATE employee_medical_family SET name = ?, relation = ?, medical_insurance_number = ? WHERE id = ? AND employee_id = ?',
-    [name, relation || null, medical_insurance_number || null, famId, employeeId]
+    'UPDATE employee_medical_family SET name = ?, relation = ?, medical_insurance_number = ? WHERE id = ? AND employee_id = ? AND tenant_id = ?',
+    [name, relation || null, medical_insurance_number || null, famId, employeeId, req.tenantId]
   );
   if (req.file) {
     const filePath = 'uploads/personnel/' + req.file.filename;
-    await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ?', [filePath, famId]);
+    await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ? AND employee_id = ? AND tenant_id = ?', [filePath, famId, employeeId, req.tenantId]);
   }
   res.json({ message: 'Family member updated' });
 }
 
 async function deleteMedicalFamily(req, res) {
   const { id: employeeId, famId } = req.params;
-  await pool.query('DELETE FROM employee_medical_family WHERE id = ? AND employee_id = ?', [famId, employeeId]);
+  await pool.query('DELETE FROM employee_medical_family WHERE id = ? AND employee_id = ? AND tenant_id = ?', [famId, employeeId, req.tenantId]);
   res.json({ message: 'Family member deleted' });
 }
 
@@ -528,7 +559,7 @@ async function uploadMedicalFamilyCard(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   if (!req.file) return res.status(400).json({ error: 'No file provided' });
   const filePath = 'uploads/personnel/' + req.file.filename;
-  await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ? AND employee_id = ?', [filePath, famId, employeeId]);
+  await pool.query('UPDATE employee_medical_family SET insurance_card_image = ? WHERE id = ? AND employee_id = ? AND tenant_id = ?', [filePath, famId, employeeId, req.tenantId]);
   logActivity(employeeId, adminId, 'family_card_uploaded', 'Uploaded family insurance card');
   res.json({ message: 'Card image uploaded', path: filePath });
 }
@@ -540,8 +571,17 @@ async function changeEmployeeStatus(req, res) {
 
   if (!action) return res.status(400).json({ error: 'Action is required' });
 
-  const [emp] = await pool.query('SELECT position_id, department_id, title_id FROM employees WHERE id = ?', [employeeId]);
+  const [emp] = await pool.query('SELECT position_id, department_id, title_id FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
   if (emp.length === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  if (to_department_id) {
+    const [d] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [to_department_id, req.tenantId]);
+    if (d.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  }
+  if (to_position_id) {
+    const [p] = await pool.query('SELECT id FROM positions WHERE id = ? AND tenant_id = ?', [to_position_id, req.tenantId]);
+    if (p.length === 0) return res.status(400).json({ error: 'Invalid position' });
+  }
 
   // Validate headcount when transferring to a new department or title
   if (to_department_id && Number(to_department_id) !== Number(emp[0].department_id)) {
@@ -561,16 +601,16 @@ async function changeEmployeeStatus(req, res) {
   const from_department_id = emp[0].department_id;
 
   await pool.query(
-    `INSERT INTO employee_status_log (employee_id, action, from_position_id, to_position_id, from_department_id, to_department_id, effective_date, reason, performed_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [employeeId, action, from_position_id, to_position_id || null, from_department_id, to_department_id || null, effective_date || null, reason || null, adminId]
+    `INSERT INTO employee_status_log (employee_id, action, from_position_id, to_position_id, from_department_id, to_department_id, effective_date, reason, performed_by, tenant_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [employeeId, action, from_position_id, to_position_id || null, from_department_id, to_department_id || null, effective_date || null, reason || null, adminId, req.tenantId]
   );
 
   if (to_position_id) {
-    await pool.query('UPDATE employees SET position_id = ? WHERE id = ?', [to_position_id, employeeId]);
+    await pool.query('UPDATE employees SET position_id = ? WHERE id = ? AND tenant_id = ?', [to_position_id, employeeId, req.tenantId]);
   }
   if (to_department_id) {
-    await pool.query('UPDATE employees SET department_id = ? WHERE id = ?', [to_department_id, employeeId]);
+    await pool.query('UPDATE employees SET department_id = ? WHERE id = ? AND tenant_id = ?', [to_department_id, employeeId, req.tenantId]);
   }
 
   logActivity(employeeId, adminId, 'status_change', `${action} for employee #${employeeId}`);
@@ -589,14 +629,14 @@ async function getEmployeeTimeline(req, res) {
      LEFT JOIN departments fd ON esl.from_department_id = fd.id
      LEFT JOIN departments td ON esl.to_department_id = td.id
      LEFT JOIN admin_users au ON esl.performed_by = au.id
-     WHERE esl.employee_id = ?
-     ORDER BY esl.created_at DESC`, [employeeId]
+     WHERE esl.employee_id = ? AND esl.tenant_id = ?
+     ORDER BY esl.created_at DESC`, [employeeId, req.tenantId]
   );
   res.json(rows);
 }
 
 async function getMyProfile(req, res) {
-  const profile = await getFullProfile(req.employee.id);
+  const profile = await getFullProfile(req.employee.id, req.tenantId);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
   res.json(profile);
 }
@@ -610,7 +650,7 @@ async function updateMyProfile(req, res) {
   if (data.phone !== undefined) employeeUpdates.phone = data.phone || null;
 
   if (Object.keys(employeeUpdates).length > 0) {
-    await pool.query('UPDATE employees SET ? WHERE id = ?', [employeeUpdates, employeeId]);
+    await pool.query('UPDATE employees SET ? WHERE id = ? AND tenant_id = ?', [employeeUpdates, employeeId, req.tenantId]);
   }
 
   const profileFields = ['address', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation'];
@@ -620,14 +660,14 @@ async function updateMyProfile(req, res) {
   }
 
   if (Object.keys(profileData).length > 0) {
-    const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ?', [employeeId]);
+    const [existing] = await pool.query('SELECT id FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
     if (existing.length > 0) {
       const setClause = Object.keys(profileData).map(k => `${k} = ?`).join(', ');
-      await pool.query(`UPDATE employee_profiles SET ${setClause} WHERE employee_id = ?`, [...Object.values(profileData), employeeId]);
+      await pool.query(`UPDATE employee_profiles SET ${setClause} WHERE employee_id = ? AND tenant_id = ?`, [...Object.values(profileData), employeeId, req.tenantId]);
     } else {
       const keys = Object.keys(profileData);
       const vals = Object.values(profileData);
-      await pool.query(`INSERT INTO employee_profiles (employee_id, ${keys.join(', ')}) VALUES (?, ${keys.map(() => '?').join(', ')})`, [employeeId, ...vals]);
+      await pool.query(`INSERT INTO employee_profiles (employee_id, ${keys.join(', ')}, tenant_id) VALUES (?, ${keys.map(() => '?').join(', ')}, ?)`, [employeeId, ...vals, req.tenantId]);
     }
   }
 
@@ -636,8 +676,8 @@ async function updateMyProfile(req, res) {
 
 async function getMyDocuments(req, res) {
   const [rows] = await pool.query(
-    'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ? ORDER BY created_at DESC',
-    [req.employee.id]
+    'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ? AND tenant_id = ? ORDER BY created_at DESC',
+    [req.employee.id, req.tenantId]
   );
   res.json(rows);
 }
@@ -646,8 +686,8 @@ async function searchDocuments(req, res) {
   const { query, type, sortBy, sortOrder } = req.query;
   const employeeId = req.employee.id;
   
-  let sql = 'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ?';
-  const params = [employeeId];
+  let sql = 'SELECT id, doc_type, doc_name, notes, created_at, file_path FROM employee_documents WHERE employee_id = ? AND tenant_id = ?';
+  const params = [employeeId, req.tenantId];
   
   // Search query
   if (query) {
@@ -680,7 +720,10 @@ async function searchDocuments(req, res) {
 
 async function getDocumentPreview(req, res) {
   const { docId } = req.params;
-  const [doc] = await pool.query('SELECT file_path FROM employee_documents WHERE id = ? AND employee_id = ?', [docId, req.employee.id]);
+  const [doc] = await pool.query(
+    'SELECT file_path FROM employee_documents WHERE id = ? AND employee_id = ? AND tenant_id = ?',
+    [docId, req.employee.id, req.tenantId]
+  );
   
   if (doc.length === 0) {
     return res.status(404).json({ error: 'Document not found' });
@@ -693,13 +736,13 @@ async function getDocumentPreview(req, res) {
 }
 
 async function getOrganization(req, res) {
-  const tree = await getOrganizationTree();
+  const tree = await getOrganizationTree(req.tenantId);
   res.json(tree);
 }
 
 async function getHeadcount(req, res) {
-  const report = await getHeadcountReport();
-  const summary = await getHeadcountSummary();
+  const report = await getHeadcountReport(req.tenantId);
+  const summary = await getHeadcountSummary(req.tenantId);
   res.json({ ...report, summary });
 }
 
@@ -749,8 +792,13 @@ async function exportProfiles(req, res) {
     LEFT JOIN positions p ON e.position_id = p.id
     LEFT JOIN employee_profiles ep ON e.id = ep.employee_id
     LEFT JOIN employees s ON ep.supervisor_id = s.id
+    WHERE e.tenant_id = ?
     ORDER BY e.name
-  `);
+    LIMIT ?
+  `, [req.tenantId, MAX_EXPORT_ROWS + 1]);
+
+  const rowError = validateExportRows(rows);
+  if (rowError) return res.status(400).json(rowError);
 
   const data = rows.map(r => {
     const row = { employee_id: r.employee_id, name: r.name, email: r.email, phone: r.phone || '', department: r.department || '', position: r.position || '' };
@@ -770,9 +818,9 @@ async function exportProfiles(req, res) {
     SELECT e.employee_id, sc.component_name, sc.amount
     FROM salary_components sc
     JOIN employees e ON sc.employee_id = e.id
-    WHERE sc.is_active = 1
+    WHERE sc.is_active = 1 AND e.tenant_id = ?
     ORDER BY e.employee_id, sc.component_name
-  `);
+  `, [req.tenantId]);
   const salaryData = salaryRows.map(r => ({
     employee_id: r.employee_id,
     component_name: r.component_name,
@@ -846,8 +894,8 @@ async function importProfiles(req, res) {
   if (profileRows.length > 0) {
     const allEmpIds = [...new Set(profileRows.map(r => r.empId))];
     const [empRows] = await pool.query(
-      `SELECT id, employee_id FROM employees WHERE employee_id IN (${allEmpIds.map(() => '?').join(',')})`,
-      allEmpIds
+      `SELECT id, employee_id FROM employees WHERE tenant_id = ? AND employee_id IN (${allEmpIds.map(() => '?').join(',')})`,
+      [req.tenantId, ...allEmpIds]
     );
     const empMap = new Map(empRows.map(r => [r.employee_id, r.id]));
 
@@ -863,8 +911,8 @@ async function importProfiles(req, res) {
     const knownEids = validProfileRows.map(r => r.eid);
     const [existingProfiles] = knownEids.length > 0
       ? await pool.query(
-          `SELECT employee_id FROM employee_profiles WHERE employee_id IN (${knownEids.map(() => '?').join(',')})`,
-          knownEids
+          `SELECT employee_id FROM employee_profiles WHERE tenant_id = ? AND employee_id IN (${knownEids.map(() => '?').join(',')})`,
+          [req.tenantId, ...knownEids]
         )
       : [[], []];
     const existingProfileSet = new Set(existingProfiles.map(r => r.employee_id));
@@ -873,11 +921,11 @@ async function importProfiles(req, res) {
     const profileBatch = validProfileRows.filter(r => Object.keys(r.profileData).length > 0);
     if (profileBatch.length > 0) {
       const cols = [...profileFields];
-      const placeholders = profileBatch.map(() => `(${['?', ...cols.map(() => '?')].join(',')})`).join(',');
+      const placeholders = profileBatch.map(() => `(${['?', '?', ...cols.map(() => '?')].join(',')})`).join(',');
       const setClause = cols.map(c => `${c} = IFNULL(VALUES(${c}), ${c})`).join(', ');
-      const params = profileBatch.flatMap(r => [r.eid, ...cols.map(c => r.profileData[c] !== undefined ? r.profileData[c] : null)]);
+      const params = profileBatch.flatMap(r => [r.eid, req.tenantId, ...cols.map(c => r.profileData[c] !== undefined ? r.profileData[c] : null)]);
       await pool.query(
-        `INSERT INTO employee_profiles (employee_id, ${cols.join(', ')}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${setClause}`,
+        `INSERT INTO employee_profiles (employee_id, tenant_id, ${cols.join(', ')}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${setClause}`,
         params
       );
     }
@@ -889,8 +937,8 @@ async function importProfiles(req, res) {
       const phoneIds = phoneBatch.map(r => r.eid);
       const phoneVals = phoneBatch.flatMap(r => [r.eid, r.phone]);
       await pool.query(
-        `UPDATE employees SET phone = CASE id ${phoneCases} END WHERE id IN (${phoneIds.map(() => '?').join(',')})`,
-        [...phoneVals, ...phoneIds]
+        `UPDATE employees SET phone = CASE id ${phoneCases} END WHERE id IN (${phoneIds.map(() => '?').join(',')}) AND tenant_id = ?`,
+        [...phoneVals, ...phoneIds, req.tenantId]
       );
     }
 
@@ -917,8 +965,8 @@ async function importProfiles(req, res) {
     if (salaryRows.length > 0) {
       const salEmpIds = [...new Set(salaryRows.map(r => r.empId))];
       const [salEmpRows] = await pool.query(
-        `SELECT id, employee_id FROM employees WHERE employee_id IN (${salEmpIds.map(() => '?').join(',')})`,
-        salEmpIds
+        `SELECT id, employee_id FROM employees WHERE tenant_id = ? AND employee_id IN (${salEmpIds.map(() => '?').join(',')})`,
+        [req.tenantId, ...salEmpIds]
       );
       const salEmpMap = new Map(salEmpRows.map(r => [r.employee_id, r.id]));
 
@@ -934,8 +982,8 @@ async function importProfiles(req, res) {
       const allKnownEids = [...salByEmp.keys()];
       const [existingSalaries] = allKnownEids.length > 0
         ? await pool.query(
-            `SELECT id, employee_id, component_name FROM salary_components WHERE employee_id IN (${allKnownEids.map(() => '?').join(',')})`,
-            allKnownEids
+            `SELECT id, employee_id, component_name FROM salary_components WHERE tenant_id = ? AND employee_id IN (${allKnownEids.map(() => '?').join(',')})`,
+            [req.tenantId, ...allKnownEids]
           )
         : [[], []];
       // Build lookup key "eid:compName" -> id
@@ -958,10 +1006,10 @@ async function importProfiles(req, res) {
 
       // Bulk INSERT new salary_components
       if (newSalaries.length > 0) {
-        const salPlaceholders = newSalaries.map(() => '(?, ?, ?)').join(',');
-        const salParams = newSalaries.flatMap(r => [r.eid, r.compName, r.amount]);
+        const salPlaceholders = newSalaries.map(() => '(?, ?, ?, ?)').join(',');
+        const salParams = newSalaries.flatMap(r => [r.eid, r.compName, r.amount, req.tenantId]);
         await pool.query(
-          `INSERT INTO salary_components (employee_id, component_name, amount) VALUES ${salPlaceholders}`,
+          `INSERT INTO salary_components (employee_id, component_name, amount, tenant_id) VALUES ${salPlaceholders}`,
           salParams
         );
       }
@@ -972,8 +1020,8 @@ async function importProfiles(req, res) {
         const updateIds = updateSalaries.map(r => r.id);
         const updateAmounts = updateSalaries.map(r => r.amount);
         await pool.query(
-          `UPDATE salary_components SET amount = CASE id ${caseWhens} END, is_active = 1 WHERE id IN (${updateIds.map(() => '?').join(',')})`,
-          [...updateAmounts.flatMap((a, i) => [updateIds[i], a]), ...updateIds]
+          `UPDATE salary_components SET amount = CASE id ${caseWhens} END, is_active = 1 WHERE id IN (${updateIds.map(() => '?').join(',')}) AND tenant_id = ?`,
+          [...updateAmounts.flatMap((a, i) => [updateIds[i], a]), ...updateIds, req.tenantId]
         );
       }
     }
@@ -985,17 +1033,17 @@ async function importProfiles(req, res) {
 async function renewContract(req, res) {
   const employeeId = req.params.id;
   const adminId = req.admin?.id || req.hr?.id || null;
-  const [profile] = await pool.query('SELECT * FROM employee_profiles WHERE employee_id = ?', [employeeId]);
+  const [profile] = await pool.query('SELECT * FROM employee_profiles WHERE employee_id = ? AND tenant_id = ?', [employeeId, req.tenantId]);
   if (profile.length === 0) return res.status(404).json({ error: 'Profile not found' });
   const currentEnd = profile[0].contract_end_date;
   if (!currentEnd) return res.status(400).json({ error: 'No contract end date to renew from' });
   const newEnd = new Date(currentEnd);
   newEnd.setFullYear(newEnd.getFullYear() + 1);
   const newEndStr = newEnd.toISOString().split('T')[0];
-  await pool.query('UPDATE employee_profiles SET contract_end_date = ? WHERE employee_id = ?', [newEndStr, employeeId]);
+  await pool.query('UPDATE employee_profiles SET contract_end_date = ? WHERE employee_id = ? AND tenant_id = ?', [newEndStr, employeeId, req.tenantId]);
   await pool.query(
-    'INSERT INTO employee_status_log (employee_id, action, effective_date, performed_by, reason) VALUES (?, ?, ?, ?, ?)',
-    [employeeId, 'contract_renewed', newEndStr, adminId, `Contract renewed to ${newEndStr}`]
+    'INSERT INTO employee_status_log (employee_id, action, effective_date, performed_by, reason, tenant_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [employeeId, 'contract_renewed', newEndStr, adminId, `Contract renewed to ${newEndStr}`, req.tenantId]
   );
   logActivity(employeeId, adminId, 'contract_renewed', `Contract renewed to ${newEndStr}`);
   res.json({ message: 'Contract renewed', contract_end_date: newEndStr });
@@ -1006,22 +1054,22 @@ async function submitResignation(req, res) {
   const { reason, resignation_date } = req.body;
   if (!resignation_date) return res.status(400).json({ error: 'Resignation date is required' });
   const [existing] = await pool.query(
-    "SELECT id FROM resignation_requests WHERE employee_id = ? AND status = 'pending'", [employeeId]
+    "SELECT id FROM resignation_requests WHERE employee_id = ? AND status = 'pending' AND tenant_id = ?", [employeeId, req.tenantId]
   );
   if (existing.length > 0) return res.status(400).json({ error: 'You already have a pending resignation request' });
   const [result] = await pool.query(
-    'INSERT INTO resignation_requests (employee_id, reason, resignation_date) VALUES (?, ?, ?)',
-    [employeeId, reason || null, resignation_date]
+    'INSERT INTO resignation_requests (employee_id, reason, resignation_date, tenant_id) VALUES (?, ?, ?, ?)',
+    [employeeId, reason || null, resignation_date, req.tenantId]
   );
   const requestId = result.insertId;
   const [emp] = await pool.query('SELECT e.*, ep.supervisor_id FROM employees e LEFT JOIN employee_profiles ep ON e.id = ep.employee_id WHERE e.id = ?', [employeeId]);
   let targetEmail = null;
   if (emp[0].supervisor_id) {
-    const [sup] = await pool.query('SELECT email FROM employees WHERE id = ?', [emp[0].supervisor_id]);
+    const [sup] = await pool.query('SELECT email FROM employees WHERE id = ? AND tenant_id = ?', [emp[0].supervisor_id, req.tenantId]);
     if (sup.length > 0) targetEmail = sup[0].email;
   }
   if (!targetEmail && emp[0].department_id) {
-    const [dept] = await pool.query('SELECT c_level_email FROM departments WHERE id = ?', [emp[0].department_id]);
+    const [dept] = await pool.query('SELECT c_level_email FROM departments WHERE id = ? AND tenant_id = ?', [emp[0].department_id, req.tenantId]);
     if (dept.length > 0) targetEmail = dept[0].c_level_email;
   }
   if (targetEmail) {
@@ -1036,11 +1084,9 @@ async function submitResignation(req, res) {
 
 // ── Grades ─────────────────────────────────────────────────────
 async function getGrades(req, res) {
-  const tenantId = req.tenantId;
-  const tenantFilter = tenantId ? ' WHERE tenant_id = ?' : '';
   const [rows] = await pool.query(
-    `SELECT * FROM grades${tenantFilter} ORDER BY grade_level`,
-    tenantId ? [tenantId] : []
+    'SELECT * FROM grades WHERE tenant_id = ? ORDER BY grade_level',
+    [req.tenantId]
   );
   res.json(rows);
 }
@@ -1050,9 +1096,9 @@ async function createGrade(req, res) {
   if (!grade_level || !name) return res.status(400).json({ error: 'grade_level and name are required' });
   const [result] = await pool.query(
     'INSERT INTO grades (tenant_id, grade_level, name, description, min_salary, max_salary) VALUES (?,?,?,?,?,?)',
-    [req.tenantId || 1, grade_level, name, description || null, min_salary || null, max_salary || null]
+    [req.tenantId, grade_level, name, description || null, min_salary || null, max_salary || null]
   );
-  const [created] = await pool.query('SELECT * FROM grades WHERE id = ?', [result.insertId]);
+  const [created] = await pool.query('SELECT * FROM grades WHERE id = ? AND tenant_id = ?', [result.insertId, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_created', `Created grade: ${name}`);
   res.status(201).json(created[0]);
 }
@@ -1060,18 +1106,19 @@ async function createGrade(req, res) {
 async function updateGrade(req, res) {
   const { id } = req.params;
   const { grade_level, name, description, min_salary, max_salary } = req.body;
-  await pool.query(
-    'UPDATE grades SET grade_level=?, name=?, description=?, min_salary=?, max_salary=? WHERE id=?',
-    [grade_level, name, description || null, min_salary || null, max_salary || null, id]
+  const [result] = await pool.query(
+    'UPDATE grades SET grade_level=?, name=?, description=?, min_salary=?, max_salary=? WHERE id=? AND tenant_id=?',
+    [grade_level, name, description || null, min_salary || null, max_salary || null, id, req.tenantId]
   );
-  const [updated] = await pool.query('SELECT * FROM grades WHERE id = ?', [id]);
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Grade not found' });
+  const [updated] = await pool.query('SELECT * FROM grades WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_updated', `Updated grade #${id}`);
   res.json(updated[0]);
 }
 
 async function deleteGrade(req, res) {
   const { id } = req.params;
-  await pool.query('DELETE FROM grades WHERE id=?', [id]);
+  await pool.query('DELETE FROM grades WHERE id=? AND tenant_id=?', [id, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'grade_deleted', `Deleted grade #${id}`);
   res.json({ id: parseInt(id) });
 }
@@ -1095,12 +1142,10 @@ function parseTitleRow(row) {
 
 async function getDepartmentTitles(req, res) {
   const departmentId = req.query.department_id || (req.hr ? null : req.employee?.department_id);
-  const tenantId = req.tenantId;
-  let where = [];
-  let params = [];
+  let where = ['dt.tenant_id = ?'];
+  let params = [req.tenantId];
   if (departmentId) { where.push('dt.department_id = ?'); params.push(departmentId); }
-  if (tenantId) { where.push('d.tenant_id = ?'); params.push(tenantId); }
-  const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
+  const whereClause = 'WHERE ' + where.join(' AND ');
   const [rows] = await pool.query(
     `SELECT dt.*, d.name AS department_name, g.name AS grade_name, g.grade_level,
             COALESCE(ec.cnt, 0) AS filled_count
@@ -1110,11 +1155,11 @@ async function getDepartmentTitles(req, res) {
      LEFT JOIN (
        SELECT title_id, COUNT(*) AS cnt
        FROM employees
-       WHERE (is_system IS NULL OR is_system = 0)
+       WHERE (is_system IS NULL OR is_system = 0) AND tenant_id = ?
        GROUP BY title_id
      ) ec ON ec.title_id = dt.id
      ${whereClause}
-     ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, params
+     ORDER BY d.name, g.grade_level IS NULL, g.grade_level`, [req.tenantId, ...params]
   );
   const [[allSkills], [allCerts]] = await Promise.all([
     pool.query('SELECT id, name FROM master_skills'),
@@ -1156,13 +1201,19 @@ function serializeJSON(val) {
 async function createDepartmentTitle(req, res) {
   const { department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs } = req.body;
   if (!department_id || !title) return res.status(400).json({ error: 'department_id and title are required' });
+  const [dept] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [department_id, req.tenantId]);
+  if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  if (grade_id) {
+    const [g] = await pool.query('SELECT id FROM grades WHERE id = ? AND tenant_id = ?', [grade_id, req.tenantId]);
+    if (g.length === 0) return res.status(400).json({ error: 'Invalid grade' });
+  }
   const [result] = await pool.query(
-    `INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years || null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills), serializeJSON(preferred_certs)]
+    `INSERT INTO department_titles (department_id, title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs, tenant_id)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [department_id, title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years || null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills), serializeJSON(preferred_certs), req.tenantId]
   );
   await recalcDepartmentMaxHeadcount(department_id);
-  const [created] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [result.insertId]);
+  const [created] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ? AND dt.tenant_id = ?', [result.insertId, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_created', `Created title: ${title}`);
   res.status(201).json(parseTitleRow(created[0]));
 }
@@ -1170,26 +1221,28 @@ async function createDepartmentTitle(req, res) {
 async function updateDepartmentTitle(req, res) {
   const { id } = req.params;
   const { title, grade_id, description, technical, sort_order, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, max_headcount, min_education_level, min_experience_years, required_skills, required_certs, preferred_skills, preferred_certs } = req.body;
-  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ?', [id]);
-  await pool.query(
-    `UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=?, min_education_level=?, min_experience_years=?, required_skills=?, required_certs=?, preferred_skills=?, preferred_certs=? WHERE id=?`,
-    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years || null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills), serializeJSON(preferred_certs), id]
-  );
-  if (currentRows.length > 0) {
-    await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
+  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
+  if (currentRows.length === 0) return res.status(404).json({ error: 'Title not found' });
+  if (grade_id) {
+    const [g] = await pool.query('SELECT id FROM grades WHERE id = ? AND tenant_id = ?', [grade_id, req.tenantId]);
+    if (g.length === 0) return res.status(400).json({ error: 'Invalid grade' });
   }
-  const [updated] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ?', [id]);
+  await pool.query(
+    `UPDATE department_titles SET title=?, grade_id=?, description=?, technical=?, sort_order=?, job_summary=?, key_responsibilities=?, qualifications=?, technical_skills=?, core_competencies=?, max_headcount=?, min_education_level=?, min_experience_years=?, required_skills=?, required_certs=?, preferred_skills=?, preferred_certs=? WHERE id=? AND tenant_id=?`,
+    [title, grade_id || null, description || null, technical ? 1 : 0, sort_order || 0, job_summary || null, key_responsibilities || null, qualifications || null, technical_skills || null, core_competencies || null, max_headcount !== undefined ? Math.max(0, parseInt(max_headcount, 10) || 0) : 0, min_education_level || null, min_experience_years || null, serializeJSON(required_skills), serializeJSON(required_certs), serializeJSON(preferred_skills), serializeJSON(preferred_certs), id, req.tenantId]
+  );
+  await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
+  const [updated] = await pool.query(DEPT_TITLE_SELECT + ' WHERE dt.id = ? AND dt.tenant_id = ?', [id, req.tenantId]);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_updated', `Updated title #${id}`);
   res.json(parseTitleRow(updated[0]));
 }
 
 async function deleteDepartmentTitle(req, res) {
   const { id } = req.params;
-  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ?', [id]);
-  await pool.query('DELETE FROM department_titles WHERE id=?', [id]);
-  if (currentRows.length > 0) {
-    await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
-  }
+  const [currentRows] = await pool.query('SELECT department_id FROM department_titles WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
+  if (currentRows.length === 0) return res.status(404).json({ error: 'Title not found' });
+  await pool.query('DELETE FROM department_titles WHERE id=? AND tenant_id=?', [id, req.tenantId]);
+  await recalcDepartmentMaxHeadcount(currentRows[0].department_id);
   logActivity(null, req.admin?.id || req.hr?.id || null, 'dept_title_deleted', `Deleted title #${id}`);
   res.json({ id: parseInt(id), department_id: currentRows[0]?.department_id || null });
 }
@@ -1197,10 +1250,12 @@ async function deleteDepartmentTitle(req, res) {
 // ── Evaluation Criteria ────────────────────────────────────────
 async function getEvaluationCriteria(req, res) {
   const { title_id } = req.query;
-  let query = 'SELECT * FROM title_evaluation_criteria';
-  const params = [];
-  if (title_id) { query += ' WHERE title_id=?'; params.push(title_id); }
-  query += ' ORDER BY id';
+  let query = `SELECT tec.* FROM title_evaluation_criteria tec
+     JOIN department_titles dt ON tec.title_id = dt.id
+     WHERE dt.tenant_id = ?`;
+  const params = [req.tenantId];
+  if (title_id) { query += ' AND tec.title_id=?'; params.push(title_id); }
+  query += ' ORDER BY tec.id';
   const [rows] = await pool.query(query, params);
   res.json(rows);
 }
@@ -1208,6 +1263,8 @@ async function getEvaluationCriteria(req, res) {
 async function saveEvaluationCriteria(req, res) {
   const { title_id, criteria } = req.body;
   if (!title_id || !Array.isArray(criteria)) return res.status(400).json({ error: 'title_id and criteria array are required' });
+  const [title] = await pool.query('SELECT id FROM department_titles WHERE id = ? AND tenant_id = ?', [title_id, req.tenantId]);
+  if (title.length === 0) return res.status(404).json({ error: 'Title not found' });
   await pool.query('DELETE FROM title_evaluation_criteria WHERE title_id=?', [title_id]);
   for (const c of criteria) {
     if (c.criterion_name && c.weight !== undefined) {
@@ -1279,11 +1336,14 @@ async function updateEmployeeGoal(req, res) {
       return res.status(400).json({ error: 'No fields to update' });
     }
     params.push(goalId, id);
-    await pool.query(
+    const [result] = await pool.query(
       `UPDATE employee_goals SET ${updates.join(', ')} WHERE id = ? AND employee_id = ?`,
       params
     );
-    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [goalId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ? AND employee_id = ?', [goalId, id]);
     if (updated.length === 0) {
       return res.status(404).json({ error: 'Goal not found' });
     }
@@ -1319,11 +1379,14 @@ async function updateGoalProgress(req, res) {
     return res.status(400).json({ error: 'progress_percentage is required' });
   }
   try {
-    await pool.query(
+    const [result] = await pool.query(
       'UPDATE employee_goals SET progress_percentage = ? WHERE id = ? AND employee_id = ?',
       [parseFloat(progress_percentage), goalId, employeeId]
     );
-    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ?', [goalId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+    const [updated] = await pool.query('SELECT * FROM employee_goals WHERE id = ? AND employee_id = ?', [goalId, employeeId]);
     if (updated.length === 0) {
       return res.status(404).json({ error: 'Goal not found' });
     }

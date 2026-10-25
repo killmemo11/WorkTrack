@@ -9,6 +9,22 @@ const { logActivity } = require('../../shared/services/activity.service');
 const { runMissingSignOutCheck } = require('../../shared/jobs/missing-signout-reminder.job');
 const { formatUpdatedFieldsSummary, formatUpdatedFieldChanges } = require('../../shared/utils/activity-log.util');
 const { updateEmployeeBody, rejectSignoutBody } = require('../../shared/validations/schemas');
+const { MAX_EXPORT_ROWS, validateExportRange, validateExportRows } = require('../../shared/utils/export-guard.util');
+const tokenService = require('../../shared/services/token.service');
+
+async function hasOtherActiveAdmin(tenantId, employeeId, conn = pool) {
+  if (!tenantId) return true;
+  const [admins] = await conn.query(
+    'SELECT id FROM admin_users WHERE tenant_id = ? AND is_active = 1 AND is_platform_admin = 0 LIMIT 1',
+    [tenantId]
+  );
+  if (admins.length > 0) return true;
+  const [emps] = await conn.query(
+    "SELECT id FROM employees WHERE tenant_id = ? AND role = 'admin' AND is_active = 1 AND id <> ? LIMIT 1",
+    [tenantId, employeeId]
+  );
+  return emps.length > 0;
+}
 
 async function getEmployees(req, res) {
   const page = parseInt(req.query.page) || 1;
@@ -62,49 +78,101 @@ async function updateEmployee(req, res) {
   const tenantId = req.tenantId;
   const { name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date } = req.body;
 
-  const [oldRows] = await pool.query(
-    'SELECT name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
-    tenantId ? [id, tenantId] : [id]
-  );
-  if (oldRows.length === 0) {
-    return res.status(404).json({ error: 'Employee not found' });
-  }
-  const oldEmployee = oldRows[0];
-
-  const fields = [];
-  const values = [];
-  if (name !== undefined) { fields.push('name = ?'); values.push(name); }
-  if (email !== undefined) { fields.push('email = ?'); values.push(email); }
-  if (username !== undefined) { fields.push('username = ?'); values.push(username); }
-  if (employee_id !== undefined) { fields.push('employee_id = ?'); values.push(employee_id); }
-  if (department !== undefined) { fields.push('department = ?'); values.push(department); }
-  if (department_id !== undefined) { fields.push('department_id = ?'); values.push(department_id || null); }
-  if (grade_id !== undefined) { fields.push('grade_id = ?'); values.push(grade_id || null); }
-  if (title_id !== undefined) { fields.push('title_id = ?'); values.push(title_id || null); }
-  if (role !== undefined) { fields.push('role = ?'); values.push(role); }
-  if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
-  if (can_wfh !== undefined) { fields.push('can_wfh = ?'); values.push(can_wfh); }
-  if (employment_status !== undefined) { fields.push('employment_status = ?'); values.push(employment_status); }
-
+  const conn = await pool.getConnection();
+  let oldEmployee;
+  let fields;
   let resignationDateValue;
-  if (resignation_date !== undefined) {
-    resignationDateValue = null;
-    if (resignation_date) {
-      const d = new Date(resignation_date);
-      if (!isNaN(d.getTime())) {
-        resignationDateValue = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-      }
+  try {
+    await conn.beginTransaction();
+    // Serialize admin changes within a workspace so two concurrent demotions
+    // cannot both observe another active admin.
+    if (tenantId) await conn.query('SELECT id FROM tenants WHERE id = ? FOR UPDATE', [tenantId]);
+
+    const [oldRows] = await conn.query(
+      'SELECT name, email, username, employee_id, department, department_id, grade_id, title_id, role, is_active, can_wfh, employment_status, resignation_date FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : '') + ' FOR UPDATE',
+      tenantId ? [id, tenantId] : [id]
+    );
+    if (oldRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Employee not found' });
     }
-    fields.push('resignation_date = ?');
-    values.push(resignationDateValue);
+    oldEmployee = oldRows[0];
+
+    // HR staff share this endpoint through /api/hr but must not promote anyone to
+    // admin/CEO or touch privileged accounts' role, status, or login identifiers.
+    const isItAdminCaller = Boolean(req.admin) || req.employee?.role === 'admin';
+    const isPrivilegedTarget = oldEmployee.role === 'admin' || oldEmployee.role === 'ceo';
+    const assignsPrivilegedRole = role === 'admin' || role === 'ceo';
+    const changesRole = role !== undefined && role !== oldEmployee.role;
+    const changesActive = is_active !== undefined && Boolean(is_active) !== Boolean(oldEmployee.is_active);
+    const changesLogin = (email !== undefined && email !== oldEmployee.email) ||
+      (username !== undefined && username !== oldEmployee.username);
+    if (!isItAdminCaller && (
+      (changesRole && (assignsPrivilegedRole || isPrivilegedTarget)) ||
+      (isPrivilegedTarget && (changesActive || changesLogin))
+    )) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'Only IT admins can change admin or CEO accounts' });
+    }
+
+    const removesAdmin = oldEmployee.role === 'admin' && (
+      (role !== undefined && role !== 'admin') ||
+      (is_active !== undefined && !is_active)
+    );
+    if (removesAdmin && !(await hasOtherActiveAdmin(tenantId, id, conn))) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Cannot deactivate or demote the last active admin' });
+    }
+
+    fields = [];
+    const values = [];
+    if (name !== undefined) { fields.push('name = ?'); values.push(name); }
+    if (email !== undefined) { fields.push('email = ?'); values.push(email); }
+    if (username !== undefined) { fields.push('username = ?'); values.push(username); }
+    if (employee_id !== undefined) { fields.push('employee_id = ?'); values.push(employee_id); }
+    if (department !== undefined) { fields.push('department = ?'); values.push(department); }
+    if (department_id !== undefined) { fields.push('department_id = ?'); values.push(department_id || null); }
+    if (grade_id !== undefined) { fields.push('grade_id = ?'); values.push(grade_id || null); }
+    if (title_id !== undefined) { fields.push('title_id = ?'); values.push(title_id || null); }
+    if (role !== undefined) { fields.push('role = ?'); values.push(role); }
+    if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active); }
+    if (can_wfh !== undefined) { fields.push('can_wfh = ?'); values.push(can_wfh); }
+    if (employment_status !== undefined) { fields.push('employment_status = ?'); values.push(employment_status); }
+
+    if (resignation_date !== undefined) {
+      resignationDateValue = null;
+      if (resignation_date) {
+        const d = new Date(resignation_date);
+        if (!isNaN(d.getTime())) {
+          resignationDateValue = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+        }
+      }
+      fields.push('resignation_date = ?');
+      values.push(resignationDateValue);
+    }
+
+    if (fields.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+    if (tenantId) values.push(tenantId);
+    await conn.query(
+      `UPDATE employees SET ${fields.join(', ')} WHERE id = ?` + (tenantId ? ' AND tenant_id = ?' : ''),
+      values
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
 
-  if (fields.length === 0) {
-    return res.status(400).json({ error: 'No fields to update' });
+  if (is_active !== undefined && !is_active) {
+    await tokenService.revokeAllUserTokens(id, 'employee', tenantId);
   }
-
-  values.push(id);
-  await pool.query(`UPDATE employees SET ${fields.join(', ')} WHERE id = ?`, values);
 
   // Send notification to employee if their data was changed (skip balance-only updates)
   await createNotification(id, 'Profile Updated', 'Your profile has been updated by an administrator.', 'info');
@@ -139,7 +207,8 @@ async function updateEmployee(req, res) {
             e.is_verified
      FROM employees e
      LEFT JOIN departments d ON e.department_id = d.id
-     WHERE e.id = ?`, [id]
+     WHERE e.id = ?` + (tenantId ? ' AND e.tenant_id = ?' : ''),
+    tenantId ? [id, tenantId] : [id]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
   res.json(rows[0]);
@@ -194,13 +263,16 @@ async function exportExcel(req, res) {
   const { date_from, date_to, employee_id } = req.query;
   const tenantId = req.tenantId;
 
+  const rangeError = validateExportRange(date_from, date_to);
+  if (rangeError) return res.status(400).json(rangeError);
+
   let where = [];
   let params = [];
 
   if (tenantId) { where.push('a.tenant_id = ?'); params.push(tenantId); }
   if (employee_id) { where.push('a.employee_id = ?'); params.push(employee_id); }
-  if (date_from) { where.push('a.date >= ?'); params.push(date_from); }
-  if (date_to) { where.push('a.date <= ?'); params.push(date_to); }
+  where.push('a.date >= ?'); params.push(date_from);
+  where.push('a.date <= ?'); params.push(date_to);
 
   const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
 
@@ -210,9 +282,13 @@ async function exportExcel(req, res) {
      FROM attendance_records a
      JOIN employees e ON a.employee_id = e.id
      ${whereClause}
-     ORDER BY a.date DESC`,
-    params
+     ORDER BY a.date DESC
+     LIMIT ?`,
+    [...params, MAX_EXPORT_ROWS + 1]
   );
+
+  const rowError = validateExportRows(rows);
+  if (rowError) return res.status(400).json(rowError);
 
   const data = rows.map((r) => ({
     Date: r.date,
@@ -268,7 +344,10 @@ async function getEmployee(req, res) {
   if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
 
   // Get leave balances (dynamic for all types)
-  const [balances] = await pool.query('SELECT leave_type, balance FROM leave_balances WHERE employee_id = ?', [id]);
+  const [balances] = await pool.query(
+    'SELECT leave_type, balance FROM leave_balances WHERE employee_id = ? AND tenant_id = ?',
+    [id, req.tenantId]
+  );
   const bal = {};
   for (const b of balances) bal[b.leave_type] = parseFloat(b.balance);
   rows[0].balances = bal;
@@ -283,15 +362,23 @@ async function getEmployee(req, res) {
 async function deleteEmployee(req, res) {
   const { id } = req.params;
   const tenantId = req.tenantId;
-  const [rows] = await pool.query(
-    'SELECT id, name, email FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
-    tenantId ? [id, tenantId] : [id]
-  );
-  if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
-
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    if (tenantId) await conn.query('SELECT id FROM tenants WHERE id = ? FOR UPDATE', [tenantId]);
+
+    const [rows] = await conn.query(
+      'SELECT id, name, email, role FROM employees WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : '') + ' FOR UPDATE',
+      tenantId ? [id, tenantId] : [id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    if (rows[0].role === 'admin' && !(await hasOtherActiveAdmin(tenantId, id, conn))) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Cannot delete the last active admin' });
+    }
     const empLabel = rows[0].name || rows[0].email || id;
 
     await conn.query('DELETE FROM attendance_records WHERE employee_id = ?', [id]);
@@ -370,7 +457,8 @@ async function getMonthlyReport(req, res) {
   const tenantId = req.tenantId;
 
   const [settingsRows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+    [tenantId]
   );
   const s = {};
   for (const row of settingsRows) s[row.key] = row.value;
@@ -378,8 +466,8 @@ async function getMonthlyReport(req, res) {
   const workWeekEnd = s.work_week_end || 'Thursday';
 
   const [holidays] = await pool.query(
-    'SELECT date FROM holidays WHERE YEAR(date) = ? AND MONTH(date) = ?',
-    [year, month]
+    'SELECT date FROM holidays WHERE YEAR(date) = ? AND MONTH(date) = ? AND tenant_id = ?',
+    [year, month, tenantId]
   );
   const holidaySet = new Set(holidays.map((h) => new Date(h.date).toISOString().split('T')[0]));
 
@@ -468,8 +556,8 @@ async function getPendingSignoutRequests(req, res) {
     `SELECT sr.*, a.date, a.sign_in_time, e.name as employee_name, e.email as employee_email,
             d.name as department_name
      FROM signout_requests sr
-     JOIN attendance_records a ON sr.attendance_record_id = a.id
-     JOIN employees e ON sr.employee_id = e.id
+     JOIN attendance_records a ON sr.attendance_record_id = a.id AND a.tenant_id = sr.tenant_id
+     JOIN employees e ON sr.employee_id = e.id AND e.tenant_id = sr.tenant_id
      LEFT JOIN departments d ON e.department_id = d.id
      WHERE sr.status = 'pending'${tenantFilter}
      ORDER BY sr.created_at ASC
@@ -495,25 +583,37 @@ async function adminApproveSignoutRequest(req, res) {
   const adminId = req.admin?.id || req.employee?.id;
   const tenantId = req.tenantId;
 
-  const [rows] = await pool.query(
-    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'" + (tenantId ? ' AND tenant_id = ?' : ''),
-    tenantId ? [id, tenantId] : [id]
-  );
+  const conn = await pool.getConnection();
+  let sr;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending' AND tenant_id = ? FOR UPDATE",
+      [id, tenantId]
+    );
 
-  if (rows.length === 0) {
-    return res.status(400).json({ error: 'Sign-out request not found or already processed' });
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Sign-out request not found or already processed' });
+    }
+
+    sr = rows[0];
+    await conn.query(
+      'UPDATE signout_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ? AND tenant_id = ?',
+      ['approved', adminId, id, tenantId]
+    );
+
+    await conn.query(
+      'UPDATE attendance_records SET sign_out_time = ?, is_manual_sign_out = 1 WHERE id = ? AND tenant_id = ?',
+      [sr.sign_out_time, sr.attendance_record_id, tenantId]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-
-  const sr = rows[0];
-  await pool.query(
-    'UPDATE signout_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?',
-    ['approved', adminId, id]
-  );
-
-  await pool.query(
-    'UPDATE attendance_records SET sign_out_time = ?, is_manual_sign_out = 1 WHERE id = ?',
-    [sr.sign_out_time, sr.attendance_record_id]
-  );
 
   await createNotification(
     sr.employee_id,
@@ -524,8 +624,8 @@ async function adminApproveSignoutRequest(req, res) {
   );
 
   try {
-    const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [sr.employee_id]);
-    const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ?', [sr.attendance_record_id]);
+    const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ? AND tenant_id = ?', [sr.employee_id, tenantId]);
+    const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ? AND tenant_id = ?', [sr.attendance_record_id, tenantId]);
     const emailService = require('../../shared/services/email.service');
     await emailService.sendSignOutRequestApprovedEmail(empRows[0], {
       date: recRows[0].date,
@@ -546,20 +646,32 @@ async function adminRejectSignoutRequest(req, res) {
   const adminId = req.admin?.id || req.employee?.id;
   const tenantId = req.tenantId;
 
-  const [rows] = await pool.query(
-    "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending'" + (tenantId ? ' AND tenant_id = ?' : ''),
-    tenantId ? [id, tenantId] : [id]
-  );
+  const conn = await pool.getConnection();
+  let sr;
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      "SELECT * FROM signout_requests WHERE id = ? AND status = 'pending' AND tenant_id = ? FOR UPDATE",
+      [id, tenantId]
+    );
 
-  if (rows.length === 0) {
-    return res.status(400).json({ error: 'Sign-out request not found or already processed' });
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Sign-out request not found or already processed' });
+    }
+
+    sr = rows[0];
+    await conn.query(
+      'UPDATE signout_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ? AND tenant_id = ?',
+      ['rejected', adminId, rejection_reason || null, id, tenantId]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-
-  const sr = rows[0];
-  await pool.query(
-    'UPDATE signout_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?',
-    ['rejected', adminId, rejection_reason || null, id]
-  );
 
   await createNotification(
     sr.employee_id,
@@ -572,8 +684,8 @@ async function adminRejectSignoutRequest(req, res) {
   );
 
   try {
-    const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ?', [sr.employee_id]);
-    const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ?', [sr.attendance_record_id]);
+    const [empRows] = await pool.query('SELECT name, email FROM employees WHERE id = ? AND tenant_id = ?', [sr.employee_id, tenantId]);
+    const [recRows] = await pool.query('SELECT date FROM attendance_records WHERE id = ? AND tenant_id = ?', [sr.attendance_record_id, tenantId]);
     const emailService = require('../../shared/services/email.service');
     await emailService.sendSignOutRequestRejectedEmail(empRows[0], { date: recRows[0].date, signOutTime: '' }, rejection_reason);
   } catch (e) { logger.error('Sign-out rejected email error:', e); }
@@ -601,8 +713,8 @@ async function updateRecordSignOut(req, res) {
   }
 
   await pool.query(
-    'UPDATE attendance_records SET sign_out_time = ?, is_manual_sign_out = 1, notes = COALESCE(?, notes) WHERE id = ?',
-    [new Date(sign_out_time), notes || null, id]
+    'UPDATE attendance_records SET sign_out_time = ?, is_manual_sign_out = 1, notes = COALESCE(?, notes) WHERE id = ?' + (tenantId ? ' AND tenant_id = ?' : ''),
+    tenantId ? [new Date(sign_out_time), notes || null, id, tenantId] : [new Date(sign_out_time), notes || null, id]
   );
 
   await logActivity(rows[0].employee_id, req.admin?.id || req.hr?.id || null, 'signout_direct_update', `Admin directly set sign-out time on record #${id}`);
@@ -612,7 +724,7 @@ async function updateRecordSignOut(req, res) {
 
 async function triggerMissingSignOutCheck(req, res) {
   try {
-    const result = await runMissingSignOutCheck();
+    const result = await runMissingSignOutCheck(req.tenantId);
     const logAdminId = req.admin?.id || req.hr?.id || null;
     await logActivity(null, logAdminId, 'missing_signout_check', `Triggered missing sign-out check — ${result.processed || 0} processed, ${result.reminded || 0} reminded`);
     res.json({ message: 'Check complete', ...result });

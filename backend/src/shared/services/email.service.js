@@ -6,21 +6,27 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const { decrypt } = require('../utils/encryption');
 const { escapeHtml } = require('../utils/sanitize');
+const { getTenantId } = require('../utils/tenant-context');
 
-let transporterCache = null;
-let cachedSettingsHash = '';
+const transporterCache = new Map();
+
+function activeTenantId() {
+  return getTenantId() || 1;
+}
 
 async function getTransporter() {
-  const [rows] = await pool.query('SELECT `key`, `value` FROM settings');
+  const tenantId = activeTenantId();
+  const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE tenant_id = ?', [tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
 
   if (!settings.smtp_host) return null;
 
   const hash = JSON.stringify({ host: settings.smtp_host, port: settings.smtp_port, user: settings.smtp_user, pass: settings.smtp_pass });
-  if (transporterCache && cachedSettingsHash === hash) return transporterCache;
+  const cached = transporterCache.get(tenantId);
+  if (cached && cached.hash === hash) return cached.transporter;
 
-  transporterCache = nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     host: settings.smtp_host,
     port: parseInt(settings.smtp_port) || 587,
     secure: parseInt(settings.smtp_port) === 465,
@@ -29,12 +35,16 @@ async function getTransporter() {
       pass: settings.smtp_pass ? (() => { try { return decrypt(settings.smtp_pass); } catch { return settings.smtp_pass; } })() : '',
     },
   });
-  cachedSettingsHash = hash;
-  return transporterCache;
+  transporterCache.set(tenantId, { hash, transporter });
+  return transporter;
 }
 
 async function getFromAddress() {
-  const [rows] = await pool.query("SELECT `key`, `value` FROM settings WHERE `key` IN ('smtp_from', 'smtp_user')");
+  const tenantId = activeTenantId();
+  const [rows] = await pool.query(
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('smtp_from', 'smtp_user') AND tenant_id = ?",
+    [tenantId]
+  );
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
   return settings.smtp_from || settings.smtp_user || 'WorkTrack <noreply@wfh.local>';

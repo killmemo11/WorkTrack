@@ -6,7 +6,8 @@ import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
 import ProfileTimeline from '../components/ProfileTimeline';
 import IDCardModal from '../../../shared/components/IDCardModal';
-import { sanitizeHTML } from '../../../shared/utils/sanitize';
+import { openSanitizedHTML, sanitizeHTML } from '../../../shared/utils/sanitize';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function MyProfile() {
   const [tab, setTab] = useState('profile');
@@ -131,12 +132,6 @@ export default function MyProfile() {
     return <span className={`glass-badge ${colors[s] || 'glass-badge-default'}`}>{s}</span>;
   };
 
-  const formatDate = (d) => {
-    if (!d) return '—';
-    const dt = new Date(d);
-    return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
-  };
-
   if (loading) return (
     <div className="glass-loading">
       <div className="spinner" />
@@ -157,7 +152,7 @@ export default function MyProfile() {
             {profile.profile?.avatar_path
               ? <img src={`/${profile.profile.avatar_path}`} alt="avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-glass)', boxShadow: '0 0 16px rgba(99,102,241,0.15)' }} />
               : <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'var(--text-primary)', border: '2px solid var(--border-glass)' }}>{profile.name?.[0]?.toUpperCase()}</div>}
-            <input type="file" accept="image/*" id="my-avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
+            <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" id="my-avatar-upload" style={{ display: 'none' }} onChange={handleAvatarUpload} />
             <label htmlFor="my-avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--bg-glass)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', fontSize: 12, lineHeight: 1, backdropFilter: 'blur(8px)' }} title="Upload avatar">
               {uploadingAvatar ? <div className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : <Icon icon="lucide:camera" style={{ fontSize: 11 }}></Icon>}
             </label>
@@ -463,7 +458,7 @@ export default function MyProfile() {
             <h3 style={{ marginBottom: 16 }}>Contract</h3>
             <div className="glass-card" dangerouslySetInnerHTML={{ __html: sanitizeHTML(viewContractContent) }} />
             <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(sanitizeHTML(viewContractContent)); w.print(); }}>
+              <button className="glass-btn glass-btn-ghost" onClick={() => openSanitizedHTML(viewContractContent, { print: true })}>
                 <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>

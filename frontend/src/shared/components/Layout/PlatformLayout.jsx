@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { usePlatformAuth } from '../../context/PlatformAuthContext';
 import Icon from '../Icon';
 import Footer from '../Footer';
 import platformApi from '../../api/platformApi';
+import SkipLink from '../SkipLink';
 
 export default function PlatformLayout() {
-  const { platformAdmin, logout } = usePlatformAuth();
+  const { platformAdmin, loading, logout } = usePlatformAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [stats, setStats] = useState(null);
   const [platformSettings, setPlatformSettings] = useState({});
 
   useEffect(() => {
+    if (!platformAdmin) return;
+
     platformApi.get('/stats')
       .then((res) => { if (res.data) setStats(res.data); })
       .catch(() => {});
@@ -26,7 +29,16 @@ export default function PlatformLayout() {
         setPlatformSettings(map);
       })
       .catch(() => {});
-  }, []);
+  }, [platformAdmin]);
+
+  if (loading) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
+
+  if (!platformAdmin) return <Navigate to="/platform/login" replace />;
 
   const handleLogout = () => {
     logout();
@@ -38,6 +50,7 @@ export default function PlatformLayout() {
 
   return (
     <div className="platform-layout">
+      <SkipLink />
       <aside className="platform-sidebar">
         <div className="platform-brand">
           <Link to="/platform">
@@ -113,7 +126,7 @@ export default function PlatformLayout() {
           </div>
         </div>
       </aside>
-      <main className="platform-content">
+      <main className="platform-content" id="main-content" tabIndex={-1}>
         <Outlet />
         <Footer />
       </main>

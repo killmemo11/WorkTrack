@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 const tokenService = require('../../shared/services/token.service');
+const { clearOtherAuthCookies } = require('../../shared/utils/auth-cookies');
+const { isTenantActive, TENANT_INACTIVE_MESSAGE } = require('../../shared/services/tenant.service');
 
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
@@ -46,8 +48,12 @@ async function login(req, res) {
       [admin.id]
     ).catch(() => {});
 
+    if (admin.tenant_id && !(await isTenantActive(admin.tenant_id))) {
+      return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+    }
+
     const token = jwt.sign(
-      { id: admin.id, username: admin.username, type: 'admin' },
+      { id: admin.id, username: admin.username, tenant_id: admin.tenant_id, type: 'admin' },
       process.env.JWT_SECRET,
       { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
     );
@@ -58,6 +64,7 @@ async function login(req, res) {
       admin.tenant_id
     );
 
+    clearOtherAuthCookies(res, ['admin_access_token', 'admin_refresh_token']);
     res.cookie('admin_access_token', token, {
       httpOnly: true,
       secure: COOKIE_SECURE,
@@ -69,7 +76,7 @@ async function login(req, res) {
       httpOnly: true,
       secure: COOKIE_SECURE,
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
 
@@ -117,8 +124,12 @@ async function login(req, res) {
     [emp.id]
   ).catch(() => {});
 
+  if (!(await isTenantActive(emp.tenant_id))) {
+    return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+  }
+
   const token = jwt.sign(
-    { id: emp.id, email: emp.email, role: emp.role, type: 'admin' },
+    { id: emp.id, email: emp.email, role: emp.role, tenant_id: emp.tenant_id, type: 'employee_admin' },
     process.env.JWT_SECRET,
     { expiresIn: '15m', issuer: 'worktrack', audience: 'admin', algorithm: 'HS256' }
   );
@@ -129,6 +140,7 @@ async function login(req, res) {
     emp.tenant_id
   );
 
+  clearOtherAuthCookies(res, ['admin_access_token', 'admin_refresh_token']);
   res.cookie('admin_access_token', token, {
     httpOnly: true,
     secure: COOKIE_SECURE,
@@ -140,7 +152,7 @@ async function login(req, res) {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   });
 
@@ -211,6 +223,12 @@ async function changePassword(req, res) {
       'UPDATE admin_users SET password_hash = ?, must_change_password = 0 WHERE id = ?',
       [newHash, req.admin.id]
     );
+    await tokenService.revokeAllUserTokens(req.admin.id, 'admin', req.admin.tenant_id);
+    const refreshToken = await tokenService.generateRefreshToken(req.admin.id, 'admin', req.admin.tenant_id);
+    res.cookie('admin_refresh_token', refreshToken, {
+      httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000, path: '/',
+    });
     await logActivity(null, req.admin.id, 'admin_password_changed', `Admin changed password: ${req.admin.username}`);
     return res.json({ message: 'Password updated', must_change_password: false });
   }
@@ -224,6 +242,12 @@ async function changePassword(req, res) {
 
   const newHash = await bcrypt.hash(newPassword, 13);
   await pool.query('UPDATE employees SET password_hash = ? WHERE id = ?', [newHash, req.admin.id]);
+  await tokenService.revokeAllUserTokens(req.admin.id, 'admin', req.admin.tenant_id);
+  const refreshToken = await tokenService.generateRefreshToken(req.admin.id, 'admin', req.admin.tenant_id);
+  res.cookie('admin_refresh_token', refreshToken, {
+    httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000, path: '/',
+  });
   await logActivity(null, req.admin.id, 'admin_password_changed', `Employee-admin changed password: ${req.admin.username}`);
   res.json({ message: 'Password updated', must_change_password: false });
 }

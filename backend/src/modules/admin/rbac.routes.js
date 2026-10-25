@@ -8,13 +8,24 @@ const { logActivity } = require('../../shared/services/activity.service');
 const { clearPermissionCache } = require('../../shared/middleware/rbac.middleware');
 const { createRoleBody, updateRoleBody, assignRoleBody, removeRoleBody, toggleServiceBody, bulkServicesBody } = require('../../shared/validations/schemas');
 
+async function filterPermissionIds(conn, tenantId, permissionIds) {
+  if (!Array.isArray(permissionIds) || permissionIds.length === 0) return [];
+  const ids = [...new Set(permissionIds.map(Number).filter(Number.isInteger))];
+  if (ids.length === 0) return [];
+  const [rows] = await conn.query(
+    `SELECT id FROM permissions WHERE tenant_id = ? AND id IN (${ids.map(() => '?').join(',')})`,
+    [tenantId, ...ids]
+  );
+  return rows.map((r) => r.id);
+}
+
 // ============================================================
 // ROLES
 // ============================================================
 
 // List all roles for tenant
 router.get('/roles', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
     `SELECT r.*, 
       (SELECT COUNT(*) FROM role_permissions rp WHERE rp.role_id = r.id) as permission_count,
@@ -29,7 +40,7 @@ router.get('/roles', async (req, res) => {
 router.post('/roles', async (req, res) => {
   const { error } = createRoleBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { name, display_name, description, permission_ids } = req.body;
 
   if (!name || !display_name) {
@@ -54,7 +65,8 @@ router.post('/roles', async (req, res) => {
     const roleId = result.insertId;
 
     if (permission_ids && Array.isArray(permission_ids)) {
-      for (const permId of permission_ids) {
+      const allowedIds = await filterPermissionIds(conn, tenantId, permission_ids);
+      for (const permId of allowedIds) {
         await conn.query(
           'INSERT IGNORE INTO role_permissions (role_id, permission_id, granted_by) VALUES (?, ?, ?)',
           [roleId, permId, req.admin?.id || null]
@@ -77,7 +89,7 @@ router.post('/roles', async (req, res) => {
 router.put('/roles/:id', async (req, res) => {
   const { error } = updateRoleBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { id } = req.params;
   const { display_name, description, permission_ids } = req.body;
 
@@ -97,8 +109,9 @@ router.put('/roles/:id', async (req, res) => {
     if (description !== undefined) await conn.query('UPDATE roles SET description = ? WHERE id = ?', [description, id]);
 
     if (permission_ids && Array.isArray(permission_ids)) {
+      const allowedIds = await filterPermissionIds(conn, tenantId, permission_ids);
       await conn.query('DELETE FROM role_permissions WHERE role_id = ?', [id]);
-      for (const permId of permission_ids) {
+      for (const permId of allowedIds) {
         await conn.query(
           'INSERT IGNORE INTO role_permissions (role_id, permission_id, granted_by) VALUES (?, ?, ?)',
           [id, permId, req.admin?.id || null]
@@ -120,7 +133,7 @@ router.put('/roles/:id', async (req, res) => {
 
 // Delete role (only non-system)
 router.delete('/roles/:id', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { id } = req.params;
 
   const [existing] = await pool.query('SELECT * FROM roles WHERE id = ? AND tenant_id = ?', [id, tenantId]);
@@ -143,8 +156,12 @@ router.delete('/roles/:id', async (req, res) => {
 
 // Get role permissions
 router.get('/roles/:id/permissions', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { id } = req.params;
+  const [role] = await pool.query('SELECT id FROM roles WHERE id = ? AND tenant_id = ?', [id, tenantId]);
+  if (role.length === 0) {
+    return res.status(404).json({ error: 'Role not found' });
+  }
   const [rows] = await pool.query(
     `SELECT p.id, p.module, p.action, p.label, p.description
      FROM role_permissions rp
@@ -162,7 +179,7 @@ router.get('/roles/:id/permissions', async (req, res) => {
 
 // List all permissions for tenant
 router.get('/permissions', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
     'SELECT id, module, action, label, description FROM permissions WHERE tenant_id = ? ORDER BY module, action',
     [tenantId]
@@ -182,7 +199,7 @@ router.get('/permissions', async (req, res) => {
 
 // List users with their roles
 router.get('/users', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [admins] = await pool.query(
     `SELECT au.id, au.username, au.email, au.is_active, 
       JSON_ARRAYAGG(JSON_OBJECT('role_id', r.id, 'role_name', r.name, 'display_name', r.display_name)) as roles
@@ -216,7 +233,7 @@ router.get('/users', async (req, res) => {
 router.post('/assign-role', async (req, res) => {
   const { error } = assignRoleBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { user_id, role_id, user_type: forcedType } = req.body;
 
   if (!user_id || !role_id) {
@@ -226,8 +243,11 @@ router.post('/assign-role', async (req, res) => {
   // Auto-derive user_type if not provided or invalid
   let user_type = forcedType;
   if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
-    const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
-    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
+    const [adminCheck] = await pool.query(
+      'SELECT id FROM admin_users WHERE id = ? AND tenant_id = ? AND is_platform_admin = 0',
+      [user_id, tenantId]
+    );
+    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [user_id, tenantId]);
     if (adminCheck.length > 0 && empCheck.length > 0) {
       return res.status(400).json({ error: 'Ambiguous user_id: exists in both admin_users and employees. Please provide user_type explicitly.' });
     } else if (adminCheck.length > 0) {
@@ -245,6 +265,14 @@ router.post('/assign-role', async (req, res) => {
     return res.status(400).json({ error: 'Invalid role for this tenant' });
   }
 
+  // Verify the user belongs to this tenant even when user_type was supplied
+  const [userInTenant] = user_type === 'admin'
+    ? await pool.query('SELECT id FROM admin_users WHERE id = ? AND tenant_id = ? AND is_platform_admin = 0', [user_id, tenantId])
+    : await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [user_id, tenantId]);
+  if (userInTenant.length === 0) {
+    return res.status(400).json({ error: 'User not found in this workspace' });
+  }
+
   await pool.query(
     'INSERT IGNORE INTO user_roles (user_id, role_id, user_type, assigned_by) VALUES (?, ?, ?, ?)',
     [user_id, role_id, user_type, req.admin?.id || null]
@@ -259,7 +287,7 @@ router.post('/assign-role', async (req, res) => {
 router.post('/remove-role', async (req, res) => {
   const { error } = removeRoleBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { user_id, role_id, user_type: forcedType } = req.body;
 
   if (!user_id || !role_id) {
@@ -269,8 +297,11 @@ router.post('/remove-role', async (req, res) => {
   // Auto-derive user_type if not provided or invalid
   let user_type = forcedType;
   if (!user_type || (user_type !== 'admin' && user_type !== 'employee')) {
-    const [adminCheck] = await pool.query('SELECT id FROM admin_users WHERE id = ?', [user_id]);
-    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ?', [user_id]);
+    const [adminCheck] = await pool.query(
+      'SELECT id FROM admin_users WHERE id = ? AND tenant_id = ? AND is_platform_admin = 0',
+      [user_id, tenantId]
+    );
+    const [empCheck] = await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [user_id, tenantId]);
     if (adminCheck.length > 0 && empCheck.length > 0) {
       return res.status(400).json({ error: 'Ambiguous user_id: exists in both admin_users and employees. Please provide user_type explicitly.' });
     } else if (adminCheck.length > 0) {
@@ -280,6 +311,20 @@ router.post('/remove-role', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'User not found' });
     }
+  }
+
+  // Verify role belongs to tenant
+  const [role] = await pool.query('SELECT id FROM roles WHERE id = ? AND tenant_id = ?', [role_id, tenantId]);
+  if (role.length === 0) {
+    return res.status(400).json({ error: 'Invalid role for this tenant' });
+  }
+
+  // Verify the user belongs to this tenant even when user_type was supplied
+  const [userInTenant] = user_type === 'admin'
+    ? await pool.query('SELECT id FROM admin_users WHERE id = ? AND tenant_id = ? AND is_platform_admin = 0', [user_id, tenantId])
+    : await pool.query('SELECT id FROM employees WHERE id = ? AND tenant_id = ?', [user_id, tenantId]);
+  if (userInTenant.length === 0) {
+    return res.status(400).json({ error: 'User not found in this workspace' });
   }
 
   await pool.query(
@@ -298,7 +343,7 @@ router.post('/remove-role', async (req, res) => {
 
 // List all service toggles
 router.get('/services', async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const [rows] = await pool.query(
     'SELECT * FROM service_toggles WHERE tenant_id = ? ORDER BY sort_order',
     [tenantId]
@@ -310,7 +355,7 @@ router.get('/services', async (req, res) => {
 router.put('/services/:id', async (req, res) => {
   const { error } = toggleServiceBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { id } = req.params;
   const { is_enabled } = req.body;
 
@@ -335,7 +380,7 @@ router.put('/services/:id', async (req, res) => {
 router.put('/services', async (req, res) => {
   const { error } = bulkServicesBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { updates } = req.body;
 
   if (!Array.isArray(updates)) {

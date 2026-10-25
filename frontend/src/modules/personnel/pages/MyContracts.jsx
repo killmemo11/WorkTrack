@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import api from '../../../shared/api';
-import { sanitizeHTML } from '../../../shared/utils/sanitize';
+import { openSanitizedHTML, sanitizeHTML } from '../../../shared/utils/sanitize';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function MyContracts() {
   const [contracts, setContracts] = useState([]);
@@ -77,8 +78,8 @@ export default function MyContracts() {
               {contracts.map(c => (
                 <tr key={c.id}>
                   <td><strong>{c.template_name || '—'}</strong></td>
-                  <td>{c.start_date ? new Date(c.start_date).toLocaleDateString() : '—'}</td>
-                  <td>{c.end_date ? new Date(c.end_date).toLocaleDateString() : '—'}</td>
+                  <td>{c.start_date ? formatDate(c.start_date) : '—'}</td>
+                  <td>{c.end_date ? formatDate(c.end_date) : '—'}</td>
                   <td>{statusBadge(c.status)}</td>
                   <td>
                     {c.signed_by_employee ? <Icon icon="lucide:check-circle" style={{ color: 'var(--success)', marginRight: 4, verticalAlign: 'middle' }}></Icon> : ''}
@@ -120,7 +121,7 @@ export default function MyContracts() {
             <h3 style={{ marginBottom: 16 }}>Contract</h3>
             <div className="glass-card" dangerouslySetInnerHTML={{ __html: sanitizeHTML(viewContent) }} />
             <div className="glass-modal-footer">
-              <button className="glass-btn glass-btn-ghost" onClick={() => { const w = window.open(''); w.document.write(sanitizeHTML(viewContent)); w.print(); }}>
+              <button className="glass-btn glass-btn-ghost" onClick={() => openSanitizedHTML(viewContent, { print: true })}>
                 <Icon icon="lucide:printer" style={{ marginRight: 4, fontSize: 14 }}></Icon>
                 Print
               </button>

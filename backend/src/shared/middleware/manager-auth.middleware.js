@@ -7,7 +7,10 @@ const requireManager = async (req, res, next) => {
   const role = req.employee?.role;
   const email = req.employee?.email;
   if (role === 'ceo') {
-    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+    const [ceoSetting] = await pool.query(
+      "SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?",
+      [req.employee.tenant_id]
+    );
     const ceoEmail = ceoSetting.length > 0 ? ceoSetting[0].value.trim().toLowerCase() : '';
     if (ceoEmail.length > 0 && email && email.toLowerCase() === ceoEmail) {
       return res.status(403).json({ error: 'Access denied. CEO is read-only.' });

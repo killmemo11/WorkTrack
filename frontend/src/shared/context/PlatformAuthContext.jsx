@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { fetchWithSession, getCsrfHeader } from '../api/session';
 
 const PlatformAuthContext = createContext();
 
 const checkAuth = async () => {
   try {
-    const res = await fetch('/api/platform/auth/me', { credentials: 'include' });
+    const res = await fetchWithSession('/api/platform/auth/me', { realm: 'platform' });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -49,11 +50,10 @@ export function PlatformAuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('csrf_token='))?.trim().split('=')[1] || '';
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
-        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+        headers: getCsrfHeader(),
       });
     } catch {}
     setPlatformAdmin(null);

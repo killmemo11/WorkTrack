@@ -8,11 +8,12 @@ const {
   triggerMissingSignOutCheck,
 } = require('../../modules/admin/admin.controller');
 const { requireService } = require('../middleware/service.middleware');
+const exportLimiter = require('../middleware/export-limit.middleware');
 
 function mountAttendanceRoutes(router) {
   router.get('/records', getRecords);
   router.delete('/records/:id', deleteRecord);
-  router.get('/export', exportExcel);
+  router.get('/export', exportLimiter, exportExcel);
   router.get('/stats', getStats);
   router.get('/report/monthly', getMonthlyReport);
 

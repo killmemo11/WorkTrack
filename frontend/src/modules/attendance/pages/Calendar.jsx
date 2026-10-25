@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../../shared/api';
+import { formatTime } from '../../../shared/utils/date';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -101,8 +102,8 @@ export default function Calendar() {
     if (day.leaves?.length > 0) parts.push(`Leave: ${day.leaves.join(', ')}`);
     if (day.is_future) parts.push('Future Date');
     if (!day.signed_in && !day.is_off_day && !day.is_holiday && !day.is_future && day.in_period && day.leaves?.length === 0) parts.push('Absent');
-    if (day.signed_in && day.sign_in_time) parts.push(`Sign In: ${new Date(day.sign_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
-    if (day.signed_in && day.sign_out_time) parts.push(`Sign Out: ${new Date(day.sign_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    if (day.signed_in && day.sign_in_time) parts.push(`Sign In: ${formatTime(day.sign_in_time)}`);
+    if (day.signed_in && day.sign_out_time) parts.push(`Sign Out: ${formatTime(day.sign_out_time)}`);
     return parts.length > 0 ? parts : ['No data'];
   };
 

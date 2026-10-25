@@ -6,7 +6,7 @@ const { logActivity } = require('../../shared/services/activity.service');
 const { createDepartmentBody, updateDepartmentBody } = require('../../shared/validations/schemas');
 
 async function getDepartments(req, res) {
-  const [rows] = await pool.query('SELECT * FROM departments ORDER BY name ASC');
+  const [rows] = await pool.query('SELECT * FROM departments WHERE tenant_id = ? ORDER BY name ASC', [req.tenantId]);
   res.json(rows);
 }
 
@@ -20,23 +20,27 @@ async function createDepartment(req, res) {
   const newMgrEmail = (manager_email || '').trim();
   const newCleEmail = (c_level_email || '').trim();
   const newParentId = parent_department_id ? parseInt(parent_department_id, 10) || null : null;
+  if (newParentId) {
+    const [parent] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [newParentId, req.tenantId]);
+    if (parent.length === 0) return res.status(400).json({ error: 'Invalid parent department' });
+  }
   const [result] = await pool.query(
-    'INSERT INTO departments (name, manager_email, c_level_email, parent_department_id) VALUES (?, ?, ?, ?)',
-    [name.trim(), newMgrEmail, newCleEmail, newParentId]
+    'INSERT INTO departments (name, manager_email, c_level_email, parent_department_id, tenant_id) VALUES (?, ?, ?, ?, ?)',
+    [name.trim(), newMgrEmail, newCleEmail, newParentId, req.tenantId]
   );
   if (newMgrEmail) {
     await pool.query(
-      "UPDATE employees SET role = 'manager' WHERE email = ? AND role != 'admin' AND role != 'ceo'",
-      [newMgrEmail]
+      "UPDATE employees SET role = 'manager' WHERE email = ? AND tenant_id = ? AND role != 'admin' AND role != 'ceo'",
+      [newMgrEmail, req.tenantId]
     );
   }
   if (newCleEmail) {
     await pool.query(
-      "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND role != 'admin'",
-      [result.insertId, newCleEmail]
+      "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND tenant_id = ? AND role != 'admin'",
+      [result.insertId, newCleEmail, req.tenantId]
     );
   }
-  const [rows] = await pool.query('SELECT * FROM departments WHERE id = ?', [result.insertId]);
+  const [rows] = await pool.query('SELECT * FROM departments WHERE id = ? AND tenant_id = ?', [result.insertId, req.tenantId]);
   const adminId = req.admin?.id || req.hr?.id || null;
   await logActivity(null, adminId, 'department_created', `Created department: ${name.trim()} (manager: ${newMgrEmail || '—'}, c-level: ${newCleEmail || '—'})`);
   res.status(201).json(rows[0]);
@@ -48,7 +52,8 @@ async function updateDepartment(req, res) {
   const { id } = req.params;
   const { name, manager_email, c_level_email, parent_department_id } = req.body;
 
-  const [oldRows] = await pool.query('SELECT manager_email, c_level_email FROM departments WHERE id = ?', [id]);
+  const [oldRows] = await pool.query('SELECT manager_email, c_level_email FROM departments WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
+  if (oldRows.length === 0) return res.status(404).json({ error: 'Department not found' });
   const oldMgrEmail = oldRows.length > 0 ? (oldRows[0].manager_email || '').trim() : '';
   const oldCleEmail = oldRows.length > 0 ? (oldRows[0].c_level_email || '').trim() : '';
 
@@ -57,10 +62,18 @@ async function updateDepartment(req, res) {
   if (name !== undefined) { fields.push('name = ?'); values.push(name.trim()); }
   if (manager_email !== undefined) { fields.push('manager_email = ?'); values.push((manager_email || '').trim()); }
   if (c_level_email !== undefined) { fields.push('c_level_email = ?'); values.push((c_level_email || '').trim()); }
-  if (parent_department_id !== undefined) { fields.push('parent_department_id = ?'); values.push(parent_department_id ? parseInt(parent_department_id, 10) || null : null); }
+  if (parent_department_id !== undefined) {
+    const newParentId = parent_department_id ? parseInt(parent_department_id, 10) || null : null;
+    if (newParentId) {
+      if (newParentId === parseInt(id, 10)) return res.status(400).json({ error: 'Department cannot be its own parent' });
+      const [parent] = await pool.query('SELECT id FROM departments WHERE id = ? AND tenant_id = ?', [newParentId, req.tenantId]);
+      if (parent.length === 0) return res.status(400).json({ error: 'Invalid parent department' });
+    }
+    fields.push('parent_department_id = ?'); values.push(newParentId);
+  }
   if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
-  values.push(id);
-  await pool.query(`UPDATE departments SET ${fields.join(', ')} WHERE id = ?`, values);
+  values.push(id, req.tenantId);
+  await pool.query(`UPDATE departments SET ${fields.join(', ')} WHERE id = ? AND tenant_id = ?`, values);
 
   const newMgrEmail = manager_email !== undefined ? (manager_email || '').trim() : oldMgrEmail;
   const newCleEmail = c_level_email !== undefined ? (c_level_email || '').trim() : oldCleEmail;
@@ -68,19 +81,19 @@ async function updateDepartment(req, res) {
   // Update manager role
   if (newMgrEmail) {
     await pool.query(
-      "UPDATE employees SET role = 'manager' WHERE email = ? AND role != 'admin' AND role != 'ceo'",
-      [newMgrEmail]
+      "UPDATE employees SET role = 'manager' WHERE email = ? AND tenant_id = ? AND role != 'admin' AND role != 'ceo'",
+      [newMgrEmail, req.tenantId]
     );
   }
   if (manager_email !== undefined && oldMgrEmail && oldMgrEmail !== newMgrEmail) {
     const [otherDepts] = await pool.query(
-      'SELECT id FROM departments WHERE manager_email = ? AND id != ?',
-      [oldMgrEmail, id]
+      'SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ? AND id != ?',
+      [oldMgrEmail, req.tenantId, id]
     );
     if (otherDepts.length === 0) {
       await pool.query(
-        "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'manager'",
-        [oldMgrEmail]
+        "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'manager'",
+        [oldMgrEmail, req.tenantId]
       );
     }
   }
@@ -88,29 +101,29 @@ async function updateDepartment(req, res) {
   // Update C-Level role
   if (newCleEmail) {
     await pool.query(
-      "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND role != 'admin'",
-      [id, newCleEmail]
+      "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND tenant_id = ? AND role != 'admin'",
+      [id, newCleEmail, req.tenantId]
     );
   }
   if (c_level_email !== undefined && oldCleEmail && oldCleEmail !== newCleEmail) {
     // Don't demote if this user is the global CEO
-    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?", [req.tenantId]);
     const ceoEmail = ceoSetting.length > 0 ? ceoSetting[0].value.trim().toLowerCase() : '';
     if (oldCleEmail.toLowerCase() !== ceoEmail) {
       const [otherDepts] = await pool.query(
-        'SELECT id FROM departments WHERE c_level_email = ? AND id != ?',
-        [oldCleEmail, id]
+        'SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ? AND id != ?',
+        [oldCleEmail, req.tenantId, id]
       );
       if (otherDepts.length === 0) {
         await pool.query(
-          "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'ceo'",
-          [oldCleEmail]
+          "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+          [oldCleEmail, req.tenantId]
         );
       }
     }
   }
 
-  const [rows] = await pool.query('SELECT * FROM departments WHERE id = ?', [id]);
+  const [rows] = await pool.query('SELECT * FROM departments WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   if (rows.length === 0) return res.status(404).json({ error: 'Department not found' });
   const adminId = req.admin?.id || req.hr?.id || null;
   await logActivity(null, adminId, 'department_updated', `Updated department #${id}: ${fields.join(', ')}`);
@@ -120,39 +133,40 @@ async function updateDepartment(req, res) {
 async function deleteDepartment(req, res) {
   const { id } = req.params;
 
-  const [deptRows] = await pool.query('SELECT manager_email, c_level_email FROM departments WHERE id = ?', [id]);
-  const oldMgrEmail = deptRows.length > 0 ? (deptRows[0].manager_email || '').trim() : '';
-  const oldCleEmail = deptRows.length > 0 ? (deptRows[0].c_level_email || '').trim() : '';
+  const [deptRows] = await pool.query('SELECT manager_email, c_level_email FROM departments WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
+  if (deptRows.length === 0) return res.status(404).json({ error: 'Department not found' });
+  const oldMgrEmail = (deptRows[0].manager_email || '').trim();
+  const oldCleEmail = (deptRows[0].c_level_email || '').trim();
 
-  await pool.query('UPDATE employees SET department_id = NULL WHERE department_id = ?', [id]);
-  await pool.query('DELETE FROM departments WHERE id = ?', [id]);
+  await pool.query('UPDATE employees SET department_id = NULL WHERE department_id = ? AND tenant_id = ?', [id, req.tenantId]);
+  await pool.query('DELETE FROM departments WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
 
   if (oldMgrEmail) {
     const [otherDepts] = await pool.query(
-      'SELECT id FROM departments WHERE manager_email = ?',
-      [oldMgrEmail]
+      'SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?',
+      [oldMgrEmail, req.tenantId]
     );
     if (otherDepts.length === 0) {
       await pool.query(
-        "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'manager'",
-        [oldMgrEmail]
+        "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'manager'",
+        [oldMgrEmail, req.tenantId]
       );
     }
   }
 
   if (oldCleEmail) {
     // Don't demote if this user is the global CEO
-    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?", [req.tenantId]);
     const ceoEmail = ceoSetting.length > 0 ? ceoSetting[0].value.trim().toLowerCase() : '';
     if (oldCleEmail.toLowerCase() !== ceoEmail) {
       const [otherDepts] = await pool.query(
-        'SELECT id FROM departments WHERE c_level_email = ?',
-        [oldCleEmail]
+        'SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?',
+        [oldCleEmail, req.tenantId]
       );
       if (otherDepts.length === 0) {
         await pool.query(
-          "UPDATE employees SET role = 'employee' WHERE email = ? AND role = 'ceo'",
-          [oldCleEmail]
+          "UPDATE employees SET role = 'employee' WHERE email = ? AND tenant_id = ? AND role = 'ceo'",
+          [oldCleEmail, req.tenantId]
         );
       }
     }
@@ -220,8 +234,8 @@ async function importDepartments(req, res) {
   if (toCreate.length > 0) {
     const names = toCreate.map(r => r.name);
     const [existing] = await pool.query(
-      `SELECT name FROM departments WHERE name IN (${names.map(() => '?').join(',')})`,
-      names
+      `SELECT name FROM departments WHERE tenant_id = ? AND name IN (${names.map(() => '?').join(',')})`,
+      [req.tenantId, ...names]
     );
     const existingSet = new Set(existing.map(r => r.name));
 
@@ -238,15 +252,15 @@ async function importDepartments(req, res) {
       const parentMap = {};
       if (parentNames.length > 0) {
         const [parents] = await pool.query(
-          `SELECT id, name FROM departments WHERE name IN (${parentNames.map(() => '?').join(',')})`,
-          parentNames
+          `SELECT id, name FROM departments WHERE tenant_id = ? AND name IN (${parentNames.map(() => '?').join(',')})`,
+          [req.tenantId, ...parentNames]
         );
         for (const p of parents) parentMap[p.name] = p.id;
       }
-      const values = batch.map(() => '(?, ?, ?, ?)').join(',');
-      const params = batch.flatMap(r => [r.name, r.managerEmail || null, r.cLevelEmail || null, parentMap[r.parentName] || null]);
+      const values = batch.map(() => '(?, ?, ?, ?, ?)').join(',');
+      const params = batch.flatMap(r => [r.name, r.managerEmail || null, r.cLevelEmail || null, parentMap[r.parentName] || null, req.tenantId]);
       await pool.query(
-        `INSERT INTO departments (name, manager_email, c_level_email, parent_department_id) VALUES ${values}`,
+        `INSERT INTO departments (name, manager_email, c_level_email, parent_department_id, tenant_id) VALUES ${values}`,
         params
       );
       created = batch.length;
@@ -263,8 +277,8 @@ async function importDepartments(req, res) {
   if (managerEmails.length > 0) {
     const uniqueMgr = [...new Set(managerEmails)];
     await pool.query(
-      `UPDATE employees SET role = 'manager' WHERE email IN (${uniqueMgr.map(() => '?').join(',')}) AND role != 'admin' AND role != 'ceo'`,
-      uniqueMgr
+      `UPDATE employees SET role = 'manager' WHERE tenant_id = ? AND email IN (${uniqueMgr.map(() => '?').join(',')}) AND role != 'admin' AND role != 'ceo'`,
+      [req.tenantId, ...uniqueMgr]
     );
   }
 
@@ -272,11 +286,11 @@ async function importDepartments(req, res) {
   if (cLevelEmails.length > 0) {
     const uniqueCle = [...new Set(cLevelEmails)];
     for (const email of uniqueCle) {
-      const [dept] = await pool.query('SELECT id FROM departments WHERE c_level_email = ?', [email]);
+      const [dept] = await pool.query('SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?', [email, req.tenantId]);
       if (dept.length > 0) {
         await pool.query(
-          "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND role != 'admin'",
-          [dept[0].id, email]
+          "UPDATE employees SET role = 'ceo', department_id = ? WHERE email = ? AND tenant_id = ? AND role != 'admin'",
+          [dept[0].id, email, req.tenantId]
         );
       }
     }

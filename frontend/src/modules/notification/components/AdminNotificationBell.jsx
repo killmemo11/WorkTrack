@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const typeIcons = {
   success: { icon: 'lucide:check-circle', color: 'var(--success)' },
@@ -17,6 +18,7 @@ export default function AdminNotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const buttonRef = useRef(null);
 
   const fetchUnread = async () => {
     try {
@@ -46,6 +48,18 @@ export default function AdminNotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKey = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open]);
+
   const toggleOpen = () => {
     if (!open) fetchNotifications();
     setOpen(!open);
@@ -69,13 +83,23 @@ export default function AdminNotificationBell() {
 
   return (
     <div className="notif-bell" ref={ref} style={{ display: 'inline-block', marginLeft: 8 }}>
-      <button className="notif-bell-btn" onClick={toggleOpen} title="Admin Notifications">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="notif-bell-btn"
+        onClick={toggleOpen}
+        title="Admin Notifications"
+        aria-label={unreadCount > 0 ? `Admin notifications, ${unreadCount} unread` : 'Admin notifications'}
+        aria-expanded={open}
+        aria-controls="admin-notification-panel"
+        aria-haspopup="true"
+      >
         <Icon icon="lucide:bell" />
         {unreadCount > 0 && <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
       {open && (
-        <div className="notif-dropdown" style={{ left: '100%', right: 'auto', bottom: 0, top: 'auto' }}>
+        <div className="notif-dropdown" id="admin-notification-panel" style={{ left: '100%', right: 'auto', bottom: 0, top: 'auto' }}>
           <div className="notif-header">
             <span>Admin Notifications</span>
             {unreadCount > 0 && (
@@ -89,7 +113,8 @@ export default function AdminNotificationBell() {
             {notifications.slice(0, 10).map((n) => {
               const typeInfo = typeIcons[n.type] || typeIcons.info;
               return (
-                <div key={n.id}
+                <button key={n.id}
+                  type="button"
                   className={`notif-item ${!n.is_read ? 'notif-unread' : ''}`}
                   onClick={() => handleClick(n)}>
                   <span className="notif-item-icon">
@@ -99,10 +124,10 @@ export default function AdminNotificationBell() {
                     <div className="notif-item-title">{n.title}</div>
                     <div className="notif-item-msg">{n.message}</div>
                     <div className="notif-item-time">
-                      {n.created_at ? new Date(n.created_at).toLocaleDateString() + ' ' + new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      {n.created_at ? formatDate(n.created_at) + ' ' + formatTime(n.created_at) : ''}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

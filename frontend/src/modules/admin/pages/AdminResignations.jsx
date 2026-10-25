@@ -117,7 +117,7 @@ export default function AdminResignations() {
                   </td>
                   <td>{r.reviewed_by_name || <span style={{ color: 'var(--text-faint)' }}>—</span>}</td>
                   <td className="cell-mono" style={{ fontSize: '0.8rem' }}>
-                    {new Date(r.created_at).toLocaleDateString()
+                    {formatDate(r.created_at)
 }</td>
                   <td>
                     {r.status === 'pending' && (

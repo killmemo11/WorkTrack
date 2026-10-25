@@ -12,15 +12,15 @@ async function getPendingDocuments(req, res) {
   const [rows] = await pool.query(
     `SELECT ed.*, e.name AS employee_name, e.employee_id, au.username AS uploaded_by_name
      FROM employee_documents ed
-     JOIN employees e ON ed.employee_id = e.id
+     JOIN employees e ON ed.employee_id = e.id AND e.tenant_id = ed.tenant_id
      LEFT JOIN admin_users au ON ed.uploaded_by = au.id
-     WHERE ed.status = 'pending'
+     WHERE ed.status = 'pending' AND ed.tenant_id = ?
      ORDER BY ed.created_at ASC
-     LIMIT ? OFFSET ?`, [limit, offset]
+     LIMIT ? OFFSET ?`, [req.tenantId, limit, offset]
   );
 
   const [countRows] = await pool.query(
-    "SELECT COUNT(*) as total FROM employee_documents WHERE status = 'pending'"
+    "SELECT COUNT(*) as total FROM employee_documents WHERE status = 'pending' AND tenant_id = ?", [req.tenantId]
   );
 
   res.json({
@@ -37,15 +37,15 @@ async function getAllDocuments(req, res) {
   const offset = (page - 1) * limit;
   const { status, employee_id } = req.query;
 
-  let where = ['1=1'];
-  let params = [];
+  let where = ['ed.tenant_id = ?'];
+  let params = [req.tenantId];
   if (status) { where.push('ed.status = ?'); params.push(status); }
   if (employee_id) { where.push('ed.employee_id = ?'); params.push(employee_id); }
 
   const [rows] = await pool.query(
     `SELECT ed.*, e.name AS employee_name, e.employee_id, au.username AS uploaded_by_name, rv.username AS reviewed_by_name
      FROM employee_documents ed
-     JOIN employees e ON ed.employee_id = e.id
+     JOIN employees e ON ed.employee_id = e.id AND e.tenant_id = ed.tenant_id
      LEFT JOIN admin_users au ON ed.uploaded_by = au.id
      LEFT JOIN admin_users rv ON ed.reviewed_by = rv.id
      WHERE ${where.join(' AND ')}
@@ -68,11 +68,11 @@ async function getAllDocuments(req, res) {
 async function verifyDocument(req, res) {
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
-  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ?', [id]);
+  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   if (doc.length === 0) return res.status(404).json({ error: 'Document not found' });
   await pool.query(
-    "UPDATE employee_documents SET status = 'verified', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?",
-    [adminId, id]
+    "UPDATE employee_documents SET status = 'verified', reviewed_by = ?, reviewed_at = NOW() WHERE id = ? AND tenant_id = ?",
+    [adminId, id, req.tenantId]
   );
   logActivity(doc[0].employee_id, adminId, 'document_verified', `Verified document: ${doc[0].doc_name}`);
   res.json({ message: 'Document verified' });
@@ -82,11 +82,11 @@ async function rejectDocument(req, res) {
   const { id } = req.params;
   const adminId = req.admin?.id || req.hr?.id || null;
   const { rejection_reason } = req.body;
-  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ?', [id]);
+  const [doc] = await pool.query('SELECT * FROM employee_documents WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   if (doc.length === 0) return res.status(404).json({ error: 'Document not found' });
   await pool.query(
-  "UPDATE employee_documents SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?",
-    [adminId, rejection_reason || null, id]
+  "UPDATE employee_documents SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ? AND tenant_id = ?",
+    [adminId, rejection_reason || null, id, req.tenantId]
   );
   logActivity(doc[0].employee_id, adminId, 'document_rejected', `Rejected document: ${doc[0].doc_name}${rejection_reason ? ': ' + rejection_reason : ''}`);
   res.json({ message: 'Document rejected' });

@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../shared/config/database');
 const { requirePermission } = require('../../shared/middleware/rbac.middleware');
+const exportLimiter = require('../../shared/middleware/export-limit.middleware');
 
 // Action categories for filtering
 const ACTION_CATEGORIES = {
@@ -33,7 +34,7 @@ function getCategoryForAction(action) {
 
 // Get activity log for audit
 router.get('/activity-log', requirePermission('audit.view'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
@@ -97,7 +98,7 @@ router.get('/activity-log', requirePermission('audit.view'), async (req, res) =>
 
 // Get balance audit for audit
 router.get('/balance-audit', requirePermission('audit.view'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
@@ -138,8 +139,8 @@ router.get('/balance-audit', requirePermission('audit.view'), async (req, res) =
 });
 
 // Export balance audit
-router.get('/export-balance', requirePermission('audit.export'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+router.get('/export-balance', exportLimiter, requirePermission('audit.export'), async (req, res) => {
+  const tenantId = req.tenantId;
   const XLSX = require('xlsx');
   const { employee_id, action, date_from, date_to } = req.query;
 
@@ -185,8 +186,8 @@ router.get('/export-balance', requirePermission('audit.export'), async (req, res
 });
 
 // Export audit log (activity log)
-router.get('/export', requirePermission('audit.export'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+router.get('/export', exportLimiter, requirePermission('audit.export'), async (req, res) => {
+  const tenantId = req.tenantId;
   const XLSX = require('xlsx');
   const { employee_id, admin_id, action, category, date_from, date_to, search } = req.query;
 
@@ -246,7 +247,7 @@ router.get('/export', requirePermission('audit.export'), async (req, res) => {
 
 // Compliance report generation
 router.post('/compliance-report', requirePermission('audit.compliance_report'), async (req, res) => {
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
   const { date_from, date_to } = req.body;
   const PDFDocument = require('pdfkit');
 

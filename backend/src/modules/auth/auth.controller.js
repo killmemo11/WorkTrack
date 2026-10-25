@@ -10,6 +10,9 @@ const { sendVerificationEmail, sendPasswordResetEmail } = require('../../shared/
 const { notifyAllAdmins } = require('../../shared/services/notification.service');
 const { logActivity } = require('../../shared/services/activity.service');
 const tokenService = require('../../shared/services/token.service');
+const { clearOtherAuthCookies } = require('../../shared/utils/auth-cookies');
+const { getTenantOrNull, isTenantUsable, isTenantActive, checkEmployeeQuota, resolvePublicTenantId, TENANT_INACTIVE_MESSAGE } = require('../../shared/services/tenant.service');
+const { runWithTenant } = require('../../shared/utils/tenant-context');
 const logger = require('../../shared/utils/logger');
 
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
@@ -36,6 +39,14 @@ function validatePassword(password) {
 
 async function register(req, res) {
   const { employee_id, name, email, username, password, department_id } = req.body;
+  const tenantId = await resolvePublicTenantId(req);
+  if (!tenantId) {
+    return res.status(400).json({ error: 'Workspace not found or inactive' });
+  }
+  const tenant = await getTenantOrNull(tenantId);
+  if (!isTenantUsable(tenant)) {
+    return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+  }
 
   if (!employee_id || !name || !email || !username || !password) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -50,8 +61,15 @@ async function register(req, res) {
   if (pwdErr) return res.status(400).json({ error: pwdErr });
   if (name.length > 255) return res.status(400).json({ error: 'Name is too long' });
 
+  const quota = await checkEmployeeQuota(tenantId, { includePending: true });
+  if (!quota.allowed) {
+    return res.status(400).json({
+      error: `This workspace has reached its employee limit (${quota.limit}). Please contact your administrator to upgrade.`,
+    });
+  }
+
   // Check email domain restriction
-  const [domainRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'allowed_email_domain'");
+  const [domainRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'allowed_email_domain' AND tenant_id = ?", [tenantId]);
   const allowedDomain = domainRows.length > 0 ? domainRows[0].value.trim() : '';
   if (allowedDomain) {
     const emailDomain = email.split('@')[1];
@@ -77,20 +95,21 @@ async function register(req, res) {
   const expires = new Date(Date.now() + 10 * 60 * 1000);
 
   await pool.query(
-    `INSERT INTO pending_registrations (email, employee_id, name, username, password_hash, verification_code, verification_expires, department_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO pending_registrations (email, employee_id, name, username, password_hash, verification_code, verification_expires, department_id, tenant_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
        employee_id = VALUES(employee_id),
        name = VALUES(name),
        password_hash = VALUES(password_hash),
        verification_code = VALUES(verification_code),
        verification_expires = VALUES(verification_expires),
-       department_id = VALUES(department_id)`,
-    [email, employee_id, name, username, password_hash, codeHash, expires, department_id || null]
+       department_id = VALUES(department_id),
+       tenant_id = VALUES(tenant_id)`,
+    [email, employee_id, name, username, password_hash, codeHash, expires, department_id || null, tenantId]
   );
 
   try {
-    await sendVerificationEmail({ name, email }, code);
+    await runWithTenant(tenantId, () => sendVerificationEmail({ name, email }, code));
   } catch (err) {
     logger.error('Failed to send verification email:', err.message);
   }
@@ -120,23 +139,57 @@ async function verify(req, res) {
       return res.status(429).json({ error: 'Too many failed attempts. Please request a new code.' });
     }
 
-    const [insertResult] = await pool.query(
-      `INSERT INTO employees (employee_id, name, email, username, password_hash, is_verified, department_id)
-       VALUES (?, ?, ?, ?, ?, 1, ?)`,
-      [p.employee_id, p.name, p.email, p.username, p.password_hash, p.department_id]
-    );
-    isNewRegistration = true;
-    // Create default leave balances
-    const [typeRows] = await pool.query(
-      'SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL'
-    );
-    for (const t of typeRows) {
-      await pool.query(
-        'INSERT IGNORE INTO leave_balances (employee_id, leave_type, balance) VALUES (?, ?, ?)',
-        [insertResult.insertId, t.name, t.default_balance]
+    // Authoritative quota check. Lock the tenant row so two concurrent
+    // verifications cannot both see the last free seat.
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[lockedTenant]] = await conn.query(
+        'SELECT id, plan, status, trial_ends_at, max_employees FROM tenants WHERE id = ? AND deleted_at IS NULL FOR UPDATE',
+        [p.tenant_id]
       );
+      if (!isTenantUsable(lockedTenant)) {
+        await conn.rollback();
+        return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+      }
+
+      const [[{ count }]] = await conn.query(
+        'SELECT COUNT(*) AS count FROM employees WHERE tenant_id = ? AND (is_system IS NULL OR is_system = 0)',
+        [p.tenant_id]
+      );
+      const limit = Number(lockedTenant.max_employees);
+      if (Number.isFinite(limit) && limit > 0 && Number(count) >= limit) {
+        await conn.rollback();
+        return res.status(400).json({
+          error: `This workspace has reached its employee limit (${limit}). Please contact your administrator to upgrade.`,
+        });
+      }
+
+      const [insertResult] = await conn.query(
+        `INSERT INTO employees (employee_id, name, email, username, password_hash, is_verified, department_id, tenant_id)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
+        [p.employee_id, p.name, p.email, p.username, p.password_hash, p.department_id, p.tenant_id]
+      );
+      // Create default leave balances for the employee's workspace
+      const [typeRows] = await conn.query(
+        'SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL AND tenant_id = ?',
+        [p.tenant_id]
+      );
+      for (const t of typeRows) {
+        await conn.query(
+          'INSERT IGNORE INTO leave_balances (employee_id, leave_type, balance, tenant_id) VALUES (?, ?, ?, ?)',
+          [insertResult.insertId, t.name, t.default_balance, p.tenant_id]
+        );
+      }
+      await conn.query('DELETE FROM pending_registrations WHERE id = ?', [p.id]);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    await pool.query('DELETE FROM pending_registrations WHERE id = ?', [p.id]);
+    isNewRegistration = true;
   } else {
     // Increment attempts on wrong code
     await pool.query(
@@ -161,9 +214,9 @@ async function verify(req, res) {
   const employee = empRows[0];
 
   // Auto-detect manager role
-  const isManager = await syncManagerRole(employee.id, email);
+  const isManager = await syncManagerRole(employee.id, email, employee.tenant_id);
   // Auto-detect C-level role
-  const isGlobalCeo = await syncCLevelRoles(employee.id, email);
+  const isGlobalCeo = await syncCLevelRoles(employee.id, email, employee.tenant_id);
 
   if (isNewRegistration) {
     try {
@@ -171,7 +224,8 @@ async function verify(req, res) {
         'New Employee Registered',
         `${employee.name} (${employee.employee_id}) has joined the system.`,
         'info',
-        '/admin/employees'
+        '/admin/employees',
+        employee.tenant_id
       );
     } catch (e) { logger.error('New employee notif error:', e); }
   }
@@ -180,29 +234,40 @@ async function verify(req, res) {
   const [finalRows] = await pool.query(
     `SELECT e.*, d.name AS department_name
      FROM employees e
-     LEFT JOIN departments d ON e.department_id = d.id
-     WHERE e.id = ?`,
-    [employee.id]
+     LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [employee.id, employee.tenant_id]
   );
   const finalEmp = finalRows[0];
+
+  if (!(await isTenantActive(finalEmp.tenant_id))) {
+    return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+  }
 
   const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
   const accessToken = jwt.sign(
-    { id: finalEmp.id, email: finalEmp.email, role: finalEmp.role },
+    {
+      id: finalEmp.id,
+      email: finalEmp.email,
+      role: finalEmp.role,
+      tenant_id: finalEmp.tenant_id,
+      ...(finalEmp.role === 'admin' ? { type: 'employee_admin' } : {}),
+    },
     process.env.JWT_SECRET,
     { expiresIn: '15m', issuer: 'worktrack', audience: 'employee', algorithm: 'HS256' }
   );
 
   const refreshToken = await tokenService.generateRefreshToken(finalEmp.id, 'employee', finalEmp.tenant_id);
 
+  clearOtherAuthCookies(res, ['access_token', 'refresh_token']);
   res.cookie('access_token', accessToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
     maxAge: 15 * 60 * 1000, path: '/',
   });
   res.cookie('refresh_token', refreshToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, path: '/',
+    maxAge: 24 * 60 * 60 * 1000, path: '/',
   });
 
   res.json({ employee: { id: finalEmp.id, name: finalEmp.name, email: finalEmp.email, phone: finalEmp.phone, role: finalEmp.role, can_wfh: finalEmp.can_wfh, is_manager: isManager, department_id: finalEmp.department_id, department_name: finalEmp.department_name, is_hr: finalEmp.department_name === 'HR' || finalEmp.role === 'admin', is_global_ceo: isGlobalCeo } });
@@ -214,8 +279,8 @@ async function login(req, res) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  // First try admin_users table
-  let [rows] = await pool.query('SELECT * FROM admin_users WHERE username = ?', [username]);
+  // First try admin_users table (platform admins use their own realm/login)
+  let [rows] = await pool.query('SELECT * FROM admin_users WHERE username = ? AND is_platform_admin = 0', [username]);
   let userSource = 'admin_users';
   
   // If not found in admin_users, try employees table
@@ -283,37 +348,59 @@ async function login(req, res) {
     return res.status(403).json({ error: 'Your account has been deactivated. Contact admin.' });
   }
 
-  // Auto-detect manager role
-  const isManager = await syncManagerRole(user.id || user.employee_id, user.email);
-  // Auto-detect C-level role
-  const isGlobalCeo = await syncCLevelRoles(user.id || user.employee_id, user.email);
-
-  // Re-fetch with proper ID handling
+  // admin_users and employees are independent ID spaces: never run employee
+  // role-sync queries or reuse employee rows for an admin_users login.
   const userId = user.id || user.employee_id;
-  const [finalRows] = await pool.query(
-    `SELECT e.*, d.name AS department_name
-     FROM employees e
-     LEFT JOIN departments d ON e.department_id = d.id
-     WHERE e.id = ?`,
-    [userId]
-  );
-  const finalEmp = finalRows[0];
+  const isAdminSource = userSource === 'admin_users';
+  let isManager = false;
+  let isGlobalCeo = false;
+  let finalEmp = null;
+  if (!isAdminSource) {
+    // Auto-detect manager role
+    isManager = await syncManagerRole(userId, user.email, user.tenant_id);
+    // Auto-detect C-level role
+    isGlobalCeo = await syncCLevelRoles(userId, user.email, user.tenant_id);
+
+    // Re-fetch with proper ID handling
+    const [finalRows] = await pool.query(
+      `SELECT e.*, d.name AS department_name
+       FROM employees e
+       LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
+       WHERE e.id = ?`,
+      [userId]
+    );
+    finalEmp = finalRows[0];
+  }
+
+  const tenantId = user.tenant_id || finalEmp?.tenant_id || null;
+  if (tenantId && !(await isTenantActive(tenantId))) {
+    return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+  }
 
   const token = jwt.sign(
-    { id: userId, email: user.email || user.username, role: user.role || 'admin' },
+    {
+      id: userId,
+      email: user.email || user.username,
+      role: user.role || (isAdminSource ? 'admin' : 'employee'),
+      tenant_id: tenantId,
+      ...(isAdminSource
+        ? { type: 'admin' }
+        : user.role === 'admin' ? { type: 'employee_admin' } : {}),
+    },
     process.env.JWT_SECRET,
-    { expiresIn: '15m', issuer: 'worktrack', audience: user.role === 'admin' ? 'admin' : 'employee', algorithm: 'HS256' }
+    { expiresIn: '15m', issuer: 'worktrack', audience: isAdminSource ? 'admin' : 'employee', algorithm: 'HS256' }
   );
 
-  const userTenantId = user.tenant_id || null;
+  // Refresh realm must match the cookie family, not the privilege level:
+  // employee-admins stay in the employee realm and are re-derived on refresh.
   const refreshToken = await tokenService.generateRefreshToken(
     userId,
-    user.role === 'admin' ? 'admin' : 'employee',
-    userTenantId
+    isAdminSource ? 'admin' : 'employee',
+    tenantId
   );
 
   const deptName = (finalEmp?.department_name || '').toLowerCase().replace(/\s+/g, ' ');
-  const isHr = deptName === 'hr' || deptName === 'human resources';
+  const isHr = deptName === 'hr' || deptName === 'human resources' || user.role === 'admin';
   if (isHr) {
     logActivity(null, userId, 'hr_login', `HR employee logged in: ${user.name || user.username}`);
   }
@@ -321,10 +408,10 @@ async function login(req, res) {
   const employeeName = user.name || user.username || 'IT Admin';
   const employeeEmail = user.email || user.username || 'admin@worktrack.local';
 
-  const isAdminSource = userSource === 'admin_users';
   const accessCookieName = isAdminSource ? 'admin_access_token' : 'access_token';
   const refreshCookieName = isAdminSource ? 'admin_refresh_token' : 'refresh_token';
 
+  clearOtherAuthCookies(res, [accessCookieName, refreshCookieName]);
   res.cookie(accessCookieName, token, {
     httpOnly: true,
     secure: COOKIE_SECURE,
@@ -336,7 +423,7 @@ async function login(req, res) {
     httpOnly: true,
     secure: COOKIE_SECURE,
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   });
 
@@ -346,11 +433,11 @@ async function login(req, res) {
       name: employeeName, 
       email: employeeEmail, 
       phone: user.phone || '', 
-      role: user.role || 'admin',
+      role: user.role || (isAdminSource ? 'admin' : 'employee'),
       can_wfh: finalEmp?.can_wfh,
       is_manager: isManager, 
       department_id: finalEmp?.department_id, 
-      department_name: finalEmp?.department_name || 'IT',
+      department_name: finalEmp?.department_name || (isAdminSource ? '' : 'IT'),
       is_hr: isHr, 
       is_global_ceo: isGlobalCeo 
     } 
@@ -376,7 +463,7 @@ async function resendCode(req, res) {
   );
 
   try {
-    await sendVerificationEmail(rows[0], code);
+    await runWithTenant(rows[0].tenant_id, () => sendVerificationEmail(rows[0], code));
   } catch (err) {
     logger.error('Failed to send verification email:', err.message);
   }
@@ -384,54 +471,54 @@ async function resendCode(req, res) {
   res.json({ message: 'Verification code resent. Check your email.' });
 }
 
-async function syncManagerRole(employeeId, email) {
-  const [deptRows] = await pool.query('SELECT id FROM departments WHERE manager_email = ?', [email]);
+async function syncManagerRole(employeeId, email, tenantId) {
+  const [deptRows] = await pool.query('SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?', [email, tenantId]);
   const isManager = deptRows.length > 0;
   if (isManager) {
-    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ?', [employeeId]);
+    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, tenantId]);
     if (emp.length > 0 && emp[0].role !== 'admin' && emp[0].role !== 'ceo') {
-      await pool.query('UPDATE employees SET role = ? WHERE id = ?', ['manager', employeeId]);
+      await pool.query('UPDATE employees SET role = ? WHERE id = ? AND tenant_id = ?', ['manager', employeeId, tenantId]);
     }
   } else {
     await pool.query(
-      "UPDATE employees SET role = 'employee' WHERE id = ? AND role = 'manager'",
-      [employeeId]
+      "UPDATE employees SET role = 'employee' WHERE id = ? AND tenant_id = ? AND role = 'manager'",
+      [employeeId, tenantId]
     );
   }
   return isManager;
 }
 
-async function syncCLevelRoles(employeeId, email) {
+async function syncCLevelRoles(employeeId, email, tenantId) {
   let isGlobalCeoResult = false;
-  const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+  const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?", [tenantId]);
   const ceoEmail = ceoSetting.length > 0 ? ceoSetting[0].value.trim().toLowerCase() : '';
   const isCEO = ceoEmail.length > 0 && email.toLowerCase() === ceoEmail;
 
-  const [deptRows] = await pool.query('SELECT id FROM departments WHERE c_level_email = ?', [email]);
+  const [deptRows] = await pool.query('SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?', [email, tenantId]);
   const isCLevel = deptRows.length > 0;
 
   if (isCEO) {
     isGlobalCeoResult = true;
-    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ?', [employeeId]);
+    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, tenantId]);
     if (emp.length > 0 && emp[0].role !== 'admin') {
-      await pool.query('UPDATE employees SET role = ?, department_id = NULL WHERE id = ?', ['ceo', employeeId]);
+      await pool.query('UPDATE employees SET role = ?, department_id = NULL WHERE id = ? AND tenant_id = ?', ['ceo', employeeId, tenantId]);
     }
   } else if (isCLevel) {
-    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ?', [employeeId]);
+    const [emp] = await pool.query('SELECT role FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, tenantId]);
     if (emp.length > 0 && emp[0].role !== 'admin') {
       // If user is C-Level for exactly one department, set their department_id
       if (deptRows.length === 1) {
-        await pool.query('UPDATE employees SET role = ?, department_id = ? WHERE id = ?', ['ceo', deptRows[0].id, employeeId]);
+        await pool.query('UPDATE employees SET role = ?, department_id = ? WHERE id = ? AND tenant_id = ?', ['ceo', deptRows[0].id, employeeId, tenantId]);
       } else {
-        await pool.query('UPDATE employees SET role = ? WHERE id = ?', ['ceo', employeeId]);
+        await pool.query('UPDATE employees SET role = ? WHERE id = ? AND tenant_id = ?', ['ceo', employeeId, tenantId]);
       }
     }
   } else {
-    const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ?', [email]);
+    const [mgrDepts] = await pool.query('SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?', [email, tenantId]);
     if (mgrDepts.length === 0) {
       await pool.query(
-        "UPDATE employees SET role = 'employee' WHERE id = ? AND role = 'ceo'",
-        [employeeId]
+        "UPDATE employees SET role = 'employee' WHERE id = ? AND tenant_id = ? AND role = 'ceo'",
+        [employeeId, tenantId]
       );
     }
   }
@@ -439,30 +526,32 @@ async function syncCLevelRoles(employeeId, email) {
 }
 
 async function me(req, res) {
-  const isManager = await syncManagerRole(req.employee.id, req.employee.email);
-  const isGlobalCeo = await syncCLevelRoles(req.employee.id, req.employee.email);
+  const tenantId = req.tenantId;
+  const isManager = await syncManagerRole(req.employee.id, req.employee.email, tenantId);
+  const isGlobalCeo = await syncCLevelRoles(req.employee.id, req.employee.email, tenantId);
   const [rows] = await pool.query(
     `SELECT e.id, e.employee_id, e.name, e.email, e.username, e.phone, e.department_id, e.role,
             e.can_wfh, e.is_active, d.name AS department_name
      FROM employees e
-     LEFT JOIN departments d ON e.department_id = d.id
-     WHERE e.id = ?`,
-    [req.employee.id]
+     LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.employee.id, tenantId]
   );
   const emp = rows[0];
   if (emp) {
     emp.is_manager = isManager;
     emp.is_global_ceo = isGlobalCeo;
-    emp.is_hr = (emp.department_name || '').toLowerCase().replace(/\s+/g, ' ') === 'hr' || (emp.department_name || '').toLowerCase().replace(/\s+/g, ' ') === 'human resources';
+    const deptName = (emp.department_name || '').toLowerCase().replace(/\s+/g, ' ');
+    emp.is_hr = deptName === 'hr' || deptName === 'human resources' || emp.role === 'admin';
 
     // Include team members if user is a manager
     if (emp.role === 'manager' || isManager) {
       const [members] = await pool.query(
         `SELECT e.id, e.name, e.email, e.employee_id
          FROM employees e
-         WHERE e.department_id = ? AND e.is_active = 1 AND e.id != ?
+         WHERE e.department_id = ? AND e.is_active = 1 AND e.id != ? AND e.tenant_id = ?
          ORDER BY e.name ASC`,
-        [emp.department_id, emp.id]
+        [emp.department_id, emp.id, tenantId]
       );
       emp.team_members = members;
     } else {
@@ -473,7 +562,10 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
-  await tokenService.revokeRefreshToken(req.cookies?.refresh_token || req.cookies?.admin_refresh_token || req.cookies?.platform_refresh_token);
+  for (const name of ['refresh_token', 'admin_refresh_token', 'platform_refresh_token']) {
+    const token = req.cookies?.[name];
+    if (token) await tokenService.revokeRefreshToken(token);
+  }
   res.clearCookie('refresh_token', { path: '/' });
   res.clearCookie('admin_refresh_token', { path: '/' });
   res.clearCookie('platform_refresh_token', { path: '/' });
@@ -508,7 +600,7 @@ async function forgotPassword(req, res) {
   );
 
   try {
-    await sendPasswordResetEmail(rows[0], code);
+    await runWithTenant(rows[0].tenant_id, () => sendPasswordResetEmail(rows[0], code));
     res.json({ message: 'Reset code sent to your email.', email });
   } catch (err) {
     logger.error('Failed to send password reset email:', err.message);
@@ -547,6 +639,7 @@ async function resetPassword(req, res) {
     'UPDATE employees SET password_hash = ?, verification_code = NULL, verification_expires = NULL WHERE id = ?',
     [password_hash, rows[0].id]
   );
+  await tokenService.revokeAllUserTokens(rows[0].id, 'employee', rows[0].tenant_id);
 
   res.json({ message: 'Password reset successfully. You can now login with your new password.' });
 }

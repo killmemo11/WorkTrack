@@ -30,16 +30,17 @@ function resolveField(data, fieldPath) {
 }
 
 async function processEvent(event) {
-  const [rules] = await pool.query(
-    'SELECT * FROM workflow_rules WHERE trigger_event = ? AND is_active = 1 ORDER BY priority',
-    [event.event_type]
-  );
-  if (rules.length === 0) return [];
-
   const [[candidate]] = await pool.query(
     'SELECT * FROM recruitment_candidates WHERE id = ?', [event.candidate_id]
   );
   if (!candidate) return [];
+
+  const [rules] = await pool.query(
+    `SELECT * FROM workflow_rules WHERE trigger_event = ? AND is_active = 1
+     ${candidate.tenant_id ? 'AND tenant_id = ?' : ''} ORDER BY priority`,
+    candidate.tenant_id ? [event.event_type, candidate.tenant_id] : [event.event_type]
+  );
+  if (rules.length === 0) return [];
 
   const candidateData = { candidate, evaluation: event.event_data || {} };
 

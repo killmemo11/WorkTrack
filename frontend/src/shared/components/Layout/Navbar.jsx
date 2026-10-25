@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mohamed Yehia
 // SPDX-License-Identifier: AGPL-3.0
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -18,8 +18,24 @@ export default function Navbar() {
   const [serviceManager, setServiceManager] = useState(true);
   const [servicePeople, setServicePeople] = useState(true);
   const [approvalsCount, setApprovalsCount] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef(null);
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const handleKey = (event) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     axios.get('/api/settings/public').then((res) => {
@@ -56,11 +72,22 @@ export default function Navbar() {
           <span className="nav-brand-text">WorkTrack</span>
         </Link>
       </div>
-      <div className="nav-links">
+      <button
+        ref={menuButtonRef}
+        type="button"
+        className="nav-toggle"
+        aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+        aria-expanded={menuOpen}
+        aria-controls="primary-navigation"
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <Icon icon={menuOpen ? 'lucide:x' : 'lucide:menu'} />
+      </button>
+      <div id="primary-navigation" className={`nav-links${menuOpen ? ' open' : ''}`}>
         {employee?.is_global_ceo ? (
           <>
             <Link to="/ceo" className={`nav-link${isActive('/ceo') ? ' active' : ''}`} aria-current={isActive('/ceo') ? 'page' : undefined}>
-              <Icon icon="lucide:building2" /> Company Overview
+              <Icon icon="lucide:building-2" /> Company Overview
             </Link>
           </>
         ) : (
@@ -121,13 +148,16 @@ export default function Navbar() {
             )}
           </>
         )}
+        <button type="button" className="nav-link nav-logout-mobile" onClick={handleLogout}>
+          <Icon icon="lucide:log-out" /> Logout
+        </button>
       </div>
       <div className="nav-user">
         <Link to="/personnel/my-profile" className="nav-user-link" aria-current={isActive('/personnel/my-profile') ? 'page' : undefined}>
           <Icon icon="lucide:user" /> {employee?.name}
         </Link>
         <NotificationBell />
-        <button onClick={handleLogout} className="glass-btn glass-btn-sm">
+        <button type="button" onClick={handleLogout} className="glass-btn glass-btn-sm">
           <Icon icon="lucide:log-out" /> Logout
         </button>
       </div>

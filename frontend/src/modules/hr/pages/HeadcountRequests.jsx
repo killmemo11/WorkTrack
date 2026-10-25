@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDateShort } from '../../../shared/utils/date';
 
 function ApprovalStage({ status, label }) {
   const colorMap = { pending: 'glass-badge-warning', approved: 'glass-badge-success', rejected: 'glass-badge-danger' };
@@ -186,7 +187,7 @@ export default function HeadcountRequests() {
                     </td>
                     <td><StageProgress r={r} /></td>
                     <td className="cell-mono">
-                      {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {formatDateShort(r.created_at)}
                     </td>
                     <td>
                       {r.status === 'pending' ? (

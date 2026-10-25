@@ -1,5 +1,11 @@
 import DOMPurify from 'dompurify';
 
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A' && node.getAttribute('target')) {
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
+
 export function sanitizeHTML(html) {
   if (!html) return '';
   return DOMPurify.sanitize(html, {
@@ -11,6 +17,18 @@ export function sanitizeHTML(html) {
       'bgcolor', 'color', 'face', 'size', 'dir'],
     ALLOW_DATA_ATTR: false,
   });
+}
+
+export function openSanitizedHTML(html, { print = false } = {}) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.opener = null;
+  w.document.write(sanitizeHTML(html));
+  w.document.close();
+  if (print) {
+    w.focus();
+    w.print();
+  }
 }
 
 export function isValidHttpUrl(str) {

@@ -34,7 +34,7 @@ async function signIn(req, res) {
   }
 
   // Check service toggles (canonical source: service_toggles table)
-  const tenantId = req.employee?.tenant_id || 1;
+  const tenantId = req.tenantId || req.employee?.tenant_id;
   const [svcRows] = await pool.query(
     'SELECT service_key, is_enabled FROM service_toggles WHERE service_key IN (?, ?) AND tenant_id = ?',
     ['wfh', 'office_attendance', tenantId]
@@ -48,7 +48,7 @@ async function signIn(req, res) {
     return res.status(403).json({ error: 'Office attendance is disabled by the administrator' });
   }
 
-  const [empRows] = await pool.query('SELECT can_wfh FROM employees WHERE id = ?', [employeeId]);
+  const [empRows] = await pool.query('SELECT can_wfh FROM employees WHERE id = ? AND tenant_id = ?', [employeeId, tenantId]);
   const canWfh = empRows[0]?.can_wfh;
 
   if (type === 'wfh' && !canWfh) {
@@ -57,7 +57,8 @@ async function signIn(req, res) {
 
   if (latitude != null && longitude != null) {
     const [settingsRows] = await pool.query(
-      "SELECT `key`, `value` FROM settings WHERE `key` IN ('office_lat', 'office_lng', 'office_radius_meters')"
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('office_lat', 'office_lng', 'office_radius_meters') AND tenant_id = ?",
+      [tenantId]
     );
     const officeSettings = {};
     for (const row of settingsRows) officeSettings[row.key] = row.value;
@@ -88,8 +89,8 @@ async function signIn(req, res) {
   }
 
   const [existing] = await pool.query(
-    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ?',
-    [employeeId, today]
+    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ? AND tenant_id = ?',
+    [employeeId, today, tenantId]
   );
 
   if (existing.length > 0) {
@@ -100,8 +101,8 @@ async function signIn(req, res) {
   let result;
   try {
     [result] = await pool.query(
-      'INSERT INTO attendance_records (employee_id, date, type, sign_in_time) VALUES (?, ?, ?, ?)',
-      [employeeId, today, type, now]
+      'INSERT INTO attendance_records (employee_id, date, type, sign_in_time, tenant_id) VALUES (?, ?, ?, ?, ?)',
+      [employeeId, today, type, now, tenantId]
     );
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -125,8 +126,8 @@ async function signOut(req, res) {
   const { notes, latitude, longitude } = req.body || {};
 
   const [records] = await pool.query(
-    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ? AND sign_out_time IS NULL',
-    [employeeId, today]
+    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ? AND sign_out_time IS NULL AND tenant_id = ?',
+    [employeeId, today, req.tenantId]
   );
 
   if (records.length === 0) {
@@ -141,7 +142,8 @@ async function signOut(req, res) {
     }
 
     const [settingsRows] = await pool.query(
-      "SELECT `key`, `value` FROM settings WHERE `key` IN ('office_lat', 'office_lng', 'office_radius_meters')"
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('office_lat', 'office_lng', 'office_radius_meters') AND tenant_id = ?",
+      [req.tenantId]
     );
     const officeSettings = {};
     for (const row of settingsRows) officeSettings[row.key] = row.value;
@@ -163,8 +165,8 @@ async function signOut(req, res) {
 
   const now = new Date();
   await pool.query(
-    'UPDATE attendance_records SET sign_out_time = ?, notes = CONCAT(COALESCE(notes, ""), ?) WHERE id = ?',
-    [now, notes ? ` | ${notes}` : '', records[0].id]
+    'UPDATE attendance_records SET sign_out_time = ?, notes = CONCAT(COALESCE(notes, ""), ?) WHERE id = ? AND tenant_id = ?',
+    [now, notes ? ` | ${notes}` : '', records[0].id, req.tenantId]
   );
 
   const responseRecord = {
@@ -187,8 +189,8 @@ async function status(req, res) {
   const today = getTodayDateString();
 
   const [records] = await pool.query(
-    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ?',
-    [employeeId, today]
+    'SELECT * FROM attendance_records WHERE employee_id = ? AND date = ? AND tenant_id = ?',
+    [employeeId, today, req.tenantId]
   );
 
   const record = records[0] ? {
@@ -210,13 +212,13 @@ async function history(req, res) {
   const offset = (page - 1) * limit;
 
   const [rows] = await pool.query(
-    'SELECT * FROM attendance_records WHERE employee_id = ? ORDER BY date DESC LIMIT ? OFFSET ?',
-    [employeeId, limit, offset]
+    'SELECT * FROM attendance_records WHERE employee_id = ? AND tenant_id = ? ORDER BY date DESC LIMIT ? OFFSET ?',
+    [employeeId, req.tenantId, limit, offset]
   );
 
   const [countRows] = await pool.query(
-    'SELECT COUNT(*) as total FROM attendance_records WHERE employee_id = ?',
-    [employeeId]
+    'SELECT COUNT(*) as total FROM attendance_records WHERE employee_id = ? AND tenant_id = ?',
+    [employeeId, req.tenantId]
   );
 
   const formatted = rows.map(r => ({
@@ -236,8 +238,8 @@ async function missingSignOut(req, res) {
   const employeeId = req.employee.id;
 
   const [rows] = await pool.query(
-    "SELECT * FROM attendance_records WHERE employee_id = ? AND sign_out_time IS NULL AND date != CURDATE() ORDER BY date DESC",
-    [employeeId]
+    "SELECT * FROM attendance_records WHERE employee_id = ? AND tenant_id = ? AND sign_out_time IS NULL AND date != CURDATE() ORDER BY date DESC",
+    [employeeId, req.tenantId]
   );
 
   res.json(rows);
@@ -254,8 +256,8 @@ async function requestSignOut(req, res) {
   }
 
   const [records] = await pool.query(
-    'SELECT * FROM attendance_records WHERE id = ? AND employee_id = ? AND sign_out_time IS NULL',
-    [recordId, employeeId]
+    'SELECT * FROM attendance_records WHERE id = ? AND employee_id = ? AND sign_out_time IS NULL AND tenant_id = ?',
+    [recordId, employeeId, req.tenantId]
   );
 
   if (records.length === 0) {
@@ -263,17 +265,27 @@ async function requestSignOut(req, res) {
   }
 
   const [existing] = await pool.query(
-    'SELECT * FROM signout_requests WHERE attendance_record_id = ? AND status = "pending"',
-    [recordId]
+    'SELECT * FROM signout_requests WHERE attendance_record_id = ? AND status = "pending" AND tenant_id = ?',
+    [recordId, req.tenantId]
   );
   if (existing.length > 0) {
     return res.status(400).json({ error: 'A pending request already exists for this record' });
   }
 
   const signOutDate = new Date(signOutTime);
+  if (Number.isNaN(signOutDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid sign out time' });
+  }
+  if (signOutDate > new Date()) {
+    return res.status(400).json({ error: 'Sign out time cannot be in the future' });
+  }
+  if (records[0].sign_in_time && signOutDate <= new Date(records[0].sign_in_time)) {
+    return res.status(400).json({ error: 'Sign out time must be after sign in time' });
+  }
+
   await pool.query(
-    'INSERT INTO signout_requests (employee_id, attendance_record_id, sign_out_time, notes) VALUES (?, ?, ?, ?)',
-    [employeeId, recordId, signOutDate, notes || null]
+    'INSERT INTO signout_requests (employee_id, attendance_record_id, sign_out_time, notes, tenant_id) VALUES (?, ?, ?, ?, ?)',
+    [employeeId, recordId, signOutDate, notes || null, req.tenantId]
   );
 
   const { type: approverType, approverId } = await determineApprover(employeeId);
@@ -290,7 +302,7 @@ async function requestSignOut(req, res) {
 
   if (approverId) {
     try {
-      const [approverRows] = await pool.query('SELECT id, name, email FROM employees WHERE id = ?', [approverId]);
+      const [approverRows] = await pool.query('SELECT id, name, email FROM employees WHERE id = ? AND tenant_id = ?', [approverId, req.tenantId]);
       if (approverRows.length > 0) {
         const employee = req.employee;
         const requestInfo = {
@@ -319,7 +331,8 @@ async function requestSignOut(req, res) {
         'Sign-Out Request Requires Review',
         `${employee.name} submitted a sign-out request for ${record.date}. No manager/C-Level assigned — admin review needed.`,
         'warning',
-        '/admin/signout-requests'
+        '/admin/signout-requests',
+        employee.tenant_id || req.tenantId
       );
     } catch (e) {
       logger.error('Admin sign-out notification error:', e);
@@ -335,48 +348,19 @@ async function getMySignOutRequests(req, res) {
   const [rows] = await pool.query(
     `SELECT sr.*, a.date, a.sign_in_time
      FROM signout_requests sr
-     JOIN attendance_records a ON sr.attendance_record_id = a.id
-     WHERE sr.employee_id = ?
+     JOIN attendance_records a ON sr.attendance_record_id = a.id AND a.tenant_id = sr.tenant_id
+     WHERE sr.employee_id = ? AND sr.tenant_id = ?
      ORDER BY sr.created_at DESC`,
-    [employeeId]
+    [employeeId, req.tenantId]
   );
 
   res.json(rows);
 }
 
-async function completeSignOut(req, res) {
-  const employeeId = req.employee.id;
-  const { recordId, signOutTime, notes } = req.body;
-
-  if (!recordId || !signOutTime) {
-    return res.status(400).json({ error: 'Record ID and sign out time are required' });
-  }
-
-  const [records] = await pool.query(
-    'SELECT * FROM attendance_records WHERE id = ? AND employee_id = ? AND sign_out_time IS NULL',
-    [recordId, employeeId]
-  );
-
-  if (records.length === 0) {
-    return res.status(404).json({ error: 'Record not found or already signed out' });
-  }
-
-  const signOutDate = new Date(signOutTime);
-  await pool.query(
-    'UPDATE attendance_records SET sign_out_time = ?, sign_out_notes = ?, is_manual_sign_out = 1 WHERE id = ?',
-    [signOutDate, notes || null, recordId]
-  );
-
-  const record = { ...records[0], sign_out_time: signOutDate, notes: notes || '' };
-
-  try { await sendSignOutEmail(req.employee, record); } catch (e) { logger.error('Email error:', e); }
-
-  res.json(record);
-}
-
-async function getAttendancePeriodFromDb() {
+async function getAttendancePeriodFromDb(tenantId) {
   const [rows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('period_start_day', 'period_end_day')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('period_start_day', 'period_end_day') AND tenant_id = ?",
+    [tenantId]
   );
   const s = {};
   for (const row of rows) s[row.key] = row.value;
@@ -413,13 +397,14 @@ function calcPeriodDates(now, startDay, endDay) {
 async function monthlySummary(req, res) {
   const employeeId = req.employee.id;
   const now = new Date();
-  const period = await getAttendancePeriodFromDb();
+  const period = await getAttendancePeriodFromDb(req.tenantId);
   const pd = calcPeriodDates(now, period.period_start_day, period.period_end_day);
   const dateFrom = req.query.date_from || pd.date_from;
   const dateTo = req.query.date_to || pd.date_to;
 
   const [settingsRows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+    [req.tenantId]
   );
   const s = {};
   for (const row of settingsRows) s[row.key] = row.value;
@@ -427,15 +412,15 @@ async function monthlySummary(req, res) {
   const workWeekEnd = s.work_week_end || 'Thursday';
 
   const [holidays] = await pool.query(
-    'SELECT date FROM holidays WHERE date >= ? AND date <= ?',
-    [dateFrom, dateTo]
+    'SELECT date FROM holidays WHERE date >= ? AND date <= ? AND tenant_id = ?',
+    [dateFrom, dateTo, req.tenantId]
   );
   const holidaySet = new Set(holidays.map((h) => h.date instanceof Date ? formatDateCairo(h.date) : h.date));
 
   const [leaves] = await pool.query(
     `SELECT start_date, end_date FROM leave_requests
-     WHERE employee_id = ? AND status = 'approved' AND start_date <= ? AND end_date >= ?`,
-    [employeeId, dateTo, dateFrom]
+     WHERE employee_id = ? AND status = 'approved' AND start_date <= ? AND end_date >= ? AND tenant_id = ?`,
+    [employeeId, dateTo, dateFrom, req.tenantId]
   );
   const leaveDates = new Set();
   for (const lv of leaves) {
@@ -452,9 +437,9 @@ async function monthlySummary(req, res) {
 
   const [records] = await pool.query(
     `SELECT type, date FROM attendance_records
-     WHERE employee_id = ? AND date >= ? AND date <= ?
+     WHERE employee_id = ? AND date >= ? AND date <= ? AND tenant_id = ?
      ORDER BY date ASC`,
-    [employeeId, dateFrom, dateTo]
+    [employeeId, dateFrom, dateTo, req.tenantId]
   );
 
   let wfhDays = 0;
@@ -503,13 +488,14 @@ async function monthlySummary(req, res) {
 async function calendar(req, res) {
   const employeeId = req.employee.id;
   const now = new Date();
-  const period = await getAttendancePeriodFromDb();
+  const period = await getAttendancePeriodFromDb(req.tenantId);
   const pd = calcPeriodDates(now, period.period_start_day, period.period_end_day);
   const dateFrom = req.query.date_from || pd.date_from;
   const dateTo = req.query.date_to || pd.date_to;
 
   const [settingsRows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+    [req.tenantId]
   );
   const s = {};
   for (const row of settingsRows) s[row.key] = row.value;
@@ -517,8 +503,8 @@ async function calendar(req, res) {
   const workWeekEnd = s.work_week_end || 'Thursday';
 
   const [holidays] = await pool.query(
-    'SELECT date, name FROM holidays WHERE date >= ? AND date <= ? ORDER BY date ASC',
-    [dateFrom, dateTo]
+    'SELECT date, name FROM holidays WHERE date >= ? AND date <= ? AND tenant_id = ? ORDER BY date ASC',
+    [dateFrom, dateTo, req.tenantId]
   );
   const holidayMap = {};
   for (const h of holidays) {
@@ -528,9 +514,9 @@ async function calendar(req, res) {
 
   const [records] = await pool.query(
     `SELECT date, type, sign_in_time, sign_out_time FROM attendance_records
-     WHERE employee_id = ? AND date >= ? AND date <= ?
+     WHERE employee_id = ? AND date >= ? AND date <= ? AND tenant_id = ?
      ORDER BY date ASC`,
-    [employeeId, dateFrom, dateTo]
+    [employeeId, dateFrom, dateTo, req.tenantId]
   );
   const recordMap = {};
   for (const r of records) {
@@ -545,8 +531,8 @@ async function calendar(req, res) {
   // Get approved leaves in range
   const [leaves] = await pool.query(
     `SELECT type, start_date, end_date FROM leave_requests
-     WHERE employee_id = ? AND status = 'approved' AND start_date <= ? AND end_date >= ?`,
-    [employeeId, dateTo, dateFrom]
+     WHERE employee_id = ? AND status = 'approved' AND start_date <= ? AND end_date >= ? AND tenant_id = ?`,
+    [employeeId, dateTo, dateFrom, req.tenantId]
   );
   const leaveMap = {};
   for (const lv of leaves) {
@@ -604,6 +590,6 @@ async function calendar(req, res) {
   res.json({ date_from: dateFrom, date_to: dateTo, months, period_days: period });
 }
 
-module.exports = { signIn, signOut, status, history, missingSignOut, completeSignOut, monthlySummary, calendar, requestSignOut, getMySignOutRequests };
+module.exports = { signIn, signOut, status, history, missingSignOut, monthlySummary, calendar, requestSignOut, getMySignOutRequests };
 
 

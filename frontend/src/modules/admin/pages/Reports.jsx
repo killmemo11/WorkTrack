@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
+import { toDateInputValue } from '../../../shared/utils/date';
+import { blobErrorMessage } from '../../../shared/utils/download';
 
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -17,11 +19,11 @@ export default function AdminReports() {
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date(now.getFullYear(), now.getMonth(), 1);
-    return d.toISOString().split('T')[0];
+    return toDateInputValue(d);
   });
   const [toDate, setToDate] = useState(() => {
     const d = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return d.toISOString().split('T')[0];
+    return toDateInputValue(d);
   });
 
   useEffect(() => {
@@ -34,10 +36,12 @@ export default function AdminReports() {
   }, [year, month]);
 
   const downloadReport = async (endpoint, filename) => {
+    if (!fromDate || !toDate) {
+      setError('Please select From and To dates first');
+      return;
+    }
     try {
-      const params = {};
-      if (fromDate) params.date_from = fromDate;
-      if (toDate) params.date_to = toDate;
+      const params = { date_from: fromDate, date_to: toDate };
       const res = await hrApi.get(endpoint, { params, responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement('a');
@@ -47,14 +51,16 @@ export default function AdminReports() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) { console.error(err); setError('Failed to export'); }
+    } catch (err) {
+      console.error(err);
+      setError(await blobErrorMessage(err, 'Failed to export'));
+    }
   };
 
   const exportAttendance = () => downloadReport('/reports/attendance', `attendance_${year}_${month}.xlsx`);
   const exportLeaves = () => downloadReport('/reports/leaves', `leaves_${year}_${month}.xlsx`);
   const exportKayan = () => downloadReport('/reports/kayan', `kayan_${year}_${month}.xlsx`);
   const exportSummary = () => {
-    if (!fromDate || !toDate) { setError('Please select From and To dates first'); return; }
     downloadReport('/reports/summary', `summary_${year}_${month}.xlsx`);
   };
 

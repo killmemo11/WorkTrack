@@ -5,7 +5,7 @@ const pool = require('../../shared/config/database');
 const { logActivity } = require('../../shared/services/activity.service');
 
 async function getHolidays(req, res) {
-  const [rows] = await pool.query('SELECT * FROM holidays ORDER BY date ASC');
+  const [rows] = await pool.query('SELECT * FROM holidays WHERE tenant_id = ? ORDER BY date ASC', [req.tenantId]);
   res.json(rows);
 }
 
@@ -16,10 +16,10 @@ async function createHoliday(req, res) {
   }
   try {
     const [result] = await pool.query(
-      'INSERT INTO holidays (date, name) VALUES (?, ?)',
-      [date, (name || '').trim()]
+      'INSERT INTO holidays (date, name, tenant_id) VALUES (?, ?, ?)',
+      [date, (name || '').trim(), req.tenantId]
     );
-    const [rows] = await pool.query('SELECT * FROM holidays WHERE id = ?', [result.insertId]);
+    const [rows] = await pool.query('SELECT * FROM holidays WHERE id = ? AND tenant_id = ?', [result.insertId, req.tenantId]);
     await logActivity(null, req.admin?.id || req.hr?.id || null, 'holiday_created', `Created holiday: ${name || date} (${(name || '').trim() || 'unnamed'})`);
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -32,8 +32,8 @@ async function createHoliday(req, res) {
 
 async function deleteHoliday(req, res) {
   const { id } = req.params;
-  const [rows] = await pool.query('SELECT date, name FROM holidays WHERE id = ?', [id]);
-  await pool.query('DELETE FROM holidays WHERE id = ?', [id]);
+  const [rows] = await pool.query('SELECT date, name FROM holidays WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
+  await pool.query('DELETE FROM holidays WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   const label = rows.length > 0 ? `${rows[0].name || ''} (${rows[0].date})` : id;
   await logActivity(null, req.admin?.id || req.hr?.id || null, 'holiday_deleted', `Deleted holiday: ${label}`);
   res.json({ id: parseInt(id) });

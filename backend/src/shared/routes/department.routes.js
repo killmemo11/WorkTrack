@@ -6,6 +6,7 @@ const {
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
   downloadTemplate, importDepartments,
 } = require('../../modules/admin/department.controller');
+const { SPREADSHEET_EXTENSIONS, singleFile } = require('../utils/upload-security');
 
 function mountDepartmentRoutes(router, memoryUpload) {
   router.get('/departments', getDepartments);
@@ -13,7 +14,7 @@ function mountDepartmentRoutes(router, memoryUpload) {
   router.put('/departments/:id', updateDepartment);
   router.delete('/departments/:id', deleteDepartment);
   router.get('/departments/template', downloadTemplate);
-  router.post('/departments/import', memoryUpload.single('file'), importDepartments);
+  router.post('/departments/import', singleFile(memoryUpload, 'file', SPREADSHEET_EXTENSIONS), importDepartments);
 }
 
 module.exports = { mountDepartmentRoutes };

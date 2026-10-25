@@ -3,24 +3,23 @@
 
 const { Router } = require('express');
 const multer = require('multer');
-const path = require('path');
 const crypto = require('crypto');
 const { authenticate: requireAuth } = require('../../shared/middleware/auth.middleware');
 const { requireReadWrite } = require('../../shared/middleware/readonly.middleware');
 const { resolveTenant } = require('../../shared/middleware/tenant.middleware');
 const { getPersonnelDir } = require('../../shared/config/storage');
+const { IMAGE_EXTENSIONS, extensionAllowed, invalidFileType, safeExtension, singleFile } = require('../../shared/utils/upload-security');
 
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getPersonnelDir()),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${path.extname(file.originalname)}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${safeExtension(file.originalname)}`),
 });
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (ALLOWED_MIMES.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP images and PDF files are allowed.'));
+    if (extensionAllowed(file.originalname, IMAGE_EXTENSIONS)) return cb(null, true);
+    cb(invalidFileType(IMAGE_EXTENSIONS));
   },
 });
 
@@ -57,7 +56,7 @@ router.get('/my-documents', requireAuthAndTenant, getMyDocuments);
 router.get('/my-documents/search', requireAuthAndTenant, searchDocuments);
 router.get('/my-documents/:docId/preview', requireAuthAndTenant, getDocumentPreview);
 router.get('/organization-chart', requireAuthAndTenant, getOrganization);
-router.post('/my-avatar', requireAuthAndTenant, upload.single('file'), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
+router.post('/my-avatar', requireAuthAndTenant, singleFile(upload, 'file', IMAGE_EXTENSIONS), (req, res, next) => { req.params.id = req.employee.id; next(); }, uploadAvatar);
 router.post('/resignation', requireAuthAndTenant, requireReadWrite, submitResignation);
 router.get('/my-assets', requireAuthAndTenant, getMyAssets);
 router.get('/dashboard', requireAuthAndTenant, getEmployeeDashboard);

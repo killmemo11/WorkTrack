@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 // Employee & Personnel domain routes — extracted from routes.factory.js
+const exportLimiter = require('../middleware/export-limit.middleware');
 const {
   getEmployees, getEmployee, updateEmployee, deleteEmployee,
 } = require('../../modules/admin/admin.controller');
@@ -27,6 +28,10 @@ const {
 const {
   getSalaryComponents, addSalaryComponent, updateSalaryComponent, deleteSalaryComponent,
 } = require('../../modules/admin/salary.controller');
+const {
+  IMAGE_EXTENSIONS, IMAGE_PDF_EXTENSIONS, PERSONNEL_EXTENSIONS, SPREADSHEET_EXTENSIONS,
+  singleFile,
+} = require('../utils/upload-security');
 
 function mountEmployeeRoutes(router, personnelUpload) {
   router.get('/employees', getEmployees);
@@ -36,9 +41,9 @@ function mountEmployeeRoutes(router, personnelUpload) {
 
   router.get('/employees/:id/profile', getEmployeeProfile);
   router.put('/employees/:id/profile', updateEmployeeProfile);
-  router.post('/employees/:id/documents', personnelUpload.single('file'), uploadDocument);
-  router.post('/employees/:id/insurance-card', personnelUpload.single('file'), uploadInsuranceCard);
-  router.post('/employees/:id/avatar', personnelUpload.single('file'), uploadAvatar);
+  router.post('/employees/:id/documents', singleFile(personnelUpload, 'file', PERSONNEL_EXTENSIONS), uploadDocument);
+  router.post('/employees/:id/insurance-card', singleFile(personnelUpload, 'file', IMAGE_PDF_EXTENSIONS), uploadInsuranceCard);
+  router.post('/employees/:id/avatar', singleFile(personnelUpload, 'file', IMAGE_EXTENSIONS), uploadAvatar);
   router.delete('/employees/:id/documents/:docId', deleteDocument);
   router.post('/employees/:id/education', addEducation);
   router.put('/employees/:id/education/:eduId', updateEducation);
@@ -48,10 +53,10 @@ function mountEmployeeRoutes(router, personnelUpload) {
   router.delete('/employees/:id/work-history/:whId', deleteWorkHistory);
   router.post('/employees/:id/certifications', addCertification);
   router.delete('/employees/:id/certifications/:certId', deleteCertification);
-  router.post('/employees/:id/medical-family', personnelUpload.single('card_image'), addMedicalFamily);
-  router.put('/employees/:id/medical-family/:famId', personnelUpload.single('card_image'), updateMedicalFamily);
+  router.post('/employees/:id/medical-family', singleFile(personnelUpload, 'card_image', IMAGE_PDF_EXTENSIONS), addMedicalFamily);
+  router.put('/employees/:id/medical-family/:famId', singleFile(personnelUpload, 'card_image', IMAGE_PDF_EXTENSIONS), updateMedicalFamily);
   router.delete('/employees/:id/medical-family/:famId', deleteMedicalFamily);
-  router.post('/employees/:id/medical-family/:famId/upload-card', personnelUpload.single('file'), uploadMedicalFamilyCard);
+  router.post('/employees/:id/medical-family/:famId/upload-card', singleFile(personnelUpload, 'file', IMAGE_PDF_EXTENSIONS), uploadMedicalFamilyCard);
   router.post('/employees/:id/status-change', changeEmployeeStatus);
   router.get('/employees/:id/timeline', getEmployeeTimeline);
   router.post('/employees/:id/renew-contract', renewContract);
@@ -87,8 +92,8 @@ function mountEmployeeRoutes(router, personnelUpload) {
   router.get('/organization-chart', getOrganization);
   router.get('/reports/headcount', getHeadcount);
 
-  router.get('/profiles/export', exportProfiles);
-  router.post('/profiles/import', personnelUpload.single('file'), importProfiles);
+  router.get('/profiles/export', exportLimiter, exportProfiles);
+  router.post('/profiles/import', singleFile(personnelUpload, 'file', SPREADSHEET_EXTENSIONS), importProfiles);
 }
 
 module.exports = { mountEmployeeRoutes };

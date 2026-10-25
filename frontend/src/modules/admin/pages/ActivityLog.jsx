@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import adminApi from '../../../shared/api/adminApi';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const ACTION_LABELS = {
   hr_login: 'HR Login',
@@ -246,7 +247,7 @@ export default function ActivityLog() {
             {data.entries.map((e) => (
               <tr key={e.id}>
                 <td className="cell-mono" style={{ whiteSpace: 'nowrap' }}>
-                  {new Date(e.created_at).toLocaleDateString()} {new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDate(e.created_at)} {formatTime(e.created_at)}
                 </td>
                 <td>
                   <div><strong>{getActorLabel(e)}</strong></div>

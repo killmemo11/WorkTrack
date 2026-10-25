@@ -19,7 +19,8 @@ async function getCeoDashboard(req, res) {
 
     // Get settings
     const [settingsRows] = await pool.query(
-      "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end', 'period_start_day', 'period_end_day')"
+      "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end', 'period_start_day', 'period_end_day') AND tenant_id = ?",
+      [req.tenantId]
     );
     const s = {};
     for (const row of settingsRows) s[row.key] = row.value;
@@ -28,8 +29,8 @@ async function getCeoDashboard(req, res) {
 
     // Get holidays in month range
     const [holidays] = await pool.query(
-      'SELECT date FROM holidays WHERE date >= ? AND date <= ?',
-      [monthStart, monthEnd]
+      'SELECT date FROM holidays WHERE date >= ? AND date <= ? AND tenant_id = ?',
+      [monthStart, monthEnd, req.tenantId]
     );
     const holidaySet = new Set(holidays.map((h) => new Date(h.date).toISOString().split('T')[0]));
 
@@ -46,7 +47,10 @@ async function getCeoDashboard(req, res) {
     const totalWorkDays = workDays.length;
 
     // Check if viewer is global CEO or department C-Level
-    const [ceoSetting] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'ceo_email'");
+    const [ceoSetting] = await pool.query(
+      "SELECT `value` FROM settings WHERE `key` = 'ceo_email' AND tenant_id = ?",
+      [req.tenantId]
+    );
     const ceoEmail = ceoSetting.length > 0 ? ceoSetting[0].value.trim().toLowerCase() : '';
     const isGlobalCeo = ceoEmail.length > 0 && req.employee.email.toLowerCase() === ceoEmail;
 
@@ -54,25 +58,28 @@ async function getCeoDashboard(req, res) {
     const [employees] = await pool.query(
       `SELECT e.id, e.employee_id, e.name, e.email, e.role, e.department_id, d.name AS department_name
        FROM employees e
-       LEFT JOIN departments d ON e.department_id = d.id
-       WHERE (e.is_system IS NULL OR e.is_system = 0) AND e.is_active = 1
-       ORDER BY d.name ASC, e.name ASC`
+       LEFT JOIN departments d ON e.department_id = d.id AND d.tenant_id = e.tenant_id
+       WHERE (e.is_system IS NULL OR e.is_system = 0) AND e.is_active = 1 AND e.tenant_id = ?
+       ORDER BY d.name ASC, e.name ASC`,
+      [req.tenantId]
     );
 
     // Get departments with manager info
     const [deptRows] = await pool.query(
       `SELECT d.*,
-         (SELECT e.name FROM employees e WHERE e.email = d.manager_email LIMIT 1) AS manager_name
-        FROM departments d ORDER BY d.name ASC`
+         (SELECT e.name FROM employees e WHERE e.email = d.manager_email AND e.tenant_id = d.tenant_id LIMIT 1) AS manager_name
+        FROM departments d WHERE d.tenant_id = ? ORDER BY d.name ASC`,
+      [req.tenantId]
     );
 
     // Get pending leave counts per department for CEO read-only view
     const [pendingLeaves] = await pool.query(
       `SELECT e.department_id, COUNT(*) AS pending_count
        FROM leave_requests lr
-       JOIN employees e ON lr.employee_id = e.id
-       WHERE lr.status = 'pending'
-       GROUP BY e.department_id`
+       JOIN employees e ON lr.employee_id = e.id AND e.tenant_id = lr.tenant_id
+       WHERE lr.status = 'pending' AND lr.tenant_id = ?
+       GROUP BY e.department_id`,
+      [req.tenantId]
     );
     const pendingMap = {};
     for (const pl of pendingLeaves) {
@@ -90,7 +97,10 @@ async function getCeoDashboard(req, res) {
     // Get all goals
     let allGoals = [];
     try {
-      const [goals] = await pool.query('SELECT eg.*, e.department_id FROM employee_goals eg JOIN employees e ON eg.employee_id = e.id');
+      const [goals] = await pool.query(
+        'SELECT eg.*, e.department_id FROM employee_goals eg JOIN employees e ON eg.employee_id = e.id AND e.tenant_id = ? WHERE e.tenant_id = ?',
+        [req.tenantId, req.tenantId]
+      );
       allGoals = goals;
     } catch (err) {
       // Goals table might not exist yet
@@ -111,9 +121,10 @@ async function getCeoDashboard(req, res) {
     const [todayAttendance] = await pool.query(
       `SELECT ar1.* FROM attendance_records ar1
        INNER JOIN (
-         SELECT employee_id, MAX(id) AS max_id FROM attendance_records WHERE date = ? GROUP BY employee_id
-       ) ar2 ON ar1.id = ar2.max_id`,
-      [todayStr]
+         SELECT employee_id, MAX(id) AS max_id FROM attendance_records WHERE date = ? AND tenant_id = ? GROUP BY employee_id
+       ) ar2 ON ar1.id = ar2.max_id
+       WHERE ar1.tenant_id = ?`,
+      [todayStr, req.tenantId, req.tenantId]
     );
     const todayAttMap = {};
     for (const rec of todayAttendance) {
@@ -122,8 +133,8 @@ async function getCeoDashboard(req, res) {
 
     // Get today's approved leaves
     const [todayLeaves] = await pool.query(
-      "SELECT * FROM leave_requests WHERE status = 'approved' AND start_date <= ? AND end_date >= ?",
-      [todayStr, todayStr]
+      "SELECT * FROM leave_requests WHERE status = 'approved' AND start_date <= ? AND end_date >= ? AND tenant_id = ?",
+      [todayStr, todayStr, req.tenantId]
     );
     const todayLeaveEmpIds = new Set(todayLeaves.map((l) => l.employee_id));
 
@@ -132,9 +143,10 @@ async function getCeoDashboard(req, res) {
       `SELECT ar1.* FROM attendance_records ar1
        INNER JOIN (
          SELECT employee_id, date, MAX(id) AS max_id FROM attendance_records
-         WHERE date >= ? AND date <= ? GROUP BY employee_id, date
-       ) ar2 ON ar1.id = ar2.max_id`,
-      [monthStart, monthEnd]
+         WHERE date >= ? AND date <= ? AND tenant_id = ? GROUP BY employee_id, date
+       ) ar2 ON ar1.id = ar2.max_id
+       WHERE ar1.tenant_id = ?`,
+      [monthStart, monthEnd, req.tenantId, req.tenantId]
     );
     // Group by employee_id
     const monthAttMap = {};
@@ -145,8 +157,8 @@ async function getCeoDashboard(req, res) {
 
     // Get month approved leaves for ALL employees
     const [monthLeaves] = await pool.query(
-      "SELECT * FROM leave_requests WHERE status = 'approved' AND start_date <= ? AND end_date >= ?",
-      [monthEnd, monthStart]
+      "SELECT * FROM leave_requests WHERE status = 'approved' AND start_date <= ? AND end_date >= ? AND tenant_id = ?",
+      [monthEnd, monthStart, req.tenantId]
     );
     // Calculate leave days per employee within our range
     // Annual & Casual leave count as regular work days (Egyptian labor law)
@@ -175,7 +187,10 @@ async function getCeoDashboard(req, res) {
     }
 
     // Get all leave balances
-    const [allBalances] = await pool.query('SELECT employee_id, leave_type, balance FROM leave_balances');
+    const [allBalances] = await pool.query(
+      'SELECT employee_id, leave_type, balance FROM leave_balances WHERE tenant_id = ?',
+      [req.tenantId]
+    );
     const balanceMap = {};
     for (const b of allBalances) {
       if (!balanceMap[b.employee_id]) balanceMap[b.employee_id] = {};
@@ -190,8 +205,9 @@ async function getCeoDashboard(req, res) {
            COUNT(*) as total,
            SUM(CASE WHEN stage = 'hired' THEN 1 ELSE 0 END) as hired,
            SUM(CASE WHEN stage IN ('applied', 'phone', 'first', 'second', 'third') THEN 1 ELSE 0 END) as pending
-         FROM recruitment_candidates`,
-        []
+         FROM recruitment_candidates
+         WHERE tenant_id = ?`,
+        [req.tenantId]
       );
       recruitmentMetrics = recruitment[0];
     } catch (err) {
@@ -206,8 +222,9 @@ async function getCeoDashboard(req, res) {
            COUNT(*) as total,
            SUM(max_headcount) as capacity,
            SUM(CASE WHEN max_headcount > 0 THEN 1 ELSE 0 END) as departments_with_capacity
-         FROM departments`,
-        []
+         FROM departments
+         WHERE tenant_id = ?`,
+        [req.tenantId]
       );
       headcountMetrics = headcount[0];
       headcountMetrics.utilization = headcountMetrics.capacity > 0 ? 
@@ -224,8 +241,9 @@ async function getCeoDashboard(req, res) {
            COUNT(*) as total,
            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
            SUM(CASE WHEN status IN ('pending', 'in_progress') THEN 1 ELSE 0 END) as pending
-         FROM performance_reviews`,
-        []
+         FROM performance_reviews
+         WHERE tenant_id = ?`,
+        [req.tenantId]
       );
       performanceMetrics = performance[0];
     } catch (err) {
@@ -240,8 +258,8 @@ async function getCeoDashboard(req, res) {
     } else if (req.employee.role === 'ceo') {
       // Department C-Level: only show departments where c_level_email matches
       const [cleDepts] = await pool.query(
-        'SELECT id FROM departments WHERE c_level_email = ?',
-        [req.employee.email]
+        'SELECT id FROM departments WHERE c_level_email = ? AND tenant_id = ?',
+        [req.employee.email, req.tenantId]
       );
       for (const d of cleDepts) allowedDeptIds.add(d.id);
     }

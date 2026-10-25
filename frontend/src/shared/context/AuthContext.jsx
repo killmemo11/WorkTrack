@@ -2,13 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { fetchWithSession, getCsrfHeader } from '../api/session';
 
 const AuthContext = createContext();
-
-function getTokenFromCookie(name) {
-  const match = document.cookie.split(';').find(c => c.trim().startsWith(name + '='));
-  return match ? match.trim().split('=')[1] : null;
-}
 
 export function AuthProvider({ children }) {
   const [employee, setEmployee] = useState(null);
@@ -17,7 +13,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const res = await fetchWithSession('/api/auth/me', { realm: 'employee' });
         if (res.ok) {
           const data = await res.json();
           setEmployee(data);
@@ -43,11 +39,10 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      const csrfToken = getTokenFromCookie('csrf_token');
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
-        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+        headers: getCsrfHeader(),
       });
     } catch {}
     setEmployee(null);

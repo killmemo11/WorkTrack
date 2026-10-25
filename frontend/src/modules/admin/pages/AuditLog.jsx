@@ -6,6 +6,7 @@ import Icon from '../../../shared/components/Icon';
 import hrApi from '../../../shared/api/hrApi';
 import HRLayout from '../../../shared/components/Layout/HRLayout';
 import Pagination from '../../../shared/components/Pagination';
+import { formatDate } from '../../../shared/utils/date';
 
 const actionLabels = { deduct: 'Deducted', restore: 'Restored', reset: 'Reset' };
 const actionBadgeMap = { deduct: 'warning', restore: 'success', reset: 'default' };
@@ -62,7 +63,7 @@ export default function AuditLog() {
               )}
               {data.entries.map((e) => (
                 <tr key={e.id}>
-                  <td className="cell-mono">{new Date(e.created_at).toLocaleDateString()}</td>
+                  <td className="cell-mono">{formatDate(e.created_at)}</td>
                   <td><strong>{e.employee_name}</strong> <span className="cell-mono">#{e.emp_number}</span></td>
                   <td><span className="glass-badge glass-badge-primary">{e.leave_type}</span></td>
                   <td><span className={`glass-badge glass-badge-${actionBadgeMap[e.action] || 'default'}`}>{actionLabels[e.action] || e.action}</span></td>

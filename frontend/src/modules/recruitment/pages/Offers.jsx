@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import { useNavigate } from 'react-router-dom';
 import hrApi from '../../../shared/api/hrApi';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function Offers() {
   const navigate = useNavigate();
@@ -114,9 +115,9 @@ export default function Offers() {
                       <span className="glass-badge glass-badge-success">EGP {Number(o.salary).toLocaleString()}</span>
                     ) : '—'}
                   </td>
-                  <td>{o.start_date ? new Date(o.start_date).toLocaleDateString() : '—'}</td>
+                  <td>{o.start_date ? formatDate(o.start_date) : '—'}</td>
                   <td><span className={getStatusBadge(o.status)}>{o.status}</span></td>
-                  <td style={{ color: 'var(--text-dim)' }}>{new Date(o.created_at).toLocaleDateString()}</td>
+                  <td style={{ color: 'var(--text-dim)' }}>{formatDate(o.created_at)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {o.status === 'sent' && (

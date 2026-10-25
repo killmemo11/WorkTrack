@@ -4,7 +4,7 @@
 const pool = require('../config/database');
 
 const requireLeaveService = async (req, res, next) => {
-  const tenantId = req.employee?.tenant_id || req.hr?.tenant_id || 1;
+  const tenantId = req.tenantId || req.employee?.tenant_id || req.hr?.tenant_id;
   const [rows] = await pool.query(
     'SELECT is_enabled FROM service_toggles WHERE service_key = ? AND tenant_id = ?',
     ['leaves', tenantId]

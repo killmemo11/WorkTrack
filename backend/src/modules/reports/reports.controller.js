@@ -3,6 +3,7 @@
 
 const pool = require('../../shared/config/database');
 const { isWorkDay, getDaysInMonth } = require('../../shared/utils/work-day.util');
+const { MAX_EXPORT_ROWS, validateExportRange, validateExportRows } = require('../../shared/utils/export-guard.util');
 const XLSX = require('xlsx');
 
 function getDateRangeWorkDays(from, to, workWeekStart, workWeekEnd, holidaySet) {
@@ -19,12 +20,15 @@ function getDateRangeWorkDays(from, to, workWeekStart, workWeekEnd, holidaySet) 
 async function exportKayanReport(req, res) {
   const { date_from, date_to, employee_id } = req.query;
 
-  let where = [];
-  let params = [];
+  const rangeError = validateExportRange(date_from, date_to);
+  if (rangeError) return res.status(400).json(rangeError);
+
+  let where = ['a.tenant_id = ?'];
+  let params = [req.tenantId];
 
   if (employee_id) { where.push('a.employee_id = ?'); params.push(employee_id); }
-  if (date_from) { where.push('a.date >= ?'); params.push(date_from); }
-  if (date_to) { where.push('a.date <= ?'); params.push(date_to); }
+  where.push('a.date >= ?'); params.push(date_from);
+  where.push('a.date <= ?'); params.push(date_to);
 
   const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
 
@@ -34,9 +38,13 @@ async function exportKayanReport(req, res) {
      FROM attendance_records a
      JOIN employees e ON a.employee_id = e.id
      ${whereClause}
-     ORDER BY a.date ASC, e.employee_id ASC`,
-    params
+     ORDER BY a.date ASC, e.employee_id ASC
+     LIMIT ?`,
+    [...params, MAX_EXPORT_ROWS + 1]
   );
+
+  const rowError = validateExportRows(rows);
+  if (rowError) return res.status(400).json(rowError);
 
   const data = [];
   for (const r of rows) {
@@ -76,12 +84,15 @@ async function exportKayanReport(req, res) {
 async function exportAttendanceReport(req, res) {
   const { date_from, date_to, employee_id } = req.query;
 
-  let where = [];
-  let params = [];
+  const rangeError = validateExportRange(date_from, date_to);
+  if (rangeError) return res.status(400).json(rangeError);
+
+  let where = ['a.tenant_id = ?'];
+  let params = [req.tenantId];
 
   if (employee_id) { where.push('a.employee_id = ?'); params.push(employee_id); }
-  if (date_from) { where.push('a.date >= ?'); params.push(date_from); }
-  if (date_to) { where.push('a.date <= ?'); params.push(date_to); }
+  where.push('a.date >= ?'); params.push(date_from);
+  where.push('a.date <= ?'); params.push(date_to);
 
   const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
 
@@ -93,9 +104,13 @@ async function exportAttendanceReport(req, res) {
      JOIN employees e ON a.employee_id = e.id
      LEFT JOIN departments d ON e.department_id = d.id
      ${whereClause}
-     ORDER BY a.date DESC, e.name ASC`,
-    params
+     ORDER BY a.date DESC, e.name ASC
+     LIMIT ?`,
+    [...params, MAX_EXPORT_ROWS + 1]
   );
+
+  const rowError = validateExportRows(rows);
+  if (rowError) return res.status(400).json(rowError);
 
   const data = rows.map((r) => ({
     Date: r.date,
@@ -133,12 +148,15 @@ async function exportAttendanceReport(req, res) {
 async function exportLeaveReport(req, res) {
   const { date_from, date_to, status, employee_id } = req.query;
 
-  let where = [];
-  let params = [];
+  const rangeError = validateExportRange(date_from, date_to);
+  if (rangeError) return res.status(400).json(rangeError);
+
+  let where = ['lr.tenant_id = ?'];
+  let params = [req.tenantId];
 
   if (employee_id) { where.push('lr.employee_id = ?'); params.push(employee_id); }
-  if (date_from) { where.push('lr.start_date >= ?'); params.push(date_from); }
-  if (date_to) { where.push('lr.end_date <= ?'); params.push(date_to); }
+  where.push('lr.start_date >= ?'); params.push(date_from);
+  where.push('lr.end_date <= ?'); params.push(date_to);
   if (status) { where.push('lr.status = ?'); params.push(status); }
 
   const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
@@ -152,9 +170,13 @@ async function exportLeaveReport(req, res) {
      JOIN employees e ON lr.employee_id = e.id
      LEFT JOIN departments d ON e.department_id = d.id
      ${whereClause}
-     ORDER BY lr.created_at DESC`,
-    params
+     ORDER BY lr.created_at DESC
+     LIMIT ?`,
+    [...params, MAX_EXPORT_ROWS + 1]
   );
+
+  const rowError = validateExportRows(rows);
+  if (rowError) return res.status(400).json(rowError);
 
   const data = rows.map((r) => ({
     ID: r.id,
@@ -197,8 +219,8 @@ async function getBalanceAudit(req, res) {
   const offset = (page - 1) * limit;
   const { employee_id, action } = req.query;
 
-  let where = [];
-  let params = [];
+  let where = ['ba.tenant_id = ?'];
+  let params = [req.tenantId];
 
   if (employee_id) { where.push('ba.employee_id = ?'); params.push(employee_id); }
   if (action) { where.push('ba.action = ?'); params.push(action); }
@@ -233,8 +255,8 @@ async function getActivityLog(req, res) {
   const offset = (page - 1) * limit;
   const { employee_id, action } = req.query;
 
-  let where = [];
-  let params = [];
+  let where = ['al.tenant_id = ?'];
+  let params = [req.tenantId];
 
   if (employee_id) { where.push('(al.employee_id = ? OR al.admin_id = ?)'); params.push(employee_id, employee_id); }
   if (action) { where.push('al.action = ?'); params.push(action); }
@@ -279,16 +301,16 @@ async function getActivityLog(req, res) {
 async function exportEmployeeSummary(req, res) {
   const { date_from, date_to } = req.query;
 
-  if (!date_from || !date_to) {
-    return res.status(400).json({ error: 'date_from and date_to are required' });
-  }
+  const rangeError = validateExportRange(date_from, date_to);
+  if (rangeError) return res.status(400).json(rangeError);
 
   const from = new Date(date_from + 'T00:00:00');
   const to = new Date(date_to + 'T00:00:00');
 
   // Get work week settings
   const [settingsRows] = await pool.query(
-    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end')"
+    "SELECT `key`, `value` FROM settings WHERE `key` IN ('work_week_start', 'work_week_end') AND tenant_id = ?",
+    [req.tenantId]
   );
   const s = {};
   for (const row of settingsRows) s[row.key] = row.value;
@@ -297,8 +319,8 @@ async function exportEmployeeSummary(req, res) {
 
   // Get holidays in range
   const [holidays] = await pool.query(
-    'SELECT date FROM holidays WHERE date >= ? AND date <= ?',
-    [date_from, date_to]
+    'SELECT date FROM holidays WHERE date >= ? AND date <= ? AND tenant_id = ?',
+    [date_from, date_to, req.tenantId]
   );
   const holidaySet = new Set(holidays.map((h) => new Date(h.date).toISOString().split('T')[0]));
 
@@ -306,8 +328,12 @@ async function exportEmployeeSummary(req, res) {
 
   // Get all employees
   const [employees] = await pool.query(
-    "SELECT e.id, e.employee_id, e.name, e.email, d.name as department_name FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE (e.is_system IS NULL OR e.is_system = 0) ORDER BY e.name"
+    "SELECT e.id, e.employee_id, e.name, e.email, d.name as department_name FROM employees e LEFT JOIN departments d ON e.department_id = d.id WHERE (e.is_system IS NULL OR e.is_system = 0) AND e.tenant_id = ? ORDER BY e.name LIMIT ?",
+    [req.tenantId, MAX_EXPORT_ROWS + 1]
   );
+
+  const rowError = validateExportRows(employees);
+  if (rowError) return res.status(400).json(rowError);
 
   // Get attendance per employee
   const [attendance] = await pool.query(
@@ -318,9 +344,9 @@ async function exportEmployeeSummary(req, res) {
             SUM(CASE WHEN a.type = 'wfh' OR a.type IS NULL THEN 1 ELSE 0 END) as wfh_days,
             SUM(CASE WHEN a.sign_out_time IS NULL THEN 1 ELSE 0 END) as missing_sign_outs
      FROM attendance_records a
-     WHERE a.date >= ? AND a.date <= ?
+     WHERE a.date >= ? AND a.date <= ? AND a.tenant_id = ?
      GROUP BY a.employee_id`,
-    [date_from, date_to]
+    [date_from, date_to, req.tenantId]
   );
   const attMap = {};
   for (const a of attendance) attMap[a.employee_id] = a;
@@ -331,8 +357,8 @@ async function exportEmployeeSummary(req, res) {
             lr.start_date, lr.end_date
      FROM leave_requests lr
      WHERE lr.status = 'approved'
-       AND lr.start_date <= ? AND lr.end_date >= ?`,
-    [date_to, date_from]
+       AND lr.start_date <= ? AND lr.end_date >= ? AND lr.tenant_id = ?`,
+    [date_to, date_from, req.tenantId]
   );
 
   const leaveMap = {};

@@ -39,11 +39,22 @@ async function revokeRefreshToken(rawToken) {
   await pool.query('UPDATE refresh_tokens SET revoked = 1 WHERE token_hash = ?', [tokenHash]);
 }
 
-async function revokeAllUserTokens(userId, userType) {
+async function revokeAllUserTokens(userId, userType, tenantId = null) {
+  if (tenantId) {
+    await pool.query(
+      'UPDATE refresh_tokens SET revoked = 1 WHERE user_id = ? AND user_type = ? AND tenant_id = ?',
+      [userId, userType, tenantId]
+    );
+    return;
+  }
   await pool.query(
     'UPDATE refresh_tokens SET revoked = 1 WHERE user_id = ? AND user_type = ?',
     [userId, userType]
   );
+}
+
+async function revokeAllTenantTokens(tenantId) {
+  await pool.query('UPDATE refresh_tokens SET revoked = 1 WHERE tenant_id = ?', [tenantId]);
 }
 
 async function cleanupExpiredTokens() {
@@ -55,5 +66,6 @@ module.exports = {
   verifyRefreshToken,
   revokeRefreshToken,
   revokeAllUserTokens,
+  revokeAllTenantTokens,
   cleanupExpiredTokens,
 };

@@ -42,9 +42,9 @@ function requirePermission(permKey) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
     const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
-    const tenantId = req.tenantId || 1;
+    const tenantId = req.tenantId;
 
-    if (!userId) {
+    if (!userId || !tenantId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -69,9 +69,9 @@ function requireAnyPermission(permKeys) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
     const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
-    const tenantId = req.tenantId || 1;
+    const tenantId = req.tenantId;
 
-    if (!userId) {
+    if (!userId || !tenantId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -91,9 +91,9 @@ function requireAllPermissions(permKeys) {
   return async (req, res, next) => {
     const userId = req.admin?.id || req.employee?.id || req.hr?.id;
     const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
-    const tenantId = req.tenantId || 1;
+    const tenantId = req.tenantId;
 
-    if (!userId) {
+    if (!userId || !tenantId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -112,9 +112,9 @@ function requireAllPermissions(permKeys) {
 async function attachPermissions(req, res, next) {
   const userId = req.admin?.id || req.employee?.id || req.hr?.id;
   const userType = (req.admin && req.admin.type === 'admin') ? 'admin' : 'employee';
-  const tenantId = req.tenantId || 1;
+  const tenantId = req.tenantId;
 
-  if (userId) {
+  if (userId && tenantId) {
     req.userPermissions = await getUserPermissions(userId, userType, tenantId);
   }
   next();

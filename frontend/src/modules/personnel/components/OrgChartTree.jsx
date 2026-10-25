@@ -1,6 +1,7 @@
 import { useMemo, useState, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Mail, Phone, Building, X, Calendar, Search } from 'lucide-react';
+import { formatDate } from '../../../shared/utils/date';
 
 function OrgCard({ employee, isManager, isSupervisor, isHighlighted, onClick, onMouseEnter, onMouseLeave, isHovered }) {
   return (
@@ -177,7 +178,7 @@ function EmployeeModal({ employee, onClose }) {
           {employee.hire_date && (
             <div className="glass-detail-row">
               <span className="glass-detail-label"><Calendar size={14} /> Hire Date</span>
-              <span className="glass-detail-value">{new Date(employee.hire_date).toLocaleDateString()}</span>
+              <span className="glass-detail-value">{formatDate(employee.hire_date)}</span>
             </div>
           )}
         </div>

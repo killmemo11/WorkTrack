@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useId } from 'react';
 import Icon from './Icon';
 import api from '../api';
+import useModalA11y from '../hooks/useModalA11y';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
 const typeColors = { annual: '#4f46e5', sick: '#ef4444', casual: '#f59e0b', personal: '#3b82f6', unpaid: '#6b7280' };
@@ -26,6 +27,9 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const titleId = useId();
+  const fieldId = useId();
+  const dialogRef = useModalA11y(onClose);
 
   const getBalance = (t) => {
     const b = balances.find((b) => b.leave_type === t);
@@ -67,19 +71,28 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
 
   return (
     <div className="glass-modal-overlay" onClick={onClose}>
-      <div className="glass-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+      <div
+        className="glass-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        ref={dialogRef}
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 480 }}
+      >
         <div className="glass-modal-header">
-          <h3 className="glass-modal-title">New Leave Request</h3>
-          <button className="glass-modal-close" onClick={onClose}>
+          <h3 className="glass-modal-title" id={titleId}>New Leave Request</h3>
+          <button type="button" className="glass-modal-close" onClick={onClose} aria-label="Close dialog">
             <Icon icon="lucide:x" />
           </button>
         </div>
-        {error && <div className="glass-alert glass-alert-danger">{error}</div>}
+        {error && <div className="glass-alert glass-alert-danger" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="glass-form-group">
-            <label className="glass-label">Leave Type</label>
-            <select className="glass-select" value={type} onChange={(e) => setType(e.target.value)}>
+            <label className="glass-label" htmlFor={`${fieldId}-type`}>Leave Type</label>
+            <select id={`${fieldId}-type`} className="glass-select" value={type} onChange={(e) => setType(e.target.value)}>
               {Object.entries(typeLabels).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}{needsBalance ? ` (${getBalance(k)} days left)` : ''}
@@ -90,13 +103,13 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
             <div className="glass-form-group" style={{ flex: 1 }}>
-              <label className="glass-label">Start Date</label>
-              <input type="date" className="glass-input" value={startDate}
+              <label className="glass-label" htmlFor={`${fieldId}-start`}>Start Date</label>
+              <input id={`${fieldId}-start`} type="date" className="glass-input" value={startDate}
                 onChange={(e) => setStartDate(e.target.value)} required />
             </div>
             <div className="glass-form-group" style={{ flex: 1 }}>
-              <label className="glass-label">End Date</label>
-              <input type="date" className="glass-input" value={endDate}
+              <label className="glass-label" htmlFor={`${fieldId}-end`}>End Date</label>
+              <input id={`${fieldId}-end`} type="date" className="glass-input" value={endDate}
                 onChange={(e) => setEndDate(e.target.value)} required />
             </div>
           </div>
@@ -120,8 +133,8 @@ export default function LeaveFormModal({ onClose, onCreated, balances, pendingDa
           )}
 
           <div className="glass-form-group">
-            <label className="glass-label">Reason</label>
-            <textarea className="glass-textarea" value={reason}
+            <label className="glass-label" htmlFor={`${fieldId}-reason`}>Reason</label>
+            <textarea id={`${fieldId}-reason`} className="glass-textarea" value={reason}
               onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Optional reason…" />
           </div>
 

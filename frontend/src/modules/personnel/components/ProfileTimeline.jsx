@@ -1,5 +1,6 @@
 import ProfileSection from './ProfileSection';
 import '../styles/profile.css';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function ProfileTimeline({ profile }) {
   const timeline = profile.statusLog || [];
@@ -19,7 +20,7 @@ export default function ProfileTimeline({ profile }) {
           {timeline.map(s => (
             <div key={s.id} style={{ position: 'relative', paddingLeft: 24, paddingBottom: 20, borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ position: 'absolute', left: -5, top: 4, width: 10, height: 10, borderRadius: '50%', background: s.action === 'hired' ? 'var(--success)' : s.action === 'terminated' || s.action === 'resigned' ? 'var(--error)' : 'var(--brand-primary)' }} />
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-faint)', marginBottom: 4 }}>{new Date(s.created_at).toLocaleDateString()}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-faint)', marginBottom: 4 }}>{formatDate(s.created_at)}</div>
               <div>
                 <span className={`doc-card-badge doc-card-badge-${s.action === 'hired' ? 'id_card' : s.action === 'terminated' || s.action === 'resigned' ? 'passport' : 'contract'}`}>{s.action}</span>
                 {s.from_position && <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}> {s.from_position}</span>}

@@ -6,19 +6,25 @@ const MANAGER_ROLES = ['manager', 'admin', 'ceo'];
 async function canAssign(req, targetEmployeeId) {
   const empId = req.employee.id;
 
-  // Admin/CEO can assign to anyone
+  const [targetRows] = await pool.query(
+    'SELECT department_id FROM employees WHERE id = ? AND tenant_id = ?',
+    [targetEmployeeId, req.tenantId]
+  );
+  if (targetRows.length === 0) return false;
+  const target = targetRows[0];
+
+  // Admin/CEO can assign to anyone in their tenant
   if (req.employee.role === 'admin' || req.employee.role === 'ceo') return true;
 
-  // Manager: target must be in same department
-  if (req.employee.role === 'manager') {
-    const [target] = await pool.query('SELECT department_id FROM employees WHERE id = ?', [targetEmployeeId]);
-    if (target.length && target[0].department_id === req.employee.department_id) return true;
+  // Manager: target must be in same (non-null) department
+  if (req.employee.role === 'manager' && req.employee.department_id) {
+    if (target.department_id === req.employee.department_id) return true;
   }
 
   // Supervisor: target must have supervisor_id = current employee
   const [profile] = await pool.query(
-    'SELECT employee_id FROM employee_profiles WHERE supervisor_id = ? AND employee_id = ?',
-    [empId, targetEmployeeId]
+    'SELECT ep.employee_id FROM employee_profiles ep JOIN employees e ON e.id = ep.employee_id AND e.tenant_id = ? WHERE ep.supervisor_id = ? AND ep.employee_id = ?',
+    [req.tenantId, empId, targetEmployeeId]
   );
   if (profile.length) return true;
 
@@ -64,8 +70,13 @@ async function listTasks(req, res) {
     whereClause += whereClause ? ' AND t.assigned_to = ?' : 'WHERE t.assigned_to = ?';
     params.push(empId);
   } else if (MANAGER_ROLES.includes(req.employee.role)) {
-    whereClause += whereClause ? ' AND (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))' : 'WHERE (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))';
-    params.push(empId, req.employee.department_id);
+    if (req.tenantId) {
+      whereClause += ' AND (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ? AND tenant_id = ?))';
+      params.push(empId, req.employee.department_id, req.tenantId);
+    } else {
+      whereClause += whereClause ? ' AND (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))' : 'WHERE (t.assigned_by = ? OR t.assigned_to IN (SELECT id FROM employees WHERE department_id = ?))';
+      params.push(empId, req.employee.department_id);
+    }
   } else {
     whereClause += whereClause ? ' AND t.assigned_to = ?' : 'WHERE t.assigned_to = ?';
     params.push(empId);
@@ -107,15 +118,23 @@ async function getTask(req, res) {
      FROM tasks t
      JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
      JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-     WHERE t.id = ? AND (t.tenant_id = ? OR t.tenant_id IS NULL)`,
-    [req.params.id, req.tenantId || null]
+     WHERE t.id = ?` + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
-  if (task.assigned_to !== req.employee.id && task.assigned_by !== req.employee.id && !MANAGER_ROLES.includes(req.employee.role)) {
-    return res.status(403).json({ error: 'Access denied' });
+  const isOwner = task.assigned_to === req.employee.id || task.assigned_by === req.employee.id;
+  const isAdmin = req.employee.role === 'admin' || req.employee.role === 'ceo';
+  let allowed = isOwner || isAdmin;
+  if (!allowed && req.employee.role === 'manager' && req.employee.department_id) {
+    const [target] = await pool.query(
+      'SELECT id FROM employees WHERE id = ? AND department_id = ? AND tenant_id = ?',
+      [task.assigned_to, req.employee.department_id, req.tenantId]
+    );
+    allowed = target.length > 0;
   }
+  if (!allowed) return res.status(403).json({ error: 'Access denied' });
 
   res.json(task);
 }
@@ -124,25 +143,34 @@ async function updateTask(req, res) {
   const { error } = updateTaskBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
   const { title, description, priority, due_date, notes } = req.body;
-  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
-  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
-  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
+  const [rows] = await pool.query(
+    'SELECT * FROM tasks t WHERE t.id = ?' + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
+  );
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
-  if (task.assigned_by !== req.employee.id && !MANAGER_ROLES.includes(req.employee.role)) {
-    return res.status(403).json({ error: 'Only the creator can edit this task' });
+  const isCreator = task.assigned_by === req.employee.id;
+  let allowed = isCreator || req.employee.role === 'admin' || req.employee.role === 'ceo';
+  if (!allowed && req.employee.role === 'manager') {
+    const [target] = await pool.query(
+      'SELECT id FROM employees WHERE id = ? AND department_id = ? AND tenant_id = ?',
+      [task.assigned_to, req.employee.department_id, req.tenantId]
+    );
+    allowed = target.length > 0;
   }
+  if (!allowed) return res.status(403).json({ error: 'Only the creator or their manager can edit this task' });
 
   await pool.query(
-    'UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, notes = ? WHERE id = ?',
+    'UPDATE tasks SET title = ?, description = ?, priority = ?, due_date = ?, notes = ? WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
     [
       title || task.title,
       description !== undefined ? description : task.description,
       priority || task.priority,
       due_date !== undefined ? due_date : task.due_date,
       notes !== undefined ? notes : task.notes,
-      req.params.id
+      req.params.id,
+      ...(req.tenantId ? [req.tenantId] : [])
     ]
   );
 
@@ -153,8 +181,8 @@ async function updateTask(req, res) {
      FROM tasks t
      JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
      JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-     WHERE t.id = ?`,
-    [req.params.id]
+     WHERE t.id = ?` + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
   );
   res.json(updated[0]);
 }
@@ -168,9 +196,10 @@ async function updateTaskStatus(req, res) {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
-  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
-  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
-  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
+  const [rows] = await pool.query(
+    'SELECT * FROM tasks t WHERE t.id = ?' + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
+  );
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
@@ -178,7 +207,10 @@ async function updateTaskStatus(req, res) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
-  await pool.query('UPDATE tasks SET status = ? WHERE id = ?', [status, req.params.id]);
+  await pool.query(
+    'UPDATE tasks SET status = ? WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [status, req.params.id, req.tenantId] : [status, req.params.id]
+  );
 
   const [updated] = await pool.query(
     `SELECT t.*, 
@@ -187,24 +219,34 @@ async function updateTaskStatus(req, res) {
      FROM tasks t
      JOIN employees assigned_by_emp ON t.assigned_by = assigned_by_emp.id
      JOIN employees assigned_to_emp ON t.assigned_to = assigned_to_emp.id
-     WHERE t.id = ?`,
-    [req.params.id]
+     WHERE t.id = ?` + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
   );
   res.json(updated[0]);
 }
 
 async function deleteTask(req, res) {
-  const tenantFilter = req.tenantId ? ' AND (t.tenant_id = ? OR t.tenant_id IS NULL)' : '';
-  const tenantParams = req.tenantId ? [req.params.id, req.tenantId] : [req.params.id];
-  const [rows] = await pool.query(`SELECT * FROM tasks t WHERE t.id = ?${tenantFilter}`, tenantParams);
+  const [rows] = await pool.query(
+    'SELECT * FROM tasks t WHERE t.id = ?' + (req.tenantId ? ' AND t.tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
+  );
   if (!rows.length) return res.status(404).json({ error: 'Task not found' });
 
   const task = rows[0];
-  if (task.assigned_by !== req.employee.id && !MANAGER_ROLES.includes(req.employee.role)) {
-    return res.status(403).json({ error: 'Only the creator can delete this task' });
+  let allowed = task.assigned_by === req.employee.id || req.employee.role === 'admin' || req.employee.role === 'ceo';
+  if (!allowed && req.employee.role === 'manager') {
+    const [target] = await pool.query(
+      'SELECT id FROM employees WHERE id = ? AND department_id = ? AND tenant_id = ?',
+      [task.assigned_to, req.employee.department_id, req.tenantId]
+    );
+    allowed = target.length > 0;
   }
+  if (!allowed) return res.status(403).json({ error: 'Only the creator or their manager can delete this task' });
 
-  await pool.query('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+  await pool.query(
+    'DELETE FROM tasks WHERE id = ?' + (req.tenantId ? ' AND tenant_id = ?' : ''),
+    req.tenantId ? [req.params.id, req.tenantId] : [req.params.id]
+  );
   res.json({ message: 'Task deleted' });
 }
 

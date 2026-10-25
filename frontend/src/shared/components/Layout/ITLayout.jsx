@@ -7,6 +7,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import axios from 'axios';
 import Footer from '../Footer';
+import SkipLink from '../SkipLink';
 
 export default function ITLayout() {
   const { admin, logout } = useAdminAuth();
@@ -29,6 +30,7 @@ export default function ITLayout() {
 
   return (
     <div className="admin-layout">
+      <SkipLink />
       <aside className="admin-sidebar">
         <div className="admin-brand">
           <Link to="/it/settings"><img src={logo || '/logo.svg'} alt="" className="admin-logo" />IT Portal</Link>
@@ -64,7 +66,7 @@ export default function ITLayout() {
           </div>
         </div>
       </aside>
-      <main className="admin-content">
+      <main className="admin-content" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
       <Footer />

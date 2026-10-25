@@ -3,14 +3,14 @@ const { createNotification } = require('../../shared/services/notification.servi
 const { checkHeadcountCapacity } = require('../../shared/utils/headcount.util');
 const { createHeadcountRequestBody, rejectHeadcountBody } = require('../../shared/validations/schemas');
 
-async function getRequesterRole(requesterId, departmentId) {
+async function getRequesterRole(requesterId, departmentId, tenantId) {
   const [[emp]] = await pool.query(
     `SELECT e.id, e.role, d.manager_email, d.c_level_email,
             e.email AS requester_email
      FROM employees e
-     JOIN departments d ON d.id = ?
-     WHERE e.id = ?`,
-    [departmentId, requesterId]
+     JOIN departments d ON d.id = ? AND d.tenant_id = ?
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [departmentId, tenantId, requesterId, tenantId]
   );
   return emp || {};
 }
@@ -25,6 +25,23 @@ async function createRequest(req, res) {
   const requesterId = req.employee?.id || req.admin?.id;
   if (!requesterId) return res.status(401).json({ error: 'Authentication required' });
 
+  // Non-privileged requesters may only raise requests for their own department.
+  const privileged = ['admin', 'hr', 'ceo'].includes(req.employee?.role) || (!req.employee && req.admin);
+  if (req.employee && !privileged && Number(deptId) !== Number(req.employee.department_id)) {
+    return res.status(403).json({ error: 'You can only request headcount for your own department' });
+  }
+
+  const [dept] = await pool.query(
+    'SELECT id FROM departments WHERE id = ? AND tenant_id = ?',
+    [deptId, req.tenantId]
+  );
+  if (dept.length === 0) return res.status(400).json({ error: 'Invalid department' });
+  const [title] = await pool.query(
+    'SELECT id FROM department_titles WHERE id = ? AND department_id = ? AND tenant_id = ?',
+    [title_id, deptId, req.tenantId]
+  );
+  if (title.length === 0) return res.status(400).json({ error: 'Invalid title for this department' });
+
   const capacity = await checkHeadcountCapacity({ department_id: deptId, title_id, additional: quantity || 1 });
   if (!capacity.hasCapacity) {
     const reasons = [];
@@ -34,13 +51,19 @@ async function createRequest(req, res) {
   }
 
   const [result] = await pool.query(
-    `INSERT INTO headcount_requests (requester_id, department_id, title_id, quantity, job_type, reason, priority)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [requesterId, deptId, title_id, quantity || 1, job_type || 'Full-Time', reason || null, priority || 'normal']
+    `INSERT INTO headcount_requests (requester_id, department_id, title_id, quantity, job_type, reason, priority, tenant_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [requesterId, deptId, title_id, quantity || 1, job_type || 'Full-Time', reason || null, priority || 'normal', req.tenantId]
   );
 
-  const [requester] = await pool.query('SELECT name FROM employees WHERE id = ?', [requesterId]);
-  const [admins] = await pool.query('SELECT id FROM employees WHERE role = ? AND is_active = 1', ['admin']);
+  const [requester] = await pool.query(
+    'SELECT name FROM employees WHERE id = ? AND tenant_id = ?',
+    [requesterId, req.tenantId]
+  );
+  const [admins] = await pool.query(
+    'SELECT id FROM employees WHERE role = ? AND is_active = 1 AND tenant_id = ?',
+    ['admin', req.tenantId]
+  );
   for (const admin of admins) {
     await createNotification(admin.id, 'New Headcount Request',
       `${requester[0]?.name || 'A manager'} requested a new position.`,
@@ -52,9 +75,9 @@ async function createRequest(req, res) {
 
 async function getRequests(req, res) {
   const { status } = req.query;
-  let where = '';
-  let params = [];
-  if (status) { where = 'WHERE hcr.status = ?'; params.push(status); }
+  let where = 'WHERE hcr.tenant_id = ?';
+  let params = [req.tenantId];
+  if (status) { where += ' AND hcr.status = ?'; params.push(status); }
 
   const [rows] = await pool.query(
     `SELECT hcr.*, e.name AS requester_name, e.role AS requester_role, e.email AS requester_email,
@@ -80,8 +103,8 @@ async function getMyRequests(req, res) {
      FROM headcount_requests hcr
      JOIN departments d ON hcr.department_id = d.id
      JOIN department_titles dt ON hcr.title_id = dt.id
-     WHERE hcr.requester_id = ?
-     ORDER BY hcr.created_at DESC`, [requesterId]
+     WHERE hcr.requester_id = ? AND hcr.tenant_id = ?
+     ORDER BY hcr.created_at DESC`, [requesterId, req.tenantId]
   );
   res.json(rows);
 }
@@ -91,8 +114,10 @@ async function getManagerPendingRequests(req, res) {
   if (!managerId) return res.status(401).json({ error: 'Authentication required' });
 
   const [[emp]] = await pool.query(
-    'SELECT e.id, e.email, d.id AS dept_id FROM employees e JOIN departments d ON d.manager_email = e.email WHERE e.id = ?',
-    [managerId]
+    `SELECT e.id, e.email, d.id AS dept_id
+     FROM employees e JOIN departments d ON d.manager_email = e.email AND d.tenant_id = ?
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, managerId, req.tenantId]
   );
   if (!emp) return res.json([]);
 
@@ -103,9 +128,10 @@ async function getManagerPendingRequests(req, res) {
      JOIN departments d ON hcr.department_id = d.id
      JOIN department_titles dt ON hcr.title_id = dt.id
      WHERE hcr.department_id = ? AND hcr.manager_status = 'pending' AND hcr.status = 'pending'
+       AND hcr.tenant_id = ? AND e.tenant_id = ?
        AND hcr.requester_id != ?
      ORDER BY hcr.created_at DESC`,
-    [emp.dept_id, managerId]
+    [emp.dept_id, req.tenantId, req.tenantId, managerId]
   );
   res.json(rows);
 }
@@ -116,9 +142,9 @@ async function getCeoPendingRequests(req, res) {
 
   const [[ceo]] = await pool.query(
     `SELECT e.id FROM employees e
-     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL) d ON d.c_level_email = e.email
-     WHERE e.id = ?`,
-    [ceoId]
+     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL AND tenant_id = ?) d ON d.c_level_email = e.email
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, ceoId, req.tenantId]
   );
   if (!ceo) return res.json([]);
 
@@ -129,9 +155,10 @@ async function getCeoPendingRequests(req, res) {
      JOIN departments d ON hcr.department_id = d.id
      JOIN department_titles dt ON hcr.title_id = dt.id
      WHERE hcr.ceo_status = 'pending' AND hcr.status = 'pending'
+       AND hcr.tenant_id = ? AND e.tenant_id = ? AND d.tenant_id = ?
        AND (hcr.manager_status = 'approved' OR hcr.requester_id = ?)
      ORDER BY hcr.created_at DESC`,
-    [ceoId]
+    [req.tenantId, req.tenantId, req.tenantId, ceoId]
   );
   res.json(rows);
 }
@@ -142,27 +169,40 @@ async function managerApproveRequest(req, res) {
   if (!managerId) return res.status(401).json({ error: 'Authentication required' });
 
   const [[emp]] = await pool.query(
-    'SELECT e.id FROM employees e JOIN departments d ON d.manager_email = e.email WHERE e.id = ?',
-    [managerId]
+    `SELECT e.id, e.email FROM employees e
+     JOIN departments d ON d.manager_email = e.email AND d.tenant_id = ?
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, managerId, req.tenantId]
   );
   if (!emp) return res.status(403).json({ error: 'Only department managers can approve' });
 
   const [request] = await pool.query(
-    'SELECT * FROM headcount_requests WHERE id = ? AND manager_status = ? AND status = ?',
-    [id, 'pending', 'pending']
+    `SELECT hcr.* FROM headcount_requests hcr
+     JOIN employees e ON hcr.requester_id = e.id
+     WHERE hcr.id = ? AND hcr.manager_status = ? AND hcr.status = ?
+       AND hcr.tenant_id = ? AND e.tenant_id = ?
+       AND hcr.department_id IN (SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?)
+       AND hcr.requester_id != ?`,
+    [id, 'pending', 'pending', req.tenantId, req.tenantId, emp.email, req.tenantId, managerId]
   );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
   await pool.query(
-    'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW() WHERE id = ?',
-    ['approved', managerId, id]
+    'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW() WHERE id = ? AND tenant_id = ?',
+    ['approved', managerId, id, req.tenantId]
   );
 
   // Notify C-Level
-  const [[dept]] = await pool.query('SELECT c_level_email FROM departments WHERE id = ?', [r.department_id]);
+  const [[dept]] = await pool.query(
+    'SELECT c_level_email FROM departments WHERE id = ? AND tenant_id = ?',
+    [r.department_id, req.tenantId]
+  );
   if (dept?.c_level_email) {
-    const [[ceoEmp]] = await pool.query('SELECT id FROM employees WHERE email = ?', [dept.c_level_email]);
+    const [[ceoEmp]] = await pool.query(
+      'SELECT id FROM employees WHERE email = ? AND tenant_id = ?',
+      [dept.c_level_email, req.tenantId]
+    );
     if (ceoEmp) {
       await createNotification(ceoEmp.id, 'Headcount Request Needs CEO Approval',
         'A headcount request has been approved by the manager and requires your approval.',
@@ -186,21 +226,28 @@ async function managerRejectRequest(req, res) {
   if (!managerId) return res.status(401).json({ error: 'Authentication required' });
 
   const [[emp]] = await pool.query(
-    'SELECT e.id FROM employees e JOIN departments d ON d.manager_email = e.email WHERE e.id = ?',
-    [managerId]
+    `SELECT e.id, e.email FROM employees e
+     JOIN departments d ON d.manager_email = e.email AND d.tenant_id = ?
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, managerId, req.tenantId]
   );
   if (!emp) return res.status(403).json({ error: 'Only department managers can reject' });
 
   const [request] = await pool.query(
-    'SELECT * FROM headcount_requests WHERE id = ? AND manager_status = ? AND status = ?',
-    [id, 'pending', 'pending']
+    `SELECT hcr.* FROM headcount_requests hcr
+     JOIN employees e ON hcr.requester_id = e.id
+     WHERE hcr.id = ? AND hcr.manager_status = ? AND hcr.status = ?
+       AND hcr.tenant_id = ? AND e.tenant_id = ?
+       AND hcr.department_id IN (SELECT id FROM departments WHERE manager_email = ? AND tenant_id = ?)
+       AND hcr.requester_id != ?`,
+    [id, 'pending', 'pending', req.tenantId, req.tenantId, emp.email, req.tenantId, managerId]
   );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
   await pool.query(
-    'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW(), manager_rejection_reason = ?, status = ?, rejection_reason = ? WHERE id = ?',
-    ['rejected', managerId, rejection_reason || null, 'rejected', rejection_reason || null, id]
+    'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW(), manager_rejection_reason = ?, status = ?, rejection_reason = ? WHERE id = ? AND tenant_id = ?',
+    ['rejected', managerId, rejection_reason || null, 'rejected', rejection_reason || null, id, req.tenantId]
   );
 
   await createNotification(r.requester_id, 'Request Rejected by Manager',
@@ -216,27 +263,36 @@ async function ceoApproveRequest(req, res) {
   if (!ceoId) return res.status(401).json({ error: 'Authentication required' });
 
   const [[ceo]] = await pool.query(
-    `SELECT e.id FROM employees e
-     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL) d ON d.c_level_email = e.email
-     WHERE e.id = ?`,
-    [ceoId]
+    `SELECT e.id, e.email FROM employees e
+     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL AND tenant_id = ?) d ON d.c_level_email = e.email
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, ceoId, req.tenantId]
   );
   if (!ceo) return res.status(403).json({ error: 'Only C-Level executives can approve at this stage' });
 
   const [request] = await pool.query(
-    'SELECT * FROM headcount_requests WHERE id = ? AND ceo_status = ? AND status = ?',
-    [id, 'pending', 'pending']
+    `SELECT hcr.* FROM headcount_requests hcr
+     JOIN employees e ON hcr.requester_id = e.id
+     JOIN departments d ON hcr.department_id = d.id
+     WHERE hcr.id = ? AND hcr.ceo_status = ? AND hcr.status = ?
+       AND hcr.tenant_id = ? AND e.tenant_id = ? AND d.tenant_id = ?
+       AND d.c_level_email = ?
+       AND (hcr.manager_status = 'approved' OR hcr.requester_id = ?)`,
+    [id, 'pending', 'pending', req.tenantId, req.tenantId, req.tenantId, ceo.email, ceoId]
   );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
   await pool.query(
-    'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW() WHERE id = ?',
-    ['approved', ceoId, id]
+    'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW() WHERE id = ? AND tenant_id = ?',
+    ['approved', ceoId, id, req.tenantId]
   );
 
   // Notify HR
-  const [admins] = await pool.query('SELECT id FROM employees WHERE role = ? AND is_active = 1', ['admin']);
+  const [admins] = await pool.query(
+    'SELECT id FROM employees WHERE role = ? AND is_active = 1 AND tenant_id = ?',
+    ['admin', req.tenantId]
+  );
   for (const admin of admins) {
     await createNotification(admin.id, 'Headcount Request Needs Final Approval',
       'A headcount request has been approved by the C-Level and needs your final approval.',
@@ -259,23 +315,29 @@ async function ceoRejectRequest(req, res) {
   if (!ceoId) return res.status(401).json({ error: 'Authentication required' });
 
   const [[ceo]] = await pool.query(
-    `SELECT e.id FROM employees e
-     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL) d ON d.c_level_email = e.email
-     WHERE e.id = ?`,
-    [ceoId]
+    `SELECT e.id, e.email FROM employees e
+     JOIN (SELECT DISTINCT c_level_email FROM departments WHERE c_level_email IS NOT NULL AND tenant_id = ?) d ON d.c_level_email = e.email
+     WHERE e.id = ? AND e.tenant_id = ?`,
+    [req.tenantId, ceoId, req.tenantId]
   );
   if (!ceo) return res.status(403).json({ error: 'Only C-Level executives can reject at this stage' });
 
   const [request] = await pool.query(
-    'SELECT * FROM headcount_requests WHERE id = ? AND ceo_status = ? AND status = ?',
-    [id, 'pending', 'pending']
+    `SELECT hcr.* FROM headcount_requests hcr
+     JOIN employees e ON hcr.requester_id = e.id
+     JOIN departments d ON hcr.department_id = d.id
+     WHERE hcr.id = ? AND hcr.ceo_status = ? AND hcr.status = ?
+       AND hcr.tenant_id = ? AND e.tenant_id = ? AND d.tenant_id = ?
+       AND d.c_level_email = ?
+       AND (hcr.manager_status = 'approved' OR hcr.requester_id = ?)`,
+    [id, 'pending', 'pending', req.tenantId, req.tenantId, req.tenantId, ceo.email, ceoId]
   );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
   await pool.query(
-    'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW(), ceo_rejection_reason = ?, status = ?, rejection_reason = ? WHERE id = ?',
-    ['rejected', ceoId, rejection_reason || null, 'rejected', rejection_reason || null, id]
+    'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW(), ceo_rejection_reason = ?, status = ?, rejection_reason = ? WHERE id = ? AND tenant_id = ?',
+    ['rejected', ceoId, rejection_reason || null, 'rejected', rejection_reason || null, id, req.tenantId]
   );
 
   await createNotification(r.requester_id, 'Request Rejected by C-Level',
@@ -300,25 +362,28 @@ async function approveRequest(req, res) {
 
   // Simplified: HR can approve any pending request, but will check intermediate stages first
   // If ceo_status is still 'pending' and requester is not the ceo, auto-approve ceo step too
-  const [request] = await pool.query('SELECT * FROM headcount_requests WHERE id = ? AND status = ?', [id, 'pending']);
+  const [request] = await pool.query(
+    'SELECT * FROM headcount_requests WHERE id = ? AND status = ? AND tenant_id = ?',
+    [id, 'pending', req.tenantId]
+  );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
-  const requester = await getRequesterRole(r.requester_id, r.department_id);
+  const requester = await getRequesterRole(r.requester_id, r.department_id, req.tenantId);
 
   // Auto-approve intermediate stages if they're still pending
   if (r.manager_status === 'pending' && requester.role !== 'admin' && requester.role !== 'hr') {
     await pool.query(
-      'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW() WHERE id = ?',
-      ['approved', adminId, id]
+      'UPDATE headcount_requests SET manager_status = ?, reviewed_by_manager_id = ?, reviewed_by_manager_at = NOW() WHERE id = ? AND tenant_id = ?',
+      ['approved', adminId, id, req.tenantId]
     );
   }
   if (r.ceo_status === 'pending') {
     const isRequesterManager = requester.role === 'manager' || requester.requester_email === requester.manager_email;
     if (isRequesterManager || requester.role === 'admin' || requester.role === 'hr') {
       await pool.query(
-        'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW() WHERE id = ?',
-        ['approved', adminId, id]
+        'UPDATE headcount_requests SET ceo_status = ?, reviewed_by_ceo_id = ?, reviewed_by_ceo_at = NOW() WHERE id = ? AND tenant_id = ?',
+        ['approved', adminId, id, req.tenantId]
       );
     }
   }
@@ -332,15 +397,15 @@ async function approveRequest(req, res) {
   }
 
   await pool.query(
-    'UPDATE headcount_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?',
-    ['approved', adminId, id]
+    'UPDATE headcount_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ? AND tenant_id = ?',
+    ['approved', adminId, id, req.tenantId]
   );
 
   let jobId = null;
   if (auto_create_job) {
     const [titleRow] = await pool.query(
-      'SELECT title, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, technical, grade_id, min_education_level, min_experience_years, required_skills FROM department_titles WHERE id = ?',
-      [r.title_id]
+      'SELECT title, job_summary, key_responsibilities, qualifications, technical_skills, core_competencies, technical, grade_id, min_education_level, min_experience_years, required_skills FROM department_titles WHERE id = ? AND tenant_id = ?',
+      [r.title_id, req.tenantId]
     );
     const t = titleRow[0] || {};
 
@@ -363,12 +428,15 @@ async function approveRequest(req, res) {
     }
 
     const title = t.title || 'Position';
-    const [deptRow] = await pool.query('SELECT name FROM departments WHERE id = ?', [r.department_id]);
+    const [deptRow] = await pool.query(
+      'SELECT name FROM departments WHERE id = ? AND tenant_id = ?',
+      [r.department_id, req.tenantId]
+    );
     const deptName = deptRow[0]?.name || '';
     const [jobResult] = await pool.query(
-      `INSERT INTO recruitment_jobs (title, department, type, technical, status, description, title_id, headcount_request_id, key_responsibilities, qualifications, technical_skills, core_competencies)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)`,
-      [title, deptName, r.job_type, t.technical || 0, t.job_summary || r.reason || '', r.title_id, id, t.key_responsibilities || null, t.qualifications || null, t.technical_skills || null, t.core_competencies || null]
+      `INSERT INTO recruitment_jobs (title, department, type, technical, status, description, title_id, headcount_request_id, key_responsibilities, qualifications, technical_skills, core_competencies, tenant_id)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, deptName, r.job_type, t.technical || 0, t.job_summary || r.reason || '', r.title_id, id, t.key_responsibilities || null, t.qualifications || null, t.technical_skills || null, t.core_competencies || null, req.tenantId]
     );
     jobId = jobResult.insertId;
   }
@@ -386,13 +454,16 @@ async function rejectRequest(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
   const { rejection_reason } = req.body;
 
-  const [request] = await pool.query('SELECT * FROM headcount_requests WHERE id = ? AND status = ?', [id, 'pending']);
+  const [request] = await pool.query(
+    'SELECT * FROM headcount_requests WHERE id = ? AND status = ? AND tenant_id = ?',
+    [id, 'pending', req.tenantId]
+  );
   if (request.length === 0) return res.status(404).json({ error: 'Pending request not found' });
   const r = request[0];
 
   await pool.query(
-    'UPDATE headcount_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?',
-    ['rejected', adminId, rejection_reason || null, id]
+    'UPDATE headcount_requests SET status = ?, reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ? AND tenant_id = ?',
+    ['rejected', adminId, rejection_reason || null, id, req.tenantId]
   );
 
   await createNotification(r.requester_id, 'Request Rejected',

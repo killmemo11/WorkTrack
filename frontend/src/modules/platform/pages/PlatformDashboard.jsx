@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateTime } from '../../../shared/utils/date';
 
 export default function PlatformDashboard() {
   const [stats, setStats] = useState(null);
@@ -29,7 +30,7 @@ export default function PlatformDashboard() {
   useEffect(() => { fetchStats(); }, []);
 
   const formatNumber = (num) => num?.toLocaleString() || '0';
-  const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleString() : '—';
+  const formatDate = (dateStr) => dateStr ? formatDateTime(dateStr) : '—';
 
   if (loading) return <div className="glass-loading"><div className="spinner" /><span>Loading dashboard...</span></div>;
 

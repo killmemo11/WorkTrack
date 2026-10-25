@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import hrApi from '../../../shared/api/hrApi';
 import ProfileSection from './ProfileSection';
-import { sanitizeHTML } from '../../../shared/utils/sanitize';
+import { openSanitizedHTML, sanitizeHTML } from '../../../shared/utils/sanitize';
 import '../styles/profile.css';
+import { formatDate } from '../../../shared/utils/date';
 
 export default function ProfileContracts({ employeeId, profile }) {
   const [contracts, setContracts] = useState([]);
@@ -93,7 +94,7 @@ export default function ProfileContracts({ employeeId, profile }) {
             <div className="doc-preview-header">
               <h3 style={{ margin: 0 }}>Contract Preview</h3>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="profile-btn profile-btn-primary profile-btn-sm" onClick={() => { const w = window.open(''); w.document.write(sanitizeHTML(generatedContent)); w.print(); }}>Print</button>
+                <button className="profile-btn profile-btn-primary profile-btn-sm" onClick={() => openSanitizedHTML(generatedContent, { print: true })}>Print</button>
                 <button className="profile-btn profile-btn-ghost profile-btn-sm" onClick={() => setGeneratedContent(null)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   Close
@@ -126,8 +127,8 @@ export default function ProfileContracts({ employeeId, profile }) {
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '10px 12px' }}><strong>{c.template_name || '—'}</strong></td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{c.start_date ? new Date(c.start_date).toLocaleDateString() : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{c.end_date ? new Date(c.end_date).toLocaleDateString() : '—'}</td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{c.start_date ? formatDate(c.start_date) : '—'}</td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{c.end_date ? formatDate(c.end_date) : '—'}</td>
                   <td style={{ padding: '10px 12px' }}>{statusBadge(c.status)}</td>
                   <td style={{ padding: '10px 12px', fontSize: '0.8rem' }}>
                     {c.signed_by_employee ? '✅ Employee ' : ''}{c.signed_by_company ? '✅ Company' : ''}
@@ -136,7 +137,7 @@ export default function ProfileContracts({ employeeId, profile }) {
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ display: 'flex', gap: 4 }}>
                       {c.status === 'draft' && <button className="profile-btn profile-btn-xs profile-btn-primary" onClick={() => sign(c.id, 'signed_by_company')}>Sign</button>}
-                      <button className="profile-btn profile-btn-xs profile-btn-ghost" onClick={() => { hrApi.get(`/employees/${employeeId}/contracts`).then(r => { const ctr = r.data.find(x => x.id === c.id); if (ctr?.content_html) { const w = window.open(''); w.document.write(sanitizeHTML(ctr.content_html)); } }); }}>View</button>
+                      <button className="profile-btn profile-btn-xs profile-btn-ghost" onClick={() => { hrApi.get(`/employees/${employeeId}/contracts`).then(r => { const ctr = r.data.find(x => x.id === c.id); if (ctr?.content_html) openSanitizedHTML(ctr.content_html); }); }}>View</button>
                       <button className="profile-btn profile-btn-xs profile-btn-ghost" onClick={async () => { try { const res = await hrApi.get(`/employees/${employeeId}/contracts/${c.id}/pdf`, { responseType: 'blob' }); const url = window.URL.createObjectURL(new Blob([res.data])); const a = document.createElement('a'); a.href = url; a.download = `contract-${c.id}.pdf`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch {} }}>PDF</button>
                     </div>
                   </td>

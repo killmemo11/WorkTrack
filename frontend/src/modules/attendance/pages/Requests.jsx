@@ -6,15 +6,10 @@ import api from '../../../shared/api';
 import LeaveFormModal from '../../../shared/components/LeaveFormModal';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import ResignationModal from '../../../shared/components/ResignationModal';
+import { formatDate, formatTime } from '../../../shared/utils/date';
 
 const typeLabels = { annual: 'Annual', sick: 'Sick', casual: 'Casual', personal: 'Personal', unpaid: 'Unpaid' };
 const statusBadgeMap = { pending: 'warning', approved: 'success', rejected: 'danger', cancelled: 'default' };
-
-const formatDate = (d) => {
-  if (!d) return '\u2014';
-  const dt = new Date(d);
-  return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
-};
 
 export default function Requests() {
   const [tab, setTab] = useState('missing-signout');
@@ -197,7 +192,7 @@ export default function Requests() {
                       return (
                         <tr key={r.id}>
                           <td>{formatDate(r.date)}</td>
-                          <td>{new Date(r.sign_in_time).toLocaleTimeString()}</td>
+                          <td>{formatTime(r.sign_in_time)}</td>
                           <td>{diff}h</td>
                           <td>
                             {status === 'pending' && <span className="glass-badge glass-badge-warning">Pending Approval</span>}

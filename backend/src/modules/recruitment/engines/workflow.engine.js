@@ -22,11 +22,11 @@ async function getCandidateState(candidateId) {
 
 async function initCandidateState(candidateId, templateId) {
   const [stages] = await pool.query(
-    'SELECT id FROM workflow_stages WHERE template_id = ? ORDER BY stage_order LIMIT 1',
+    'SELECT id, stage_key FROM workflow_stages WHERE template_id = ? ORDER BY stage_order LIMIT 1',
     [templateId]
   );
   if (stages.length === 0) return null;
-  const firstStageId = stages[0].id;
+  const firstStage = stages[0];
   // Read current template version for pinning
   const [[tpl]] = await pool.query(
     'SELECT COALESCE(version, 1) AS version FROM workflow_templates WHERE id = ?',
@@ -36,7 +36,13 @@ async function initCandidateState(candidateId, templateId) {
   await pool.query(
     `INSERT INTO candidate_workflow_state (candidate_id, workflow_template_id, template_version, current_stage_id, stage_entered_at)
      VALUES (?, ?, ?, ?, NOW())`,
-    [candidateId, templateId, version, firstStageId]
+    [candidateId, templateId, version, firstStage.id]
+  );
+  // Keep the candidate row in sync with the workflow's entry stage so list
+  // filters and dashboards don't show a stage the workflow has already left.
+  await pool.query(
+    'UPDATE recruitment_candidates SET stage = ? WHERE id = ?',
+    [firstStage.stage_key, candidateId]
   );
   return getCandidateState(candidateId);
 }
@@ -45,6 +51,11 @@ async function transition(candidateId, toStageKey, options = {}) {
   const { note, createdBy, eventData } = options;
   const state = await getCandidateState(candidateId);
   if (!state) throw new Error(`No workflow state for candidate #${candidateId}`);
+
+  const [[candidate]] = await pool.query(
+    'SELECT tenant_id FROM recruitment_candidates WHERE id = ?', [candidateId]
+  );
+  const tenantId = candidate?.tenant_id || null;
 
   const [stages] = await pool.query(
     'SELECT * FROM workflow_stages WHERE template_id = ? ORDER BY stage_order',
@@ -66,8 +77,8 @@ async function transition(candidateId, toStageKey, options = {}) {
       ['rejected', candidateId]
     );
     await pool.query(
-      'INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, ?, ?, ?)',
-      [candidateId, 'rejected', note || 'Candidate rejected', adminName]
+      'INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, ?, ?, ?, ?)',
+      [candidateId, 'rejected', note || 'Candidate rejected', adminName, tenantId]
     );
     await publishEvent(candidateId, 'stage_transition', {
       from_stage: stages.find(s => s.id === prevStageId)?.stage_key || null,
@@ -82,6 +93,19 @@ async function transition(candidateId, toStageKey, options = {}) {
   }
 
   if (!toStage) throw new Error(`Stage '${toStageKey}' not found in workflow`);
+
+  // Re-entering the stage the candidate already occupies is a no-op. Candidate
+  // creation initializes the state at the workflow's first stage and then asks
+  // for 'screening'; without this branch that call would throw "Cannot
+  // transition backwards" and auto-screening would never run.
+  if (toStage.id === state.current_stage_id) {
+    await pool.query(
+      'UPDATE recruitment_candidates SET stage = ? WHERE id = ?',
+      [toStageKey, candidateId]
+    );
+    if (toStageKey === 'screening') fireAsyncScreening(candidateId);
+    return getCandidateState(candidateId);
+  }
 
   const currentIdx = stages.findIndex(s => s.id === state.current_stage_id);
   const toIdx = stages.indexOf(toStage);
@@ -107,8 +131,8 @@ async function transition(candidateId, toStageKey, options = {}) {
   );
 
   await pool.query(
-    'INSERT INTO recruitment_history (candidate_id, stage, note, created_by) VALUES (?, ?, ?, ?)',
-    [candidateId, toStageKey, note || `Moved to ${toStage.display_name}`, adminName]
+    'INSERT INTO recruitment_history (candidate_id, stage, note, created_by, tenant_id) VALUES (?, ?, ?, ?, ?)',
+    [candidateId, toStageKey, note || `Moved to ${toStage.display_name}`, adminName, tenantId]
   );
 
   await publishEvent(candidateId, 'stage_transition', {
@@ -138,10 +162,10 @@ async function fireAsyncScreening(candidateId) {
       if (!jobId) return;
       const [[job]] = await pool.query('SELECT title_id FROM recruitment_jobs WHERE id = ?', [jobId]);
       if (!job || !job.title_id) return;
-      const { autoScreen } = require('../../shared/services/screening.service');
+      const { autoScreen } = require('../../../shared/services/screening.service');
       await autoScreen(candidateId, job.title_id, jobId);
     } catch (e) {
-      logger.error('Auto-screening error:', e);
+      logger.error({ err: e }, 'Auto-screening error');
     }
   });
 }

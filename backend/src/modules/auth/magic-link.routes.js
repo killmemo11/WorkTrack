@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 const pool = require('../../shared/config/database');
 const tokenService = require('../../shared/services/token.service');
 const { logActivity } = require('../../shared/services/activity.service');
+const { isTenantActive, TENANT_INACTIVE_MESSAGE } = require('../../shared/services/tenant.service');
+const { clearOtherAuthCookies } = require('../../shared/utils/auth-cookies');
 const { sendTenantAdminMagicLink } = require('../../shared/services/platform-email.service');
 
 // Create a magic link token and send email
@@ -17,7 +19,11 @@ router.post('/request-magic-link', async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
   const [admins] = await pool.query(
-    'SELECT id, username, tenant_id, is_active FROM admin_users WHERE email = ? AND is_platform_admin = 0',
+    `SELECT au.id, au.username, au.tenant_id, au.is_active
+     FROM admin_users au
+     JOIN tenants t ON au.tenant_id = t.id
+     WHERE au.email = ? AND au.is_platform_admin = 0
+       AND t.status = 'active' AND t.deleted_at IS NULL`,
     [email.toLowerCase().trim()]
   );
   if (admins.length === 0) {
@@ -107,6 +113,10 @@ router.post('/verify-and-set-password', async (req, res) => {
 
   await logActivity(null, admin.id, 'password_set_via_magic_link', `Password set for ${admin.username} via magic link`);
 
+  if (admin.tenant_id && !(await isTenantActive(admin.tenant_id))) {
+    return res.status(403).json({ error: TENANT_INACTIVE_MESSAGE });
+  }
+
   const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
   const accessToken = jwt.sign(
@@ -117,13 +127,14 @@ router.post('/verify-and-set-password', async (req, res) => {
 
   const refreshToken = await tokenService.generateRefreshToken(admin.id, 'admin', admin.tenant_id);
 
+  clearOtherAuthCookies(res, ['admin_access_token', 'admin_refresh_token']);
   res.cookie('admin_access_token', accessToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
     maxAge: 15 * 60 * 1000, path: '/',
   });
   res.cookie('admin_refresh_token', refreshToken, {
     httpOnly: true, secure: COOKIE_SECURE, sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, path: '/',
+    maxAge: 24 * 60 * 60 * 1000, path: '/',
   });
 
   res.json({

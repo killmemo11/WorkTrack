@@ -8,8 +8,8 @@ const { logBalanceChange } = require('../../shared/services/audit.service');
 const { updateLeaveTypeBody } = require('../../shared/validations/schemas');
 
 async function getLeaveTypes(req, res) {
-  const [rows] = await pool.query('SELECT * FROM leave_types ORDER BY id');
-  const [resetRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'last_balance_reset'");
+  const [rows] = await pool.query('SELECT * FROM leave_types WHERE tenant_id = ? ORDER BY id', [req.tenantId]);
+  const [resetRows] = await pool.query("SELECT `value` FROM settings WHERE `key` = 'last_balance_reset' AND tenant_id = ?", [req.tenantId]);
   res.json({
     types: rows,
     last_reset: resetRows.length > 0 ? resetRows[0].value : null,
@@ -24,11 +24,12 @@ async function updateLeaveType(req, res) {
   if (!label || label.trim() === '') {
     return res.status(400).json({ error: 'Label is required' });
   }
-  await pool.query(
-    'UPDATE leave_types SET label = ?, default_balance = ?, is_active = ? WHERE id = ?',
-    [label, default_balance != null ? default_balance : null, is_active ?? 1, id]
+  const [result] = await pool.query(
+    'UPDATE leave_types SET label = ?, default_balance = ?, is_active = ? WHERE id = ? AND tenant_id = ?',
+    [label, default_balance != null ? default_balance : null, is_active ?? 1, id, req.tenantId]
   );
-  const [updated] = await pool.query('SELECT * FROM leave_types WHERE id = ?', [id]);
+  if (result.affectedRows === 0) return res.status(404).json({ error: 'Leave type not found' });
+  const [updated] = await pool.query('SELECT * FROM leave_types WHERE id = ? AND tenant_id = ?', [id, req.tenantId]);
   res.json(updated[0]);
 }
 
@@ -36,7 +37,8 @@ async function resetLeaveBalances(req, res) {
   const adminId = req.admin?.id || req.hr?.id || null;
 
   const [typeRows] = await pool.query(
-    'SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL AND is_active = 1'
+    'SELECT name, default_balance FROM leave_types WHERE default_balance IS NOT NULL AND is_active = 1 AND tenant_id = ?',
+    [req.tenantId]
   );
   if (typeRows.length === 0) {
     return res.status(400).json({ error: 'No leave types with balance configured' });
@@ -50,8 +52,8 @@ async function resetLeaveBalances(req, res) {
     `SELECT lb.id, lb.employee_id, lb.leave_type, lb.balance AS old_balance
      FROM leave_balances lb
      JOIN employees e ON lb.employee_id = e.id AND (e.is_system IS NULL OR e.is_system = 0)
-     WHERE lb.leave_type IN (${placeholders})`,
-    typeNames
+     WHERE lb.leave_type IN (${placeholders}) AND lb.tenant_id = ?`,
+    [...typeNames, req.tenantId]
   );
 
   // Reset all balances in one UPDATE per type
@@ -60,8 +62,8 @@ async function resetLeaveBalances(req, res) {
       `UPDATE leave_balances lb
        JOIN employees e ON lb.employee_id = e.id AND (e.is_system IS NULL OR e.is_system = 0)
        SET lb.balance = ?
-       WHERE lb.leave_type = ?`,
-      [t.default_balance, t.name]
+       WHERE lb.leave_type = ? AND lb.tenant_id = ?`,
+      [t.default_balance, t.name, req.tenantId]
     );
   }
 
@@ -75,11 +77,12 @@ async function resetLeaveBalances(req, res) {
 
   // Record reset time
   await pool.query(
-    "INSERT INTO settings (`key`, `value`) VALUES ('last_balance_reset', NOW()) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"
+    "INSERT INTO settings (`key`, `value`, tenant_id) VALUES ('last_balance_reset', NOW(), ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+    [req.tenantId]
   );
 
   try {
-    await notifyAllAdmins('Leave Balances Reset', `All leave balances have been reset to default values by an admin.`, 'info');
+    await notifyAllAdmins('Leave Balances Reset', `All leave balances have been reset to default values by an admin.`, 'info', null, req.tenantId);
   } catch (e) { logger.error('Reset notification error:', e); }
 
   res.json({ message: 'All leave balances reset to defaults' });

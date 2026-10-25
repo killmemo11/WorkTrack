@@ -1,13 +1,24 @@
 const pool = require('../../../shared/config/database');
 const { escapeHtml } = require('../../../shared/utils/sanitize');
+const { getTenantId } = require('../../../shared/utils/tenant-context');
 
 async function render(templateKey, context, channel) {
-  const [templates] = await pool.query(
+  const tenantId = getTenantId() || 1;
+  let [templates] = await pool.query(
     channel
-      ? 'SELECT * FROM message_templates WHERE template_key = ? AND channel = ? LIMIT 1'
-      : 'SELECT * FROM message_templates WHERE template_key = ? LIMIT 1',
-    channel ? [templateKey, channel] : [templateKey]
+      ? 'SELECT * FROM message_templates WHERE template_key = ? AND channel = ? AND tenant_id = ? LIMIT 1'
+      : 'SELECT * FROM message_templates WHERE template_key = ? AND tenant_id = ? LIMIT 1',
+    channel ? [templateKey, channel, tenantId] : [templateKey, tenantId]
   );
+  // Fall back to platform-provided system templates when a workspace has no override.
+  if (templates.length === 0 && tenantId !== 1) {
+    [templates] = await pool.query(
+      channel
+        ? 'SELECT * FROM message_templates WHERE template_key = ? AND channel = ? AND tenant_id = 1 AND is_system = 1 LIMIT 1'
+        : 'SELECT * FROM message_templates WHERE template_key = ? AND tenant_id = 1 AND is_system = 1 LIMIT 1',
+      channel ? [templateKey, channel] : [templateKey]
+    );
+  }
   if (templates.length === 0) {
     throw new Error(`Template '${templateKey}' not found${channel ? ` for channel '${channel}'` : ''}`);
   }

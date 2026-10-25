@@ -9,6 +9,7 @@ import { useAuth } from '../../../shared/context/AuthContext';
 import api from '../../../shared/api';
 import { buildDashboardInsights } from './dashboardInsights';
 import { buildDayDetailRows } from './dayDetailUtils';
+import { formatWeekdayDate, formatTime, todayInCairo } from '../../../shared/utils/date';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -88,9 +89,7 @@ export default function Dashboard() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
+  const today = formatWeekdayDate(new Date());
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -294,7 +293,7 @@ export default function Dashboard() {
     return buildDayDetailRows(day);
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayInCairo();
   const todayDow = now.getDay();
   const isWeekend = todayDow === 5 || todayDow === 6;
   const todayDay = calendarData?.months?.[0]?.days?.find(d => d.date === todayStr);
@@ -392,7 +391,7 @@ export default function Dashboard() {
                   {(status.record.type || 'wfh').charAt(0).toUpperCase() + (status.record.type || 'wfh').slice(1)}
                 </span></h2>
                 <p className="signed-in-time">
-                  Signed in at: {new Date(status.record.sign_in_time).toLocaleTimeString()}
+                  Signed in at: {formatTime(status.record.sign_in_time)}
                   <ElapsedTimer signInTime={status.record.sign_in_time} />
                 </p>
                 <div className="signout-form">
@@ -421,8 +420,8 @@ export default function Dashboard() {
                 {status.record.type && (
                   <p className="glass-detail-row">Type: {(status.record.type).charAt(0).toUpperCase() + status.record.type.slice(1)}</p>
                 )}
-                <p className="glass-detail-row">Signed in: {new Date(status.record.sign_in_time).toLocaleTimeString()}</p>
-                <p className="glass-detail-row">Signed out: {new Date(status.record.sign_out_time).toLocaleTimeString()}</p>
+                <p className="glass-detail-row">Signed in: {formatTime(status.record.sign_in_time)}</p>
+                <p className="glass-detail-row">Signed out: {formatTime(status.record.sign_out_time)}</p>
                 <p className="day-duration">
                   Duration: {Math.round((new Date(status.record.sign_out_time) - new Date(status.record.sign_in_time)) / 3600000)}h
                 </p>
@@ -488,7 +487,7 @@ export default function Dashboard() {
           ].map((s) => (
             <div key={s.key} className={`stat-card ${s.cls}`}
               onClick={() => s.path && navigate(s.path)} title={s.path ? `View ${s.label}` : ''} style={{ cursor: s.path ? 'pointer' : 'default' }}>
-              <span className="iconify stat-card-icon" data-icon={`lucide:${s.icon}`} />
+              <Icon icon={`lucide:${s.icon}`} className="stat-card-icon" />
               <div className="stat-value">
                 {summary ? <AnimatedNumber value={summary[s.key] || 0} /> : 0}
               </div>
