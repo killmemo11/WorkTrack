@@ -50,6 +50,14 @@ jobs:
           JWT_SECRET: test-jwt-secret-ci-2026
         run: node --test scripts/ci-tenant-isolation.js
 
+      - name: Run platform permission checks
+        working-directory: backend
+        run: node --test scripts/ci-platform-permissions.js
+
+      - name: Run tenant scope guard
+        working-directory: backend
+        run: node scripts/ci-tenant-scope.js
+
   build:
     name: Build Frontend
     runs-on: ubuntu-latest

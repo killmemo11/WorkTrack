@@ -16,6 +16,7 @@ const pool = require('./shared/config/database');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const refreshRoutes = require('./modules/auth/refresh.routes');
+const sessionRoutes = require('./modules/session/session.routes');
 const attendanceRoutes = require('./modules/attendance/attendance.routes');
 const managerRoutes = require('./modules/manager/manager.routes');
 const ceoRoutes = require('./modules/ceo/ceo.routes');
@@ -247,6 +248,7 @@ app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', refreshRoutes);
+app.use('/api/session', sessionRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/settings', requireITAuth, requirePasswordChangeGate, resolveTenant, settingsRoutes);

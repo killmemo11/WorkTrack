@@ -557,6 +557,7 @@ const createPlatformAdminBody = Joi.object({
   username: Joi.string().max(100).alphanum().required(),
   email: email.required(),
   password: password.required(),
+  role: Joi.string().valid('owner', 'marketing', 'tech', 'dev').default('owner'),
 }).options({ stripUnknown: true });
 
 // ── Platform: Create Client Account ────────────────────────────

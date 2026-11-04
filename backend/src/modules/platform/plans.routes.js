@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { requirePlatformAuth } = require('../../shared/middleware/platform-auth.middleware');
+const { requirePlatformPermission } = require('../../shared/middleware/platform-permission.middleware');
 const {
   getPublicPlans,
   getPublicSettings,
@@ -22,14 +23,14 @@ router.get('/public/plans', getPublicPlans);
 router.get('/public/settings', getPublicSettings);
 
 // Admin routes (Super Admin auth required)
-router.get('/plans', requirePlatformAuth, listPlans);
-router.get('/plans/:id', requirePlatformAuth, getPlan);
-router.post('/plans', requirePlatformAuth, createPlan);
-router.put('/plans/:id', requirePlatformAuth, updatePlan);
-router.delete('/plans/:id', requirePlatformAuth, deletePlan);
+router.get('/plans', requirePlatformAuth, requirePlatformPermission('platform.plans.view'), listPlans);
+router.get('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.view'), getPlan);
+router.post('/plans', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), createPlan);
+router.put('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), updatePlan);
+router.delete('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), deletePlan);
 
-router.get('/settings', requirePlatformAuth, listPlatformSettings);
-router.put('/settings', requirePlatformAuth, updatePlatformSettings);
-router.post('/settings/test-smtp', requirePlatformAuth, testPlatformSmtp);
+router.get('/settings', requirePlatformAuth, requirePlatformPermission('platform.settings.manage'), listPlatformSettings);
+router.put('/settings', requirePlatformAuth, requirePlatformPermission('platform.settings.manage'), updatePlatformSettings);
+router.post('/settings/test-smtp', requirePlatformAuth, requirePlatformPermission('platform.settings.manage'), testPlatformSmtp);
 
 module.exports = router;

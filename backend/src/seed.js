@@ -229,15 +229,18 @@ async function seed() {
     [platformAdminUsername]
   );
   
+  let platformAdminId;
   if (platformAdmins.length === 0) {
     const hash = await bcrypt.hash(platformAdminPassword, 13);
     const [result] = await pool.query(
       'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
       [platformAdminUsername, platformAdminEmail, hash]
     );
+    platformAdminId = result.insertId;
     deliverInitialCredential('PLATFORM_SUPER_ADMIN', platformAdminUsername, platformAdminEmail, platformAdminPassword, 'https://worktrack.ddns.net/platform/login', result.insertId);
     console.log('Created Platform Super-Admin. Initial credential delivered via secure channel (see above/aside), never printed to stdout.');
   } else {
+    platformAdminId = platformAdmins[0].id;
     // Update password if env changed
     const newHash = await bcrypt.hash(platformAdminPassword, 13);
     await pool.query(
@@ -245,6 +248,23 @@ async function seed() {
       [newHash, platformAdminEmail, platformAdmins[0].id]
     );
     console.log('Platform Super-Admin already exists, password updated');
+  }
+
+  // A fresh database applies migrations before this account exists, so the
+  // migration's owner backfill cannot see it. Grant it here (guarded for
+  // databases that predate platform RBAC).
+  const [platformRbacTable] = await pool.query(
+    "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'platform_roles'",
+    [process.env.DB_NAME]
+  );
+  if (platformRbacTable.length > 0) {
+    const [ownerRole] = await pool.query("SELECT id FROM platform_roles WHERE name = 'owner'");
+    if (ownerRole.length > 0) {
+      await pool.query(
+        'INSERT IGNORE INTO platform_user_roles (admin_user_id, role_id) VALUES (?, ?)',
+        [platformAdminId, ownerRole[0].id]
+      );
+    }
   }
 
   // ============================================================

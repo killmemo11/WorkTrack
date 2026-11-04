@@ -10,6 +10,7 @@ const { logActivity } = require('../../shared/services/activity.service');
 const tokenService = require('../../shared/services/token.service');
 const { clearOtherAuthCookies } = require('../../shared/utils/auth-cookies');
 const { escapeHtml } = require('../../shared/utils/sanitize');
+const { getPlatformAccess, clearPlatformAccessCache } = require('../../shared/middleware/platform-permission.middleware');
 const { 
   sendPlatformEmail, 
   sendTenantAdminMagicLink,
@@ -146,10 +147,13 @@ async function platformLogin(req, res) {
 }
 
 async function platformMe(req, res) {
-  res.json({ 
-    id: req.platformAdmin.id, 
-    username: req.platformAdmin.username, 
-    email: req.platformAdmin.email 
+  const access = await getPlatformAccess(req.platformAdmin.id);
+  res.json({
+    id: req.platformAdmin.id,
+    username: req.platformAdmin.username,
+    email: req.platformAdmin.email,
+    roles: [...access.roles],
+    permissions: [...access.permissions],
   });
 }
 
@@ -168,6 +172,7 @@ async function createPlatformAdmin(req, res) {
   const { error } = createPlatformAdminBody.validate(req.body);
   if (error) return res.status(400).json({ error: error.details[0].message });
   const { username, email, password } = req.body;
+  const role = req.body.role || 'owner';
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Username, email, and password are required' });
   }
@@ -185,14 +190,35 @@ async function createPlatformAdmin(req, res) {
     return res.status(409).json({ error: 'Username already exists' });
   }
 
-  const hash = await bcrypt.hash(password, 13);
-  const [result] = await pool.query(
-    'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
-    [username, email, hash]
-  );
+  const [roleRows] = await pool.query('SELECT id FROM platform_roles WHERE name = ?', [role]);
+  if (roleRows.length === 0) {
+    return res.status(400).json({ error: 'Unknown platform role' });
+  }
 
-  await logActivity(null, req.platformAdmin.id, 'platform_admin_created', `Created platform admin: ${username}`);
-  res.json({ message: 'Platform admin created', id: result.insertId });
+  const hash = await bcrypt.hash(password, 13);
+  const conn = await pool.getConnection();
+  let insertId;
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO admin_users (username, email, password_hash, is_active, tenant_id, is_platform_admin, must_change_password) VALUES (?, ?, ?, 1, NULL, 1, 0)',
+      [username, email, hash]
+    );
+    insertId = result.insertId;
+    await conn.query(
+      'INSERT INTO platform_user_roles (admin_user_id, role_id, assigned_by) VALUES (?, ?, ?)',
+      [insertId, roleRows[0].id, req.platformAdmin.id]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  await logActivity(null, req.platformAdmin.id, 'platform_admin_created', `Created platform admin: ${username} (${role})`);
+  res.json({ message: 'Platform admin created', id: insertId, role });
 }
 
 async function updatePlatformAdmin(req, res) {
@@ -319,6 +345,7 @@ async function deletePlatformAdmin(req, res) {
     conn.release();
   }
   await logActivity(null, req.platformAdmin.id, 'platform_admin_deleted', `Deleted platform admin: ${existing[0].username}`);
+  clearPlatformAccessCache(id);
   res.json({ message: 'Platform admin deleted' });
 }
 

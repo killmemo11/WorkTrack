@@ -10,6 +10,8 @@
     "test": "cross-env NODE_ENV=test jest --forceExit --detectOpenHandles --verbose",
     "test:smoke": "node scripts/ci-smoke.js",
     "test:isolation": "node --test scripts/ci-tenant-isolation.js",
+    "test:tenant-scope": "node scripts/ci-tenant-scope.js",
+    "test:platform-permissions": "node --test scripts/ci-platform-permissions.js",
     "test:watch": "jest --watch",
     "migrate": "node scripts/migrate.js",
     "migrate:status": "node scripts/migrate.js --status",
