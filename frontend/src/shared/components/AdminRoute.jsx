@@ -7,7 +7,7 @@ import { useSession } from '../context/SessionContext';
 
 export default function AdminRoute({ children }) {
   const { admin, loading } = useAdminAuth();
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
   const location = useLocation();
 
   if (loading) return (
@@ -20,6 +20,15 @@ export default function AdminRoute({ children }) {
   if (session?.access?.blocked) return <Navigate to="/account-status" replace />;
 
   if (!admin) return <Navigate to="/login" replace />;
+
+  // The session context carries the impersonation flag; wait for it before
+  // deciding, otherwise a gated admin is redirected before the flag arrives.
+  if (admin.must_change_password && sessionLoading) return (
+    <div className="glass-loading">
+      <div className="spinner" />
+      <span>Loading...</span>
+    </div>
+  );
 
   // Platform staff impersonating this tenant cannot change its password, so the
   // gate would otherwise trap them on the change-password screen.
