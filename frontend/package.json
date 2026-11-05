@@ -15,7 +15,7 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.147",
     "@iconify/react": "^6.0.2",
-    "axios": "^1.7.0",
+    "axios": "^1.21.0",
     "dompurify": "^3.4.12",
     "framer-motion": "^12.42.2",
     "leaflet": "^1.9.4",
