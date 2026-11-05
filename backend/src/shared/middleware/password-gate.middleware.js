@@ -23,6 +23,11 @@ const ALLOW_PATHS = new Set([
 function requirePasswordChangeGate(req, res, next) {
   if (!req.admin || !req.admin.must_change_password) return next();
 
+  // Impersonation sessions are authorised by the platform admin's own login and
+  // fully audited; the tenant password cannot be changed from inside them, so
+  // this gate would otherwise leave the console permanently blocked.
+  if (req.admin.imp) return next();
+
   const url = (req.originalUrl || '').split('?')[0].replace(/\/+$/, '').toLowerCase();
   if (ALLOW_PATHS.has(url)) return next();
 

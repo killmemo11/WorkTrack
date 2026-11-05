@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
 import { usePlatformAuth } from '../../../shared/context/PlatformAuthContext';
 import { formatDateTime } from '../../../shared/utils/date';
 
 export default function PlatformSupport() {
-  const navigate = useNavigate();
   const { platformAdmin } = usePlatformAuth();
   const [tenants, setTenants] = useState([]);
   const [search, setSearch] = useState('');
@@ -60,7 +58,8 @@ export default function PlatformSupport() {
     if (!confirm(`Open an audited impersonation session for "${diagnostics.tenant.name}"?`)) return;
     try {
       const res = await platformApi.post(`/tenants/${selectedId}/impersonate`);
-      navigate(res.data.redirect || '/admin/settings');
+      // Full reload: the admin auth provider only probes its realm on mount.
+      window.location.href = res.data.redirect || '/admin/settings';
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to start impersonation');
     }
