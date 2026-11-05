@@ -4,6 +4,16 @@
       "advisories": ["GHSA-4r6h-8v6p-xvw6", "GHSA-5pgg-2g8v-p4x9"],
       "reason": "No fixed release exists. Parsing is limited to two authenticated admin imports; upload size/type limits are applied. Replacement with a maintained workbook library is tracked.",
       "reviewed": "2026-10-25"
+    },
+    "glob": {
+      "advisories": ["GHSA-3g3m-2fjr-6pw4"],
+      "reason": "Dev-only transitive dependency of jest (devDependency); never loaded by the running API. Fix requires a jest major upgrade, tracked separately.",
+      "reviewed": "2026-11-05"
+    },
+    "minimatch": {
+      "advisories": ["GHSA-g3hv-75wg-m249"],
+      "reason": "Dev-only transitive dependency of jest and nodemon (devDependencies); not reachable from HTTP request handling. Upstream fixed majors are not compatible with the pinned jest version yet.",
+      "reviewed": "2026-11-05"
     }
   },
   "frontend": {
