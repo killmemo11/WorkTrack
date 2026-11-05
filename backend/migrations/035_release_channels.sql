@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_feature_flag_key (flag_key),
   INDEX idx_feature_flag_module (module)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS tenant_feature_flags (
   tenant_id INT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS tenant_feature_flags (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE,
   FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO feature_flags (flag_key, label, description, module, default_enabled) VALUES
 ('billing.reminders', 'Automated invoice reminders', 'Send due-date reminders for unpaid invoices', 'billing', 1),

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS plan_price_versions (
   INDEX idx_ppv_plan (plan_id),
   FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO plan_price_versions (plan_id, version, price_monthly, price_yearly, currency, note)
 SELECT sp.id, 1, sp.price_monthly, sp.price_yearly, COALESCE(sp.currency, 'EGP'), 'Initial price at migration 034'
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS platform_crm_contacts (
   FOREIGN KEY (owner_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
   FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS platform_crm_activities (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS platform_crm_activities (
   INDEX idx_crm_activity_contact (contact_id, occurred_at),
   FOREIGN KEY (contact_id) REFERENCES platform_crm_contacts(id) ON DELETE CASCADE,
   FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO platform_permissions (perm_key, module, action, label, description) VALUES
 ('platform.crm.manage', 'crm', 'manage', 'Manage CRM data', 'Create and update CRM contacts, stages and activities');

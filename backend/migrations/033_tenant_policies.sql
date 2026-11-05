@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS tenant_policies (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL,
   FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS policy_acknowledgements (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS policy_acknowledgements (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   FOREIGN KEY (policy_id) REFERENCES tenant_policies(id) ON DELETE CASCADE,
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Permission for the tenant admin console. Granted to tenant_admin for every
 -- existing tenant; seedTenantRBAC() covers tenants created after this migration.

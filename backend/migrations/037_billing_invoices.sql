@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tenant_invoices (
   INDEX idx_invoice_due (status, due_date),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS tenant_invoice_events (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS tenant_invoice_events (
   INDEX idx_invoice_event (invoice_id, created_at),
   FOREIGN KEY (invoice_id) REFERENCES tenant_invoices(id) ON DELETE CASCADE,
   FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE SET NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO platform_permissions (perm_key, module, action, label, description) VALUES
 ('platform.billing.view',   'billing', 'view',   'View invoices',   'View tenant invoices and outstanding balances'),
