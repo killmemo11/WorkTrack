@@ -5,12 +5,15 @@ import { useState, useEffect, useRef } from 'react';
 import Icon from '../Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSession } from '../../context/SessionContext';
 import axios from 'axios';
 import api from '../../api/index.js';
 import NotificationBell from '../../../modules/notification/components/NotificationBell';
 
 export default function Navbar() {
   const { employee, logout } = useAuth();
+  const { session } = useSession();
+  const pendingPolicies = session?.policies?.pending_acknowledgements || 0;
   const navigate = useNavigate();
   const location = useLocation();
   const [logo, setLogo] = useState('');
@@ -115,6 +118,12 @@ export default function Navbar() {
                 <Icon icon="lucide:file-text" /> Requests
               </Link>
             )}
+            <Link to="/policies" className={`nav-link${isActive('/policies') ? ' active' : ''}`} aria-current={isActive('/policies') ? 'page' : undefined}>
+              <Icon icon="lucide:scroll-text" /> Policies
+              {pendingPolicies > 0 && (
+                <span className="glass-badge glass-badge-warning" style={{ marginLeft: 6, fontSize: 10 }}>{pendingPolicies}</span>
+              )}
+            </Link>
             {employee?.is_global_ceo !== true && serviceManager && (employee?.is_manager || (employee?.role === 'ceo' && !employee?.is_global_ceo)) && (
               <Link to="/manager/team" className={`nav-link${isActive('/manager/team') ? ' active' : ''}`} aria-current={isActive('/manager/team') ? 'page' : undefined}>
                 <Icon icon="lucide:users" /> Team

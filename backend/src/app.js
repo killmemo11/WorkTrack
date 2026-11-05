@@ -29,11 +29,17 @@ const reportsRoutes = require('./modules/reports/reports.routes');
 const tasksRoutes = require('./modules/tasks/tasks.routes');
 const platformRoutes = require('./modules/platform/platform.routes');
 const platformPlansRoutes = require('./modules/platform/plans.routes');
+const platformCrmRoutes = require('./modules/platform/crm.routes');
+const platformReleasesRoutes = require('./modules/platform/releases.routes');
+const platformSandboxRoutes = require('./modules/platform/sandbox.routes');
+const platformBillingRoutes = require('./modules/platform/billing.routes');
 const magicLinkRoutes = require('./modules/auth/magic-link.routes');
 const publicSignupRoutes = require('./modules/auth/public-signup.routes');
 const itRoutes = require('./modules/it/it.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
 const rbacRoutes = require('./modules/admin/rbac.routes');
+const adminPoliciesRoutes = require('./modules/admin/policies.routes');
+const policiesRoutes = require('./modules/policies/policies.routes');
 const { requireHR } = require('./shared/middleware/hr.middleware');
 const { requireITAuth, requireAnyActiveToken } = require('./shared/middleware/it-auth.middleware');
 const { requirePasswordChangeGate } = require('./shared/middleware/password-gate.middleware');
@@ -373,6 +379,10 @@ app.put('/api/hr/settings/work-week', requireHR, resolveTenant, async (req, res)
 // Platform routes (super-admin only)
 app.use('/api/platform', platformRoutes);
 app.use('/api/platform', platformPlansRoutes);
+app.use('/api/platform/crm', platformCrmRoutes);
+app.use('/api/platform/releases', platformReleasesRoutes);
+app.use('/api/platform/sandboxes', platformSandboxRoutes);
+app.use('/api/platform/billing', platformBillingRoutes);
 
 // Magic link & public signup (no auth required for these)
 app.use('/api/magic-link', magicLinkRoutes);
@@ -386,6 +396,12 @@ app.use('/api/audit', requireAnyActiveToken, requirePasswordChangeGate, resolveT
 
 // Admin RBAC management (tenant admin)
 app.use('/api/admin/rbac', requireITAuth, requirePasswordChangeGate, resolveTenant, rbacRoutes);
+
+// Company policies (tenant admin console — RBAC enforced per-route)
+app.use('/api/admin/policies', requireAnyActiveToken, requirePasswordChangeGate, resolveTenant, adminPoliciesRoutes);
+
+// Company policies for employees (read published versions + acknowledge)
+app.use('/api/policies', policiesRoutes);
 
 // HR master lists CRUD
 app.get('/api/hr/master-skills', requireHR, resolveTenant, listSkills);

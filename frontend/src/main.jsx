@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './shared/context/AuthContext';
+import { SessionProvider } from './shared/context/SessionContext';
 import './App.css';
 import './shared/styles/platform.css';
 
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <SessionProvider>
+          <App />
+        </SessionProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

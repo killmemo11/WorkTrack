@@ -24,6 +24,7 @@ const {
   rejectTenantRequestBody, approveTenantRequestBody,
   createPlatformAdminBody, createClientAccountBody, updateClientAccountBody,
   resetPasswordBody, changeOwnPasswordBody, suspendTenantBody, deleteTenantBody,
+  updateTenantSubscriptionBody,
 } = require('../../shared/validations/schemas');
 
 // DB-backed lockout using admin_users.failed_attempts + admin_users.last_failed_login
@@ -466,6 +467,17 @@ async function approveTenantRequest(req, res) {
   
   const maxEmployees = overrideMaxEmp || (planDetails ? planDetails.max_employees : 50);
   const trialDays = overrideTrialDays || (planDetails ? planDetails.trial_days : 14);
+
+  // Pin the tenant to the plan's current price version so later price changes
+  // do not silently reprice a live account.
+  let priceVersionId = null;
+  if (planDetails) {
+    const [versionRows] = await pool.query(
+      'SELECT id FROM plan_price_versions WHERE plan_id = ? ORDER BY version DESC LIMIT 1',
+      [planDetails.id]
+    );
+    priceVersionId = versionRows.length ? versionRows[0].id : null;
+  }
   
   const slug = request.company_name
     .toLowerCase()
@@ -479,9 +491,9 @@ async function approveTenantRequest(req, res) {
 
     // Create tenant
     const [tenantResult] = await conn.query(
-      `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, max_employees, status, trial_ends_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
-      [request.company_name, slug, request.contact_email, request.contact_phone, planSlug, maxEmployees, trialDays]
+      `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, plan_price_version_id, max_employees, status, trial_ends_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
+      [request.company_name, slug, request.contact_email, request.contact_phone, planSlug, priceVersionId, maxEmployees, trialDays]
     );
     const tenantId = tenantResult.insertId;
 
@@ -540,6 +552,27 @@ async function approveTenantRequest(req, res) {
       [req.platformAdmin.id, tenantId, id]
     );
 
+    // Move the matching CRM lead to won and link it to the new tenant.
+    const leadEmail = request.contact_email.trim().toLowerCase();
+    const [crmContacts] = await conn.query(
+      'SELECT id, stage FROM platform_crm_contacts WHERE email = ?',
+      [leadEmail]
+    );
+    if (crmContacts.length > 0) {
+      const contact = crmContacts[0];
+      await conn.query(
+        `UPDATE platform_crm_contacts
+         SET stage = 'won', tenant_id = ?, tenant_request_id = ?, next_follow_up_at = NULL, updated_by = ?
+         WHERE id = ?`,
+        [tenantId, id, req.platformAdmin.id, contact.id]
+      );
+      await conn.query(
+        `INSERT INTO platform_crm_activities (contact_id, type, subject, body, admin_id)
+         VALUES (?, 'stage_change', ?, ?, ?)`,
+        [contact.id, `Stage: ${contact.stage} -> won`, `Tenant #${tenantId} provisioned`, req.platformAdmin.id]
+      );
+    }
+
     await conn.commit();
 
     // Send magic link to tenant admin
@@ -594,6 +627,26 @@ async function rejectTenantRequest(req, res) {
     'UPDATE tenant_requests SET status = "rejected", reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE id = ?',
     [req.platformAdmin.id, rejection_reason || null, id]
   );
+
+  const lostEmail = request.contact_email.trim().toLowerCase();
+  const [lostContacts] = await pool.query(
+    'SELECT id, stage FROM platform_crm_contacts WHERE email = ?',
+    [lostEmail]
+  );
+  if (lostContacts.length > 0) {
+    const contact = lostContacts[0];
+    await pool.query(
+      `UPDATE platform_crm_contacts
+       SET stage = 'lost', next_follow_up_at = NULL, updated_by = ?
+       WHERE id = ?`,
+      [req.platformAdmin.id, contact.id]
+    );
+    await pool.query(
+      `INSERT INTO platform_crm_activities (contact_id, type, subject, body, admin_id)
+       VALUES (?, 'stage_change', ?, ?, ?)`,
+      [contact.id, `Stage: ${contact.stage} -> lost`, rejection_reason || 'Request rejected', req.platformAdmin.id]
+    );
+  }
 
   // Send rejection email
   await sendTenantRejectedEmail(request.contact_email, request.company_name, rejection_reason);
@@ -761,10 +814,11 @@ async function listTenants(req, res) {
   const whereClause = 'WHERE ' + where.join(' AND ');
 
   const [rows] = await pool.query(
-    `SELECT t.*, 
+    `SELECT t.*, v.price_monthly, v.price_yearly, v.currency AS price_currency, v.version AS price_version,
       (SELECT COUNT(*) FROM employees WHERE tenant_id = t.id AND (is_system IS NULL OR is_system = 0)) as employee_count,
       (SELECT COUNT(*) FROM admin_users WHERE tenant_id = t.id AND is_platform_admin = 0) as admin_count
      FROM tenants t
+     LEFT JOIN plan_price_versions v ON v.id = t.plan_price_version_id
      ${whereClause}
      ORDER BY t.created_at DESC
      LIMIT ? OFFSET ?`,
@@ -811,7 +865,18 @@ async function getTenant(req, res) {
     [id]
   );
 
-  res.json({ ...tenant, admins, services });
+  const [subscriptionRows] = await pool.query(
+    `SELECT sp.name AS plan_name, sp.slug AS plan_slug, sp.max_employees AS plan_max_employees,
+       v.id AS price_version_id, v.version AS price_version,
+       v.price_monthly, v.price_yearly, v.currency
+     FROM tenants t
+     LEFT JOIN subscription_plans sp ON sp.slug = t.plan
+     LEFT JOIN plan_price_versions v ON v.id = t.plan_price_version_id
+     WHERE t.id = ?`,
+    [id]
+  );
+
+  res.json({ ...tenant, admins, services, subscription: subscriptionRows[0] || null });
 }
 
 async function updateTenant(req, res) {
@@ -831,7 +896,24 @@ async function updateTenant(req, res) {
   if (name !== undefined) { updates.push('name = ?'); values.push(name); }
   if (contact_email !== undefined) { updates.push('contact_email = ?'); values.push(contact_email); }
   if (contact_phone !== undefined) { updates.push('contact_phone = ?'); values.push(contact_phone); }
-  if (plan !== undefined) { updates.push('plan = ?'); values.push(plan); }
+  if (plan !== undefined) {
+    updates.push('plan = ?');
+    values.push(plan);
+    // A plan switch moves the tenant onto that plan's current price version.
+    if (plan !== rows[0].plan) {
+      const [versionRows] = await pool.query(
+        `SELECT v.id FROM plan_price_versions v
+         JOIN subscription_plans sp ON sp.id = v.plan_id
+         WHERE sp.slug = ?
+         ORDER BY v.version DESC LIMIT 1`,
+        [plan]
+      );
+      if (versionRows.length > 0) {
+        updates.push('plan_price_version_id = ?');
+        values.push(versionRows[0].id);
+      }
+    }
+  }
   if (max_employees !== undefined) { updates.push('max_employees = ?'); values.push(max_employees); }
   if (status !== undefined) { updates.push('status = ?'); values.push(status); }
   if (trial_ends_at !== undefined) { updates.push('trial_ends_at = ?'); values.push(trial_ends_at); }
@@ -871,6 +953,60 @@ async function updateTenant(req, res) {
 
   const [updated] = await pool.query('SELECT * FROM tenants WHERE id = ?', [id]);
   res.json(updated[0]);
+}
+
+async function updateTenantSubscription(req, res) {
+  const { error } = updateTenantSubscriptionBody.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+  const { id } = req.params;
+  const { plan, plan_price_version_id, note } = req.body;
+
+  const [tenants] = await pool.query(
+    'SELECT id, name, plan, plan_price_version_id FROM tenants WHERE id = ? AND deleted_at IS NULL',
+    [id]
+  );
+  if (tenants.length === 0) return res.status(404).json({ error: 'Tenant not found' });
+
+  const [versions] = await pool.query(
+    `SELECT v.*, sp.slug AS plan_slug, sp.name AS plan_name
+     FROM plan_price_versions v
+     JOIN subscription_plans sp ON sp.id = v.plan_id
+     WHERE v.id = ?`,
+    [plan_price_version_id]
+  );
+  if (versions.length === 0) return res.status(400).json({ error: 'Unknown price version' });
+
+  const version = versions[0];
+  if (version.plan_slug !== plan) {
+    return res.status(400).json({ error: 'The selected price version does not belong to this plan' });
+  }
+
+  await pool.query(
+    'UPDATE tenants SET plan = ?, plan_price_version_id = ? WHERE id = ?',
+    [plan, version.id, id]
+  );
+
+  await logActivity(
+    null,
+    req.platformAdmin.id,
+    'tenant_subscription_updated',
+    `Tenant ${id} subscription: ${tenants[0].plan} -> ${plan} (price version ${version.version}, ${version.price_monthly} ${version.currency})${note ? ` - ${note}` : ''}`
+  );
+
+  const [updated] = await pool.query('SELECT * FROM tenants WHERE id = ?', [id]);
+  res.json({
+    ...updated[0],
+    subscription: {
+      plan_name: version.plan_name,
+      plan_slug: plan,
+      price_version_id: version.id,
+      price_version: version.version,
+      price_monthly: version.price_monthly,
+      price_yearly: version.price_yearly,
+      currency: version.currency,
+      note: note || null,
+    },
+  });
 }
 
 async function suspendTenant(req, res) {
@@ -1282,6 +1418,7 @@ async function seedTenantRBAC(conn, tenantId) {
     { module: 'admin', action: 'manage_users', label: 'Manage Users', desc: 'Create/edit/deactivate admin and employee users' },
     { module: 'admin', action: 'manage_roles', label: 'Manage Roles', desc: 'Create/edit roles and permissions' },
     { module: 'admin', action: 'manage_services', label: 'Manage Service Toggles', desc: 'Enable/disable system services' },
+    { module: 'admin', action: 'manage_policies', label: 'Manage Company Policies', desc: 'Create, edit and publish company policies for employees' },
     { module: 'admin', action: 'view_audit', label: 'View Audit Log', desc: 'View system activity and audit logs' },
     { module: 'audit', action: 'view', label: 'View Audit Logs', desc: 'View all system activity logs' },
     { module: 'audit', action: 'export', label: 'Export Audit Logs', desc: 'Export audit logs for compliance' },
@@ -1387,6 +1524,15 @@ async function createTenant(req, res) {
   const maxEmp = max_employees || (planDetails ? planDetails.max_employees : 50);
   const trialDays = trial_days || (planDetails ? planDetails.trial_days : 14);
 
+  let priceVersionId = null;
+  if (planDetails) {
+    const [versionRows] = await pool.query(
+      'SELECT id FROM plan_price_versions WHERE plan_id = ? ORDER BY version DESC LIMIT 1',
+      [planDetails.id]
+    );
+    priceVersionId = versionRows.length ? versionRows[0].id : null;
+  }
+
   const slug = company_name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -1398,11 +1544,36 @@ async function createTenant(req, res) {
     await conn.beginTransaction();
 
     const [tenantResult] = await conn.query(
-      `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, max_employees, status, trial_ends_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
-      [company_name, slug, contact_email, contact_phone || null, planSlug, maxEmp, trialDays]
+      `INSERT INTO tenants (name, slug, contact_email, contact_phone, plan, plan_price_version_id, max_employees, status, trial_ends_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', DATE_ADD(CURDATE(), INTERVAL ? DAY))`,
+      [company_name, slug, contact_email, contact_phone || null, planSlug, priceVersionId, maxEmp, trialDays]
     );
     const tenantId = tenantResult.insertId;
+
+    const crmEmail = contact_email.trim().toLowerCase();
+    await conn.query(
+      `INSERT INTO platform_crm_contacts
+       (tenant_id, company_name, email, phone, stage, source, created_by, updated_by)
+       VALUES (?, ?, ?, ?, 'won', 'manual', ?, ?)
+       ON DUPLICATE KEY UPDATE
+         tenant_id = VALUES(tenant_id),
+         company_name = VALUES(company_name),
+         stage = 'won',
+         next_follow_up_at = NULL,
+         updated_by = VALUES(updated_by)`,
+      [tenantId, company_name, crmEmail, contact_phone || null, req.platformAdmin.id, req.platformAdmin.id]
+    );
+    const [crmContactRows] = await conn.query(
+      'SELECT id FROM platform_crm_contacts WHERE email = ?',
+      [crmEmail]
+    );
+    if (crmContactRows.length > 0) {
+      await conn.query(
+        `INSERT INTO platform_crm_activities (contact_id, type, subject, body, admin_id)
+         VALUES (?, 'stage_change', 'Tenant provisioned', ?, ?)`,
+        [crmContactRows[0].id, `Tenant #${tenantId} created manually`, req.platformAdmin.id]
+      );
+    }
 
     const adminUsername = contact_email.split('@')[0];
     const tempHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 13);
@@ -1714,6 +1885,7 @@ module.exports = {
   listTenants,
   getTenant,
   updateTenant,
+  updateTenantSubscription,
   suspendTenant,
   activateTenant,
   deleteTenant,

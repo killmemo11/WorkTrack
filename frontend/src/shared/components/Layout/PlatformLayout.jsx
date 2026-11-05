@@ -48,6 +48,12 @@ export default function PlatformLayout() {
   const isActive = (path) => location.pathname === path ? 'platform-nav-link active' : 'platform-nav-link';
   const platformName = platformSettings.company_name || 'WorkTrack';
 
+  const roles = platformAdmin?.roles || [];
+  const permissions = platformAdmin?.permissions || [];
+  const allow = (permKey) => roles.includes('owner') || permissions.length === 0 || permissions.includes(permKey);
+  const ROLE_LABELS = { owner: 'Platform Owner', marketing: 'Marketing', tech: 'Technical Support', dev: 'Developer' };
+  const roleLabel = ROLE_LABELS[roles[0]] || 'Platform';
+
   return (
     <div className="platform-layout">
       <SkipLink />
@@ -65,55 +71,105 @@ export default function PlatformLayout() {
             )}
             <span>{platformName} Platform</span>
           </Link>
-          <span className="platform-badge">Super Admin</span>
+          <span className="platform-badge">{roleLabel}</span>
         </div>
         <nav className="platform-nav">
-          <Link to="/platform" className={isActive('/platform')}>
-            <Icon icon="lucide:layout-dashboard" />
-            <span>Dashboard</span>
-          </Link>
-          <Link to="/platform/tenants" className={isActive('/platform/tenants')}>
-            <Icon icon="lucide:building-2" />
-            <span>Tenants</span>
-            {stats?.tenants?.total_tenants && (
-              <span className="nav-badge">{stats.tenants.total_tenants}</span>
-            )}
-          </Link>
-          <Link to="/platform/requests" className={isActive('/platform/requests')}>
-            <Icon icon="lucide:file-text" />
-            <span>Requests</span>
-            {stats?.requests?.pending_requests > 0 && (
-              <span className="nav-badge urgent">{stats.requests.pending_requests}</span>
-            )}
-          </Link>
-          <Link to="/platform/plans" className={isActive('/platform/plans')}>
-            <Icon icon="lucide:credit-card" />
-            <span>Plans</span>
-          </Link>
-          <Link to="/platform/payments" className={isActive('/platform/payments')}>
-            <Icon icon="lucide:banknote" />
-            <span>Payments</span>
-          </Link>
-          <Link to="/platform/revenue" className={isActive('/platform/revenue')}>
-            <Icon icon="lucide:trending-up" />
-            <span>Revenue</span>
-          </Link>
-          <Link to="/platform/admins" className={isActive('/platform/admins')}>
-            <Icon icon="lucide:users" />
-            <span>Admins</span>
-          </Link>
-          <Link to="/platform/client-accounts" className={isActive('/platform/client-accounts')}>
-            <Icon icon="lucide:user-cog" />
-            <span>Client Accounts</span>
-          </Link>
-          <Link to="/platform/activity" className={isActive('/platform/activity')}>
-            <Icon icon="lucide:activity" />
-            <span>Activity</span>
-          </Link>
-          <Link to="/platform/settings" className={isActive('/platform/settings')}>
-            <Icon icon="lucide:settings" />
-            <span>Settings</span>
-          </Link>
+          {allow('platform.tenants.view') && (
+            <Link to="/platform" className={isActive('/platform')}>
+              <Icon icon="lucide:layout-dashboard" />
+              <span>Dashboard</span>
+            </Link>
+          )}
+          {allow('platform.tenants.view') && (
+            <Link to="/platform/tenants" className={isActive('/platform/tenants')}>
+              <Icon icon="lucide:building-2" />
+              <span>Tenants</span>
+              {stats?.tenants?.total_tenants && (
+                <span className="nav-badge">{stats.tenants.total_tenants}</span>
+              )}
+            </Link>
+          )}
+          {allow('platform.requests.view') && (
+            <Link to="/platform/requests" className={isActive('/platform/requests')}>
+              <Icon icon="lucide:file-text" />
+              <span>Requests</span>
+              {stats?.requests?.pending_requests > 0 && (
+                <span className="nav-badge urgent">{stats.requests.pending_requests}</span>
+              )}
+            </Link>
+          )}
+          {allow('platform.crm.view') && (
+            <Link to="/platform/crm" className={isActive('/platform/crm')}>
+              <Icon icon="lucide:contact" />
+              <span>CRM</span>
+            </Link>
+          )}
+          {allow('platform.plans.view') && (
+            <Link to="/platform/plans" className={isActive('/platform/plans')}>
+              <Icon icon="lucide:credit-card" />
+              <span>Plans</span>
+            </Link>
+          )}
+          {allow('platform.payments.view') && (
+            <Link to="/platform/payments" className={isActive('/platform/payments')}>
+              <Icon icon="lucide:banknote" />
+              <span>Payments</span>
+            </Link>
+          )}
+          {allow('platform.payments.view') && (
+            <Link to="/platform/revenue" className={isActive('/platform/revenue')}>
+              <Icon icon="lucide:trending-up" />
+              <span>Revenue</span>
+            </Link>
+          )}
+          {allow('platform.support.view') && (
+            <Link to="/platform/support" className={isActive('/platform/support')}>
+              <Icon icon="lucide:stethoscope" />
+              <span>Support</span>
+            </Link>
+          )}
+          {allow('platform.releases.view') && (
+            <Link to="/platform/releases" className={isActive('/platform/releases')}>
+              <Icon icon="lucide:rocket" />
+              <span>Releases</span>
+            </Link>
+          )}
+          {allow('platform.sandbox.manage') && (
+            <Link to="/platform/sandbox" className={isActive('/platform/sandbox')}>
+              <Icon icon="lucide:flask-conical" />
+              <span>Sandbox</span>
+            </Link>
+          )}
+          {allow('platform.payments.view') && (
+            <Link to="/platform/billing" className={isActive('/platform/billing')}>
+              <Icon icon="lucide:receipt" />
+              <span>Billing</span>
+            </Link>
+          )}
+          {allow('platform.admins.manage') && (
+            <Link to="/platform/admins" className={isActive('/platform/admins')}>
+              <Icon icon="lucide:users" />
+              <span>Admins</span>
+            </Link>
+          )}
+          {allow('platform.tenants.view') && (
+            <Link to="/platform/client-accounts" className={isActive('/platform/client-accounts')}>
+              <Icon icon="lucide:user-cog" />
+              <span>Client Accounts</span>
+            </Link>
+          )}
+          {allow('platform.audit.view') && (
+            <Link to="/platform/activity" className={isActive('/platform/activity')}>
+              <Icon icon="lucide:activity" />
+              <span>Activity</span>
+            </Link>
+          )}
+          {allow('platform.settings.manage') && (
+            <Link to="/platform/settings" className={isActive('/platform/settings')}>
+              <Icon icon="lucide:settings" />
+              <span>Settings</span>
+            </Link>
+          )}
         </nav>
         <div className="platform-sidebar-footer">
           <button onClick={handleLogout} className="glass-btn glass-btn-sm glass-btn-ghost platform-logout-btn">
@@ -122,7 +178,7 @@ export default function PlatformLayout() {
           <div className="platform-user">
             <Icon icon="lucide:user" />
             {platformAdmin?.username}
-            <span className="platform-user-role">Platform Owner</span>
+            <span className="platform-user-role">{roleLabel}</span>
           </div>
         </div>
       </aside>

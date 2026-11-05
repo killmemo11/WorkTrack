@@ -595,12 +595,71 @@ const deleteTenantBody = Joi.object({
   reason: Joi.string().max(2000).allow('', null),
 }).options({ stripUnknown: true });
 
+// ── Company Policies ───────────────────────────────────────────
+const policyTypes = ['leave', 'penalties', 'privacy', 'other'];
+const createPolicyBody = Joi.object({
+  policy_type: Joi.string().valid(...policyTypes).required(),
+  title: Joi.string().trim().min(3).max(200).required(),
+  content: Joi.string().min(1).max(100000).required(),
+  requires_ack: Joi.boolean().default(true),
+}).options({ stripUnknown: true });
+
+const updatePolicyBody = Joi.object({
+  title: Joi.string().trim().min(3).max(200),
+  content: Joi.string().min(1).max(100000),
+  requires_ack: Joi.boolean(),
+}).min(1).options({ stripUnknown: true });
+
+const publishPolicyBody = Joi.object({
+  effective_at: Joi.date().iso().allow(null),
+}).options({ stripUnknown: true });
+
 // ── Public Interview Response ──────────────────────────────────
 const respondToInterviewBody = Joi.object({
   interview_id: Joi.number().integer().positive().required(),
   email: email.required(),
   status: Joi.string().valid('accepted', 'declined').required(),
 }).options({ stripUnknown: true });
+
+// ── Platform: CRM ──────────────────────────────────────────────
+const crmStages = ['lead', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
+const crmContactFields = {
+  company_name: Joi.string().trim().min(2).max(255),
+  contact_name: Joi.string().trim().max(255).allow('', null),
+  job_title: Joi.string().trim().max(100).allow('', null),
+  email,
+  phone,
+  website: url,
+  industry: Joi.string().trim().max(100).allow('', null),
+  employee_count: Joi.number().integer().min(1).max(50000).allow(null),
+  plan_interest: Joi.string().trim().max(50).allow('', null),
+  stage: Joi.string().valid(...crmStages),
+  source: Joi.string().trim().max(50).allow('', null),
+  owner_admin_id: Joi.number().integer().positive().allow(null),
+  next_follow_up_at: Joi.date().allow(null),
+  notes: Joi.string().max(10000).allow('', null),
+};
+const createCrmContactBody = Joi.object({
+  ...crmContactFields,
+  company_name: crmContactFields.company_name.required(),
+  email: crmContactFields.email.required(),
+}).options({ stripUnknown: true });
+const updateCrmContactBody = Joi.object(crmContactFields).min(1).options({ stripUnknown: true });
+
+const crmActivityBody = Joi.object({
+  type: Joi.string().valid('note', 'call', 'email', 'meeting', 'follow_up').default('note'),
+  subject: Joi.string().trim().max(255).allow('', null),
+  body: Joi.string().max(10000).allow('', null),
+  occurred_at: Joi.date().iso().allow(null),
+  next_follow_up_at: Joi.date().allow(null),
+}).or('subject', 'body').options({ stripUnknown: true });
+
+const updateTenantSubscriptionBody = Joi.object({
+  plan: Joi.string().trim().max(50).required(),
+  plan_price_version_id: Joi.number().integer().positive().required(),
+  note: Joi.string().max(255).allow('', null),
+}).options({ stripUnknown: true });
+
 
 module.exports = {
   // Contact
@@ -654,6 +713,15 @@ module.exports = {
   changeOwnPasswordBody,
   suspendTenantBody,
   deleteTenantBody,
+  updateTenantSubscriptionBody,
+  // Platform CRM
+  createCrmContactBody,
+  updateCrmContactBody,
+  crmActivityBody,
+  // Company Policies
+  createPolicyBody,
+  updatePolicyBody,
+  publishPolicyBody,
   // Profile
   updateProfileBody,
   changePasswordBody,

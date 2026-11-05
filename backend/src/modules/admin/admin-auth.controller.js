@@ -188,6 +188,9 @@ async function me(req, res) {
 // Body: { currentPassword, newPassword }
 // Must run after requireITAuth (which populates req.admin).
 async function changePassword(req, res) {
+  if (req.admin?.imp) {
+    return res.status(403).json({ error: 'Password changes are disabled during an impersonation session' });
+  }
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: 'currentPassword and newPassword are required' });

@@ -451,6 +451,45 @@ router.post('/tenant-signup', singleFile(upload, 'payment_proof', PAYMENT_EXTENS
         );
       }
 
+      // Mirror the signup into the CRM so marketing works from one pipeline.
+      // tenant_id stays NULL until the request is approved and a tenant exists.
+      await conn.query(
+        `INSERT INTO platform_crm_contacts
+         (tenant_id, tenant_request_id, company_name, contact_name, job_title, email, phone,
+          website, industry, employee_count, plan_interest, stage, source)
+         VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'lead', 'signup')
+         ON DUPLICATE KEY UPDATE
+           tenant_request_id = VALUES(tenant_request_id),
+           company_name = VALUES(company_name),
+           contact_name = VALUES(contact_name),
+           job_title = VALUES(job_title),
+           phone = VALUES(phone),
+           website = VALUES(website),
+           industry = VALUES(industry),
+           employee_count = VALUES(employee_count),
+           plan_interest = VALUES(plan_interest),
+           stage = IF(stage = 'lost', 'lead', stage)`,
+        [
+          requestInsert.insertId,
+          company_name.trim(),
+          contact_person_name || null,
+          contact_person_title || null,
+          trimmedEmail,
+          contact_phone || null,
+          website || null,
+          industry || null,
+          employee_count || 10,
+          requestedPlan,
+        ]
+      );
+
+      await conn.query(
+        `INSERT INTO platform_crm_activities (contact_id, type, subject, body, admin_id)
+         SELECT id, 'note', 'Signup request received', ?, NULL
+         FROM platform_crm_contacts WHERE email = ? AND tenant_id IS NULL`,
+        [`Requested plan: ${requestedPlan}${hasPayment ? ' (payment proof uploaded)' : ''}`, trimmedEmail]
+      );
+
       await conn.commit();
 
       // Notify platform admin

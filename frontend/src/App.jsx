@@ -95,9 +95,17 @@ const PlatformActivity = lazy(() => import('./modules/platform/pages/PlatformAct
 const PlatformClientAccounts = lazy(() => import('./modules/platform/pages/PlatformClientAccounts'));
 const PlatformPayments = lazy(() => import('./modules/platform/pages/PlatformPayments'));
 const PlatformRevenue = lazy(() => import('./modules/platform/pages/PlatformRevenue'));
+const PlatformCrm = lazy(() => import('./modules/platform/pages/PlatformCrm'));
+const PlatformSupport = lazy(() => import('./modules/platform/pages/PlatformSupport'));
+const PlatformReleases = lazy(() => import('./modules/platform/pages/PlatformReleases'));
+const PlatformSandbox = lazy(() => import('./modules/platform/pages/PlatformSandbox'));
+const PlatformBilling = lazy(() => import('./modules/platform/pages/PlatformBilling'));
 const ITPortal = lazy(() => import('./modules/it/pages/ITPortal'));
 const AuditPortal = lazy(() => import('./modules/audit/pages/AuditPortal'));
 const RBACManager = lazy(() => import('./modules/admin/pages/RBACManager'));
+const AdminPolicies = lazy(() => import('./modules/admin/pages/Policies'));
+const MyPolicies = lazy(() => import('./modules/policies/pages/MyPolicies'));
+const AccountStatus = lazy(() => import('./modules/auth/pages/AccountStatus'));
 
 function CandidatesRedirect() {
   const { id } = useParams();
@@ -132,6 +140,7 @@ export default function App() {
             <Route path="/contact" element={<LandingContact />} />
           </Route>
           <Route path="/login" element={<Login />} />
+          <Route path="/account-status" element={<AccountStatus />} />
           <Route path="/register" element={<Register />} />
           <Route path="/tenant-register" element={<TenantRegister />} />
           <Route path="/track-request" element={<TrackRequest />} />
@@ -160,6 +169,7 @@ export default function App() {
             <Route path="/personnel/my-profile" element={<MyProfile />} />
             <Route path="/personnel/my-tasks" element={<MyTasks />} />
             <Route path="/personnel/organization-chart" element={<OrganizationChart />} />
+            <Route path="/policies" element={<MyPolicies />} />
           </Route>
           <Route path="/missing-signout" element={<Navigate to="/requests" />} />
           <Route path="/leaves" element={<Navigate to="/requests" />} />
@@ -176,6 +186,11 @@ export default function App() {
             <Route path="/admin/rbac" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <RBACManager />
+              </Suspense>
+            } />
+            <Route path="/admin/policies" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <AdminPolicies />
               </Suspense>
             } />
           </Route>
@@ -370,6 +385,31 @@ export default function App() {
             <Route path="revenue" element={
               <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
                 <PlatformRevenue />
+              </Suspense>
+            } />
+            <Route path="crm" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformCrm />
+              </Suspense>
+            } />
+            <Route path="support" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformSupport />
+              </Suspense>
+            } />
+            <Route path="releases" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformReleases />
+              </Suspense>
+            } />
+            <Route path="sandbox" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformSandbox />
+              </Suspense>
+            } />
+            <Route path="billing" element={
+              <Suspense fallback={<div className="glass-loading"><div className="spinner" /></div>}>
+                <PlatformBilling />
               </Suspense>
             } />
           </Route>

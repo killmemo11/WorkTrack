@@ -16,6 +16,11 @@ function activeTenantId() {
 
 async function getTransporter() {
   const tenantId = activeTenantId();
+
+  // Sandboxes share the production code paths but must never reach real inboxes.
+  const [sandbox] = await pool.query('SELECT is_sandbox FROM tenants WHERE id = ?', [tenantId]);
+  if (sandbox[0]?.is_sandbox === 1) return null;
+
   const [rows] = await pool.query('SELECT `key`, `value` FROM settings WHERE tenant_id = ?', [tenantId]);
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;

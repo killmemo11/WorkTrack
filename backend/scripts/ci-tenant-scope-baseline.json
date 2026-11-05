@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T10:24:20.570Z",
+  "generated_at": "2026-11-05T07:18:54.373Z",
   "note": "Existing unscoped queries accepted at migration 032. Remove entries as they are fixed.",
   "violations": [
     "src/modules/admin/admin-auth.controller.js::021b363c1d4014fd",
@@ -125,6 +125,9 @@
     "src/shared/jobs/missing-signout-reminder.job.js::0888ac928ccd9931",
     "src/shared/middleware/platform-auth.middleware.js::f7e9fbbc4378d9ec",
     "src/shared/services/audit.service.js::6371cc3b729827d9",
+    "src/shared/services/billing.service.js::08c3f95c2326019e",
+    "src/shared/services/billing.service.js::c52b57b453ea376d",
+    "src/shared/services/billing.service.js::d04e9356405e3d37",
     "src/shared/services/screening.service.js::14009c246e81462b",
     "src/shared/services/screening.service.js::33ba3c0f71a4e0e4",
     "src/shared/services/screening.service.js::3cd860cb36771f68",

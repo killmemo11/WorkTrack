@@ -4,6 +4,12 @@
 const pool = require('../../shared/config/database');
 const { encrypt, decrypt } = require('../../shared/utils/encryption');
 const { logActivity } = require('../../shared/services/activity.service');
+const { getPlatformAccess } = require('../../shared/middleware/platform-permission.middleware');
+
+async function canManagePrices(req) {
+  const access = await getPlatformAccess(req.platformAdmin.id);
+  return access.roles.has('owner') || access.permissions.has('platform.plans.manage_price');
+}
 
 // ============================================================
 // PUBLIC: Get active plans (for landing page / tenant signup)
@@ -51,7 +57,7 @@ async function getPlan(req, res) {
 }
 
 async function createPlan(req, res) {
-  const { name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features } = req.body;
+  const { name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features, price_note } = req.body;
   
   if (!name || !slug) {
     return res.status(400).json({ error: 'Name and slug are required' });
@@ -62,14 +68,34 @@ async function createPlan(req, res) {
     return res.status(400).json({ error: 'A plan with this slug already exists' });
   }
 
-  const [result] = await pool.query(
-    `INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, slug, description || null, price_monthly || 0, price_yearly || 0, currency || 'USD', max_employees || 50, trial_days || 14, is_active !== false ? 1 : 0, is_public !== false ? 1 : 0, sort_order || 0, features ? JSON.stringify(features) : null]
-  );
+  const conn = await pool.getConnection();
+  let planId;
+  try {
+    await conn.beginTransaction();
+
+    const [result] = await conn.query(
+      `INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, slug, description || null, price_monthly || 0, price_yearly || 0, currency || 'USD', max_employees || 50, trial_days || 14, is_active !== false ? 1 : 0, is_public !== false ? 1 : 0, sort_order || 0, features ? JSON.stringify(features) : null]
+    );
+    planId = result.insertId;
+
+    await conn.query(
+      `INSERT INTO plan_price_versions (plan_id, version, price_monthly, price_yearly, currency, note, created_by)
+       VALUES (?, 1, ?, ?, ?, ?, ?)`,
+      [planId, price_monthly || 0, price_yearly || 0, currency || 'USD', price_note || 'Initial price', req.platformAdmin.id]
+    );
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 
   await logActivity(null, req.platformAdmin.id, 'plan_created', `Created subscription plan: ${name}`);
-  const [created] = await pool.query('SELECT * FROM subscription_plans WHERE id = ?', [result.insertId]);
+  const [created] = await pool.query('SELECT * FROM subscription_plans WHERE id = ?', [planId]);
   res.status(201).json(created[0]);
 }
 
@@ -78,11 +104,21 @@ async function updatePlan(req, res) {
   const [existing] = await pool.query('SELECT * FROM subscription_plans WHERE id = ?', [id]);
   if (existing.length === 0) return res.status(404).json({ error: 'Plan not found' });
 
-  const { name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features } = req.body;
+  const { name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features, price_note } = req.body;
   
   if (slug && slug !== existing[0].slug) {
     const [dup] = await pool.query('SELECT id FROM subscription_plans WHERE slug = ? AND id != ?', [slug, id]);
     if (dup.length > 0) return res.status(400).json({ error: 'Slug already in use' });
+  }
+
+  const current = existing[0];
+  const priceFieldsChanged =
+    (price_monthly !== undefined && Number(price_monthly) !== Number(current.price_monthly)) ||
+    (price_yearly !== undefined && Number(price_yearly) !== Number(current.price_yearly)) ||
+    (currency !== undefined && currency !== current.currency);
+
+  if (priceFieldsChanged && !(await canManagePrices(req))) {
+    return res.status(403).json({ error: 'Platform permission required: platform.plans.manage_price' });
   }
 
   const updates = [];
@@ -103,12 +139,68 @@ async function updatePlan(req, res) {
 
   if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
 
-  values.push(id);
-  await pool.query(`UPDATE subscription_plans SET ${updates.join(', ')} WHERE id = ?`, values);
+  const conn = await pool.getConnection();
+  let nextVersion = null;
+  try {
+    await conn.beginTransaction();
 
-  await logActivity(null, req.platformAdmin.id, 'plan_updated', `Updated subscription plan: ${name || existing[0].name}`);
+    values.push(id);
+    await conn.query(`UPDATE subscription_plans SET ${updates.join(', ')} WHERE id = ?`, values);
+
+    if (priceFieldsChanged) {
+      const [[versionRow]] = await conn.query(
+        'SELECT COALESCE(MAX(version), 0) + 1 AS next_version FROM plan_price_versions WHERE plan_id = ?',
+        [id]
+      );
+      nextVersion = versionRow.next_version;
+      await conn.query(
+        `INSERT INTO plan_price_versions (plan_id, version, price_monthly, price_yearly, currency, note, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          nextVersion,
+          price_monthly !== undefined ? price_monthly : current.price_monthly,
+          price_yearly !== undefined ? price_yearly : current.price_yearly,
+          currency !== undefined ? currency : current.currency,
+          price_note || null,
+          req.platformAdmin.id,
+        ]
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  await logActivity(
+    null,
+    req.platformAdmin.id,
+    'plan_updated',
+    `Updated subscription plan: ${name || current.name}${nextVersion ? ` (price version ${nextVersion})` : ''}`
+  );
   const [updated] = await pool.query('SELECT * FROM subscription_plans WHERE id = ?', [id]);
-  res.json(updated[0]);
+  res.json({ ...updated[0], price_version: nextVersion });
+}
+
+async function listPlanPriceVersions(req, res) {
+  const { id } = req.params;
+  const [plans] = await pool.query('SELECT id FROM subscription_plans WHERE id = ?', [id]);
+  if (plans.length === 0) return res.status(404).json({ error: 'Plan not found' });
+
+  const [rows] = await pool.query(
+    `SELECT v.*, au.username AS created_by_username,
+       (SELECT COUNT(*) FROM tenants t WHERE t.plan_price_version_id = v.id AND t.deleted_at IS NULL) AS tenant_count
+     FROM plan_price_versions v
+     LEFT JOIN admin_users au ON au.id = v.created_by
+     WHERE v.plan_id = ?
+     ORDER BY v.version DESC`,
+    [id]
+  );
+  res.json(rows);
 }
 
 async function deletePlan(req, res) {
@@ -181,6 +273,7 @@ module.exports = {
   getPlan,
   createPlan,
   updatePlan,
+  listPlanPriceVersions,
   deletePlan,
   listPlatformSettings,
   updatePlatformSettings,

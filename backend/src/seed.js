@@ -538,23 +538,84 @@ async function seed() {
       )
     `);
     console.log('Created subscription_plans table');
-    
-    // Seed default plans
-    const plans = [
-      { name: 'Trial', slug: 'trial', desc: 'Try WorkTrack free for 14 days', priceM: 0, priceY: 0, currency: 'USD', maxEmp: 25, trialDays: 14, sort: 1, features: JSON.stringify(['All modules included', 'Up to 25 employees', '14-day free trial', 'Email support']) },
-      { name: 'Basic', slug: 'basic', desc: 'For small teams getting started', priceM: 29, priceY: 290, currency: 'USD', maxEmp: 50, trialDays: 14, sort: 2, features: JSON.stringify(['All modules included', 'Up to 50 employees', '14-day free trial', 'Email support', 'Basic reports']) },
-      { name: 'Professional', slug: 'professional', desc: 'For growing companies', priceM: 79, priceY: 790, currency: 'USD', maxEmp: 200, trialDays: 14, sort: 3, features: JSON.stringify(['All modules included', 'Up to 200 employees', '14-day free trial', 'Priority support', 'Advanced reports', 'Custom workflows']) },
-      { name: 'Enterprise', slug: 'enterprise', desc: 'For large organizations', priceM: 199, priceY: 1990, currency: 'USD', maxEmp: 9999, trialDays: 14, sort: 4, features: JSON.stringify(['All modules included', 'Unlimited employees', '14-day free trial', 'Dedicated support', 'Custom integrations', 'SLA guarantee']) },
-    ];
-    
-    for (const p of plans) {
-      await pool.query(
-        'INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)',
-        [p.name, p.slug, p.desc, p.priceM, p.priceY, p.currency, p.maxEmp, p.trialDays, p.sort, p.features]
-      );
-    }
-    console.log('Seeded default subscription plans');
   }
+
+  // Migrations create the plans table empty, so seed by slug instead of by
+  // table existence. Safe on databases that already have the defaults.
+  const defaultPlans = [
+    { name: 'Trial', slug: 'trial', desc: 'Try WorkTrack free for 14 days', priceM: 0, priceY: 0, currency: 'USD', maxEmp: 25, trialDays: 14, sort: 1, features: JSON.stringify(['All modules included', 'Up to 25 employees', '14-day free trial', 'Email support']) },
+    { name: 'Basic', slug: 'basic', desc: 'For small teams getting started', priceM: 29, priceY: 290, currency: 'USD', maxEmp: 50, trialDays: 14, sort: 2, features: JSON.stringify(['All modules included', 'Up to 50 employees', '14-day free trial', 'Email support', 'Basic reports']) },
+    { name: 'Professional', slug: 'professional', desc: 'For growing companies', priceM: 79, priceY: 790, currency: 'USD', maxEmp: 200, trialDays: 14, sort: 3, features: JSON.stringify(['All modules included', 'Up to 200 employees', '14-day free trial', 'Priority support', 'Advanced reports', 'Custom workflows']) },
+    { name: 'Enterprise', slug: 'enterprise', desc: 'For large organizations', priceM: 199, priceY: 1990, currency: 'USD', maxEmp: 9999, trialDays: 14, sort: 4, features: JSON.stringify(['All modules included', 'Unlimited employees', '14-day free trial', 'Dedicated support', 'Custom integrations', 'SLA guarantee']) },
+  ];
+
+  const [existingPlanSlugs] = await pool.query('SELECT slug FROM subscription_plans');
+  const knownPlanSlugs = new Set(existingPlanSlugs.map((row) => row.slug));
+  for (const p of defaultPlans) {
+    if (knownPlanSlugs.has(p.slug)) continue;
+    await pool.query(
+      'INSERT INTO subscription_plans (name, slug, description, price_monthly, price_yearly, currency, max_employees, trial_days, is_active, is_public, sort_order, features) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)',
+      [p.name, p.slug, p.desc, p.priceM, p.priceY, p.currency, p.maxEmp, p.trialDays, p.sort, p.features]
+    );
+  }
+  console.log('Ensured default subscription plans');
+
+  // ============================================================
+  // 7b. PLAN PRICE VERSIONS (price grandfathering)
+  // ============================================================
+
+  const [ppvTable] = await pool.query(
+    "SELECT * FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'plan_price_versions'",
+    [process.env.DB_NAME]
+  );
+  if (ppvTable.length === 0) {
+    await pool.query(`
+      CREATE TABLE plan_price_versions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        plan_id INT NOT NULL,
+        version INT NOT NULL,
+        price_monthly DECIMAL(10,2) NOT NULL DEFAULT 0,
+        price_yearly DECIMAL(10,2) NOT NULL DEFAULT 0,
+        currency VARCHAR(10) NOT NULL DEFAULT 'EGP',
+        note VARCHAR(255) NULL,
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_plan_price_version (plan_id, version),
+        INDEX idx_ppv_plan (plan_id),
+        FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL
+      )
+    `);
+    console.log('Created plan_price_versions table');
+  }
+
+  await pool.query(`
+    INSERT INTO plan_price_versions (plan_id, version, price_monthly, price_yearly, currency, note)
+    SELECT sp.id, 1, sp.price_monthly, sp.price_yearly, COALESCE(sp.currency, 'USD'), 'Initial price at seed'
+    FROM subscription_plans sp
+    LEFT JOIN plan_price_versions v ON v.plan_id = sp.id AND v.version = 1
+    WHERE v.id IS NULL
+  `);
+
+  const [ppvCol] = await pool.query(
+    "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'tenants' AND COLUMN_NAME = 'plan_price_version_id'",
+    [process.env.DB_NAME]
+  );
+  if (ppvCol.length === 0) {
+    await pool.query('ALTER TABLE tenants ADD COLUMN plan_price_version_id INT NULL AFTER plan');
+    await pool.query('ALTER TABLE tenants ADD INDEX idx_tenant_plan_price_version (plan_price_version_id)');
+    await pool.query('ALTER TABLE tenants ADD FOREIGN KEY fk_tenant_plan_price_version (plan_price_version_id) REFERENCES plan_price_versions(id) ON DELETE SET NULL');
+  }
+
+  // Pin every tenant that has no snapshot yet. Existing tenants keep the price
+  // they signed up with; only new plans or explicit repricing move them.
+  await pool.query(`
+    UPDATE tenants t
+    JOIN subscription_plans sp ON sp.slug = t.plan
+    JOIN plan_price_versions v ON v.plan_id = sp.id AND v.version = 1
+    SET t.plan_price_version_id = v.id
+    WHERE t.plan_price_version_id IS NULL
+  `);
 
   // ============================================================
   // 8. PLATFORM SETTINGS (editable by Super Admin)
@@ -665,6 +726,7 @@ async function seedTenantRBAC(tenantId) {
     { module: 'admin', action: 'manage_users', label: 'Manage Users', desc: 'Create/edit/deactivate admin and employee users' },
     { module: 'admin', action: 'manage_roles', label: 'Manage Roles', desc: 'Create/edit roles and permissions' },
     { module: 'admin', action: 'manage_services', label: 'Manage Service Toggles', desc: 'Enable/disable system services' },
+    { module: 'admin', action: 'manage_policies', label: 'Manage Company Policies', desc: 'Create, edit and publish company policies for employees' },
     { module: 'admin', action: 'view_audit', label: 'View Audit Log', desc: 'View system activity and audit logs' },
 
     // Audit module

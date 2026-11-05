@@ -12,6 +12,7 @@ const {
   getPlan,
   createPlan,
   updatePlan,
+  listPlanPriceVersions,
   deletePlan,
   listPlatformSettings,
   updatePlatformSettings,
@@ -25,6 +26,7 @@ router.get('/public/settings', getPublicSettings);
 // Admin routes (Super Admin auth required)
 router.get('/plans', requirePlatformAuth, requirePlatformPermission('platform.plans.view'), listPlans);
 router.get('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.view'), getPlan);
+router.get('/plans/:id/price-versions', requirePlatformAuth, requirePlatformPermission('platform.plans.view'), listPlanPriceVersions);
 router.post('/plans', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), createPlan);
 router.put('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), updatePlan);
 router.delete('/plans/:id', requirePlatformAuth, requirePlatformPermission('platform.plans.manage'), deletePlan);

@@ -58,6 +58,18 @@ jobs:
         working-directory: backend
         run: node scripts/ci-tenant-scope.js
 
+      - name: Run company policy checks
+        working-directory: backend
+        run: node --test scripts/ci-policies.js
+
+      - name: Run marketing console checks
+        working-directory: backend
+        run: node --test scripts/ci-marketing.js
+
+      - name: Run platform ops checks
+        working-directory: backend
+        run: node --test scripts/ci-platform-ops.js
+
   build:
     name: Build Frontend
     runs-on: ubuntu-latest

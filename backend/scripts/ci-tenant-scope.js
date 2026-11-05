@@ -50,7 +50,7 @@ function collectTenantTables() {
       if (/\btenant_id\b/i.test(match[2])) tables.add(match[1].toLowerCase());
     }
 
-    for (const match of sql.matchAll(/ALTER TABLE\s+`?(\w+)`?[^;]{0,250}?tenant_id/gi)) {
+    for (const match of sql.matchAll(/ALTER TABLE\s+`?(\w+)`?[^;]{0,250}?\btenant_id\b/gi)) {
       tables.add(match[1].toLowerCase());
     }
   }

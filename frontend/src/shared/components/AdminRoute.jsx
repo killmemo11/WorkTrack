@@ -3,9 +3,11 @@
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { useSession } from '../context/SessionContext';
 
 export default function AdminRoute({ children }) {
   const { admin, loading } = useAdminAuth();
+  const { session } = useSession();
   const location = useLocation();
 
   if (loading) return (
@@ -14,6 +16,8 @@ export default function AdminRoute({ children }) {
       <span>Loading...</span>
     </div>
   );
+
+  if (session?.access?.blocked) return <Navigate to="/account-status" replace />;
 
   if (!admin) return <Navigate to="/login" replace />;
 

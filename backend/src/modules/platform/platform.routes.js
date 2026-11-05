@@ -17,6 +17,7 @@ const {
   listTenants,
   getTenant,
   updateTenant,
+  updateTenantSubscription,
   suspendTenant,
   activateTenant,
   deleteTenant,
@@ -40,6 +41,11 @@ const {
   resetClientAccountPassword,
   deleteClientAccount,
 } = require('./platform.controller');
+const {
+  getTenantDiagnostics,
+  impersonateTenant,
+  stopImpersonation,
+} = require('./support.controller');
 
 router.post('/auth/login', platformLogin);
 router.get('/auth/me', requirePlatformAuth, platformMe);
@@ -69,10 +75,16 @@ router.get('/tenants', requirePlatformAuth, requirePlatformPermission('platform.
 router.get('/tenants/:id', requirePlatformAuth, requirePlatformPermission('platform.tenants.view'), getTenant);
 router.post('/tenants', requirePlatformAuth, requirePlatformPermission('platform.tenants.create'), createTenant);
 router.put('/tenants/:id', requirePlatformAuth, requirePlatformPermission('platform.tenants.update'), updateTenant);
+router.put('/tenants/:id/subscription', requirePlatformAuth, requirePlatformPermission('platform.plans.manage_price'), updateTenantSubscription);
 router.post('/tenants/:id/suspend', requirePlatformAuth, requirePlatformPermission('platform.tenants.suspend'), suspendTenant);
 router.post('/tenants/:id/activate', requirePlatformAuth, requirePlatformPermission('platform.tenants.activate'), activateTenant);
 router.delete('/tenants/:id', requirePlatformAuth, requirePlatformPermission('platform.tenants.delete'), deleteTenant);
 router.post('/tenants/admins/:id/resend-magic-link', requirePlatformAuth, requirePlatformPermission('platform.support.remediate'), resendMagicLink);
+
+// Technical support console
+router.get('/tenants/:id/diagnostics', requirePlatformAuth, requirePlatformPermission('platform.support.view'), getTenantDiagnostics);
+router.post('/tenants/:id/impersonate', requirePlatformAuth, requirePlatformPermission('platform.support.impersonate'), impersonateTenant);
+router.post('/support/impersonation/stop', requirePlatformAuth, requirePlatformPermission('platform.support.impersonate'), stopImpersonation);
 
 // Payment Transactions
 router.get('/payments', requirePlatformAuth, requirePlatformPermission('platform.payments.view'), getPaymentTransactions);

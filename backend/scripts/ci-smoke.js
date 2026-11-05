@@ -40,6 +40,34 @@ async function main() {
   const me = await request(app).get('/api/auth/me');
   assert.equal(me.status, 401, 'unauthenticated /api/auth/me must return 401');
 
+  const session = await request(app).get('/api/session/context');
+  assert.equal(session.status, 401, 'unauthenticated /api/session/context must return 401');
+
+  const policies = await request(app).get('/api/policies');
+  assert.equal(policies.status, 401, 'unauthenticated /api/policies must return 401');
+
+  const adminPolicies = await request(app).get('/api/admin/policies');
+  assert.equal(adminPolicies.status, 401, 'unauthenticated /api/admin/policies must return 401');
+
+  const crmOverview = await request(app).get('/api/platform/crm/overview');
+  assert.equal(crmOverview.status, 401, 'unauthenticated /api/platform/crm/overview must return 401');
+
+  const crmContacts = await request(app).get('/api/platform/crm/contacts');
+  assert.equal(crmContacts.status, 401, 'unauthenticated /api/platform/crm/contacts must return 401');
+
+  const priceVersions = await request(app).get('/api/platform/plans/1/price-versions');
+  assert.equal(priceVersions.status, 401, 'unauthenticated price versions must return 401');
+
+  for (const path of [
+    '/api/platform/tenants/1/diagnostics',
+    '/api/platform/releases/flags',
+    '/api/platform/sandboxes',
+    '/api/platform/billing/summary',
+  ]) {
+    const response = await request(app).get(path);
+    assert.equal(response.status, 401, `unauthenticated ${path} must return 401`);
+  }
+
   const refreshMissing = await request(app).post('/api/auth/refresh').send({ realm: 'employee' });
   assert.equal(refreshMissing.status, 401, 'refresh without a token must return 401');
 

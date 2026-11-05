@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { formatDateTime } from '../../../shared/utils/date';
 
 const defaultForm = {
   name: '',
@@ -18,6 +19,7 @@ const defaultForm = {
   is_public: true,
   sort_order: 0,
   features: [],
+  price_note: '',
 };
 
 export default function PlatformPlans() {
@@ -29,6 +31,7 @@ export default function PlatformPlans() {
   const [featureInput, setFeatureInput] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [priceVersions, setPriceVersions] = useState([]);
 
   const fetchPlans = async () => {
     try {
@@ -39,12 +42,21 @@ export default function PlatformPlans() {
 
   useEffect(() => { fetchPlans(); }, []);
 
+  const fetchPriceVersions = async (planId) => {
+    try {
+      const res = await platformApi.get(`/plans/${planId}/price-versions`);
+      setPriceVersions(res.data || []);
+    } catch { setPriceVersions([]); }
+  };
+
   const selectPlan = (idx) => {
     setActiveTab(idx);
     setEditing(false);
     setError('');
+    setPriceVersions([]);
     if (idx < plans.length) {
       const plan = plans[idx];
+      fetchPriceVersions(plan.id);
       setForm({
         name: plan.name,
         slug: plan.slug,
@@ -58,6 +70,7 @@ export default function PlatformPlans() {
         is_public: !!plan.is_public,
         sort_order: plan.sort_order,
         features: plan.features ? (typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features) : [],
+        price_note: '',
       });
     } else {
       setForm(defaultForm);
@@ -90,6 +103,7 @@ export default function PlatformPlans() {
         max_employees: parseInt(form.max_employees) || 50,
         trial_days: parseInt(form.trial_days) || 14,
         sort_order: parseInt(form.sort_order) || 0,
+        price_note: form.price_note.trim() || undefined,
       };
       const isEdit = activeTab < plans.length;
       if (isEdit) {
@@ -99,8 +113,14 @@ export default function PlatformPlans() {
       }
       setEditing(false);
       fetchPlans();
-    } catch {
-      setError('Network error');
+      if (isEdit) {
+        const planId = plans[activeTab].id;
+        platformApi.get(`/plans/${planId}/price-versions`)
+          .then((res) => setPriceVersions(res.data || []))
+          .catch(() => {});
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Network error');
     } finally {
       setSaving(false);
     }
@@ -195,6 +215,11 @@ export default function PlatformPlans() {
                   <div className="glass-input-group" style={{ marginTop: 12 }}>
                     <label>Description</label>
                     <input type="text" value={form.description} onChange={(e) => handleChange('description', e.target.value)} className="glass-input" />
+                  </div>
+                  <div className="glass-input-group" style={{ marginTop: 12 }}>
+                    <label>Price change note (optional)</label>
+                    <input type="text" value={form.price_note} onChange={(e) => handleChange('price_note', e.target.value)} className="glass-input" placeholder="Why is the price changing?" />
+                    <small className="text-muted">Changing a price creates a new version. Existing tenants keep their pinned price until you move them.</small>
                   </div>
                   <div className="platform-plans-form-grid-4" style={{ marginTop: 12 }}>
                     <div className="glass-input-group">
@@ -318,6 +343,38 @@ export default function PlatformPlans() {
                       </div>
                     </div>
                   )}
+
+                  {priceVersions.length > 0 && (
+                    <div className="platform-plan-features">
+                      <div className="platform-plan-features-title">Price history</div>
+                      <div className="platform-table-wrapper">
+                        <table className="platform-table">
+                          <thead>
+                            <tr>
+                              <th>Version</th>
+                              <th>Monthly</th>
+                              <th>Yearly</th>
+                              <th>Tenants</th>
+                              <th>Created</th>
+                              <th>Note</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {priceVersions.map((version) => (
+                              <tr key={version.id}>
+                                <td><strong>v{version.version}</strong></td>
+                                <td>{formatCurrency(Number(version.price_monthly), version.currency)}</td>
+                                <td>{formatCurrency(Number(version.price_yearly), version.currency)}</td>
+                                <td>{version.tenant_count}</td>
+                                <td>{formatDateTime(version.created_at)}</td>
+                                <td>{version.note || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             ) : (
@@ -338,6 +395,10 @@ export default function PlatformPlans() {
                   <div className="glass-input-group" style={{ marginTop: 12 }}>
                     <label>Description</label>
                     <input type="text" value={form.description} onChange={(e) => handleChange('description', e.target.value)} className="glass-input" placeholder="Short description" />
+                  </div>
+                  <div className="glass-input-group" style={{ marginTop: 12 }}>
+                    <label>Initial price note (optional)</label>
+                    <input type="text" value={form.price_note} onChange={(e) => handleChange('price_note', e.target.value)} className="glass-input" placeholder="e.g. launch pricing" />
                   </div>
                   <div className="platform-plans-form-grid-4" style={{ marginTop: 12 }}>
                     <div className="glass-input-group">

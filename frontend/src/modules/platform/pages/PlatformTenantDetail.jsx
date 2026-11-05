@@ -2,16 +2,26 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 import platformApi from '../../../shared/api/platformApi';
+import { usePlatformAuth } from '../../../shared/context/PlatformAuthContext';
 import { formatDate as formatDateCairo } from '../../../shared/utils/date';
 
 export default function PlatformTenantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { platformAdmin } = usePlatformAuth();
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [planVersions, setPlanVersions] = useState([]);
+  const [subEditing, setSubEditing] = useState(false);
+  const [subForm, setSubForm] = useState({ plan: '', plan_price_version_id: '' });
+  const [subSaving, setSubSaving] = useState(false);
+
+  const roles = platformAdmin?.roles || [];
+  const canReprice = roles.includes('owner') || (platformAdmin?.permissions || []).includes('platform.plans.manage_price');
 
   const fetchTenant = async () => {
     setLoading(true);
@@ -68,6 +78,54 @@ export default function PlatformTenantDetail() {
       const res = await platformApi.post(`/tenants/admins/${adminId}/resend-magic-link`);
       alert(res.data.message || 'Magic link resent');
     } catch { alert('Failed'); }
+  };
+
+  const loadPlanVersions = async (planId) => {
+    try {
+      const res = await platformApi.get(`/plans/${planId}/price-versions`);
+      setPlanVersions(res.data || []);
+    } catch { setPlanVersions([]); }
+  };
+
+  const openSubscriptionEdit = async () => {
+    try {
+      const res = await platformApi.get('/plans');
+      const list = res.data || [];
+      setPlans(list);
+      const current = list.find((p) => p.slug === tenant.plan);
+      if (current) await loadPlanVersions(current.id);
+      setSubForm({
+        plan: tenant.plan,
+        plan_price_version_id: tenant.subscription?.price_version_id || '',
+      });
+      setSubEditing(true);
+    } catch { alert('Failed to load plans'); }
+  };
+
+  const handlePlanChange = async (slug) => {
+    setSubForm({ plan: slug, plan_price_version_id: '' });
+    const plan = plans.find((p) => p.slug === slug);
+    if (plan) await loadPlanVersions(plan.id);
+  };
+
+  const handleSubscriptionSave = async () => {
+    if (!subForm.plan_price_version_id) {
+      alert('Select a price version');
+      return;
+    }
+    setSubSaving(true);
+    try {
+      await platformApi.put(`/tenants/${id}/subscription`, {
+        plan: subForm.plan,
+        plan_price_version_id: Number(subForm.plan_price_version_id),
+      });
+      setSubEditing(false);
+      fetchTenant();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update subscription');
+    } finally {
+      setSubSaving(false);
+    }
   };
 
   const formatDate = (d) => d ? formatDateCairo(d) : '—';
@@ -186,6 +244,66 @@ export default function PlatformTenantDetail() {
               <div className="detail-row">
                 <span className="detail-label">Created</span>
                 <span>{formatDate(tenant.created_at)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="glass-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="platform-section-title" style={{ margin: 0 }}>Subscription</h2>
+            {canReprice && !subEditing && (
+              <button className="glass-btn glass-btn-sm glass-btn-ghost" onClick={openSubscriptionEdit}>
+                <Icon icon="lucide:repeat" size={14} /> Change
+              </button>
+            )}
+          </div>
+          {subEditing ? (
+            <div className="platform-form-grid" style={{ marginTop: 12 }}>
+              <div className="glass-input-group">
+                <label>Plan</label>
+                <select className="glass-select" value={subForm.plan} onChange={(e) => handlePlanChange(e.target.value)}>
+                  <option value="">Select a plan</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.slug}>{plan.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="glass-input-group">
+                <label>Price version</label>
+                <select className="glass-select" value={subForm.plan_price_version_id} onChange={(e) => setSubForm({ ...subForm, plan_price_version_id: e.target.value })}>
+                  <option value="">Select a version</option>
+                  {planVersions.map((version) => (
+                    <option key={version.id} value={version.id}>
+                      v{version.version} — {Number(version.price_monthly)} {version.currency}/mo ({version.tenant_count} tenants)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <button className="glass-btn glass-btn-primary glass-btn-sm" onClick={handleSubscriptionSave} disabled={subSaving}>
+                  {subSaving ? 'Saving...' : 'Apply'}
+                </button>
+                <button className="glass-btn glass-btn-ghost glass-btn-sm" onClick={() => setSubEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div className="platform-detail-info" style={{ marginTop: 12 }}>
+              <div className="detail-row">
+                <span className="detail-label">Plan</span>
+                <span>{tenant.subscription?.plan_name || tenant.plan}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Price version</span>
+                <span>{tenant.subscription?.price_version ? `v${tenant.subscription.price_version}` : 'Not pinned'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Monthly</span>
+                <span>{tenant.subscription ? `${Number(tenant.subscription.price_monthly).toLocaleString()} ${tenant.subscription.currency}` : '—'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Yearly</span>
+                <span>{tenant.subscription ? `${Number(tenant.subscription.price_yearly).toLocaleString()} ${tenant.subscription.currency}` : '—'}</span>
               </div>
             </div>
           )}

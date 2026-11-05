@@ -58,6 +58,7 @@ async function waitForDB(retries = 15, delay = 2000) {
 const { startMissingSignOutReminderJob, runMissingSignOutCheck } = require('./shared/jobs/missing-signout-reminder.job');
 const { startExpiryReminderJob } = require('./shared/jobs/expiry-reminder.job');
 const { startSubscriptionExpiryJob } = require('./shared/jobs/subscription-expiry.job');
+const { startBillingJob } = require('./shared/jobs/billing-reminder.job');
 
 let server;
 
@@ -68,6 +69,7 @@ async function start() {
     startMissingSignOutReminderJob();
     startExpiryReminderJob();
     startSubscriptionExpiryJob();
+    startBillingJob();
     server = app.listen(PORT, () => logger.info(`Backend running on port ${PORT}`));
   } catch (err) {
     logger.error('Failed to connect to database:', err.message);

@@ -5,8 +5,11 @@ const jwt = require('jsonwebtoken');
 const pool = require('../../shared/config/database');
 const { getUserPermissions } = require('../../shared/middleware/rbac.middleware');
 const { getPlatformAccess } = require('../../shared/middleware/platform-permission.middleware');
+const { getTenantFeatures } = require('../../shared/services/feature-flags.service');
 
-const TOKEN_COOKIES = ['platform_access_token', 'admin_access_token', 'access_token'];
+// An impersonation session holds both the platform and the tenant cookie; the
+// tenant realm must win so the UI reflects the workspace being inspected.
+const TOKEN_COOKIES = ['admin_access_token', 'access_token', 'platform_access_token'];
 
 function readToken(req) {
   const header = req.headers.authorization;
@@ -50,6 +53,19 @@ async function loadTenantRoleNames(userId, userType, tenantId) {
     [userId, userType, tenantId]
   );
   return rows.map((row) => row.name);
+}
+
+async function loadPendingPolicies(employeeId, tenantId) {
+  const [[row]] = await pool.query(
+    `SELECT COUNT(*) AS pending
+     FROM tenant_policies p
+     LEFT JOIN policy_acknowledgements pa
+       ON pa.policy_id = p.id AND pa.employee_id = ? AND pa.tenant_id = p.tenant_id
+     WHERE p.tenant_id = ? AND p.is_published = 1 AND p.requires_ack = 1
+       AND (p.effective_at IS NULL OR p.effective_at <= NOW()) AND pa.id IS NULL`,
+    [employeeId, tenantId]
+  );
+  return row.pending || 0;
 }
 
 function employeeLanding(employee) {
@@ -110,6 +126,7 @@ async function getSessionContext(req, res) {
       roles: [...access.roles],
       permissions: [...access.permissions],
       services: {},
+      policies: { pending_acknowledgements: 0 },
       landing: '/platform',
       access: { blocked: false, reason: null },
     });
@@ -139,10 +156,11 @@ async function getSessionContext(req, res) {
       return res.status(403).json({ error: 'Token tenant mismatch' });
     }
 
-    const [permissions, roles, services] = await Promise.all([
+    const [permissions, roles, services, features] = await Promise.all([
       getUserPermissions(admin.id, 'admin', admin.tenant_id),
       loadTenantRoleNames(admin.id, 'admin', admin.tenant_id),
       loadServices(admin.tenant_id),
+      getTenantFeatures(admin.tenant_id),
     ]);
 
     const blocked = admin.tenant_status !== 'active';
@@ -159,8 +177,13 @@ async function getSessionContext(req, res) {
       roles,
       permissions: [...permissions],
       services,
+      features,
+      policies: { pending_acknowledgements: 0 },
       landing: admin.must_change_password ? '/admin/change-password' : '/admin/settings',
       access: { blocked, reason: blocked ? 'TENANT_INACTIVE' : null },
+      impersonation: decoded.imp
+        ? { active: true, platform_admin_id: decoded.imp, platform_admin_name: decoded.imp_name || null }
+        : null,
     });
   }
 
@@ -186,10 +209,12 @@ async function getSessionContext(req, res) {
     return res.status(403).json({ error: 'Token tenant mismatch' });
   }
 
-  const [permissions, roles, services] = await Promise.all([
+  const [permissions, roles, services, pendingPolicies, features] = await Promise.all([
     getUserPermissions(employee.id, 'employee', employee.tenant_id),
     loadTenantRoleNames(employee.id, 'employee', employee.tenant_id),
     loadServices(employee.tenant_id),
+    loadPendingPolicies(employee.id, employee.tenant_id),
+    getTenantFeatures(employee.tenant_id),
   ]);
 
   const blocked = employee.tenant_status !== 'active';
@@ -206,6 +231,8 @@ async function getSessionContext(req, res) {
     roles,
     permissions: [...permissions],
     services,
+    features,
+    policies: { pending_acknowledgements: pendingPolicies },
     landing: employeeLanding(employee),
     access: { blocked, reason: blocked ? 'TENANT_INACTIVE' : null },
   });

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/context/AuthContext';
 import { useAdminAuth } from '../../../shared/context/AdminAuthContext';
+import { useSession } from '../../../shared/context/SessionContext';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -15,7 +16,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login: empLogin } = useAuth();
   const { login: adminLogin } = useAdminAuth();
+  const { refresh: refreshSessionContext } = useSession();
   const navigate = useNavigate();
+
+  const goToLanding = async (fallback) => {
+    const ctx = await refreshSessionContext();
+    if (ctx?.access?.blocked) {
+      navigate('/account-status', { replace: true });
+      return;
+    }
+    navigate(ctx?.landing || fallback, { replace: true });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,12 +35,8 @@ export default function Login() {
     try {
       // Try admin login first (for admin_users accounts)
       try {
-        const adminData = await adminLogin(username, password);
-        if (adminData?.admin?.must_change_password) {
-          navigate('/admin/change-password', { replace: true });
-        } else {
-          navigate('/admin/settings', { replace: true });
-        }
+        await adminLogin(username, password);
+        await goToLanding('/admin/settings');
         return;
       } catch {
         // Not an admin_users account, try employee login
@@ -39,12 +46,8 @@ export default function Login() {
       if (empData?.employee?.role === 'admin') {
         // Employee with admin role needs admin token for admin panel
         try {
-          const adminData = await adminLogin(username, password);
-          if (adminData?.admin?.must_change_password) {
-            navigate('/admin/change-password', { replace: true });
-          } else {
-            navigate('/admin/settings', { replace: true });
-          }
+          await adminLogin(username, password);
+          await goToLanding('/admin/settings');
           return;
         } catch {
           // Admin login failed, redirect to admin login page
@@ -52,10 +55,10 @@ export default function Login() {
           return;
         }
       }
-      navigate('/dashboard', { replace: true });
+      await goToLanding('/dashboard');
     } catch (empErr) {
       const msg = empErr.response?.data;
-      setError(msg?.error || 'Login failed');
+      setError(msg?.error || empErr.message || 'Login failed');
     } finally {
       setLoading(false);
     }
