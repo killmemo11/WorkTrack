@@ -13,10 +13,6 @@ const INDUSTRIES = [
   'Non-Profit', 'Other',
 ];
 
-const COMPANY_SIZES = [
-  '1-10', '11-50', '51-200', '201-500', '501-1000', '1000+',
-];
-
 export default function TenantRegister() {
   const [plans, setPlans] = useState([]);
   const [paymentInfo, setPaymentInfo] = useState(null);
@@ -67,7 +63,11 @@ export default function TenantRegister() {
   const validateStep1 = () => {
     if (!form.company_name.trim()) { setError('Company name is required'); return false; }
     if (!form.industry) { setError('Please select your industry'); return false; }
-    if (!form.employee_count) { setError('Please select company size'); return false; }
+    const employeeCount = Number(form.employee_count);
+    if (!Number.isInteger(employeeCount) || employeeCount < 1 || employeeCount > 50000) {
+      setError('Please enter a whole number of employees between 1 and 50,000');
+      return false;
+    }
     setError('');
     return true;
   };
@@ -312,14 +312,8 @@ export default function TenantRegister() {
       </div>
       <div className="tr-row-2">
         <div className="tr-field">
-          <label className="tr-label">Company Size *</label>
-          <select value={form.employee_count} onChange={e => handleChange('employee_count', e.target.value)} className="login-field-input">
-            <option value="">Select size</option>
-            {COMPANY_SIZES.map(s => {
-              const num = parseInt(s);
-              return <option key={s} value={num}>{s} employees</option>;
-            })}
-          </select>
+          <label htmlFor="employee-count" className="tr-label">Number of Employees *</label>
+          <input id="employee-count" type="number" min="1" max="50000" step="1" inputMode="numeric" required placeholder="e.g. 50" value={form.employee_count} onChange={e => handleChange('employee_count', e.target.value)} className="login-field-input" />
         </div>
         <div className="tr-field">
           <label className="tr-label">Website</label>
