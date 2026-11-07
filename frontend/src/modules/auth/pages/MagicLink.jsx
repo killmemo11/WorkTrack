@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import Icon from '../../../shared/components/Icon';
 
 export default function MagicLinkSetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +40,10 @@ export default function MagicLinkSetPassword() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(true);
-        setTimeout(() => navigate('/admin'), 1500);
+        // Full reload (not SPA navigate) so AdminAuthProvider re-mounts on an
+        // admin path and probes /auth/me; otherwise admin stays null and
+        // AdminRoute bounces the freshly-activated user back to /login.
+        setTimeout(() => { window.location.href = '/admin'; }, 1500);
       } else {
         setError(data.error || 'Failed to set password');
       }

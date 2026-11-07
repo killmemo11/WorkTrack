@@ -23,8 +23,8 @@ export default function ChangePassword() {
       setError('All fields are required');
       return false;
     }
-    if (newPassword.length < 10) {
-      setError('Password must be at least 10 characters');
+    if (newPassword.length < 12) {
+      setError('Password must be at least 12 characters');
       return false;
     }
     if (newPassword === currentPassword) {
@@ -97,7 +97,7 @@ export default function ChangePassword() {
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 10 characters"
+                placeholder="At least 12 characters"
                 required
                 autoComplete="new-password"
                 disabled={loading || success}

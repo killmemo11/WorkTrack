@@ -404,7 +404,7 @@ async function listTenantRequests(req, res) {
   let params = [];
 
   if (status) {
-    where.push('status = ?');
+    where.push('tr.status = ?');
     params.push(status);
   }
 
@@ -421,7 +421,7 @@ async function listTenantRequests(req, res) {
   );
 
   const [countRows] = await pool.query(
-    `SELECT COUNT(*) as total FROM tenant_requests ${whereClause}`,
+    `SELECT COUNT(*) as total FROM tenant_requests tr ${whereClause}`,
     params
   );
 

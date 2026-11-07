@@ -50,7 +50,7 @@ export default function PlatformLayout() {
 
   const roles = platformAdmin?.roles || [];
   const permissions = platformAdmin?.permissions || [];
-  const allow = (permKey) => roles.includes('owner') || permissions.length === 0 || permissions.includes(permKey);
+  const allow = (permKey) => roles.includes('owner') || permissions.includes(permKey);
   const ROLE_LABELS = { owner: 'Platform Owner', marketing: 'Marketing', tech: 'Technical Support', dev: 'Developer' };
   const roleLabel = ROLE_LABELS[roles[0]] || 'Platform';
 

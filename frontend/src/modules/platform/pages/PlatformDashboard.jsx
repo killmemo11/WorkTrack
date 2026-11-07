@@ -14,12 +14,14 @@ export default function PlatformDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [statsRes, activityRes] = await Promise.all([
+      // allSettled, not all: /activity needs platform.audit.view, which sales
+      // (marketing) staff lack. A 403 there must not wipe the /stats cards.
+      const [statsRes, activityRes] = await Promise.allSettled([
         platformApi.get('/stats'),
         platformApi.get('/activity'),
       ]);
-      setStats(statsRes.data);
-      setRecentActivity(activityRes.data);
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+      if (activityRes.status === 'fulfilled') setRecentActivity(activityRes.value.data);
     } catch (err) {
       console.error('Failed to fetch platform stats:', err);
     } finally {

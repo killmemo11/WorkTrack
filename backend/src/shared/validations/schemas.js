@@ -546,11 +546,13 @@ const rejectHeadcountBody = Joi.object({
 }).options({ stripUnknown: true });
 
 // ── Platform: Approve Tenant Request ───────────────────────────
+// An empty body is valid: the UI quick-approve sends {} and the controller
+// defaults to the request's requested_plan and that plan's limits.
 const approveTenantRequestBody = Joi.object({
   plan: Joi.string().valid('trial', 'basic', 'professional', 'enterprise').allow('', null),
   max_employees: Joi.number().integer().min(1).max(50000).allow(null),
   trial_days: Joi.number().integer().min(1).max(365).allow(null),
-}).min(1).options({ stripUnknown: true });
+}).options({ stripUnknown: true });
 
 // ── Platform: Create Platform Admin ────────────────────────────
 const createPlatformAdminBody = Joi.object({

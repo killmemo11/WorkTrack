@@ -44,7 +44,10 @@ export function PlatformAuthProvider({ children }) {
       throw new Error(errData.error || 'Invalid credentials');
     }
     const data = await res.json();
-    setPlatformAdmin(data.platformAdmin);
+    // The login payload omits roles/permissions; fetch the full profile so the
+    // nav and permission gates are correct immediately, without a page reload.
+    const me = await checkAuth();
+    setPlatformAdmin(me || data.platformAdmin);
     return data;
   };
 

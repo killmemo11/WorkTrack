@@ -256,6 +256,67 @@ test('approving a request pins the tenant price version and wins the lead', asyn
   assert.deepEqual(crmUpdate.params, [55, '1', 5, 44]);
 });
 
+test('approving with an empty body defaults to the requested plan', async () => {
+  const request = {
+    id: 2,
+    company_name: 'Beta LLC',
+    contact_email: 'admin@beta.com',
+    contact_phone: '01000000001',
+    requested_plan: 'trial',
+  };
+  installQueryMock((sql) => {
+    if (sql.includes('FROM tenant_requests WHERE id = ? AND status = "pending"')) return [request];
+    if (sql.includes('FROM subscription_plans WHERE slug = ?')) {
+      return [{ id: 1, slug: 'trial', max_employees: 25, trial_days: 14 }];
+    }
+    if (sql.includes('FROM plan_price_versions WHERE plan_id = ?')) return [{ id: 11 }];
+    return [];
+  });
+  const connCalls = installConnMock((sql) => {
+    if (sql.includes('INSERT INTO tenants')) return { insertId: 77 };
+    if (sql.includes('INSERT INTO admin_users')) return { insertId: 88 };
+    return [];
+  });
+  const res = mockRes();
+
+  // The UI quick-approve sends {}; it must not be rejected by the body schema.
+  await platform.approveTenantRequest(
+    { params: { id: '2' }, body: {}, platformAdmin: { id: 5, email: 'ops@worktrack.test' } },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  const tenantInsert = connCalls.find((c) => c.sql.includes('INSERT INTO tenants'));
+  assert.ok(tenantInsert, 'expected a tenant insert');
+  assert.equal(tenantInsert.params[4], 'trial');
+  assert.equal(tenantInsert.params[6], 25);
+});
+
+test('filtering tenant requests by status qualifies the column in both queries', async () => {
+  const calls = installQueryMock((sql) => {
+    if (sql.includes('SELECT COUNT(*)')) return [{ total: 1 }];
+    if (sql.includes('FROM tenant_requests tr')) return [{ id: 1, company_name: 'Acme', status: 'pending' }];
+    return [];
+  });
+  const res = mockRes();
+
+  await platform.listTenantRequests({ query: { status: 'pending', page: '1', limit: '20' } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.total, 1);
+  const rowsQuery = calls.find((c) => c.sql.includes('LEFT JOIN tenants t'));
+  const countQuery = calls.find((c) => c.sql.includes('SELECT COUNT(*)'));
+  assert.ok(rowsQuery, 'expected the rows query');
+  assert.ok(countQuery, 'expected the count query');
+  // Both tenants and tenant_requests have a status column; the filter must be
+  // qualified, and the count query needs the same alias for the clause to parse.
+  assert.match(rowsQuery.sql, /tr\.status = \?/);
+  assert.match(countQuery.sql, /FROM tenant_requests tr/);
+  assert.match(countQuery.sql, /tr\.status = \?/);
+  assert.deepEqual(rowsQuery.params, ['pending', 20, 0]);
+  assert.deepEqual(countQuery.params, ['pending']);
+});
+
 test('moving a tenant to a price version pins it and records the change', async () => {
   const calls = installQueryMock((sql) => {
     if (sql.includes('SELECT id, name, plan, plan_price_version_id FROM tenants')) {
